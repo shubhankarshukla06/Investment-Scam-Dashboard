@@ -2188,7 +2188,7 @@ def update_social_accounts():
                         const sc = change.value.toLowerCase().replace(/ /g, '-');
                         displayEl.innerHTML = '<span class="status-badge status-' + sc + '">' + change.value + '</span>';
                         const row = td.closest('tr');
-                        row.className = row.className.replace(/row-\S+/g, '').trim();
+                        row.className = row.className.replace(/row-\\S+/g, '').trim();
                         row.classList.add('row-' + sc);
                         // If permanent block, animate row out
                         if (change.value === 'Permanent Block') {
