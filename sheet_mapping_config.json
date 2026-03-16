@@ -1,0 +1,243 @@
+{
+  "sheet_mappings": {
+    "upi": {
+      "name": "UPI (AML)",
+      "required_headers": [
+        "UPI",
+        "Screenshot",
+        "Website URL",
+        "Payment Gateway URL",
+        "Transaction Method"
+      ],
+      "column_mapping": {
+        "UPI": [
+          "upi_vpa",
+          "upi_url"
+        ],
+        "Screenshot": [
+          "screenshot_case_report_link",
+          "screenshot"
+        ],
+        "Website URL": [
+          "website_url"
+        ],
+        "Payment Gateway URL": [
+          "payment_gateway_url"
+        ],
+        "Transaction Method": [
+          "transaction_method"
+        ]
+      },
+      "fixed_columns": {
+        "customer": "Mystery Shopping",
+        "package_name": "com.mysteryshopping",
+        "channel_name": "Organic Search",
+        "status": "Active",
+        "priority": "High",
+        "flag": "1",
+        "cessation": "Open",
+        "reviewed_status": "1",
+        "reported_earlier": "No",
+        "approvd_status": "1",
+        "feature_type": "BS Money Laundering"
+      },
+      "conditional_columns": {
+        "platform": "NA",
+        "bank_account_number": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "ifsc_code": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "bank_branch_details": "NA",
+        "neft_imps": "NA",
+        "web_contact_no": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "upi_bank_account_wallet": {
+          "condition": "upi_check",
+          "true_value": "UPI",
+          "false_value": "Bank Account"
+        }
+      }
+    },
+    "investment": {
+      "name": "Investment Scam",
+      "required_headers": [
+        "UPI",
+        "Account Holder Name",
+        "Bank Account Number",
+        "IFSC Code",
+        "Website URL",
+        "Payment Gateway URL",
+        "Transaction Method",
+        "Screenshot",
+        "Contact Number",
+        "Scam Type"
+      ],
+      "column_mapping": {
+        "UPI": [
+          "upi_vpa",
+          "upi_url"
+        ],
+        "Account Holder Name": [
+          "ac_holder_name",
+          "customer"
+        ],
+        "Bank Account Number": [
+          "bank_account_number"
+        ],
+        "IFSC Code": [
+          "ifsc_code"
+        ],
+        "Website URL": [
+          "website_url"
+        ],
+        "Payment Gateway URL": [
+          "payment_gateway_url"
+        ],
+        "Transaction Method": [
+          "transaction_method"
+        ],
+        "Screenshot": [
+          "screenshot",
+          "screenshot_case_report_link"
+        ],
+        "Contact Number": [
+          "web_contact_no"
+        ],
+        "Scam Type": [
+          "scam_type",
+          "category_of_website"
+        ]
+      },
+      "fixed_columns": {
+        "customer": "Mystery Shopping",
+        "package_name": "com.mysteryshopping",
+        "channel_name": "Organic Search",
+        "status": "Active",
+        "priority": "High",
+        "flag": "1",
+        "cessation": "Open",
+        "reviewed_status": "1",
+        "reported_earlier": "No",
+        "approvd_status": "1",
+        "feature_type": "BS Investment Scam"
+      },
+      "conditional_columns": {
+        "platform": "NA",
+        "ifsc_code": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "bank_branch_details": "NA",
+        "neft_imps": "NA",
+        "web_contact_no": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "upi_bank_account_wallet": {
+          "condition": "upi_check",
+          "true_value": "UPI",
+          "false_value": "Bank Account"
+        }
+      }
+    },
+    "messaging": {
+      "name": "Messaging Channel",
+      "required_headers": [
+        "UPI",
+        "Account Holder Name",
+        "Bank Account Number",
+        "IFSC Code",
+        "Website URL",
+        "Screenshot",
+        "Transaction Method",
+        "Category"
+      ],
+      "column_mapping": {
+        "UPI": [
+          "upi_vpa"
+        ],
+        "Account Holder Name": [
+          "ac_holder_name"
+        ],
+        "Bank Account Number": [
+          "bank_account_number"
+        ],
+        "IFSC Code": [
+          "ifsc_code"
+        ],
+        "Website URL": [
+          "website_url"
+        ],
+        "Screenshot": [
+          "screenshot_case_report_link"
+        ],
+        "Transaction Method": [
+          "transaction_method"
+        ],
+        "Category": [
+          "scam_type",
+          "category_of_website",
+          "platform"
+        ]
+      },
+      "fixed_columns": {
+        "customer": "Mystery Shopping",
+        "package_name": "com.mysteryshopping",
+        "channel_name": "Messaging Channel Platforms",
+        "status": "Active",
+        "priority": "High",
+        "flag": "1",
+        "cessation": "Open",
+        "reviewed_status": "1",
+        "reported_earlier": "No",
+        "approvd_status": "1",
+        "feature_type": "BS Money Laundering"
+      },
+      "conditional_columns": {
+        "platform": "NA",
+        "ifsc_code": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "bank_branch_details": "NA",
+        "neft_imps": "NA",
+        "web_contact_no": {
+          "condition": "if_exists",
+          "default": "NA"
+        },
+        "upi_bank_account_wallet": {
+          "condition": "upi_check",
+          "true_value": "UPI",
+          "false_value": "Bank Account"
+        }
+      }
+    }
+  },
+  "global_settings": {
+    "date_format": "%Y-%m-%d",
+    "na_values": [
+      "NA",
+      "N/A",
+      "",
+      "null",
+      "NULL",
+      "None"
+    ],
+    "today_date_column": "inserted_date",
+    "allowed_extensions": [
+      ".csv",
+      ".xlsx",
+      ".xls",
+      ".xlsm",
+      ".xlsb",
+      ".ods"
+    ],
+    "max_file_size_mb": 50
+  }
+}

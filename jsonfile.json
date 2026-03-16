@@ -1,0 +1,51 @@
+{
+  "sheet_mappings": {
+    "upi": {
+      "name": "UPI (AML)",
+      "required_headers": ["UPI", "Screenshot", "Website URL", "Payment Gateway URL", "Transaction Method"],
+      "column_mapping": {
+        "UPI": ["upi_vpa", "upi"],
+        "Screenshot": ["screenshot", "image", "proof"],
+        "Website URL": ["website_url", "url", "website"],
+        "Payment Gateway URL": ["payment_gateway_url", "payment_url", "gateway"],
+        "Transaction Method": ["transaction_method", "payment_method", "method"]
+      }
+    },
+    "investment": {
+      "name": "Investment Scam",
+      "required_headers": ["UPI", "Account Holder Name", "Bank Account Number", "IFSC Code", "Website URL", "Payment Gateway URL", "Transaction Method", "Screenshot", "Contact Number", "Scam Type"],
+      "column_mapping": {
+        "UPI": ["upi_vpa", "upi"],
+        "Account Holder Name": ["ac_holder_name", "account_holder", "holder_name", "customer"],
+        "Bank Account Number": ["bank_account_number", "account_number", "acc_no"],
+        "IFSC Code": ["ifsc_code", "ifsc", "bank_code"],
+        "Website URL": ["website_url", "url", "website"],
+        "Payment Gateway URL": ["payment_gateway_url", "payment_url", "gateway"],
+        "Transaction Method": ["transaction_method", "payment_method", "method"],
+        "Screenshot": ["screenshot", "image", "proof"],
+        "Contact Number": ["web_contact_no", "contact_number", "phone", "mobile"],
+        "Scam Type": ["scam_type", "type", "category"]
+      }
+    },
+    "messaging": {
+      "name": "Messaging Channel",
+      "required_headers": ["UPI", "Account Holder Name", "Bank Account Number", "IFSC Code", "Website URL", "Screenshot", "Transaction Method", "Category"],
+      "column_mapping": {
+        "UPI": ["upi_vpa", "upi"],
+        "Account Holder Name": ["ac_holder_name", "account_holder", "holder_name"],
+        "Bank Account Number": ["bank_account_number", "account_number", "acc_no"],
+        "IFSC Code": ["ifsc_code", "ifsc", "bank_code"],
+        "Website URL": ["website_url", "url", "website"],
+        "Screenshot": ["screenshot", "image", "proof"],
+        "Transaction Method": ["transaction_method", "payment_method", "method"],
+        "Category": ["category_of_website", "category", "type"]
+      }
+    }
+  },
+  "global_settings": {
+    "date_format": "%Y-%m-%d",
+    "na_values": ["NA", "N/A", "", "null", "NULL", "None", "nan", "NaN", "undefined"],
+    "allowed_extensions": [".csv", ".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"],
+    "max_file_size_mb": 50
+  }
+}

@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Social Media Accounts</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+        body { background: #f5f7fa; color: #333; min-height: 100vh; padding-bottom: 60px; }
+
+        .fixed-header {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+            background: #f5f7fa; padding: 12px 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb;
+        }
+
+        .header {
+            background: white; border-radius: 8px; padding: 12px 15px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .logo h1 { font-size: 17px; color: #2c3e50; }
+        .logo p { color: #7f8c8d; font-size: 12px; margin-top: 2px; }
+
+        .header-actions { display: flex; gap: 8px; align-items: center; }
+
+        .btn {
+            padding: 6px 14px; border: none; border-radius: 5px; font-weight: 600;
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; transition: all 0.2s; height: 34px; text-decoration: none;
+        }
+        .btn-back { background: #6c757d; color: white; }
+        .btn-back:hover { background: #5a6268; }
+        .btn-edit { background: #f39c12; color: white; }
+        .btn-edit:hover { background: #e67e22; }
+        .btn-edit.active { background: #e67e22; box-shadow: 0 0 0 3px rgba(243,156,18,0.3); }
+
+        .container { padding: 15px; padding-top: 90px; }
+
+        /* Filter bar */
+        .filters {
+            background: white; border-radius: 8px; padding: 12px 15px;
+            margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+        }
+
+        .filters-top {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .filters-top h2 { font-size: 14px; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
+
+        .edit-mode-info {
+            font-size: 12px; color: #e67e22; font-weight: 600;
+            display: none; align-items: center; gap: 6px;
+        }
+        .edit-mode-info.show { display: flex; }
+
+        .filters-row {
+            display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+        }
+
+        .filter-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #2c3e50; }
+
+        .filter-group input, .filter-group select {
+            padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px;
+            font-size: 12px; background: white; height: 34px;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+            outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
+        }
+
+        /* Table */
+        .table-container {
+            background: white; border-radius: 8px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+            overflow-x: auto; overflow-y: auto;
+            max-height: calc(100vh - 240px);
+        }
+
+        table { width: 100%; border-collapse: collapse; min-width: 900px; }
+
+        th {
+            background: #f8f9fa; padding: 9px 10px; text-align: left;
+            font-weight: 600; color: #2c3e50; font-size: 12px;
+            border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        th.checkbox-col { width: 40px; text-align: center; }
+        /* Checkboxes hidden by default — shown only in edit mode */
+        .checkbox-col { display: none !important; }
+        body.edit-mode-on .checkbox-col { display: table-cell !important; }
+
+        td {
+            padding: 8px 10px; border-bottom: 1px solid #f0f0f0;
+            font-size: 12px; vertical-align: middle;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        tr:hover td { background: #fafbfc; }
+
+        /* Row color classes */
+        tr.row-active td { background-color: #eaf7ee !important; }
+        tr.row-active:hover td { background-color: #d4edda !important; }
+        tr.row-block td, tr.row-blocked td { background-color: #fdf2f2 !important; }
+        tr.row-block:hover td, tr.row-blocked:hover td { background-color: #fde8e8 !important; }
+        tr.row-permanent-block td { background-color: #fddede !important; }
+        tr.row-permanent-block:hover td { background-color: #fccaca !important; }
+        tr.row-restricted td { background-color: #fffbf0 !important; }
+        tr.row-restricted:hover td { background-color: #fff3cd !important; }
+        tr.row-frozen td { background-color: #f0f8fd !important; }
+        tr.row-frozen:hover td { background-color: #d1ecf1 !important; }
+
+        /* Checkbox */
+        td.checkbox-col { text-align: center; }
+        .row-checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: #3498db; }
+
+        /* Status badge */
+        .status-badge {
+            padding: 2px 8px; border-radius: 12px; font-size: 11px;
+            font-weight: 600; white-space: nowrap; display: inline-block;
+        }
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-block, .status-blocked { background: #fee2e2; color: #991b1b; }
+        .status-permanent-block { background: #fca5a5; color: #7f1d1d; }
+        .status-restricted { background: #fef3c7; color: #92400e; }
+        .status-frozen { background: #dbeafe; color: #1e40af; }
+
+        /* Editable cell */
+        td.editable {
+            position: relative;
+        }
+
+        td.editable .cell-display {
+            display: block; cursor: default;
+            padding: 2px 4px; border-radius: 3px;
+            min-height: 24px; line-height: 1.4;
+        }
+
+        /* Edit mode - cell becomes editable */
+        td.editable.edit-active .cell-display {
+            display: none;
+        }
+
+        td.editable .cell-input {
+            display: none;
+            width: 100%; padding: 4px 6px;
+            border: 2px solid #3498db; border-radius: 4px;
+            font-size: 12px; background: #fff;
+            outline: none;
+        }
+
+        td.editable .cell-select {
+            display: none;
+            width: 100%; padding: 4px 6px;
+            border: 2px solid #3498db; border-radius: 4px;
+            font-size: 12px; background: #fff;
+            outline: none;
+        }
+
+        td.editable.edit-active .cell-input,
+        td.editable.edit-active .cell-select {
+            display: block;
+        }
+
+        td.editable.saving { opacity: 0.6; }
+
+        td.editable.saved .cell-display {
+            background: #d1fae5; transition: background 1s;
+        }
+
+        td.editable.error-state .cell-display {
+            background: #fee2e2;
+        }
+
+        /* Highlight edited row */
+        tr.row-selected td { outline: 2px solid #3498db; outline-offset: -1px; }
+
+        /* Pagination */
+        .pagination {
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+            margin-top: 12px; padding: 10px; background: white; border-radius: 8px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+        }
+
+        .pagination-btn {
+            padding: 5px 12px; background: #3498db; color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-size: 12px;
+            display: inline-flex; align-items: center; gap: 4px; height: 30px;
+        }
+        .pagination-btn:hover:not(:disabled) { background: #2980b9; }
+        .pagination-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .pagination-info { color: #7f8c8d; font-size: 12px; }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 70px; right: 15px;
+            padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+            color: white; z-index: 3000; animation: fadeUp 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .toast.success { background: #2ecc71; }
+        .toast.error { background: #e74c3c; }
+        .toast.info { background: #3498db; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Loading overlay */
+        .loading-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.8); z-index: 2000;
+            justify-content: center; align-items: center;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3; border-top: 3px solid #3498db;
+            border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Confirmation Modal */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 2000;
+            justify-content: center; align-items: center;
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal-box {
+            background: white; border-radius: 12px; padding: 30px; max-width: 400px;
+            width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-icon { font-size: 48px; color: #e74c3c; margin-bottom: 15px; }
+        .modal-box h3 { font-size: 18px; color: #2c3e50; margin-bottom: 10px; }
+        .modal-box p { font-size: 14px; color: #7f8c8d; margin-bottom: 5px; line-height: 1.5; }
+        .modal-box .warn { font-size: 12px; color: #e74c3c; margin-top: 8px; }
+
+        .modal-buttons { display: flex; justify-content: center; gap: 12px; margin-top: 24px; }
+
+        .modal-btn {
+            padding: 9px 22px; border: none; border-radius: 6px; font-size: 13px;
+            font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .modal-btn.confirm { background: #e74c3c; color: white; }
+        .modal-btn.confirm:hover { background: #c0392b; }
+        .modal-btn.cancel { background: #f1f3f4; color: #2c3e50; border: 1px solid #dee2e6; }
+        .modal-btn.cancel:hover { background: #e2e6ea; }
+
+        .footer {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #2c3e50; color: white; padding: 8px 15px;
+            text-align: right; font-size: 12px; font-weight: bold;
+            border-top: 2px solid #3498db;
+        }
+        .footer span { color: #3498db; }
+
+        .empty-state { text-align: center; padding: 40px; color: #7f8c8d; }
+        .empty-state i { font-size: 32px; color: #ddd; display: block; margin-bottom: 10px; }
+
+        @media (max-width: 768px) {
+            .container { padding-top: 110px; }
+            .header { flex-direction: column; gap: 8px; }
+            .filters-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<!-- Permanent Block Confirmation Modal -->
+<div class="modal-overlay" id="permBlockModal">
+    <div class="modal-box">
+        <div class="modal-icon"><i class="fas fa-ban"></i></div>
+        <h3>Permanent Block?</h3>
+        <p>Are you sure you want to permanently block this account?</p>
+        <p class="warn"><i class="fas fa-exclamation-triangle"></i> This will move the account to Permanent Block Accounts.</p>
+        <div class="modal-buttons">
+            <button class="modal-btn cancel" onclick="cancelPermBlock()"><i class="fas fa-times"></i> Cancel</button>
+            <button class="modal-btn confirm" onclick="confirmPermBlock()"><i class="fas fa-check"></i> Yes, Block</button>
+        </div>
+    </div>
+</div>
+
+<div class="fixed-header">
+    <div class="header">
+        <div class="logo">
+            <h1><i class="fas fa-edit" style="color:#3498db;"></i> Update Social Media Accounts</h1>
+            <p>Check a row to enable editing &bull; Press Enter to save &bull; Total: <strong>{{ total_rows }}</strong> records</p>
+        </div>
+        <div class="header-actions">
+            <div class="edit-mode-info" id="editModeInfo">
+                <i class="fas fa-pencil-alt"></i> Edit Mode Active — Press Enter to save each field
+            </div>
+            <button class="btn btn-edit" id="editDataBtn" onclick="toggleEditMode()">
+                <i class="fas fa-edit"></i> Edit Data
+            </button>
+            <a href="/?page=social" class="btn btn-back">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="filters">
+        <div class="filters-top">
+            <h2><i class="fas fa-filter"></i> Filter Records</h2>
+            <span id="selectedInfo" style="font-size:12px;color:#3498db;font-weight:600;display:none;">
+                <i class="fas fa-check-square"></i> <span id="selectedCount">0</span> row(s) selected
+            </span>
+        </div>
+        <form method="GET" action="/update-social-accounts" class="filters-row" id="filterForm">
+            <div class="filter-group">
+                <label><i class="fas fa-search"></i> Search</label>
+                <input type="text" name="search" value="{{ search }}"
+                       placeholder="Search... (Enter)"
+                       onkeydown="if(event.keyCode===13){event.preventDefault();this.form.submit();}">
+            </div>
+            <div class="filter-group">
+                <label><i class="fas fa-mobile-alt"></i> Platform</label>
+                <select name="platform" onchange="this.form.submit()">
+                    <option value="">All Platforms</option>
+                    {% for p in social_platform_options %}
+                    <option value="{{ p }}" {% if platform == p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table id="updateTable">
+            <thead>
+                <tr>
+                    <th class="checkbox-col">
+                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll(this)" title="Select All">
+                    </th>
+                    <th>ID</th>
+                    <th>Login User</th>
+                    <th>Number</th>
+                    <th>Login Device</th>
+                    <th>Account Status</th>
+                    <th>Review Status</th>
+                    <th>Blocked Date</th>
+                    <th>Unblocked Date</th>
+                    <th>Recharge Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                {% for item in items %}
+                {% set s = (item.account_status or 'active')|lower|replace(' ', '-') %}
+                <tr id="row-{{ item.id }}"
+                    class="row-{{ s }}"
+                    data-id="{{ item.id }}"
+                    data-platform="{{ item.platform or '' }}"
+                    data-account-status="{{ item.account_status or 'Active' }}"
+                    data-account-create-date="{{ item.account_create_date or '' }}"
+                    data-full-name="{{ item.full_name or '' }}">
+
+                    <td class="checkbox-col">
+                        <input type="checkbox" class="row-checkbox" data-id="{{ item.id }}"
+                               onchange="onRowCheckboxChange(this)">
+                    </td>
+                    <td style="color:#7f8c8d;font-size:11px;">#{{ item.id }}</td>
+
+                    <!-- Login User -->
+                    <td class="editable" data-field="login_user" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.login_user or 'N/A' }}</span>
+                        <input class="cell-input" type="text" value="{{ item.login_user or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+
+                    <!-- Number -->
+                    <td class="editable" data-field="number" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.number or 'N/A' }}</span>
+                        <input class="cell-input" type="text" value="{{ item.number or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+
+                    <!-- Login Device -->
+                    <td class="editable" data-field="login_device" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.login_device or 'N/A' }}</span>
+                        <input class="cell-input" type="text" value="{{ item.login_device or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+
+                    <!-- Account Status (dropdown) -->
+                    <td class="editable" data-field="account_status" data-id="{{ item.id }}">
+                        {% set s_val = item.account_status or 'Active' %}
+                        {% set sc = s_val|lower|replace(' ', '-')|replace('block', 'blocked')|replace('permanent-blocked','permanent-block') %}
+                        <span class="cell-display">
+                            <span class="status-badge status-{{ sc }}">{{ s_val }}</span>
+                        </span>
+                        <select class="cell-select"
+                                onchange="handleStatusChange(event, this)"
+                                onblur="cancelCellEdit(this)">
+                            {% set platform = item.platform or '' %}
+                            {% if platform in platform_account_status %}
+                                {% for opt in platform_account_status[platform] %}
+                                <option value="{{ opt }}" {% if opt == s_val %}selected{% endif %}>{{ opt }}</option>
+                                {% endfor %}
+                            {% else %}
+                                {% for opt in ['Active', 'Block', 'Restricted', 'Frozen', 'Permanent Block'] %}
+                                <option value="{{ opt }}" {% if opt == s_val %}selected{% endif %}>{{ opt }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                    </td>
+
+                    <!-- Review Status (dropdown) -->
+                    <td class="editable" data-field="review_status" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.review_status or 'NA' }}</span>
+                        <select class="cell-select"
+                                onchange="handleSelectChange(event, this)"
+                                onblur="cancelCellEdit(this)">
+                            {% for opt in ['NA', 'Send', 'Appeal Submit', 'Video Verification Done'] %}
+                            <option value="{{ opt }}" {% if opt == (item.review_status or 'NA') %}selected{% endif %}>{{ opt }}</option>
+                            {% endfor %}
+                        </select>
+                    </td>
+
+                    <!-- Blocked Date -->
+                    <td class="editable" data-field="blocked_date" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.blocked_date or 'N/A' }}</span>
+                        <input class="cell-input" type="date" value="{{ item.blocked_date or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+
+                    <!-- Unblocked Date -->
+                    <td class="editable" data-field="unblock_date" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.unblock_date or 'N/A' }}</span>
+                        <input class="cell-input" type="date" value="{{ item.unblock_date or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+
+                    <!-- Recharge Date -->
+                    <td class="editable" data-field="recharge_date" data-id="{{ item.id }}">
+                        <span class="cell-display">{{ item.recharge_date or 'N/A' }}</span>
+                        <input class="cell-input" type="date" value="{{ item.recharge_date or '' }}"
+                               onkeydown="handleCellKeydown(event, this)"
+                               onblur="cancelCellEdit(this)">
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="10">
+                        <div class="empty-state">
+                            <i class="fas fa-users"></i>
+                            No records found. Try adjusting filters.
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        <button class="pagination-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
+            <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span class="pagination-info">Page {{ page_num }} of {{ total_pages }} &bull; {{ total_rows }} total</span>
+        <button class="pagination-btn" onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<div class="footer">Devloped by <span>Shubhankar Shukla</span></div>
+
+<script>
+    let editModeActive = false;
+    let selectedRows = new Set();
+
+    // Pending perm-block state
+    let pendingPermBlock = { td: null, selectEl: null, oldValue: null, rowId: null };
+
+    // ─── Edit Mode Toggle ───────────────────────────────────────
+    function toggleEditMode() {
+        editModeActive = !editModeActive;
+        const btn = document.getElementById('editDataBtn');
+        const info = document.getElementById('editModeInfo');
+
+        if (editModeActive) {
+            // Show checkboxes and enable edit UI
+            document.body.classList.add('edit-mode-on');
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="fas fa-times"></i> Exit Edit';
+            info.classList.add('show');
+        } else {
+            // Hide checkboxes, uncheck all, deactivate all cells
+            document.body.classList.remove('edit-mode-on');
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="fas fa-edit"></i> Edit Data';
+            info.classList.remove('show');
+            // Uncheck all and deactivate
+            document.querySelectorAll('.row-checkbox').forEach(c => { c.checked = false; });
+            selectedRows.clear();
+            document.querySelectorAll('td.editable.edit-active').forEach(td => deactivateCell(td));
+            document.querySelectorAll('tr.row-selected').forEach(r => r.classList.remove('row-selected'));
+            updateSelectedInfo();
+        }
+    }
+
+    // ─── Checkbox handling ──────────────────────────────────────
+    function toggleSelectAll(cb) {
+        document.querySelectorAll('.row-checkbox').forEach(c => {
+            c.checked = cb.checked;
+            const id = parseInt(c.dataset.id);
+            if (cb.checked) selectedRows.add(id);
+            else selectedRows.delete(id);
+            const row = document.getElementById(`row-${id}`);
+            if (row) {
+                row.classList.toggle('row-selected', cb.checked);
+                setRowEditState(row, cb.checked);
+            }
+        });
+        updateSelectedInfo();
+    }
+
+    function onRowCheckboxChange(cb) {
+        const id = parseInt(cb.dataset.id);
+        const row = document.getElementById(`row-${id}`);
+
+        if (cb.checked) {
+            selectedRows.add(id);
+            row.classList.add('row-selected');
+            setRowEditState(row, true);
+        } else {
+            selectedRows.delete(id);
+            row.classList.remove('row-selected');
+            setRowEditState(row, false);
+        }
+        updateSelectedInfo();
+    }
+
+    function updateSelectedInfo() {
+        const info = document.getElementById('selectedInfo');
+        const cnt = document.getElementById('selectedCount');
+        if (selectedRows.size > 0) {
+            info.style.display = 'inline-flex';
+            cnt.textContent = selectedRows.size;
+        } else {
+            info.style.display = 'none';
+        }
+    }
+
+    // ─── Activate / Deactivate cell editing ─────────────────────
+    function setRowEditState(row, active) {
+        row.querySelectorAll('td.editable').forEach(td => {
+            if (active) activateCell(td);
+            else deactivateCell(td);
+        });
+    }
+
+    function activateCell(td) {
+        td.classList.add('edit-active');
+        const input = td.querySelector('.cell-input');
+        const select = td.querySelector('.cell-select');
+        if (input) input.removeAttribute('disabled');
+        if (select) select.removeAttribute('disabled');
+    }
+
+    function deactivateCell(td) {
+        td.classList.remove('edit-active', 'saving', 'saved', 'error-state');
+        const input = td.querySelector('.cell-input');
+        const select = td.querySelector('.cell-select');
+        if (input) { input.setAttribute('disabled', ''); }
+        if (select) { select.setAttribute('disabled', ''); }
+    }
+
+    // ─── Text/Date input: Enter = save, Escape = cancel ─────────
+    function handleCellKeydown(e, inputEl) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const td = inputEl.closest('td.editable');
+            saveCell(td, inputEl.value);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            cancelCellEdit(inputEl);
+        }
+    }
+
+    function cancelCellEdit(el) {
+        // Do nothing on blur — keep edit-active so user can still edit
+        // (blur fires when switching between cells in same row)
+    }
+
+    // ─── Select (non-status) change: save immediately ───────────
+    function handleSelectChange(e, selectEl) {
+        const td = selectEl.closest('td.editable');
+        saveCell(td, selectEl.value);
+    }
+
+    // ─── Account Status change: check for Permanent Block ───────
+    function handleStatusChange(e, selectEl) {
+        const newValue = selectEl.value;
+        const td = selectEl.closest('td.editable');
+        const rowId = td.dataset.id;
+
+        if (newValue === 'Permanent Block') {
+            // Store pending state
+            pendingPermBlock = {
+                td: td,
+                selectEl: selectEl,
+                oldValue: td.dataset.currentValue || td.querySelector('.cell-display').textContent.trim(),
+                rowId: rowId
+            };
+            // Show confirmation modal
+            document.getElementById('permBlockModal').classList.add('show');
+        } else {
+            saveCell(td, newValue);
+        }
+    }
+
+    function cancelPermBlock() {
+        document.getElementById('permBlockModal').classList.remove('show');
+        // Revert select to old value
+        if (pendingPermBlock.selectEl) {
+            pendingPermBlock.selectEl.value = pendingPermBlock.oldValue || 'Active';
+        }
+        pendingPermBlock = { td: null, selectEl: null, oldValue: null, rowId: null };
+    }
+
+    function confirmPermBlock() {
+        document.getElementById('permBlockModal').classList.remove('show');
+        if (pendingPermBlock.td) {
+            saveCellPermBlock(pendingPermBlock.td, 'Permanent Block', pendingPermBlock.rowId);
+        }
+        pendingPermBlock = { td: null, selectEl: null, oldValue: null, rowId: null };
+    }
+
+    // ─── Core save function ──────────────────────────────────────
+    function saveCell(td, newValue) {
+        const field = td.dataset.field;
+        const rowId = td.dataset.id;
+        const displayEl = td.querySelector('.cell-display');
+
+        td.classList.add('saving');
+        td.classList.remove('saved', 'error-state');
+
+        fetch('/save-social-field', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: rowId, field: field, value: newValue })
+        })
+        .then(r => r.json())
+        .then(data => {
+            td.classList.remove('saving');
+
+            if (data.success) {
+                // Update display
+                if (field === 'account_status') {
+                    const sc = newValue.toLowerCase().replace(/ /g, '-')
+                                       .replace('block', 'blocked')
+                                       .replace('permanent-blocked', 'permanent-block');
+                    displayEl.innerHTML = `<span class="status-badge status-${sc}">${newValue}</span>`;
+
+                    // Update row color
+                    const row = td.closest('tr');
+                    row.className = row.className.replace(/row-\S+/g, '').trim();
+                    row.classList.add(`row-${sc}`);
+                    row.dataset.accountStatus = newValue;
+                } else {
+                    displayEl.textContent = newValue || 'N/A';
+                }
+
+                td.dataset.currentValue = newValue;
+                td.classList.add('saved');
+                setTimeout(() => td.classList.remove('saved'), 2000);
+
+                showToast(`Saved!`, 'success');
+            } else {
+                td.classList.add('error-state');
+                showToast(`Error: ${data.error}`, 'error');
+                // Revert input value
+                const input = td.querySelector('.cell-input');
+                const select = td.querySelector('.cell-select');
+                if (input) input.value = displayEl.textContent.trim();
+                if (select) select.value = displayEl.textContent.trim();
+            }
+        })
+        .catch(err => {
+            td.classList.remove('saving');
+            td.classList.add('error-state');
+            showToast('Network error. Try again.', 'error');
+        });
+    }
+
+    // ─── Save Permanent Block - removes row after save ──────────
+    function saveCellPermBlock(td, newValue, rowId) {
+        const field = td.dataset.field;
+        const displayEl = td.querySelector('.cell-display');
+
+        td.classList.add('saving');
+        td.classList.remove('saved', 'error-state');
+
+        fetch('/save-social-field', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: rowId, field: field, value: newValue })
+        })
+        .then(r => r.json())
+        .then(data => {
+            td.classList.remove('saving');
+            if (data.success) {
+                // Show success message briefly, then remove the row
+                showToast('Permanent Block saved! Row moved to Permanent Block Accounts.', 'success');
+                const row = document.getElementById('row-' + rowId);
+                if (row) {
+                    // Animate row out
+                    row.style.transition = 'all 0.5s ease';
+                    row.style.background = '#fca5a5';
+                    row.style.opacity = '0.5';
+                    setTimeout(() => {
+                        row.style.height = row.offsetHeight + 'px';
+                        row.style.overflow = 'hidden';
+                        setTimeout(() => {
+                            row.style.height = '0';
+                            row.style.padding = '0';
+                            row.style.border = 'none';
+                            setTimeout(() => {
+                                row.remove();
+                                // Update total count display
+                                const totalEl = document.querySelector('.logo p strong');
+                                if (totalEl) {
+                                    const current = parseInt(totalEl.textContent) || 0;
+                                    if (current > 0) totalEl.textContent = current - 1;
+                                }
+                            }, 300);
+                        }, 100);
+                    }, 800);
+                }
+            } else {
+                td.classList.add('error-state');
+                showToast('Error: ' + data.error, 'error');
+                // Revert select
+                const select = td.querySelector('.cell-select');
+                if (select) select.value = displayEl.querySelector('.status-badge') 
+                    ? displayEl.querySelector('.status-badge').textContent.trim() 
+                    : 'Active';
+            }
+        })
+        .catch(() => {
+            td.classList.remove('saving');
+            td.classList.add('error-state');
+            showToast('Network error. Try again.', 'error');
+        });
+    }
+
+    // ─── Pagination ──────────────────────────────────────────────
+    function goToPage(page) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page_num', page);
+        window.location.href = url.toString();
+    }
+
+    // ─── Toast ───────────────────────────────────────────────────
+    function showToast(message, type = 'info') {
+        const existing = document.querySelector('.toast');
+        if (existing) existing.remove();
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : 'info-circle'}"></i> ${message}`;
+        document.body.appendChild(t);
+        setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
+    }
+
+    // Disable all inputs/selects on load (enabled only when row is checked + edit mode)
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('td.editable .cell-input, td.editable .cell-select').forEach(el => {
+            el.setAttribute('disabled', '');
+        });
+    });
+</script>
+</body>
+</html>
