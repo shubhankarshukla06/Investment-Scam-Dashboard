@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Scam Intelligence Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+        body { background: linear-gradient(180deg, #a8d8f0 0%, #c5e8f7 25%, #ddf0fb 50%, #eef8fe 75%, #f5fbff 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        body::before { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background:
+                radial-gradient(ellipse 320px 180px at 10% 20%, rgba(255,255,255,0.75) 0%, transparent 70%),
+                radial-gradient(ellipse 280px 160px at 80% 10%, rgba(255,255,255,0.65) 0%, transparent 70%),
+                radial-gradient(ellipse 380px 200px at 55% 35%, rgba(255,255,255,0.55) 0%, transparent 70%),
+                radial-gradient(ellipse 260px 140px at 20% 65%, rgba(255,255,255,0.60) 0%, transparent 70%),
+                radial-gradient(ellipse 300px 170px at 90% 60%, rgba(255,255,255,0.50) 0%, transparent 70%),
+                radial-gradient(ellipse 350px 190px at 40% 85%, rgba(255,255,255,0.55) 0%, transparent 70%);
+        }
+        body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+            background:
+                radial-gradient(ellipse 200px 100px at 30% 15%, rgba(255,255,255,0.5) 0%, transparent 65%),
+                radial-gradient(ellipse 240px 120px at 70% 40%, rgba(255,255,255,0.45) 0%, transparent 65%),
+                radial-gradient(ellipse 180px 90px at 15% 80%, rgba(255,255,255,0.4) 0%, transparent 65%),
+                radial-gradient(ellipse 220px 110px at 85% 85%, rgba(255,255,255,0.45) 0%, transparent 65%);
+        }
+        .login-wrapper { position: relative; z-index: 1; width: 100%; max-width: 440px; padding: 20px; }
+        .brand { text-align: center; margin-bottom: 28px; }
+        .brand-icon { width: 60px; height: 60px; background: linear-gradient(135deg, #2980b9, #3498db); border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 14px; box-shadow: 0 4px 18px rgba(52,152,219,0.35); }
+        .brand-icon i { font-size: 26px; color: white; }
+        .brand h1 { font-size: 21px; font-weight: 700; color: #1a3a5c; letter-spacing: -0.3px; text-shadow: 0 1px 3px rgba(255,255,255,0.8); }
+        .brand p { font-size: 13px; color: #2e6a9e; margin-top: 4px; text-shadow: 0 1px 2px rgba(255,255,255,0.7); }
+        .login-card { background: white; border-radius: 16px; padding: 34px 32px 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.14); border: 1px solid #dce3ec; }
+        .card-title { font-size: 15px; font-weight: 700; color: #2c3e50; margin-bottom: 24px; display: flex; align-items: center; gap: 8px; padding-bottom: 14px; border-bottom: 2px solid #f0f4f8; }
+        .card-title i { color: #3498db; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; font-size: 11.5px; font-weight: 700; color: #4a5568; margin-bottom: 7px; letter-spacing: 0.5px; text-transform: uppercase; }
+        .input-wrapper { position: relative; }
+        .input-wrapper i.input-icon { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #a0aec0; font-size: 14px; pointer-events: none; transition: color 0.2s; }
+        .input-wrapper:focus-within i.input-icon { color: #3498db; }
+        .form-group input { width: 100%; padding: 12px 13px 12px 40px; border: 1.5px solid #e2e8f0; border-radius: 9px; font-size: 14px; color: #2d3748; background: #fafbfc; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; outline: none; }
+        .form-group input:focus { border-color: #3498db; background: white; box-shadow: 0 0 0 3px rgba(52,152,219,0.12); }
+        .toggle-password { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #a0aec0; cursor: pointer; font-size: 14px; padding: 2px; transition: color 0.2s; }
+        .toggle-password:hover { color: #3498db; }
+        .alert-error { background: #fff5f5; border: 1px solid #fed7d7; border-left: 4px solid #e74c3c; border-radius: 9px; padding: 11px 14px; margin-bottom: 20px; display: flex; align-items: center; gap: 9px; font-size: 13px; color: #c0392b; animation: shake 0.35s ease; }
+        .alert-error i { font-size: 14px; flex-shrink: 0; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+        /* Pixel Truth logo banner — inside card, above sign-in button */
+
+        
+        .btn-login { width: 100%; padding: 13px; background: linear-gradient(135deg, #2980b9, #3498db); color: white; border: none; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: 0.3px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; box-shadow: 0 3px 12px rgba(52,152,219,0.32); }
+        .btn-login:hover { background: linear-gradient(135deg, #2471a3, #2980b9); box-shadow: 0 5px 18px rgba(52,152,219,0.42); transform: translateY(-1px); }
+        .btn-login:active { transform: translateY(0); }
+        .btn-login:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+        .spinner-inline { display: none; width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .login-footer { text-align: center; margin-top: 22px; font-size: 11px; color: #3a6a9a; text-shadow: 0 1px 2px rgba(255,255,255,0.6); }
+        .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; }
+        .dev-credit-footer span { color: #3498db; font-weight: 700; }
+        @media (max-width: 480px) { .login-card { padding: 26px 20px 22px; } .pixel-logo-img { width: 80px; height: 37px; } }
+        .pixel-logo-corner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            display: block;
+            text-decoration: none;
+            background: transparent;
+            padding: 0;
+            line-height: 0;
+        }
+        .pixel-logo-img {
+            width: 78px;
+            height: 36px;
+            display: block;
+            object-fit: contain;
+            border-bottom-right-radius: 8px;
+            transition: opacity 0.2s;
+        }
+        .pixel-logo-corner:hover .pixel-logo-img {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body>
+    <!-- Pixel Truth logo — fixed top-left corner, rectangular -->
+    <a href="https://pixeltruth.com" target="_blank" rel="noopener noreferrer" class="pixel-logo-corner" title="Pixel Truth">
+        <img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAA+AIYDASIAAhEBAxEB/8QAHQABAAIDAQEBAQAAAAAAAAAAAAQIBQYHAwIBCf/EAD0QAAEDAwMCAwUFBQcFAAAAAAECAwQABREGEiEHEyIxQQgUMlFhFUJDcYEjM2JykRYXY3OhstEkNHXC4f/EABkBAQEBAQEBAAAAAAAAAAAAAAABAwQFAv/EACYRAAICAQIFBQEBAAAAAAAAAAABAhEDUfAEIUFhcRIxUqHBItH/2gAMAwEAAhEDEQA/ALl0pSgFKUoBSlRZC3AiXtceG1AKdrO7acH4ePEfpVSsHs4+y2soW6hKggrIKsEJHmfyrHfa7D8y2iFNt7saaFqSS943AkcFsDhX1+Vfcp1xMhwbpRAhqVhMXcnP545V/BWv2eVKX/ZneLmO4273N9qS3jj8TH7n6Y866MeFOLb3yb07EMo1e1rixXTMsxLs4xyUySUkAnwpPq5x8P51mUyI6u5tebPaVscwoeFXHB+R5H9a02NLlm3W9Sk3bcq7qSrNnQlQTk/En7qP8Qc1NEyYyb+73rwQiShDKU20Eo4GS1x+0T8ya0ycOr5futaCzaqVAbfdcur8YLlJSlhJBVHw2Cc8heOT8x6VOQFJQkKVuUBgqxjJ+dcbjRT9pSlQClKUApSlAKVqPWi9XLTnSfVF+tD6WLhAtjz8ZwoCwhaUkg4PB/WqlaK6pe0JrPpHqLWVu1XY40TTRW5LU7ET7zJAQFlKRsKAEjy+EnPmaAuhqnUFm0vY5N8v9wYt9ujAF195WEpycAfmSQP1qHozWWmtY2dF305do0+Et0spdbXwVgZKf5gPSqtWzrPqDXfsjaxut5YgSLvanG4r6noiHGZCVKQQotqG0HBIx5ZGRisz0Fk601N7K6puj7na7Df4dykOQ0tW1hMd3aMlsp27UE5Pj884zxVQLMz1tGOohSVBMpAViVs2nI8z/wCvr+tYvUiA7br8yI6nlFDZLabn2CsYH3vwfz9apJH9p/qdd9PW3RkFm3p1Y/de27clx2djwJAQkoI2BQUeV48kj1ya7D7QPUbWXR7pZaoNynwNQ6svBW1JnOQUIabASCrwAALCdwCd3yJI9K2x5FBp6f6iHaH2g1d3pBhKA+w8BxV7wCAB4dnp/m1o0jW2lNMytHtX6bEta+y4437zqFRAQpRAV/jAkeucVWqV116i2632u5x9Sw9TvyYxauFqf0v2W2WiOEB0IG9OMeRHPoRUX2t5jNxufTO4MJShqTYm3UpSztCdzxOAj0x5Y+lda4usXJc/bro1r32rJRbK3PsuWW0qbhoKTe1KSBqUq+R3bs+P+T/mslP92UxqxBiKJXMaWUnUBbLgJ4UD+CP4fXyqmXtQ3jVsGJp+2OSYcOyrW7JhNQ4C4b3cSlCVLcyBnO4YwcY8+a7Jqu4dSNG9ENX3XVV6sl1vLQt6or7dpCm+0rACVFSEpWoA/I4/WuvNxChnlGn/AD5+Seu/sJciw6ilq93d5uLuWLWgZN3AC8A+HZ+H/metZCBKdMy1IMZCUqhFSlfaAXsOBxt/E8vj/wCaqf0i1J1q6nW2PqVuRp622aOjsXiSbel1+5strHcTsSg8hCgAkbc1O6IdUtWX72opGkrpcITtlhNS2oqPs1uOpttCfCkcb0jgeEmvPnKLh6mu3XTzvToUtVBuL64cBaozCTIdKFpExK9g55CvvngcD5/SpKZxJcSUspWl3YlPeHiTnz+h+lVR6adVdX3j2s3dAKuEBzTcWTNTEjItjbIb2MrUkjjenxDk5yefnXMtRXLqzefa6RYRqm3xdRx5nu8RxtC/cGcIUsDtqSdwwo8qSSSc1z5PSpNJbsqLwa06g6M0XIYZ1XqO32dUkEsCS7t7gHnj8sj+tbHEkMS4jMuM6l1h5CXGnEnIWkjII+hBqivt3xtRQ7L0+jatuMS5XxuLIE2VFa2Nur3J5AwPTHoKmdQ+onX/AKS2DR98uGorCu13WO2qNbY8RKktNobQe04VJ3fCoAkKJznB8qzYLx0rF6Puxv2krPfFMhk3GAxLLYOdncbSvbn6ZxSoDVPaO46Da3/8LI/2Gqeeyv0fuHU7plqH3LXl507HM/3WZCjp7jExHbQobkbk85JGTnIxX9AVoS4goWlKkqGCCMg18MMMsJKWGW2gTkhCQAf6UBxW2+z1Y7Z0Nn9LrZcpUcXTD066raSta3QpB/d7gMYTgAHgDzJqJaug90s/Q0dL7NrSZAalznHZ09ENPdU0rzb29zgEgZIJJHFd3KEFwOFI3gEBWOQD6f6Co6Y2ERh2I47Ss4AOEcH4frX0qBWeb7IWk19OY1iiypjN+jTi6q9BtBckIJxgo3gBAGMDdkEE+tbXrHoeNTdLXNLayul41NPtLYVarojtsukhOAkIKlDOMBRUfFgeR5rr8pDSYjwWxCwqak4Laikncnk4Hx/Xy8qh3+RCjQr/ACJQtyGkNIDq3mlkHjjuYHI5421vjjbpK786ruQrrB6HdR7SmFaInVTViIDFu76GmWmkFspH/bg93I+WeQK9OpHRST1LnaIlypF6tSo0RcdRCGZBSEuFYUVBac5z6A12ue5b39VFSFWQqRYlKUFsu9wNkcHI47f0+KoGlo1sdRox1v7AUUIfDPb7yCr59pKjz9d2fpXoRxQWF3Hv7PSXcnU5R1Y6LsdRNNafbcRqiFOh3F2Mh6Q8zJKWl7dxI3J4ykEYORhVTf7pNYXDpZrXQt31VqO/uPSIyIUidsPbQ2rntpLhwCMEgkcAV0aDb7WLPaUoGmylN/UpG117YV5PCOc9zjyPh4rM2+PAak6ucxYsLlpL+XHMZ4P7bPAP8vFXPDHKUpOPPw/kl8tN9QjV+inTG4dMNJ3DScabc7lHLLjzEpLjccF1zGUpSCopUMDxkkfStD1D7MMmd1JRrTTesr7pebLbU/KeSpL7rL6k4WAsLSo7snPpyfyFiXOwblLGIG8xBuyo79vPxfwf/a9YyWgqBtEPhghGxXOMJ/d/NPl/pXmyncardeSnBul/s4MaH6rW3qFH1DeJ8hIcTKjTQ2txS3GlIW6p0K5BJ3bQCRnGT5159TPZsVqfqhJ6i6f1dd9M3Zx9KsMIS4oLACS62vekoBT93k8H54qxEZHbZSgoQjGeEeXnXpWLktClfep/s4P9QtOaZtF715clyrAw40q5PxQ85O3qzlQLmUlOMeZzWa64dBYvU/Sul7E9qZ62CwNdtLyIYdL/AIEIyRvG34M+Z867RSvkGM0naU2DStpsSXzITbYLMQOlO0uBtARux6ZxnFKydKAUpSgFKUoBUSXv7UvBknwDaEJST5fcz5n86l0qp0CA+HDJWEmUn/pThQbSU5z/ALvp5VibUiakWAPSrm6Q253i9DbSVnHBdx+7PyCfOtlpWkctKq3TX6DV2G53uULMm6FX2koqKoTYUUZPCh5JR/EOfKsr9nS8XAfajgMpYU0eyj9gBjgceL9c1k6VZZm+n0vIPDsOe8Lc94VtU2EBG0YSefFnz/SvVpBQ2hKlb1JSAVEcn619UrKwKUpUApSlAKUpQH//2Q==" alt="Pixel Truth" class="pixel-logo-img">
+    </a>
+    <div class="login-wrapper">
+        <div class="brand">
+            <div class="brand-icon"><i class="fas fa-shield-alt"></i></div>
+            <h1>Scam Intelligence Dashboard</h1>
+            <p>Sign in with your email to continue</p>
+        </div>
+        <div class="login-card">
+            <div class="card-title"><i class="fas fa-lock"></i> Secure Login</div>
+            {% if error %}
+            <div class="alert-error"><i class="fas fa-exclamation-circle"></i> {{ error }}</div>
+            {% endif %}
+            <form method="POST" action="/login" id="loginForm" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" name="email" id="email" placeholder="yourname@gmail.com" autocomplete="email" required autofocus value="{{ prefill_email or '' }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" name="password" id="password" placeholder="Enter your password" autocomplete="current-password" required>
+                        <button type="button" class="toggle-password" onclick="togglePwd()" tabindex="-1"><i class="fas fa-eye" id="toggleIcon"></i></button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <span class="spinner-inline" id="loginSpinner"></span>
+                    <i class="fas fa-sign-in-alt" id="loginIcon"></i>
+                    <span id="loginBtnText">Sign In</span>
+                </button>
+            </form>
+        </div>
+        <div class="login-footer"><i class="fas fa-lock" style="margin-right:4px;"></i> Secured access — unauthorised login attempts are monitored</div>
+    </div>
+    <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+    <script>
+        function togglePwd() {
+            const pwd = document.getElementById('password'), icon = document.getElementById('toggleIcon');
+            if (pwd.type === 'password') { pwd.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash'); }
+            else { pwd.type = 'password'; icon.classList.replace('fa-eye-slash','fa-eye'); }
+        }
+        function handleSubmit(e) {
+            const btn = document.getElementById('loginBtn');
+            btn.disabled = true;
+            document.getElementById('loginSpinner').style.display = 'block';
+            document.getElementById('loginIcon').style.display = 'none';
+            document.getElementById('loginBtnText').textContent = 'Signing in...';
+        }
+        window.addEventListener('pageshow', () => {
+            const btn = document.getElementById('loginBtn');
+            if (btn) { btn.disabled = false; document.getElementById('loginSpinner').style.display = 'none'; document.getElementById('loginIcon').style.display = 'inline'; document.getElementById('loginBtnText').textContent = 'Sign In'; }
+        });
+    </script>
+</body>
+</html>

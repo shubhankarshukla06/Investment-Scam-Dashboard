@@ -6,141 +6,35 @@
     <title>Scam Intelligence Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
+        body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; padding-bottom: 60px; }
+        .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 90px; }
+        .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
+        .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
 
-        body {
-            background: #f5f7fa;
-            color: #333;
-            min-height: 100vh;
-            overflow-x: hidden;
-            padding-bottom: 60px;
-        }
-
-        .container {
-            width: 100%;
-            max-width: none;
-            margin: 0;
-            padding: 15px;
-            padding-top: 90px;
-        }
-
-        /* padding-bottom ensures content is never hidden behind the dev credit footer */
-
-        .fixed-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            background: #f5f7fa;
-            padding: 12px 15px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            border-bottom: 1px solid #e1e5eb;
-        }
-
-        .header {
-            background: white;
-            border-radius: 8px;
-            padding: 12px 15px;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo h1 {
-            font-size: 18px;
-            color: #2c3e50;
-            margin-bottom: 2px;
-        }
-
-        .logo p {
+        /* ── Logo + username ── */
+        .logo { display: flex; flex-direction: column; gap: 2px; }
+        .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .logo h1 { font-size: 18px; color: #2c3e50; }
+        .header-username {
+            font-size: 12px;
             color: #7f8c8d;
-            font-size: 12px;
-        }
-
-        /* Bottom-right dev credit — compact, auto-width, not full-width */
-        .dev-credit-footer {
-            position: fixed;
-            bottom: 0;
-            right: 0;
-            z-index: 1001;
-            background: #2c3e50;
-            color: #bdc3c7;
-            font-size: 11px;
             font-weight: 500;
-            padding: 5px 14px;
-            border-top-left-radius: 6px;
-            white-space: nowrap;
-            box-shadow: -2px -2px 6px rgba(0,0,0,0.12);
-            line-height: 1.4;
-        }
-        .dev-credit-footer span {
-            color: #3498db;
-            font-weight: 700;
-        }
-
-        .header-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .page-selector {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .page-selector label {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 12px;
+            border-left: 1.5px solid #dde3ed;
+            padding-left: 10px;
             white-space: nowrap;
         }
+        .logo p { color: #7f8c8d; font-size: 12px; }
 
-        .page-select {
-            padding: 7px 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 12px;
-            background: white;
-            cursor: pointer;
-            min-width: 150px;
-            height: 34px;
-        }
-
-        .page-select:focus {
-            outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 6px;
-        }
-
-        .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 5px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            transition: all 0.2s;
-            white-space: nowrap;
-            height: 34px;
-        }
-
+        .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
+        .dev-credit-footer span { color: #3498db; font-weight: 700; }
+        .header-controls { display: flex; align-items: center; gap: 10px; }
+        .page-selector { display: flex; align-items: center; gap: 6px; }
+        .page-selector label { font-weight: 600; color: #2c3e50; font-size: 12px; white-space: nowrap; }
+        .page-select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; min-width: 150px; height: 34px; }
+        .page-select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .header-actions { display: flex; gap: 6px; }
+        .btn { padding: 6px 12px; border: none; border-radius: 5px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; font-size: 12px; transition: all 0.2s; white-space: nowrap; height: 34px; }
         .btn-primary { background: #3498db; color: white; }
         .btn-primary:hover { background: #2980b9; }
         .btn-success { background: #2ecc71; color: white; }
@@ -149,137 +43,61 @@
         .btn-outline:hover { background: #f0f7ff; }
         .btn-warning { background: #f39c12; color: white; }
         .btn-warning:hover { background: #e67e22; }
-        .btn-danger { background: #e74c3c; color: white; }
-        .btn-danger:hover { background: #c0392b; }
-
         .page-content { display: none; }
         .page-content.active { display: block; }
 
         /* ============================================================
-           SCRAPING PAGE — HORIZONTAL + VERTICAL SCROLL FIX
+           SCRAPING PAGE
         ============================================================ */
-        .scraping-page .filters {
-            background: white; border-radius: 8px; padding: 12px;
-            margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%;
-        }
-        .scraping-page .filters-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-        }
+        .scraping-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .scraping-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .scraping-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
-        .scraping-page .clear-filters {
-            background: #e74c3c; color: white; border: none; padding: 5px 10px;
-            border-radius: 5px; font-size: 12px; cursor: pointer;
-            display: flex; align-items: center; gap: 5px; height: 30px;
-        }
+        .scraping-page .clear-filters { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
         .scraping-page .clear-filters:hover { background: #c0392b; }
-        .scraping-page .filters-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px; width: 100%;
-        }
+        .scraping-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
         .scraping-page .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .scraping-page .filter-group label {
-            font-size: 12px; font-weight: 600; color: #2c3e50;
-            display: flex; align-items: center; gap: 5px;
-        }
+        .scraping-page .filter-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; }
         .scraping-page .search-box { position: relative; width: 100%; }
-        .scraping-page .search-box input {
-            width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #ddd;
-            border-radius: 5px; font-size: 12px; background: white; height: 34px;
-        }
-        .scraping-page .search-box input:focus {
-            outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
-        }
-        .scraping-page .search-icon {
-            position: absolute; left: 8px; top: 50%;
-            transform: translateY(-50%); color: #7f8c8d; font-size: 14px;
-        }
-        .scraping-page .filter-group select {
-            width: 100%; padding: 8px 10px; border: 1px solid #ddd;
-            border-radius: 5px; font-size: 12px; background: white; cursor: pointer; height: 34px;
-        }
-        .scraping-page .filter-group select:focus {
-            outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
-        }
-        .scraping-page .table-container {
-            background: white; border-radius: 8px; overflow: hidden;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-            max-height: calc(100vh - 280px);
-            overflow-x: auto;
-            overflow-y: auto;
-            width: 100%; margin: 0;
-        }
+        .scraping-page .search-box input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; height: 34px; }
+        .scraping-page .search-box input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .scraping-page .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #7f8c8d; font-size: 14px; }
+        .scraping-page .filter-group select,
+        .scraping-page .filter-group input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; height: 34px; }
+        .scraping-page .filter-group select:focus,
+        .scraping-page .filter-group input[type="date"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .scraping-page .filter-group input[type="date"].active-filter { border-color: #3498db; background: #ebf5fb; }
+        .date-range-group { display: flex; gap: 6px; align-items: center; }
+        .date-range-group input[type="date"] { flex: 1; padding: 8px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; height: 34px; }
+        .date-range-group input[type="date"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .date-range-group input[type="date"].active-filter { border-color: #3498db; background: #ebf5fb; }
+        .date-range-sep { font-size: 11px; color: #7f8c8d; white-space: nowrap; }
+        .scraping-page .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 300px); overflow-x: auto; overflow-y: auto; width: 100%; }
         .scraping-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
-        .scraping-page th, .scraping-page td {
-            padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee;
-            vertical-align: middle; font-size: 12px;
-            white-space: nowrap;
-        }
-        .scraping-page th {
-            background: #f8f9fa; font-weight: 600; color: #2c3e50;
-            position: sticky; top: 0; z-index: 10;
-            border-right: 1px solid #eee;
-        }
+        .scraping-page th, .scraping-page td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 12px; white-space: nowrap; }
+        .scraping-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #eee; }
         .scraping-page th:last-child { border-right: none; }
         .scraping-page tr:hover { background: #f8fafc; }
-        .scraping-page th:nth-child(1) { min-width: 60px; }
-        .scraping-page th:nth-child(2) { min-width: 100px; }
-        .scraping-page th:nth-child(3) { min-width: 260px; }
-        .scraping-page th:nth-child(4) { min-width: 140px; }
-        .scraping-page th:nth-child(5) { min-width: 180px; }
-        .scraping-page th:nth-child(6) { min-width: 140px; }
-        .scraping-page th:nth-child(7) { min-width: 80px; }
 
         /* ============================================================
            SOCIAL MEDIA ACCOUNTS PAGE STYLES
         ============================================================ */
-        .social-page .filters {
-            background: white; border-radius: 8px; padding: 12px;
-            margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%;
-        }
-        .social-page .filters-header {
-            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-        }
+        .social-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .social-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .social-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
         .social-page .batch-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-        .social-page .filters-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px; width: 100%;
-        }
+        .social-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
         .social-page .filter-group { display: flex; flex-direction: column; gap: 5px; }
-        .social-page .filter-group label {
-            font-size: 12px; font-weight: 600; color: #2c3e50;
-            display: flex; align-items: center; gap: 5px;
-        }
+        .social-page .filter-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; }
         .social-page .search-box { position: relative; width: 100%; }
-        .social-page .search-box input {
-            width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #ddd;
-            border-radius: 5px; font-size: 12px; background: white; height: 34px;
-        }
-        .social-page .search-box input:focus {
-            outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
-        }
-        .social-page .search-icon {
-            position: absolute; left: 8px; top: 50%;
-            transform: translateY(-50%); color: #7f8c8d; font-size: 14px;
-        }
+        .social-page .search-box input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; height: 34px; }
+        .social-page .search-box input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .social-page .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #7f8c8d; font-size: 14px; }
         .social-page .search-hint { font-size: 10px; color: #95a5a6; margin-top: 2px; }
-        .social-page .filter-group select {
-            width: 100%; padding: 8px 10px; border: 1px solid #ddd;
-            border-radius: 5px; font-size: 12px; background: white; cursor: pointer; height: 34px;
-        }
-        .social-page .filter-group select:focus {
-            outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
-        }
-        .social-page .action-buttons {
-            display: flex; gap: 8px; align-items: center; width: 100%;
-            grid-column: span 2; margin-top: 8px;
-        }
-        .social-page .action-btn {
-            background: #6c8eff; color: white; border: none; padding: 8px 12px;
-            border-radius: 5px; font-size: 12px; cursor: pointer;
-            display: flex; align-items: center; gap: 5px; height: 34px;
-            transition: background 0.2s; width: 100%; justify-content: center; flex: 1; min-width: 150px;
-        }
+        .social-page .filter-group select { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; height: 34px; }
+        .social-page .filter-group select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .social-page .filter-group select.active-filter { border-color: #3498db; background: #ebf5fb; }
+        .social-page .action-buttons { display: flex; gap: 8px; align-items: center; width: 100%; grid-column: span 2; margin-top: 8px; }
+        .social-page .action-btn { background: #6c8eff; color: white; border: none; padding: 8px 12px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 34px; transition: background 0.2s; width: 100%; justify-content: center; flex: 1; min-width: 150px; }
         .social-page .action-btn:hover { background: #5a7ae6; }
         .social-page .action-btn.update { background: #3498db; }
         .social-page .action-btn.update:hover { background: #2980b9; }
@@ -287,25 +105,11 @@
         .social-page .action-btn.activity:hover { background: #9333ea; }
         .social-page .action-btn.permanent { background: #ef4444; }
         .social-page .action-btn.permanent:hover { background: #dc2626; }
-        .social-page .table-container {
-            background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-            max-height: calc(100vh - 280px); overflow-x: auto; overflow-y: auto; width: 100%; margin: 0;
-        }
+        .social-page .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 280px); overflow-x: auto; overflow-y: auto; width: 100%; margin: 0; }
         .social-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
-        .social-page th, .social-page td {
-            padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee;
-            vertical-align: middle; font-size: 11px;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .social-page th {
-            background: #f8f9fa; font-weight: 600; color: #2c3e50;
-            position: sticky; top: 0; z-index: 10;
-            white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis;
-            border-right: 1px solid #eee;
-        }
+        .social-page th, .social-page td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .social-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; white-space: nowrap !important; border-right: 1px solid #eee; }
         .social-page th:last-child { border-right: none; }
-
-        /* Row color classes — Active/Blocked/Restricted use darker shades */
         .social-page .row-active { background-color: #bbf7d0 !important; }
         .social-page .row-active:hover { background-color: #86efac !important; }
         .social-page .row-block { background-color: #fecaca !important; }
@@ -318,196 +122,173 @@
         .social-page .row-restricted:hover { background-color: #fde047 !important; }
         .social-page .row-frozen { background-color: #f0f8fd !important; }
         .social-page .row-frozen:hover { background-color: #d1ecf1 !important; }
-        .social-page .row-video-verification { background-color: #f5f0ff !important; }
-        .social-page .row-video-verification:hover { background-color: #e8d4ff !important; }
+        .social-page .status-display { padding: 3px 12px !important; border-radius: 50px !important; font-size: 11px !important; font-weight: 600 !important; display: inline-block !important; white-space: nowrap !important; min-width: 60px !important; text-align: center !important; }
+        .social-page .status-active { background: #86efac !important; color: #14532d !important; border: 1px solid #4ade80 !important; }
+        .social-page .status-blocked { background: #fca5a5 !important; color: #7f1d1d !important; border: 1px solid #f87171 !important; }
+        .social-page .status-block { background: #fca5a5 !important; color: #7f1d1d !important; border: 1px solid #f87171 !important; }
+        .social-page .status-permanent-block { background: #f87171 !important; color: #5c0a0a !important; border: 1px solid #ef4444 !important; }
+        .social-page .status-restricted { background: #fcd34d !important; color: #713f12 !important; border: 1px solid #f59e0b !important; }
+        .social-page .status-frozen { background: #93c5fd !important; color: #1e3a8a !important; border: 1px solid #3b82f6 !important; }
 
         /* ============================================================
-           CHANGE 1: Status badge colors made noticeably darker
-           (Social Media Accounts section only)
+           SOCIAL TRACKER MODAL
         ============================================================ */
-        .social-page .status-display {
-            padding: 3px 12px !important; border-radius: 50px !important; font-size: 11px !important;
-            font-weight: 600 !important; display: inline-block !important; white-space: nowrap !important;
-            letter-spacing: 0.3px !important; min-width: 60px !important; text-align: center !important;
-        }
-        /* Active: noticeably darker green */
-        .social-page .status-active {
-            background: #86efac !important;
-            color: #14532d !important;
-            border: 1px solid #4ade80 !important;
-        }
-        /* Block / Blocked: noticeably darker red */
-        .social-page .status-blocked {
-            background: #fca5a5 !important;
-            color: #7f1d1d !important;
-            border: 1px solid #f87171 !important;
-        }
-        /* Permanent Block: deepest red */
-        .social-page .status-permanent-block {
-            background: #f87171 !important;
-            color: #5c0a0a !important;
-            border: 1px solid #ef4444 !important;
-        }
-        /* Restricted: noticeably darker amber/yellow */
-        .social-page .status-restricted {
-            background: #fcd34d !important;
-            color: #713f12 !important;
-            border: 1px solid #f59e0b !important;
-        }
-        /* Frozen: deeper blue */
-        .social-page .status-frozen {
-            background: #93c5fd !important;
-            color: #1e3a8a !important;
-            border: 1px solid #3b82f6 !important;
-        }
-        .social-page .status-video-verification {
-            background: #c4b5fd !important;
-            color: #4c1d95 !important;
-            border: 1px solid #8b5cf6 !important;
-        }
-
-        .social-page .status-cell { display: flex; align-items: center; gap: 8px; }
-
-        .social-page .field-container {
-            display: inline-flex; align-items: center; gap: 4px; flex-wrap: nowrap;
-        }
-
-        /* Column widths */
-        .social-page th:nth-child(1), .social-page td:nth-child(1) { width: 60px; }
-        .social-page th:nth-child(2), .social-page td:nth-child(2) { width: 70px; }
-        .social-page th:nth-child(3), .social-page td:nth-child(3) { width: 80px; }
-        .social-page th:nth-child(4), .social-page td:nth-child(4) { width: 100px; }
-        .social-page th:nth-child(5), .social-page td:nth-child(5) { width: 90px; }
-        .social-page th:nth-child(6), .social-page td:nth-child(6) { width: 100px; }
-        .social-page th:nth-child(7), .social-page td:nth-child(7) { width: 90px; }
-        .social-page th:nth-child(8), .social-page td:nth-child(8) { width: 90px; }
-        .social-page th:nth-child(9), .social-page td:nth-child(9) { width: 70px; }
-        .social-page th:nth-child(10), .social-page td:nth-child(10) { width: 80px; }
-        .social-page th:nth-child(11), .social-page td:nth-child(11) { width: 80px; }
-        .social-page th:nth-child(12), .social-page td:nth-child(12) { width: 90px; }
-        .social-page th:nth-child(13), .social-page td:nth-child(13) { width: 80px; }
-        .social-page th:nth-child(14), .social-page td:nth-child(14) { width: 90px; }
-        .social-page th:nth-child(15), .social-page td:nth-child(15) { width: 80px; }
-        .social-page th:nth-child(16), .social-page td:nth-child(16) { width: 80px; }
-        .social-page th:nth-child(17), .social-page td:nth-child(17) { width: 70px; }
-        .social-page th:nth-child(18), .social-page td:nth-child(18) { width: 120px; }
-        .social-page th:nth-child(19), .social-page td:nth-child(19) { width: 80px; }
-        .social-page th:nth-child(20), .social-page td:nth-child(20) { width: 80px; }
-        .social-page th:nth-child(21), .social-page td:nth-child(21) { width: 90px; }
-        .social-page th:nth-child(22), .social-page td:nth-child(22) { width: 80px; }
-
-        /* ============================================================
-           TRACKER MODAL
-        ============================================================ */
-        .tracker-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 2000;
-            justify-content: center; align-items: center; padding: 20px;
-        }
+        .tracker-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .tracker-modal.active { display: flex; }
-        .tracker-content {
-            background: white; border-radius: 12px; width: 100%; max-width: 800px;
-            max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-        .tracker-header {
-            background: #5d9cec; color: white; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #4a89dc;
-        }
+        .tracker-content { background: white; border-radius: 12px; width: 100%; max-width: 860px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .tracker-header { background: #5d9cec; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #4a89dc; }
         .tracker-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
-        .tracker-close {
-            background: none; border: none; color: white; font-size: 18px; cursor: pointer;
-            padding: 5px; border-radius: 4px; transition: background 0.2s;
-        }
+        .tracker-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
         .tracker-close:hover { background: rgba(255,255,255,0.2); }
-
-        /* CHANGE 2: Tracker view-toggle buttons (Active / Total Counts) */
-        .tracker-view-toggle {
-            display: flex; gap: 8px; padding: 12px 20px 0;
-            border-bottom: 1px solid #eee; background: white;
-        }
-        .tracker-toggle-btn {
-            padding: 6px 18px; border: 2px solid #5d9cec; border-radius: 20px;
-            font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-            background: white; color: #5d9cec;
-        }
+        .tracker-view-toggle { display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white; flex-wrap: wrap; }
+        .tracker-toggle-btn { padding: 6px 18px; border: 2px solid #5d9cec; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: white; color: #5d9cec; }
         .tracker-toggle-btn:hover { background: #eef6ff; }
-        .tracker-toggle-btn.active {
-            background: #5d9cec; color: white;
-            box-shadow: 0 2px 8px rgba(93,156,236,0.35);
-        }
-
+        .tracker-toggle-btn.active { background: #5d9cec; color: white; box-shadow: 0 2px 8px rgba(93,156,236,0.35); }
+        .tracker-toggle-btn.perm { border-color: #ef4444; color: #ef4444; }
+        .tracker-toggle-btn.perm:hover { background: #fff5f5; }
+        .tracker-toggle-btn.perm.active { background: #ef4444; color: white; border-color: #ef4444; box-shadow: 0 2px 8px rgba(239,68,68,0.35); }
         .tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
-        .tracker-summary {
-            background: #f8f9fa; border-radius: 8px; padding: 15px;
-            margin-bottom: 20px; border: 1px solid #dee2e6;
-        }
+        .tracker-summary { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #dee2e6; }
         .tracker-summary h3 { color: #2c3e50; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
         .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
         .summary-item { background: white; border-radius: 6px; padding: 10px; border: 1px solid #dee2e6; text-align: center; }
         .summary-item .platform { font-size: 12px; color: #7f8c8d; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .summary-item .platform i { font-size: 14px; color: #5d9cec; }
         .summary-item .count { font-size: 20px; font-weight: bold; color: #5d9cec; }
-        /* CHANGE 2: Active-mode summary count shown in green */
         .summary-item .count.active-count { color: #16a34a; }
+        .summary-item .count.perm-count { color: #ef4444; }
         .total-accounts { font-size: 14px; text-align: center; margin-top: 10px; color: #2c3e50; font-weight: 600; }
-        .total-accounts .total-count { color: #48c774; font-size: 18px; }
+        .total-accounts .total-count { font-size: 18px; }
         .tracker-details { margin-top: 25px; }
         .tracker-details h3 { color: #2c3e50; font-size: 14px; margin-bottom: 15px; display: flex; align-items: center; gap: 6px; }
-        .platform-section {
-            background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px;
-            border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .platform-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;
-        }
+        .platform-section { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; border: 1px solid #dee2e6; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .platform-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
         .platform-header h4 { font-size: 13px; color: #2c3e50; margin: 0; display: flex; align-items: center; gap: 6px; }
-        .platform-header h4 i { font-size: 16px; }
         .platform-total { background: #5d9cec; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .platform-total.perm { background: #ef4444; }
         .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
-        .status-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 7px 10px; border-radius: 6px; border: 1px solid transparent;
-        }
+        .status-item { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; border: 1px solid transparent; }
+        .status-item.status-bg-active { background: #86efac; border-color: #4ade80; }
+        .status-item.status-bg-block { background: #fca5a5; border-color: #f87171; }
+        .status-item.status-bg-restricted { background: #fcd34d; border-color: #f59e0b; }
+        .status-item.status-bg-frozen { background: #93c5fd; border-color: #3b82f6; }
+        .status-item.status-bg-permanent { background: #f87171; border-color: #ef4444; }
+        .status-item.status-bg-default { background: #f8f9fa; border-color: #dee2e6; }
+        .status-name { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .status-name.color-active { color: #14532d; }
+        .status-name.color-block { color: #7f1d1d; }
+        .status-name.color-restricted { color: #713f12; }
+        .status-name.color-frozen { color: #1e3a8a; }
+        .status-name.color-permanent { color: #5c0a0a; }
+        .status-name.color-default { color: #495057; }
+        .status-count { font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 10px; min-width: 26px; text-align: center; background: rgba(255,255,255,0.7); }
+        .status-count.count-active { color: #14532d; }
+        .status-count.count-block { color: #7f1d1d; }
+        .status-count.count-restricted { color: #713f12; }
+        .status-count.count-frozen { color: #1e3a8a; }
+        .status-count.count-permanent { color: #5c0a0a; }
+        .status-count.count-default { color: #2c3e50; }
 
         /* ============================================================
-           CHANGE 1: Tracker status item backgrounds also made darker
-           to match the badge colors in the table.
+           SCRAPING TRACKER MODAL — CLEAN LIGHT THEME
         ============================================================ */
-        .status-item.status-bg-active    { background: #86efac; border-color: #4ade80; }
-        .status-item.status-bg-block     { background: #fca5a5; border-color: #f87171; }
-        .status-item.status-bg-restricted{ background: #fcd34d; border-color: #f59e0b; }
-        .status-item.status-bg-frozen    { background: #93c5fd; border-color: #3b82f6; }
-        .status-item.status-bg-permanent { background: #f87171; border-color: #ef4444; }
-        .status-item.status-bg-default   { background: #f8f9fa; border-color: #dee2e6; }
+        .scraping-tracker-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .scraping-tracker-modal.active { display: flex; }
 
-        .status-name { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-        .status-name.color-active      { color: #14532d; }
-        .status-name.color-block       { color: #7f1d1d; }
-        .status-name.color-restricted  { color: #713f12; }
-        .status-name.color-frozen      { color: #1e3a8a; }
-        .status-name.color-permanent   { color: #5c0a0a; }
-        .status-name.color-default     { color: #495057; }
-
-        .status-count {
-            font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
-            min-width: 26px; text-align: center; background: rgba(255,255,255,0.7);
+        .scraping-tracker-content {
+            background: white; border-radius: 12px; width: 100%; max-width: 860px; max-height: 90vh;
+            overflow: hidden; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-        .status-count.count-active      { color: #14532d; }
-        .status-count.count-block       { color: #7f1d1d; }
-        .status-count.count-restricted  { color: #713f12; }
-        .status-count.count-frozen      { color: #1e3a8a; }
-        .status-count.count-permanent   { color: #5c0a0a; }
-        .status-count.count-default     { color: #2c3e50; }
 
-        /* Activity Log Modal */
-        .activity-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 2000;
-            justify-content: center; align-items: center; padding: 20px;
+        .scraping-tracker-header {
+            background: #2ecc71; color: white; padding: 15px 20px;
+            display: flex; justify-content: space-between; align-items: center;
         }
+        .scraping-tracker-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .scraping-tracker-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .scraping-tracker-close:hover { background: rgba(255,255,255,0.2); }
+
+        .scraping-tracker-toggle {
+            display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white;
+        }
+        .scraping-tracker-toggle-btn {
+            padding: 6px 18px; border: 2px solid #2ecc71; border-radius: 20px;
+            font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+            background: white; color: #2ecc71; display: flex; align-items: center; gap: 6px;
+        }
+        .scraping-tracker-toggle-btn:hover { background: #f0fff4; }
+        .scraping-tracker-toggle-btn.active { background: #2ecc71; color: white; box-shadow: 0 2px 8px rgba(46,204,113,0.35); }
+
+        .scraping-tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; background: white; }
+
+        /* Total banner */
+        .scraping-total-banner {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .scraping-total-banner .banner-label { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .scraping-total-banner .banner-num { font-size: 24px; font-weight: 800; color: white; }
+
+        /* Section heading */
+        .scrap-section-title {
+            font-size: 11px; font-weight: 700; color: #7f8c8d;
+            text-transform: uppercase; letter-spacing: 1px;
+            margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
+        }
+        .scrap-section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
+
+        /* Scam card */
+        .scrap-scam-card {
+            background: #f8f9fa; border-radius: 8px; padding: 12px 14px;
+            margin-bottom: 12px; border: 1px solid #e9ecef;
+        }
+        .scrap-scam-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid #dee2e6;
+        }
+        .scrap-scam-name { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 7px; }
+        .scrap-scam-name i { color: #2ecc71; font-size: 13px; }
+        .scrap-scam-total { background: #2ecc71; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+
+        /* Platform pills inside scam card */
+        .scrap-platform-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+        .scrap-pill {
+            display: flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 20px;
+            font-size: 11px; font-weight: 600; border: 1px solid;
+        }
+        .scrap-pill.pill-telegram  { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+        .scrap-pill.pill-whatsapp  { background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
+        .scrap-pill.pill-facebook  { background: #e8eaf6; color: #1a237e; border-color: #9fa8da; }
+        .scrap-pill.pill-instagram { background: #fce4ec; color: #880e4f; border-color: #f48fb1; }
+        .scrap-pill.pill-youtube   { background: #ffebee; color: #b71c1c; border-color: #ef9a9a; }
+        .scrap-pill.pill-threads   { background: #f3e5f5; color: #4a148c; border-color: #ce93d8; }
+        .scrap-pill.pill-x         { background: #f5f5f5; color: #212121; border-color: #bdbdbd; }
+        .scrap-pill.pill-unknown   { background: #f5f5f5; color: #616161; border-color: #bdbdbd; }
+        .scrap-pill.pill-default   { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        .scrap-pill-count { background: rgba(0,0,0,0.08); padding: 0px 5px; border-radius: 8px; font-size: 11px; }
+
+        /* Platform-only view */
+        .scrap-stat-card {
+            background: white; border-radius: 8px; padding: 10px 14px;
+            border: 1px solid #dee2e6; display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 8px; transition: background 0.15s;
+        }
+        .scrap-stat-card:hover { background: #f8f9fa; }
+        .scrap-stat-label { font-size: 13px; color: #2c3e50; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .scrap-stat-label i { font-size: 14px; color: #2ecc71; }
+        .scrap-stat-count { background: #2ecc71; color: white; padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; }
+
+        .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
+        .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ============================================================
+           ACTIVITY & PERMANENT BLOCK MODALS
+        ============================================================ */
+        .activity-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .activity-modal.active { display: flex; }
         .activity-content { background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .activity-header { background: #a855f7; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -515,17 +296,7 @@
         .activity-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
         .activity-close:hover { background: rgba(255,255,255,0.2); }
         .activity-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
-        .activity-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        .activity-table th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
-        .activity-table td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
-        .activity-table tr:hover { background: #f8fafc; }
-
-        /* Permanent Block Modal */
-        .permanent-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 2000;
-            justify-content: center; align-items: center; padding: 20px;
-        }
+        .permanent-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .permanent-modal.active { display: flex; }
         .permanent-content { background: white; border-radius: 12px; width: 100%; max-width: 1200px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
         .permanent-header { background: #ef4444; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
@@ -536,68 +307,29 @@
         .permanent-stats { background: #f8f9fa; border-radius: 8px; padding: 15px; margin-bottom: 20px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; }
         .permanent-stats h3 { color: #2c3e50; font-size: 14px; margin: 0; display: flex; align-items: center; gap: 8px; }
         .permanent-count { font-size: 20px; font-weight: bold; color: #ef4444; }
-
-        /* Confirmation Modal */
-        .confirmation-modal {
-            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.7); z-index: 2000;
-            justify-content: center; align-items: center; padding: 20px;
-        }
+        .activity-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .activity-table th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
+        .activity-table td { padding: 8px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+        .activity-table tr:hover { background: #f8fafc; }
+        .confirmation-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .confirmation-modal.active { display: flex; }
         .confirmation-content { background: white; border-radius: 12px; width: 100%; max-width: 400px; padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center; }
         .confirmation-icon { font-size: 48px; color: #e74c3c; margin-bottom: 15px; }
         .confirmation-content h3 { color: #2c3e50; font-size: 18px; margin-bottom: 10px; }
         .confirmation-content p { color: #7f8c8d; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
         .confirmation-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
-        .confirmation-btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; min-width: 100px; justify-content: center; }
+        .confirmation-btn { padding: 10px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; min-width: 100px; justify-content: center; }
         .confirmation-btn.confirm { background: #e74c3c; color: white; }
         .confirmation-btn.confirm:hover { background: #c0392b; }
         .confirmation-btn.cancel { background: #f8f9fa; color: #2c3e50; border: 1px solid #dee2e6; }
         .confirmation-btn.cancel:hover { background: #e9ecef; }
 
-        /* Loading indicator */
-        .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
-        .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Common */
-        .copy-btn {
-            background: none; border: none; color: #3498db; cursor: pointer;
-            padding: 2px 5px; border-radius: 3px; transition: all 0.2s; font-size: 10px;
-            display: inline-flex; align-items: center; justify-content: center;
-            flex-shrink: 0; vertical-align: middle;
-        }
-        .copy-btn:hover { background: #f0f7ff; transform: scale(1.1); }
-        .url-link {
-            color: #3498db; text-decoration: none; word-break: break-all; font-size: 12px;
-            display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
-            white-space: nowrap; vertical-align: middle;
-        }
-        .url-link:hover { text-decoration: underline; }
-        .field-container { display: flex; align-items: center; gap: 5px; }
-        .text-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
-        .platform-badge { background: #e3f2fd; color: #1976d2; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
-        .scam-type { background: #ffebee; color: #c62828; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
-        .empty-state { text-align: center; padding: 30px 12px; color: #7f8c8d; }
-        .empty-state i { font-size: 28px; margin-bottom: 8px; color: #ddd; }
-
-        /* Sheet Maker Styles */
-        .sheet-maker-compact {
-            background: white; border-radius: 8px; padding: 12px;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; margin-top: 10px;
-        }
-        .sheet-maker-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee;
-        }
+        /* Sheet Maker */
+        .sheet-maker-compact { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; margin-top: 10px; }
+        .sheet-maker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
         .sheet-maker-header h2 { font-size: 14px; color: #2c3e50; margin: 0; }
         .template-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .template-btn {
-            padding: 5px 10px; background: #3498db; color: white; border: none;
-            border-radius: 4px; font-size: 11px; cursor: pointer;
-            display: flex; align-items: center; gap: 5px; height: 30px;
-        }
+        .template-btn { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
         .template-btn:hover:not(:disabled) { background: #2980b9; }
         .template-btn:disabled { background: #95a5a6; cursor: not-allowed; }
         .template-stats { display: flex; align-items: center; gap: 8px; background: #f8f9fa; padding: 5px 10px; border-radius: 4px; border: 1px solid #dee2e6; }
@@ -612,7 +344,7 @@
         .sheet-maker-select { width: 100%; padding: 7px 9px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; background: white; cursor: pointer; height: 34px; }
         .headers-display { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 6px; margin-top: 4px; display: none; font-size: 11px; }
         .headers-title { font-size: 10px; color: #666; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-        .headers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 3px; max-height: 70px; overflow-y: auto; padding: 2px; }
+        .headers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 3px; max-height: 70px; overflow-y: auto; }
         .header-item { background: white; border: 1px solid #dee2e6; border-radius: 3px; padding: 3px 5px; font-size: 10px; color: #495057; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
         .file-upload-compact { border: 2px dashed #dee2e6; border-radius: 4px; padding: 8px; cursor: pointer; background: white; transition: all 0.2s; text-align: center; min-height: 54px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .file-upload-compact:hover { border-color: #3498db; background: #f8fafc; }
@@ -625,92 +357,85 @@
         .generate-btn-compact { width: 100%; padding: 7px 9px; background: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
         .generate-btn-compact:hover:not(:disabled) { background: #27ae60; }
         .generate-btn-compact:disabled { background: #95a5a6; cursor: not-allowed; }
-
-        .preview-section {
-            background: white; border-radius: 8px; padding: 12px; margin-top: 12px;
-            width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08);
-            height: 70vh; overflow: hidden; display: none; flex-direction: column;
-        }
+        .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: 70vh; overflow: hidden; display: none; flex-direction: column; }
         .preview-section.show { display: flex; flex-direction: column; height: 70vh; }
         .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; flex-shrink: 0; }
         .preview-header h4 { color: #2c3e50; font-size: 13px; display: flex; align-items: center; gap: 6px; margin: 0; }
-        .preview-table-container {
-            background: white; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            flex-grow: 1; overflow: auto; height: calc(100% - 40px);
-        }
-        .preview-table {
-            width: max-content; min-width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto;
-        }
-        .preview-table th {
-            background: #f8f9fa; padding: 6px 10px; text-align: left; font-weight: 600; color: #2c3e50;
-            border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 110px; max-width: 200px;
-        }
-        .preview-table td {
-            padding: 4px 10px; border-bottom: 1px solid #eee; vertical-align: middle;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 110px; max-width: 200px;
-        }
+        .preview-table-container { background: white; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex-grow: 1; overflow: auto; height: calc(100% - 40px); }
+        .preview-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 11px; table-layout: auto; }
+        .preview-table th { background: #f8f9fa; padding: 6px 10px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 10; white-space: nowrap; min-width: 110px; max-width: 200px; }
+        .preview-table td { padding: 4px 10px; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 110px; max-width: 200px; }
         .preview-table .na-cell { color: #95a5a6; font-style: italic; font-size: 10px; }
         .preview-table tr:hover td { background: #f8fafc; }
 
-        .pagination {
-            display: flex; justify-content: center; align-items: center; gap: 8px;
-            margin-top: 12px; padding: 10px; background: white; border-radius: 8px;
-            box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%;
-        }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
         .pagination-btn { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 3px; height: 30px; }
         .pagination-btn:hover:not(:disabled) { background: #2980b9; }
         .pagination-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
         .pagination-info { color: #7f8c8d; font-size: 12px; }
-
         .flash-message { position: fixed; top: 12px; right: 12px; background: white; padding: 10px 14px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-left: 4px solid #2ecc71; display: flex; align-items: center; gap: 6px; animation: slideIn 0.3s ease; z-index: 1001; max-width: 300px; font-size: 13px; }
         .flash-message.error { border-left-color: #e74c3c; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
         .toast { position: fixed; bottom: 20px; right: 12px; background: #2c3e50; color: white; padding: 8px 16px; border-radius: 6px; font-size: 12px; animation: fadeInUp 0.3s; z-index: 1001; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         .toast.error { background: #e74c3c; }
         .toast.success { background: #2ecc71; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
         .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
 
-        @media (max-width: 992px) {
-            .sheet-maker-row { grid-template-columns: repeat(2, 1fr); }
-            .social-page .filters-grid { grid-template-columns: repeat(2, 1fr); }
-            .social-page .action-buttons { grid-column: span 2; }
-        }
-        @media (max-width: 768px) {
-            .container { padding-top: 120px; padding-bottom: 20px; }
-            .header { flex-direction: column; gap: 10px; }
-            .header-controls { width: 100%; }
-            .sheet-maker-row { grid-template-columns: 1fr; }
-            .social-page .filters-grid { grid-template-columns: 1fr; }
-            .social-page .action-buttons { grid-column: span 1; flex-direction: column; }
-        }
+        .copy-btn { background: none; border: none; color: #3498db; cursor: pointer; padding: 2px 5px; border-radius: 3px; transition: all 0.2s; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; vertical-align: middle; }
+        .copy-btn:hover { background: #f0f7ff; transform: scale(1.1); }
+        .url-link { color: #3498db; text-decoration: none; word-break: break-all; font-size: 12px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+        .url-link:hover { text-decoration: underline; }
+        .field-container { display: flex; align-items: center; gap: 5px; }
+        .text-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+        .platform-badge { background: #e3f2fd; color: #1976d2; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+        .scam-type { background: #ffebee; color: #c62828; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+        .empty-state { text-align: center; padding: 30px 12px; color: #7f8c8d; }
+        .empty-state i { font-size: 28px; margin-bottom: 8px; color: #ddd; }
+
+        @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 768px) { .container { padding-top: 120px; padding-bottom: 20px; } .header { flex-direction: column; gap: 10px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 
-    <!-- Tracker Modal -->
+    <!-- Social Tracker Modal -->
     <div class="tracker-modal" id="trackerModal">
         <div class="tracker-content">
             <div class="tracker-header">
                 <h2><i class="fas fa-chart-line"></i> Social Media Accounts Tracker</h2>
                 <button class="tracker-close" onclick="closeTracker()"><i class="fas fa-times"></i></button>
             </div>
-            <!-- CHANGE 2: Active / Total Counts toggle buttons -->
             <div class="tracker-view-toggle">
-                <button class="tracker-toggle-btn active" id="toggleActiveBtn" onclick="setTrackerView('active')">
-                    <i class="fas fa-check-circle"></i> Active
-                </button>
-                <button class="tracker-toggle-btn" id="toggleTotalBtn" onclick="setTrackerView('total')">
-                    <i class="fas fa-list-ol"></i> Total Counts
-                </button>
+                <button class="tracker-toggle-btn active" id="toggleActiveBtn" onclick="setTrackerView('active')"><i class="fas fa-check-circle"></i> Active</button>
+                <button class="tracker-toggle-btn" id="toggleTotalBtn" onclick="setTrackerView('total')"><i class="fas fa-list-ol"></i> Total Counts</button>
+                <button class="tracker-toggle-btn perm" id="togglePermBtn" onclick="setTrackerView('perm')"><i class="fas fa-ban"></i> Permanent Block Accounts</button>
             </div>
             <div class="tracker-body" id="trackerBody">
                 <div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scraping Tracker Modal -->
+    <div class="scraping-tracker-modal" id="scrapingTrackerModal">
+        <div class="scraping-tracker-content">
+            <div class="scraping-tracker-header">
+                <h2><i class="fas fa-chart-bar"></i> Scraping Data Tracker</h2>
+                <button class="scraping-tracker-close" onclick="closeScrapingTracker()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="scraping-tracker-toggle">
+                <button class="scraping-tracker-toggle-btn active" id="scrapToggleScam" onclick="setScrapingView('scam')">
+                    <i class="fas fa-exclamation-triangle"></i> By Scam Type &amp; Platform
+                </button>
+                <button class="scraping-tracker-toggle-btn" id="scrapTogglePlatform" onclick="setScrapingView('platform')">
+                    <i class="fas fa-mobile-alt"></i> By Platform Only
+                </button>
+            </div>
+            <div class="scraping-tracker-body" id="scrapingTrackerBody">
+                <div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>
             </div>
         </div>
     </div>
@@ -736,7 +461,7 @@
                 <button class="permanent-close" onclick="closePermanentAccounts()"><i class="fas fa-times"></i></button>
             </div>
             <div class="permanent-body" id="permanentBody">
-                <div class="tracker-loading"><div class="spinner"></div><p>Loading permanently blocked accounts...</p></div>
+                <div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>
             </div>
         </div>
     </div>
@@ -757,7 +482,11 @@
     <div class="fixed-header">
         <div class="header">
             <div class="logo">
-                <h1>Scam Intelligence Dashboard</h1>
+                <div class="logo-title-row">
+                    <h1>Scam Intelligence Dashboard</h1>
+                    <!-- Math-italic username next to title -->
+                    <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+                </div>
                 <p id="pageSubtitle">
                     {% if page_type == 'scraping' %}Scrapping Data Management &amp; Filtering
                     {% elif page_type == 'sheet' %}Report Generation Tool
@@ -769,44 +498,57 @@
                 <div class="page-selector">
                     <label><i class="fas fa-columns"></i> Page:</label>
                     <select class="page-select" onchange="changePage(this.value)">
+                        {% if 'scraping' in allowed_pages %}
                         <option value="scraping" {% if page_type == 'scraping' %}selected{% endif %}>Scraping Data</option>
+                        {% endif %}
+                        {% if 'sheet' in allowed_pages %}
                         <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Sheet Maker</option>
+                        {% endif %}
+                        {% if 'social' in allowed_pages %}
                         <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
+                        {% endif %}
                     </select>
                 </div>
                 <div class="header-actions">
                     {% if page_type == 'scraping' %}
-                    <form action="/export" method="GET" style="display: inline;">
+                    <form action="/export" method="GET" style="display:inline;">
                         <input type="hidden" name="search" value="{{ search_query }}">
                         <input type="hidden" name="scam_type" value="{{ scam_filter }}">
                         <input type="hidden" name="platform" value="{{ platform_filter }}">
+                        <input type="hidden" name="date_from" value="{{ date_from }}">
+                        <input type="hidden" name="date_to" value="{{ date_to }}">
                         <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
                     </form>
-                    <form id="importForm" action="/upload" method="POST" enctype="multipart/form-data" style="display: inline;">
-                        <input type="file" name="file" id="fileInput" style="display: none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+                    <button type="button" class="btn btn-warning" onclick="showScrapingTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
+                    <form id="importForm" action="/upload" method="POST" enctype="multipart/form-data" style="display:inline;">
+                        <input type="file" name="file" id="fileInput" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                         <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-import"></i> Import</button>
                     </form>
                     {% elif page_type == 'social' %}
-                    <form id="importFormSocial" action="/social-import" method="POST" enctype="multipart/form-data" style="display: inline;">
-                        <input type="file" name="file" id="fileInputSocial" style="display: none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+                    <form id="importFormSocial" action="/social-import" method="POST" enctype="multipart/form-data" style="display:inline;">
+                        <input type="file" name="file" id="fileInputSocial" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                         <button type="button" class="btn btn-success" onclick="document.getElementById('fileInputSocial').click()"><i class="fas fa-file-import"></i> Import</button>
                     </form>
                     <button type="button" class="btn btn-warning" onclick="showTracker()"><i class="fas fa-chart-line"></i> Tracker</button>
-                    <form action="/social-export" method="GET" style="display: inline;">
+                    <form action="/social-export" method="GET" style="display:inline;">
                         <input type="hidden" name="social_search" value="{{ social_search }}">
                         <input type="hidden" name="social_platform" value="{{ social_platform }}">
                         <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
                     </form>
-                    {% elif page_type == 'sheet' %}
                     {% endif %}
                     <button class="btn btn-outline" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    <div style="display:flex;align-items:center;gap:6px;margin-left:4px;padding-left:8px;border-left:1px solid #e2e8f0;">
+                        <a href="/logout" class="btn" style="background:#e74c3c;color:white;padding:5px 10px;height:30px;font-size:11px;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="container">
+
         <!-- ===== SCRAPING DATA PAGE ===== -->
+        {% if 'scraping' in allowed_pages %}
         <div class="page-content scraping-page {% if page_type == 'scraping' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
@@ -819,7 +561,7 @@
                         <label><i class="fas fa-search"></i> Search</label>
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="search" value="{{ search_query }}" placeholder="Search by ID, URL, chat number..." onkeyup="if(event.keyCode===13) this.form.submit()">
+                            <input type="text" name="search" value="{{ search_query }}" placeholder="Search by name, URL, chat number..." onkeyup="if(event.keyCode===13) this.form.submit()">
                         </div>
                     </div>
                     <div class="filter-group">
@@ -840,52 +582,77 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                        <div class="date-range-group">
+                            <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()" class="{% if date_from %}active-filter{% endif %}" title="From date">
+                            <span class="date-range-sep">to</span>
+                            <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()" class="{% if date_to %}active-filter{% endif %}" title="To date">
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th><th>Platform</th><th>Post URL</th><th>Chat Number</th>
-                            <th>Group Name</th><th>Scam Type</th><th>Screenshot</th>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Platform</th>
+                            <th>Post URL</th>
+                            <th>Chat Number</th>
+                            <th>Group Name</th>
+                            <th>Scam Type</th>
+                            <th>Inserted Date</th>
+                            <th>Screenshot</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% if items %}
                         {% for item in items %}
                         <tr>
-                            <td><strong style="color: #2c3e50;">#{{ item["id"] }}</strong></td>
-                            <td>{% if item["platform"] and item["platform"] != "NA" %}<span class="platform-badge">{{ item["platform"] }}</span>{% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}</td>
+                            <td><strong style="color:#2c3e50;">#{{ item["id"] }}</strong></td>
+                            <td>
+                                {% if item.get("name") and item["name"] not in ["NA","N/A",""] %}
+                                <span class="text-content" title="{{ item['name'] }}">{{ item['name'][:30] }}{% if item['name']|length > 30 %}...{% endif %}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>{% if item["platform"] and item["platform"] != "NA" %}<span class="platform-badge">{{ item["platform"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
                             <td>
                                 <div class="field-container">
                                     {% if item["post_url"] and item["post_url"] != "NA" %}
-                                    <a href="{{ item['post_url'] }}" target="_blank" class="url-link" title="{{ item['post_url'] }}">{{ item['post_url'][:40] }}{% if item['post_url']|length > 40 %}...{% endif %}</a>
+                                    <a href="{{ item['post_url'] }}" target="_blank" class="url-link" title="{{ item['post_url'] }}">{{ item['post_url'][:35] }}{% if item['post_url']|length > 35 %}...{% endif %}</a>
                                     <button class="copy-btn" onclick="copyToClipboard('{{ item['post_url']|escape }}', 'Post URL')" title="Copy URL"><i class="fas fa-copy"></i></button>
-                                    {% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </div>
                             </td>
                             <td>
                                 <div class="field-container">
                                     {% if item["chat_number"] and item["chat_number"] != "NA" %}
                                     <span class="text-content">{{ item["chat_number"] }}</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['chat_number']|escape }}', 'Chat Number')" title="Copy"><i class="fas fa-copy"></i></button>
-                                    {% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['chat_number']|escape }}', 'Chat Number')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </div>
                             </td>
                             <td>
                                 <div class="field-container">
                                     {% if item["group_name"] and item["group_name"] != "NA" %}
                                     <span class="text-content">{{ item["group_name"] }}</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['group_name']|escape }}', 'Group Name')" title="Copy"><i class="fas fa-copy"></i></button>
-                                    {% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['group_name']|escape }}', 'Group Name')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </div>
                             </td>
-                            <td>{% if item["scam_type"] and item["scam_type"] != "NA" %}<span class="scam-type">{{ item["scam_type"] }}</span>{% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}</td>
-                            <td>{% if item["screenshot"] and item["screenshot"] != "NA" %}<a href="{{ item['screenshot'] }}" target="_blank" title="View Screenshot"><i class="fas fa-eye"></i></a>{% else %}<span style="color: #95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item["scam_type"] and item["scam_type"] != "NA" %}<span class="scam-type">{{ item["scam_type"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>
+                                {% if item.get("inserted_date") and item["inserted_date"] not in ["NA","N/A",""] %}
+                                <span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item["inserted_date"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>{% if item["screenshot"] and item["screenshot"] != "NA" %}<a href="{{ item['screenshot'] }}" target="_blank" title="View Screenshot"><i class="fas fa-eye"></i></a>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
                         </tr>
                         {% endfor %}
                         {% else %}
-                        <tr><td colspan="7"><div class="empty-state"><i class="fas fa-database"></i><h3>No records found</h3><p>Try adjusting your search filters or import some data</p><button class="btn btn-primary" style="margin-top: 10px;" onclick="clearFilters()"><i class="fas fa-times"></i> Clear All Filters</button></div></td></tr>
+                        <tr><td colspan="9"><div class="empty-state"><i class="fas fa-database"></i><h3>No records found</h3><p>Try adjusting your search filters or import some data</p><button class="btn btn-primary" style="margin-top:10px;" onclick="clearFilters()"><i class="fas fa-times"></i> Clear All Filters</button></div></td></tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -898,14 +665,16 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
 
         <!-- ===== SHEET MAKER PAGE ===== -->
+        {% if 'sheet' in allowed_pages %}
         <div class="page-content sheet-page {% if page_type == 'sheet' %}active{% endif %}">
             <div class="sheet-maker-compact">
                 <div class="sheet-maker-header">
                     <h2>Sheet Maker</h2>
                     <div class="template-actions">
-                        <div class="template-stats" id="templateStats" style="display: none;">
+                        <div class="template-stats" id="templateStats" style="display:none;">
                             <div class="stat-badge"><i class="fas fa-database"></i><span>Total:</span><span class="stat-value" id="statTotal">0</span></div>
                             <div class="stat-badge"><i class="fas fa-id-card"></i><span>Unique UPI:</span><span class="stat-value upi" id="statUPI">0</span></div>
                             <div class="stat-badge"><i class="fas fa-university"></i><span>Unique Bank:</span><span class="stat-value bank" id="statBank">0</span></div>
@@ -923,7 +692,7 @@
                             <option value="messaging">Messaging Channel</option>
                         </select>
                         <div class="headers-display" id="headersDisplay">
-                            <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left: auto; font-weight: bold;"></span></div>
+                            <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left:auto;font-weight:bold;"></span></div>
                             <div class="headers-grid" id="headersList"></div>
                         </div>
                     </div>
@@ -932,8 +701,8 @@
                         <div class="file-upload-compact" onclick="document.getElementById('fileUpload').click()">
                             <i class="fas fa-cloud-upload-alt"></i>
                             <div id="fileName" class="file-name">No file chosen</div>
-                            <div class="file-info" id="fileFormatsInfo">CSV, Excel → Output: CSV</div>
-                            <input type="file" id="fileUpload" style="display: none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+                            <div class="file-info">CSV, Excel → Output: CSV</div>
+                            <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                         </div>
                     </div>
                     <div class="sheet-maker-group">
@@ -947,11 +716,7 @@
                 </div>
                 <div class="preview-section" id="previewSection">
                     <div class="preview-header">
-                        <h4>
-                            <i class="fas fa-table"></i>
-                            Preview: <span id="previewSheetName" style="color: #3498db;"></span>
-                            <small style="color: #666; font-size: 12px; margin-left: 8px;">(36-column output structure)</small>
-                        </h4>
+                        <h4><i class="fas fa-table"></i> Preview: <span id="previewSheetName" style="color:#3498db;"></span><small style="color:#666;font-size:12px;margin-left:8px;">(36-column output)</small></h4>
                         <button class="btn btn-outline" onclick="closePreview()"><i class="fas fa-times"></i> Close Preview</button>
                     </div>
                     <div class="preview-table-container">
@@ -960,25 +725,18 @@
                             <tbody id="previewTableBody"></tbody>
                         </table>
                     </div>
-                    <div style="margin-top: 8px; text-align: center; font-size: 11px; color: #666; padding: 5px; border-top: 1px solid #eee; flex-shrink: 0;">
-                        <i class="fas fa-info-circle"></i>
-                        <span id="previewRowCount">Showing 0 rows</span>.
-                    </div>
+                    <div style="margin-top:8px;text-align:center;font-size:11px;color:#666;padding:5px;border-top:1px solid #eee;flex-shrink:0;"><i class="fas fa-info-circle"></i> <span id="previewRowCount">Showing 0 rows</span></div>
                 </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- ===== SOCIAL MEDIA ACCOUNTS PAGE ===== -->
+        {% if 'social' in allowed_pages %}
         <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
                     <h2><i class="fas fa-filter"></i> Filter Data</h2>
-                    <div class="batch-actions" style="display: none;" id="batchActions">
-                        <button type="button" class="btn btn-warning" onclick="enableEditMode()" id="editSelectedBtn"><i class="fas fa-edit"></i> Edit Selected</button>
-                        <button type="button" class="btn btn-danger" onclick="showDeleteConfirmation()" id="deleteSelectedBtn"><i class="fas fa-trash"></i> Delete Data</button>
-                        <button type="button" class="btn btn-outline" onclick="cancelEditMode()" id="cancelEditBtn" style="display:none;"><i class="fas fa-times"></i> Cancel</button>
-                        <button type="button" class="btn btn-success" onclick="saveAllChanges()" id="saveAllBtn" style="display:none;"><i class="fas fa-save"></i> Save All</button>
-                    </div>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="socialFilterForm">
                     <input type="hidden" name="page" value="social">
@@ -986,10 +744,7 @@
                         <label><i class="fas fa-search"></i> Search</label>
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="social_search" value="{{ social_search }}"
-                                   placeholder="Search... (press Enter)"
-                                   id="socialSearchInput"
-                                   onkeydown="if(event.keyCode===13){ event.preventDefault(); submitSocialSearch(); }">
+                            <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search... (press Enter)" id="socialSearchInput" onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}">
                         </div>
                         <span class="search-hint"><i class="fas fa-info-circle"></i> Press Enter to search</span>
                     </div>
@@ -1000,6 +755,17 @@
                             {% for platform in social_platform_options %}
                             <option value="{{ platform }}" {% if social_platform == platform %}selected{% endif %}>{{ platform }}</option>
                             {% endfor %}
+                        </select>
+                    </div>
+                    <!-- FIX: Account Status filter — includes "Block" option that works correctly -->
+                    <div class="filter-group">
+                        <label><i class="fas fa-shield-alt"></i> Account Status</label>
+                        <select name="social_status" id="socialStatusSelect" onchange="this.form.submit()" class="{% if social_status_filter %}active-filter{% endif %}">
+                            <option value="">All Status (excl. Perm. Block)</option>
+                            <option value="Active" {% if social_status_filter == 'Active' %}selected{% endif %}>🟢 Active</option>
+                            <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Blocked</option>
+                            <option value="Restricted" {% if social_status_filter == 'Restricted' %}selected{% endif %}>🟡 Restricted</option>
+                            <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
                         </select>
                     </div>
                     <div class="action-buttons">
@@ -1026,28 +792,40 @@
                     <tbody id="socialMediaTableBody">
                         {% if items %}
                         {% for item in items %}
-                        {% set status_lower = (item.account_status or 'active')|lower|replace(' ', '-') %}
-                        {% set row_class = 'row-' + status_lower %}
+                        {% set raw_status = item.account_status or 'Active' %}
+                        {% set status_lower = raw_status|lower %}
+                        {% if 'permanent' in status_lower %}
+                            {% set row_class = 'row-permanent-block' %}
+                            {% set badge_class = 'status-permanent-block' %}
+                        {% elif 'block' in status_lower %}
+                            {% set row_class = 'row-block' %}
+                            {% set badge_class = 'status-block' %}
+                        {% elif 'restricted' in status_lower %}
+                            {% set row_class = 'row-restricted' %}
+                            {% set badge_class = 'status-restricted' %}
+                        {% elif 'frozen' in status_lower %}
+                            {% set row_class = 'row-frozen' %}
+                            {% set badge_class = 'status-frozen' %}
+                        {% else %}
+                            {% set row_class = 'row-active' %}
+                            {% set badge_class = 'status-active' %}
+                        {% endif %}
                         <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}">
                             <td>{{ item.id }}</td>
                             <td>{{ item.owned_by or 'N/A' }}</td>
                             <td>{{ item.login_user or 'N/A' }}</td>
                             <td>
-                                <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
-                                    <span>{% if item.number %}{{ item.number }}{% else %}N/A{% endif %}</span>
-                                    {% if item.number and item.number not in ['N/A', 'NA', '', None] %}
-                                    <button class="copy-btn" onclick="copyToClipboard('{{ item.number|escape }}', 'Number')" title="Copy Number"><i class="fas fa-copy"></i></button>
+                                <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;">
+                                    <span>{{ item.number or 'N/A' }}</span>
+                                    {% if item.number and item.number not in ['N/A','NA','',None] %}
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item.number|escape }}','Number')"><i class="fas fa-copy"></i></button>
                                     {% endif %}
                                 </span>
                             </td>
                             <td>{{ item.login_device or 'N/A' }}</td>
                             <td>{{ item.sim_inserted_device or 'N/A' }}</td>
                             <td>
-                                <div class="status-cell">
-                                    {% set s = item.account_status or 'Active' %}
-                                    {% set sc = s|lower|replace(' ', '-')|replace('block', 'blocked')|replace('permanent-blocked','permanent-block') %}
-                                    <span class="status-display status-{{ sc }}">{{ s }}</span>
-                                </div>
+                                <span class="status-display {{ badge_class }}">{{ raw_status }}</span>
                             </td>
                             <td>{{ item.review_status or 'NA' }}</td>
                             <td>{{ item.number_type or 'N/A' }}</td>
@@ -1059,13 +837,13 @@
                             <td>{{ item.recharge_date or 'N/A' }}</td>
                             <td>{{ item.sim_buy_date or 'N/A' }}</td>
                             <td>{{ item.account_type or 'N/A' }}</td>
-                            <td>{% if item.mail_id %}{{ item.mail_id }}{% else %}N/A{% endif %}</td>
+                            <td>{{ item.mail_id or 'N/A' }}</td>
                             <td>{{ item.account_id or 'N/A' }}</td>
                             <td>
-                                <span style="display:inline-flex; align-items:center; gap:4px; flex-wrap:nowrap;">
+                                <span style="display:inline-flex;align-items:center;gap:4px;">
                                     <span class="password-field" id="password-{{ item.id }}">••••••••</span>
-                                    {% if item.password and item.password not in ['N/A', 'NA', '', None] %}
-                                    <button class="copy-btn" onclick="togglePassword({{ item.id }}, '{{ item.password|escape }}')" title="Show/Hide Password"><i class="fas fa-eye" id="pwd-icon-{{ item.id }}"></i></button>
+                                    {% if item.password and item.password not in ['N/A','NA','',None] %}
+                                    <button class="copy-btn" onclick="togglePassword({{ item.id }},'{{ item.password|escape }}')" title="Show/Hide"><i class="fas fa-eye" id="pwd-icon-{{ item.id }}"></i></button>
                                     {% endif %}
                                 </span>
                             </td>
@@ -1079,7 +857,6 @@
                     </tbody>
                 </table>
             </div>
-
             {% if total_pages is defined and total_pages > 1 %}
             <div class="pagination">
                 <button class="pagination-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}><i class="fas fa-chevron-left"></i> Previous</button>
@@ -1088,80 +865,43 @@
             </div>
             {% endif %}
         </div>
+        {% endif %}
     </div>
-
-    <!-- CHANGE 4: Footer div removed entirely. Credit is now in the header. -->
 
     <div class="flash-container">
         {% with messages = get_flashed_messages() %}
-            {% if messages %}{% for message in messages %}
-            <div class="flash-message"><i class="fas fa-check-circle" style="color: #2ecc71;"></i> {{ message }}</div>
-            {% endfor %}{% endif %}
+        {% if messages %}{% for message in messages %}
+        <div class="flash-message"><i class="fas fa-check-circle" style="color:#2ecc71;"></i> {{ message }}</div>
+        {% endfor %}{% endif %}
         {% endwith %}
     </div>
 
-    <form id="sheetForm" action="/generate-sheet" method="POST" enctype="multipart/form-data" style="display: none;">
+    <form id="sheetForm" action="/generate-sheet" method="POST" enctype="multipart/form-data" style="display:none;">
         <input type="hidden" id="formSheetType" name="sheet_type">
         <input type="file" id="formFileUpload" name="file">
     </form>
 
     <script>
+        const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon' };
         const PLATFORM_ACCOUNT_STATUS = {
-            "Facebook": ["Active", "Block", "Restricted", "Permanent Block"],
-            "Instagram": ["Active", "Block", "Permanent Block"],
-            "Telegram": ["Active", "Frozen", "Permanent Block"],
-            "WhatsApp": ["Active", "Block", "Permanent Block", "Restricted"],
-            "Amazon": ["Active", "Block", "Permanent Block"]
+            "Facebook":["Active","Block","Restricted","Permanent Block"],
+            "Instagram":["Active","Block","Permanent Block"],
+            "Telegram":["Active","Frozen","Permanent Block"],
+            "WhatsApp":["Active","Block","Permanent Block","Restricted"],
+            "Amazon":["Active","Block","Permanent Block"]
         };
+        const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
+        const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
+        const STATUS_COUNT_CLASS = { 'Active':'count-active','Block':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
 
-        const ACCOUNT_STATUS_CLASSES = {
-            'Active': 'row-active', 'Block': 'row-blocked',
-            'Permanent Block': 'row-permanent-block', 'Restricted': 'row-restricted',
-            'Frozen': 'row-frozen', 'Video Verification': 'row-video-verification'
-        };
-
-        const PLATFORM_ICONS = {
-            'Facebook': 'facebook-f', 'Instagram': 'instagram',
-            'Telegram': 'telegram-plane', 'WhatsApp': 'whatsapp', 'Amazon': 'amazon'
-        };
-
-        // ============================================================
-        // CHANGE 2 & 3: Tracker view state. Default = 'active'.
-        // Permanent Block is excluded in both views.
-        // ============================================================
-        let trackerCurrentView = 'active'; // 'active' | 'total'
+        let trackerCurrentView = 'active';
         let cachedTrackerStats = null;
-
-        // Status color classes (updated to match Change 1 darker colors)
-        const STATUS_BG_CLASS = {
-            'Active':          'status-bg-active',
-            'Block':           'status-bg-block',
-            'Restricted':      'status-bg-restricted',
-            'Frozen':          'status-bg-frozen',
-            'Permanent Block': 'status-bg-permanent'
-        };
-        const STATUS_NAME_CLASS = {
-            'Active':          'color-active',
-            'Block':           'color-block',
-            'Restricted':      'color-restricted',
-            'Frozen':          'color-frozen',
-            'Permanent Block': 'color-permanent'
-        };
-        const STATUS_COUNT_CLASS = {
-            'Active':          'count-active',
-            'Block':           'count-block',
-            'Restricted':      'count-restricted',
-            'Frozen':          'count-frozen',
-            'Permanent Block': 'count-permanent'
-        };
-
-        let selectedRows = new Set();
-        let editMode = false;
-        let editedRows = new Set();
+        let scrapingCurrentView = 'scam';
+        let cachedScrapingStats = null;
         let pendingAction = null;
-        let pendingActionData = null;
         let previewDataCache = null;
 
+        // ─── Page / Navigation ──────────────────────────────────────
         function changePage(pageType) {
             const url = new URL(window.location.href);
             url.searchParams.set('page', pageType);
@@ -1169,289 +909,324 @@
             window.location.href = url.toString();
         }
 
-        function submitSocialSearch() {
-            document.getElementById('socialFilterForm').submit();
-        }
+        function submitSocialSearch() { document.getElementById('socialFilterForm').submit(); }
 
         function goToUpdatePage() {
-            const searchQuery = document.getElementById('socialSearchInput').value;
-            const platformFilter = document.getElementById('socialPlatformSelect').value;
+            const search = document.getElementById('socialSearchInput').value;
+            const platform = document.getElementById('socialPlatformSelect').value;
             let url = '/update-social-accounts';
             const params = [];
-            if (searchQuery) params.push('search=' + encodeURIComponent(searchQuery));
-            if (platformFilter) params.push('platform=' + encodeURIComponent(platformFilter));
+            if (search) params.push('search=' + encodeURIComponent(search));
+            if (platform) params.push('platform=' + encodeURIComponent(platform));
             sessionStorage.setItem('social_needs_refresh', '1');
             if (params.length) url += '?' + params.join('&');
             window.location.href = url;
         }
 
         (function checkSocialRefresh() {
-            const pageType = '{{ page_type }}';
-            if (pageType === 'social' && sessionStorage.getItem('social_needs_refresh') === '1') {
+            if ('{{ page_type }}' === 'social' && sessionStorage.getItem('social_needs_refresh') === '1') {
                 sessionStorage.removeItem('social_needs_refresh');
-                refreshSocialTable();
             }
         })();
 
-        function refreshSocialTable() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const search = urlParams.get('social_search') || '';
-            const platform = urlParams.get('social_platform') || '';
-            const pageNum = urlParams.get('page_num') || '1';
-            const fetchUrl = '/?page=social'
-                + (search ? '&social_search=' + encodeURIComponent(search) : '')
-                + (platform ? '&social_platform=' + encodeURIComponent(platform) : '')
-                + '&page_num=' + pageNum;
-            fetch(fetchUrl)
-                .then(r => r.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newTbody = doc.getElementById('socialMediaTableBody');
-                    const curTbody = document.getElementById('socialMediaTableBody');
-                    if (newTbody && curTbody) {
-                        curTbody.innerHTML = newTbody.innerHTML;
-                        showToast('Table refreshed with latest data', false, true);
+        // ─── Scraping Tracker ────────────────────────────────────────
+        function showScrapingTracker() {
+            document.getElementById('scrapingTrackerModal').classList.add('active');
+            scrapingCurrentView = 'scam';
+            document.getElementById('scrapToggleScam').classList.add('active');
+            document.getElementById('scrapTogglePlatform').classList.remove('active');
+            if (!cachedScrapingStats) {
+                loadScrapingTrackerData();
+            } else {
+                displayScrapingTrackerData(cachedScrapingStats);
+            }
+        }
+
+        function closeScrapingTracker() {
+            document.getElementById('scrapingTrackerModal').classList.remove('active');
+        }
+
+        function setScrapingView(view) {
+            scrapingCurrentView = view;
+            document.getElementById('scrapToggleScam').classList.toggle('active', view === 'scam');
+            document.getElementById('scrapTogglePlatform').classList.toggle('active', view === 'platform');
+            if (cachedScrapingStats) displayScrapingTrackerData(cachedScrapingStats);
+        }
+
+        function loadScrapingTrackerData() {
+            const body = document.getElementById('scrapingTrackerBody');
+            body.innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>';
+            fetch('/scraping-tracker-stats')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        cachedScrapingStats = data.stats;
+                        displayScrapingTrackerData(data.stats);
+                    } else {
+                        body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                     }
                 })
-                .catch(() => {});
+                .catch(() => {
+                    body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data. Please try again.</p></div>';
+                });
         }
 
-        function showDeleteConfirmation() {
-            if (selectedRows.size === 0) { showToast('Please select at least one row to delete', true); return; }
-            pendingAction = 'delete';
-            pendingActionData = Array.from(selectedRows);
-            document.getElementById('confirmationTitle').textContent = 'Delete Selected Accounts?';
-            document.getElementById('confirmationMessage').textContent = `Are you sure you want to delete ${selectedRows.size} account(s)? This action cannot be undone.`;
-            document.getElementById('confirmationModal').classList.add('active');
+        /* Platform → CSS pill class */
+        function getPillClass(platform) {
+            const map = {
+                'Telegram':'pill-telegram', 'WhatsApp':'pill-whatsapp',
+                'Facebook':'pill-facebook', 'Instagram':'pill-instagram',
+                'YouTube':'pill-youtube', 'Threads':'pill-threads',
+                'X':'pill-x', 'Unknown':'pill-unknown'
+            };
+            return map[platform] || 'pill-default';
         }
 
-        function cancelAction() {
-            document.getElementById('confirmationModal').classList.remove('active');
-            pendingAction = null; pendingActionData = null;
+        /* Platform → FA icon */
+        function getPlatformIcon(platform) {
+            const map = {
+                'Telegram':'paper-plane','WhatsApp':'whatsapp','Facebook':'facebook-f',
+                'Instagram':'instagram','YouTube':'youtube','Threads':'at','X':'times',
+                'Unknown':'question-circle'
+            };
+            const fab = ['paper-plane','whatsapp','facebook-f','instagram','youtube','at'];
+            const icon = map[platform] || 'globe';
+            const prefix = fab.includes(icon) ? 'fab' : 'fas';
+            return `<i class="${prefix} fa-${icon}"></i>`;
         }
 
-        function confirmAction() {
-            document.getElementById('confirmationModal').classList.remove('active');
-            if (pendingAction === 'delete') deleteSelectedAccounts();
-            pendingAction = null; pendingActionData = null;
+        function displayScrapingTrackerData(stats) {
+            const body = document.getElementById('scrapingTrackerBody');
+
+            // ── Total banner ──
+            let html = `<div class="scraping-total-banner">
+                <span class="banner-label"><i class="fas fa-database"></i> Total Data Records</span>
+                <span class="banner-num">${stats.total.toLocaleString()}</span>
+            </div>`;
+
+            if (scrapingCurrentView === 'scam') {
+                const breakdown = stats.scam_platform_breakdown || {};
+                const scamCounts = stats.scam_counts || {};
+
+                const scamIconMap = {
+                    'Investment Scam':'chart-line','Carding Scam':'credit-card',
+                    'Shopping Scam':'shopping-cart','Job Scam':'briefcase',
+                    'Subscription Scam':'bell','Loan Scam':'hand-holding-usd',
+                    'Currency Exchange Scam':'exchange-alt',
+                    'Fake Account Selling Scam':'user-secret','Unknown':'tag'
+                };
+
+                const sortedScams = Object.entries(scamCounts).sort((a,b) => b[1]-a[1]);
+
+                if (sortedScams.length === 0) {
+                    html += '<div class="empty-state"><i class="fas fa-inbox"></i><p>No scam data available.</p></div>';
+                } else {
+                    html += `<div class="scrap-section-title"><i class="fas fa-layer-group"></i> Scam Type × Platform Breakdown</div>`;
+                    sortedScams.forEach(([scam, total]) => {
+                        const icon = scamIconMap[scam] || 'tag';
+                        const platforms = breakdown[scam] || {};
+                        const sortedPlatforms = Object.entries(platforms).sort((a,b) => b[1]-a[1]);
+
+                        let pillsHtml = '';
+                        if (sortedPlatforms.length === 0) {
+                            pillsHtml = '<span style="font-size:11px;color:#adb5bd;font-style:italic;">No platform data</span>';
+                        } else {
+                            sortedPlatforms.forEach(([plat, cnt]) => {
+                                const pillClass = getPillClass(plat);
+                                const platIcon = getPlatformIcon(plat);
+                                pillsHtml += `<span class="scrap-pill ${pillClass}" title="${plat}: ${cnt}">
+                                    ${platIcon} ${plat}
+                                    <span class="scrap-pill-count">${cnt.toLocaleString()}</span>
+                                </span>`;
+                            });
+                        }
+
+                        html += `<div class="scrap-scam-card">
+                            <div class="scrap-scam-header">
+                                <div class="scrap-scam-name"><i class="fas fa-${icon}"></i> ${scam}</div>
+                                <span class="scrap-scam-total">${total.toLocaleString()}</span>
+                            </div>
+                            <div class="scrap-platform-pills">${pillsHtml}</div>
+                        </div>`;
+                    });
+                }
+
+            } else {
+                // ── Platform only view ──
+                const platformCounts = stats.platform_counts || {};
+                const sorted = Object.entries(platformCounts).sort((a,b) => b[1]-a[1]);
+
+                html += `<div class="scrap-section-title"><i class="fas fa-mobile-alt"></i> Platform-wise Total Count</div>`;
+                if (sorted.length === 0) {
+                    html += '<div class="empty-state"><p>No platform data available.</p></div>';
+                } else {
+                    sorted.forEach(([plat, cnt]) => {
+                        const platIcon = getPlatformIcon(plat);
+                        html += `<div class="scrap-stat-card">
+                            <div class="scrap-stat-label">${platIcon} ${plat}</div>
+                            <span class="scrap-stat-count">${cnt.toLocaleString()}</span>
+                        </div>`;
+                    });
+                }
+            }
+
+            body.innerHTML = html;
         }
 
-        function deleteSelectedAccounts() {
-            if (selectedRows.size === 0) return;
-            showLoading();
-            setTimeout(() => {
-                selectedRows.forEach(id => { const row = document.getElementById(`row-${id}`); if (row) row.remove(); });
-                selectedRows.clear();
-                hideLoading();
-                showToast('Deleted successfully', false, true);
-            }, 1000);
-        }
-
-        function enableEditMode() {
-            if (selectedRows.size === 0) return;
-            editMode = true;
-            editedRows.clear();
-            document.getElementById('editSelectedBtn').style.display = 'none';
-            document.getElementById('deleteSelectedBtn').style.display = 'none';
-            document.getElementById('cancelEditBtn').style.display = 'inline-flex';
-            document.getElementById('saveAllBtn').style.display = 'inline-flex';
-        }
-
-        function cancelEditMode() {
-            editMode = false; selectedRows.clear(); editedRows.clear(); window.location.reload();
-        }
-
-        function saveAllChanges() {
-            if (editedRows.size === 0) { showToast('No changes to save', true); return; }
-            showToast(`Successfully saved ${editedRows.size} row(s)`, false, true);
-            setTimeout(() => cancelEditMode(), 1000);
-        }
-
-        // ============================================================
-        // TRACKER — Toggle between Active view and Total Counts view
-        // CHANGE 2: setTrackerView switches which data is rendered.
-        // CHANGE 3: Permanent Block is never shown in either view.
-        // ============================================================
+        // ─── Social Tracker ──────────────────────────────────────────
         function showTracker() {
             document.getElementById('trackerModal').classList.add('active');
-            // Reset toggle to 'active' each time the tracker is opened
             trackerCurrentView = 'active';
             document.getElementById('toggleActiveBtn').classList.add('active');
             document.getElementById('toggleTotalBtn').classList.remove('active');
+            document.getElementById('togglePermBtn').classList.remove('active');
             loadTrackerData();
         }
 
-        function closeTracker() {
-            document.getElementById('trackerModal').classList.remove('active');
-        }
+        function closeTracker() { document.getElementById('trackerModal').classList.remove('active'); }
 
         function setTrackerView(view) {
             trackerCurrentView = view;
             document.getElementById('toggleActiveBtn').classList.toggle('active', view === 'active');
             document.getElementById('toggleTotalBtn').classList.toggle('active', view === 'total');
-            if (cachedTrackerStats) {
-                displayTrackerData(cachedTrackerStats);
-            }
+            document.getElementById('togglePermBtn').classList.toggle('active', view === 'perm');
+            if (cachedTrackerStats) displayTrackerData(cachedTrackerStats);
         }
 
         function loadTrackerData() {
-            const trackerBody = document.getElementById('trackerBody');
-            trackerBody.innerHTML = `<div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>`;
+            document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>';
             fetch('/tracker-stats')
-                .then(response => response.json())
+                .then(r => r.json())
                 .then(data => {
                     if (data.success) {
                         cachedTrackerStats = data.stats;
                         displayTrackerData(data.stats);
                     } else {
-                        trackerBody.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p><button class="btn btn-outline" onclick="loadTrackerData()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
+                        document.getElementById('trackerBody').innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                     }
                 })
                 .catch(() => {
-                    trackerBody.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker. Please try again.</p><button class="btn btn-outline" onclick="loadTrackerData()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
+                    document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker.</p></div>';
                 });
         }
 
         function getStatusColorClasses(status) {
             return {
-                bg:        STATUS_BG_CLASS[status]    || 'status-bg-default',
-                nameClass: STATUS_NAME_CLASS[status]  || 'color-default',
-                countClass:STATUS_COUNT_CLASS[status] || 'count-default'
+                bg: STATUS_BG_CLASS[status] || 'status-bg-default',
+                nameClass: STATUS_NAME_CLASS[status] || 'color-default',
+                countClass: STATUS_COUNT_CLASS[status] || 'count-default'
             };
         }
 
         function displayTrackerData(stats) {
-            const trackerBody = document.getElementById('trackerBody');
-            const platforms = ['Facebook', 'Telegram', 'WhatsApp', 'Instagram', 'Amazon'];
-            const isActiveView = (trackerCurrentView === 'active');
+            const body = document.getElementById('trackerBody');
+            const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon'];
 
-            // ── Summary section ──────────────────────────────────────
+            if (trackerCurrentView === 'perm') {
+                const permCounts = stats.perm_block_counts || {};
+                const permTotal = stats.perm_block_total || 0;
+                let html = `<div class="tracker-summary">
+                    <h3><i class="fas fa-ban" style="color:#ef4444;"></i> Permanent Block Accounts by Platform</h3>
+                    <div class="summary-grid">`;
+                platforms.forEach(p => {
+                    const icon = PLATFORM_ICONS[p] || 'globe';
+                    const count = permCounts[p] || 0;
+                    html += `<div class="summary-item">
+                        <div class="platform"><i class="fab fa-${icon}" style="color:#ef4444;"></i>${p}</div>
+                        <div class="count perm-count">${count}</div>
+                    </div>`;
+                });
+                html += `</div><div class="total-accounts">Total Permanent Block: <span class="total-count" style="color:#ef4444;">${permTotal}</span></div></div>`;
+                html += `<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Platform-wise Breakdown</h3>`;
+                platforms.forEach(p => {
+                    const count = permCounts[p] || 0;
+                    if (count > 0) {
+                        const icon = PLATFORM_ICONS[p] || 'globe';
+                        html += `<div class="platform-section">
+                            <div class="platform-header">
+                                <h4><i class="fab fa-${icon}" style="color:#ef4444;"></i> ${p}</h4>
+                                <span class="platform-total perm">Permanent Block: ${count}</span>
+                            </div>
+                            <div class="status-item status-bg-permanent" style="max-width:200px;">
+                                <div class="status-name color-permanent"><i class="fas fa-ban"></i> Permanent Block</div>
+                                <div class="status-count count-permanent">${count}</div>
+                            </div>
+                        </div>`;
+                    }
+                });
+                html += '</div>';
+                body.innerHTML = html;
+                return;
+            }
+
+            const isActiveView = trackerCurrentView === 'active';
             const summaryTitle = isActiveView
                 ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform'
                 : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
 
             let html = `<div class="tracker-summary"><h3>${summaryTitle}</h3><div class="summary-grid">`;
-
             let grandTotal = 0;
-            platforms.forEach(platform => {
-                const statusData = stats.platform_status_counts[platform] || {};
-                const totalForPlatform = stats.platform_counts[platform] || 0;
-                const icon = PLATFORM_ICONS[platform] || 'question';
-
+            platforms.forEach(p => {
+                const statusData = stats.platform_status_counts[p] || {};
+                const icon = PLATFORM_ICONS[p] || 'globe';
                 let displayCount, countClass;
                 if (isActiveView) {
-                    // CHANGE 2: show only Active count per platform
                     displayCount = statusData['Active'] || 0;
                     countClass = 'active-count';
                 } else {
-                    // CHANGE 3: exclude Permanent Block from total
-                    displayCount = Object.entries(statusData)
-                        .filter(([s]) => s !== 'Permanent Block')
-                        .reduce((sum, [, n]) => sum + n, 0);
+                    displayCount = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum, [,n]) => sum+n, 0);
                     countClass = '';
                 }
                 grandTotal += displayCount;
-
                 html += `<div class="summary-item">
-                    <div class="platform"><i class="fab fa-${icon}"></i>${platform}</div>
+                    <div class="platform"><i class="fab fa-${icon}"></i>${p}</div>
                     <div class="count ${countClass}">${displayCount}</div>
                 </div>`;
             });
+            const totalLabel = isActiveView ? 'Total Active Accounts:' : 'Total Accounts (excl. Perm. Block):';
+            html += `</div><div class="total-accounts">${totalLabel} <span class="total-count" style="color:${isActiveView?'#16a34a':'#5d9cec'};">${grandTotal}</span></div></div>`;
 
-            const totalLabel = isActiveView ? 'Total Active Accounts:' : 'Total Accounts:';
-            html += `</div><div class="total-accounts">${totalLabel} <span class="total-count">${grandTotal}</span></div></div>`;
-
-            // ── Details section ──────────────────────────────────────
             if (!isActiveView) {
-                // CHANGE 2: details section only shown in Total Counts view
-                html += `<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>`;
-                platforms.forEach(platform => {
-                    const statusData = stats.platform_status_counts[platform] || {};
-                    const icon = PLATFORM_ICONS[platform] || 'question';
-
-                    // CHANGE 3: exclude Permanent Block from count shown in header
-                    const totalExcludingPerm = Object.entries(statusData)
-                        .filter(([s]) => s !== 'Permanent Block')
-                        .reduce((sum, [, n]) => sum + n, 0);
-
-                    if (totalExcludingPerm > 0) {
-                        html += `<div class="platform-section">
-                            <div class="platform-header">
-                                <h4><i class="fab fa-${icon}"></i> ${platform}</h4>
-                                <span class="platform-total">Total: ${totalExcludingPerm}</span>
-                            </div>
-                            <div class="status-grid">`;
-
-                        const platformStatuses = (PLATFORM_ACCOUNT_STATUS[platform] || ['Active'])
-                            .filter(s => s !== 'Permanent Block'); // CHANGE 3: exclude Permanent Block
-
-                        // Show defined statuses (excluding Permanent Block)
-                        platformStatuses.forEach(status => {
+                html += '<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>';
+                platforms.forEach(p => {
+                    const statusData = stats.platform_status_counts[p] || {};
+                    const icon = PLATFORM_ICONS[p] || 'globe';
+                    const total = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum,[,n])=>sum+n,0);
+                    if (total > 0) {
+                        html += `<div class="platform-section"><div class="platform-header"><h4><i class="fab fa-${icon}"></i> ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
+                        const pStatuses = (PLATFORM_ACCOUNT_STATUS[p] || ['Active']).filter(s => s !== 'Permanent Block');
+                        pStatuses.forEach(status => {
                             const count = statusData[status] || 0;
                             if (count > 0) {
-                                const { bg, nameClass, countClass } = getStatusColorClasses(status);
-                                html += `<div class="status-item ${bg}">
-                                    <div class="status-name ${nameClass}">
-                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
-                                    </div>
-                                    <div class="status-count ${countClass}">${count}</div>
-                                </div>`;
+                                const {bg, nameClass, countClass} = getStatusColorClasses(status);
+                                html += `<div class="status-item ${bg}"><div class="status-name ${nameClass}"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</div><div class="status-count ${countClass}">${count}</div></div>`;
                             }
                         });
-
-                        // Any extra statuses not in list, still excluding Permanent Block
-                        Object.entries(statusData).forEach(([status, count]) => {
-                            if (!platformStatuses.includes(status) && status !== 'Permanent Block' && count > 0) {
-                                const { bg, nameClass, countClass } = getStatusColorClasses(status);
-                                html += `<div class="status-item ${bg}">
-                                    <div class="status-name ${nameClass}">
-                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
-                                    </div>
-                                    <div class="status-count ${countClass}">${count}</div>
-                                </div>`;
-                            }
-                        });
-
-                        html += `</div></div>`;
+                        html += '</div></div>';
                     }
                 });
-                html += `</div>`;
+                html += '</div>';
             }
-
-            trackerBody.innerHTML = html;
+            body.innerHTML = html;
         }
 
+        // ─── Activity Log ────────────────────────────────────────────
         function showActivityLog() {
             document.getElementById('activityModal').classList.add('active');
-            loadActivityLog();
+            document.getElementById('activityBody').innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience 🙏</p></div>`;
         }
-
         function closeActivityLog() { document.getElementById('activityModal').classList.remove('active'); }
 
-        function loadActivityLog() {
-            const activityBody = document.getElementById('activityBody');
-            activityBody.innerHTML = `<div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>`;
-            fetch('/get-activity-log')
-                .then(r => r.json())
-                .then(() => {
-                    activityBody.innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience 🙏</p></div>`;
-                })
-                .catch(() => {
-                    activityBody.innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience 🙏</p></div>`;
-                });
-        }
-
+        // ─── Permanent Block Modal ───────────────────────────────────
         function showPermanentAccounts() {
             document.getElementById('permanentModal').classList.add('active');
             loadPermanentAccounts();
         }
-
         function closePermanentAccounts() { document.getElementById('permanentModal').classList.remove('active'); }
 
         function loadPermanentAccounts(search) {
             const body = document.getElementById('permanentBody');
-            body.innerHTML = `<div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>`;
+            body.innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>';
             const url = '/get-permanent-block-accounts' + (search ? '?search=' + encodeURIComponent(search) : '');
             fetch(url)
                 .then(r => r.json())
@@ -1460,89 +1235,78 @@
                     else body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                 })
                 .catch(() => {
-                    body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p><button class="btn btn-outline" onclick="loadPermanentAccounts()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
+                    body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>';
                 });
         }
 
         function searchPermanentAccounts() {
-            const q = document.getElementById('permSearchInput').value;
-            loadPermanentAccounts(q);
+            loadPermanentAccounts(document.getElementById('permSearchInput').value);
         }
 
         function displayPermanentAccounts(accounts, count, searchVal) {
             const body = document.getElementById('permanentBody');
-            const searchBox = `
-                <div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
-                    <div style="position:relative;flex:1;">
-                        <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i>
-                        <input id="permSearchInput" type="text" value="${searchVal || ''}"
-                               placeholder="Search by number, device, platform..."
-                               style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;"
-                               onkeydown="if(event.key==='Enter') searchPermanentAccounts()"
-                               onfocus="this.style.borderColor='#ef4444'" onblur="this.style.borderColor='#ddd'">
-                    </div>
-                    <button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
-                        <i class="fas fa-search"></i> Search
-                    </button>
-                </div>`;
-
+            const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
+                <div style="position:relative;flex:1;">
+                    <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i>
+                    <input id="permSearchInput" type="text" value="${searchVal||''}" placeholder="Search by number, device, platform..." style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter') searchPermanentAccounts()">
+                </div>
+                <button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button>
+            </div>`;
             let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
             if (count > 0) {
                 html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
-                accounts.forEach((a, i) => {
-                    const platformIcon = {Facebook:'facebook-f',Instagram:'instagram',Telegram:'telegram-plane',WhatsApp:'whatsapp',Amazon:'amazon'}[a.platform] || 'globe';
-                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i + 1}</td><td>${a.owned_by || 'N/A'}</td><td>${a.number || 'N/A'}</td><td>${a.login_device || 'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;white-space:nowrap;"><i class="fab fa-${platformIcon}" style="margin-right:3px;"></i>${a.platform || 'N/A'}</span></td><td>${a.blocked_date || 'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration || 'N/A'}</span></td></tr>`;
+                accounts.forEach((a,i) => {
+                    const icon = PLATFORM_ICONS[a.platform] || 'globe';
+                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"><i class="fab fa-${icon}" style="margin-right:3px;"></i>${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
                 });
-                html += `</tbody></table></div>`;
+                html += '</tbody></table></div>';
             } else {
-                html += `<div class="empty-state" style="padding:50px 20px;"><i class="fas fa-ban" style="font-size:48px;color:#ddd;display:block;margin-bottom:12px;"></i><h3>${searchVal ? 'No results for "' + searchVal + '"' : 'No Permanently Blocked Accounts'}</h3><p style="margin-top:6px;font-size:13px;">${searchVal ? 'Try a different search term.' : 'No accounts have been permanently blocked yet.'}</p></div>`;
+                html += `<div class="empty-state" style="padding:50px 20px;"><i class="fas fa-ban" style="font-size:48px;color:#ddd;display:block;margin-bottom:12px;"></i><h3>${searchVal?'No results for "'+searchVal+'"':'No Permanently Blocked Accounts'}</h3></div>`;
             }
             body.innerHTML = html;
         }
 
-        // ===== Sheet Maker Functions =====
+        function cancelAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
+        function confirmAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
+
+        // ─── Sheet Maker ─────────────────────────────────────────────
         function updateSelectedSheet() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const headersDisplay = document.getElementById('headersDisplay');
-            const generateBtn = document.getElementById('generateBtn');
-            const previewBtn = document.getElementById('previewBtn');
-            const templateBtn = document.getElementById('templateBtn');
-            const templateStats = document.getElementById('templateStats');
             if (sheetType) {
                 headersDisplay.style.display = 'block';
                 fetch(`/get-sheet-headers/${sheetType}`)
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
-                            const headersList = document.getElementById('headersList');
-                            headersList.innerHTML = '';
-                            data.headers.forEach(h => {
-                                const el = document.createElement('div');
-                                el.className = 'header-item'; el.textContent = h; el.title = h;
-                                headersList.appendChild(el);
-                            });
+                            const list = document.getElementById('headersList');
+                            list.innerHTML = '';
+                            data.headers.forEach(h => { const el = document.createElement('div'); el.className = 'header-item'; el.textContent = h; el.title = h; list.appendChild(el); });
                             document.getElementById('headersCount').textContent = `${data.headers.length} headers`;
                             document.getElementById('formSheetType').value = sheetType;
-                            templateBtn.disabled = false;
-                            templateStats.style.display = 'flex';
+                            document.getElementById('templateBtn').disabled = false;
+                            document.getElementById('templateStats').style.display = 'flex';
                             if (document.getElementById('fileUpload').files.length > 0) {
-                                generateBtn.disabled = false; previewBtn.disabled = false;
+                                document.getElementById('generateBtn').disabled = false;
+                                document.getElementById('previewBtn').disabled = false;
                             }
                         }
                     });
             } else {
                 headersDisplay.style.display = 'none';
-                generateBtn.disabled = true; previewBtn.disabled = true;
-                templateBtn.disabled = true; templateStats.style.display = 'none';
+                document.getElementById('generateBtn').disabled = true;
+                document.getElementById('previewBtn').disabled = true;
+                document.getElementById('templateBtn').disabled = true;
+                document.getElementById('templateStats').style.display = 'none';
             }
             closePreview(); previewDataCache = null;
         }
 
         function updateFileName(input) {
             document.getElementById('fileName').textContent = input.files[0] ? input.files[0].name : 'No file chosen';
-            const dataTransfer = new DataTransfer();
-            if (input.files[0]) dataTransfer.items.add(input.files[0]);
-            document.getElementById('formFileUpload').files = dataTransfer.files;
+            const dt = new DataTransfer();
+            if (input.files[0]) dt.items.add(input.files[0]);
+            document.getElementById('formFileUpload').files = dt.files;
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const hasFile = input.files.length > 0;
             document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
@@ -1554,8 +1318,7 @@
         function downloadTemplate() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
-            showLoading();
-            window.location.href = `/download-template/${sheetType}`;
+            showLoading(); window.location.href = `/download-template/${sheetType}`;
             setTimeout(hideLoading, 1000);
         }
 
@@ -1591,30 +1354,20 @@
             const thead = document.getElementById('previewTableHead');
             const tbody = document.getElementById('previewTableBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
-
             const hr = document.createElement('tr');
-            data.columns.forEach(col => {
-                const th = document.createElement('th');
-                th.textContent = col; th.title = col;
-                hr.appendChild(th);
-            });
+            data.columns.forEach(col => { const th = document.createElement('th'); th.textContent = col; th.title = col; hr.appendChild(th); });
             thead.appendChild(hr);
-
             (data.preview_rows || []).forEach(row => {
                 const tr = document.createElement('tr');
                 data.columns.forEach(col => {
                     const td = document.createElement('td');
                     const val = row[col] || '';
-                    if (!val || val === 'NA') {
-                        td.className = 'na-cell'; td.textContent = 'N/A';
-                    } else {
-                        td.textContent = val; td.title = val;
-                    }
+                    if (!val || val === 'NA') { td.className = 'na-cell'; td.textContent = 'N/A'; }
+                    else { td.textContent = val; td.title = val; }
                     tr.appendChild(td);
                 });
                 tbody.appendChild(tr);
             });
-
             document.getElementById('previewRowCount').textContent = `Showing ${(data.preview_rows||[]).length} rows (${data.columns.length} columns)`;
             document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
@@ -1631,9 +1384,9 @@
             setTimeout(hideLoading, 5000);
         }
 
-        // Utility Functions
+        // ─── Helpers ─────────────────────────────────────────────────
         function copyToClipboard(text, fieldName) {
-            if (!text || ['NA', 'null', 'N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
+            if (!text || ['NA','null','N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
             const ta = document.createElement('textarea');
             ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
             document.body.appendChild(ta);
@@ -1643,7 +1396,6 @@
                 else throw new Error();
             } catch {
                 if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast(`${fieldName} copied!`)).catch(() => showToast('Failed to copy', true));
-                else showToast('Failed to copy', true);
             } finally { document.body.removeChild(ta); }
         }
 
@@ -1659,31 +1411,27 @@
             }
         }
 
-        function showToast(message, isError = false, isSuccess = false) {
-            const existing = document.querySelector('.toast');
-            if (existing) existing.remove();
-            const toast = document.createElement('div');
-            toast.className = `toast ${isError ? 'error' : ''} ${isSuccess ? 'success' : ''}`;
-            toast.textContent = message;
-            document.body.appendChild(toast);
-            setTimeout(() => { if (toast.parentNode) toast.remove(); }, 3000);
+        function showToast(message, isError=false, isSuccess=false) {
+            const ex = document.querySelector('.toast'); if (ex) ex.remove();
+            const t = document.createElement('div');
+            t.className = `toast ${isError?'error':''} ${isSuccess?'success':''}`;
+            t.textContent = message;
+            document.body.appendChild(t);
+            setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
         }
 
         function clearFilters() { window.location.href = "/?page=scraping"; }
 
         function goToPage(page) {
-            {% if total_pages is defined %}
-            if (page < 1 || page > {{ total_pages }}) return;
             const url = new URL(window.location.href);
             url.searchParams.set('page_num', page);
             showLoading(); window.location.href = url.toString();
-            {% endif %}
         }
 
         function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-        // Drag and drop for file uploads
+        // Drag-drop for file upload
         document.querySelectorAll('.file-upload-compact').forEach(area => {
             area.addEventListener('dragover', e => { e.preventDefault(); area.style.borderColor = '#3498db'; area.style.background = '#e8f4fc'; });
             area.addEventListener('dragleave', e => { e.preventDefault(); area.style.borderColor = '#dee2e6'; area.style.background = 'white'; });
@@ -1697,8 +1445,8 @@
             });
         });
 
-        // Close modals on outside click / Escape
-        ['trackerModal', 'activityModal', 'permanentModal', 'confirmationModal'].forEach(id => {
+        // Close modals on backdrop click
+        ['trackerModal','activityModal','permanentModal','confirmationModal','scrapingTrackerModal'].forEach(id => {
             const modal = document.getElementById(id);
             if (modal) {
                 modal.addEventListener('click', e => {
@@ -1707,16 +1455,17 @@
                         else if (id === 'activityModal') closeActivityLog();
                         else if (id === 'permanentModal') closePermanentAccounts();
                         else if (id === 'confirmationModal') cancelAction();
+                        else if (id === 'scrapingTrackerModal') closeScrapingTracker();
                     }
                 });
             }
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); }
+            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); }
         });
 
-        // Flash message auto-dismiss
+        // Auto-dismiss flash messages
         setTimeout(() => {
             document.querySelectorAll('.flash-message').forEach(msg => {
                 msg.style.animation = 'slideIn 0.3s ease reverse forwards';
@@ -1724,17 +1473,14 @@
             });
         }, 5000);
 
-        // File import triggers
+        // File input triggers
         document.getElementById('fileInput')?.addEventListener('change', function() {
             if (this.files.length) { showLoading(); document.getElementById('importForm').submit(); }
         });
-
         document.getElementById('fileInputSocial')?.addEventListener('change', function() {
             if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
         });
     </script>
-    <!-- Bottom-right dev credit: compact, not full-width -->
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
-
 </body>
 </html>
