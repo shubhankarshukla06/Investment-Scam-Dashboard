@@ -1017,39 +1017,59 @@ def tracker_stats():
         platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp"]
         platform_counts = {}
         platform_status_counts = {}
+        perm_block_counts = {}
+        perm_block_total = 0
+
+        CHUNK = 1000
+
         for platform in platforms:
             try:
-                response = social_supabase.table("social_media_accounts") \
-                    .select("account_status", count='exact').eq("platform", platform).execute()
-                platform_counts[platform] = response.count or 0
+                # Paginate to fetch ALL rows for this platform (bypass 1000-row Supabase cap)
+                all_rows = []
+                offset = 0
+                total_count = 0
+                while True:
+                    resp = social_supabase.table("social_media_accounts") \
+                        .select("account_status", count='exact') \
+                        .eq("platform", platform) \
+                        .range(offset, offset + CHUNK - 1) \
+                        .execute()
+                    if offset == 0:
+                        total_count = resp.count or 0
+                    chunk = resp.data or []
+                    all_rows.extend(chunk)
+                    if len(chunk) < CHUNK:
+                        break
+                    offset += CHUNK
+
+                platform_counts[platform] = total_count
+
+                # Build status map — exclude Permanent Block from main counts
                 status_map = {}
-                if hasattr(response, 'data') and response.data:
-                    for item in response.data:
-                        status = item.get('account_status', 'Active') or 'Active'
+                pb_count = 0
+                for item in all_rows:
+                    status = (item.get('account_status') or 'Active').strip()
+                    if status == 'Permanent Block':
+                        pb_count += 1
+                    else:
                         status_map[status] = status_map.get(status, 0) + 1
+
                 platform_status_counts[platform] = status_map
+                perm_block_counts[platform] = pb_count
+                perm_block_total += pb_count
+
             except Exception as e:
+                print(f"[tracker_stats] error for {platform}: {e}")
                 platform_counts[platform] = 0
                 platform_status_counts[platform] = {}
+                perm_block_counts[platform] = 0
+
         try:
-            total_response = social_supabase.table("social_media_accounts").select("*", count='exact').execute()
+            total_response = social_supabase.table("social_media_accounts") \
+                .select("id", count='exact').execute()
             total_accounts = total_response.count or 0
         except Exception:
             total_accounts = sum(platform_counts.values())
-
-        perm_block_counts = {}
-        perm_block_total = 0
-        for platform in platforms:
-            try:
-                pb_resp = social_supabase.table("social_media_accounts") \
-                    .select("id", count='exact') \
-                    .eq("platform", platform) \
-                    .eq("account_status", "Permanent Block") \
-                    .execute()
-                perm_block_counts[platform] = pb_resp.count or 0
-                perm_block_total += perm_block_counts[platform]
-            except Exception:
-                perm_block_counts[platform] = 0
 
         return jsonify({
             "success": True,

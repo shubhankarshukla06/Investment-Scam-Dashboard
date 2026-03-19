@@ -890,9 +890,9 @@
             "WhatsApp":["Active","Block","Permanent Block","Restricted"],
             "Amazon":["Active","Block","Permanent Block"]
         };
-        const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
-        const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
-        const STATUS_COUNT_CLASS = { 'Active':'count-active','Block':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
+        const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Blocked':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
+        const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Blocked':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
+        const STATUS_COUNT_CLASS = { 'Active':'count-active','Block':'count-block','Blocked':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
 
         let trackerCurrentView = 'active';
         let cachedTrackerStats = null;
@@ -1191,12 +1191,18 @@
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const icon = PLATFORM_ICONS[p] || 'globe';
-                    const total = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum,[,n])=>sum+n,0);
+                    // Use actual keys from DB data (not hardcoded list) — excludes Permanent Block already
+                    const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
+                    const total = actualStatuses.reduce((sum, [,n]) => sum + n, 0);
                     if (total > 0) {
                         html += `<div class="platform-section"><div class="platform-header"><h4><i class="fab fa-${icon}"></i> ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
-                        const pStatuses = (PLATFORM_ACCOUNT_STATUS[p] || ['Active']).filter(s => s !== 'Permanent Block');
-                        pStatuses.forEach(status => {
-                            const count = statusData[status] || 0;
+                        // Sort: Active first, then rest by count desc
+                        actualStatuses.sort((a, b) => {
+                            if (a[0] === 'Active') return -1;
+                            if (b[0] === 'Active') return 1;
+                            return b[1] - a[1];
+                        });
+                        actualStatuses.forEach(([status, count]) => {
                             if (count > 0) {
                                 const {bg, nameClass, countClass} = getStatusColorClasses(status);
                                 html += `<div class="status-item ${bg}"><div class="status-name ${nameClass}"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</div><div class="status-count ${countClass}">${count}</div></div>`;
