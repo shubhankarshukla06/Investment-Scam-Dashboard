@@ -29,25 +29,7 @@
             padding-top: 90px;
         }
 
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: #2c3e50;
-            color: white;
-            padding: 8px 15px;
-            text-align: right;
-            font-size: 12px;
-            font-weight: bold;
-            z-index: 1000;
-            border-top: 2px solid #3498db;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-        }
-
-        .footer span {
-            color: #3498db;
-        }
+        /* padding-bottom ensures content is never hidden behind the dev credit footer */
 
         .fixed-header {
             position: fixed;
@@ -80,6 +62,27 @@
         .logo p {
             color: #7f8c8d;
             font-size: 12px;
+        }
+
+        /* Bottom-right dev credit — compact, auto-width, not full-width */
+        .dev-credit-footer {
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            z-index: 1001;
+            background: #2c3e50;
+            color: #bdc3c7;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 5px 14px;
+            border-top-left-radius: 6px;
+            white-space: nowrap;
+            box-shadow: -2px -2px 6px rgba(0,0,0,0.12);
+            line-height: 1.4;
+        }
+        .dev-credit-footer span {
+            color: #3498db;
+            font-weight: 700;
         }
 
         .header-controls {
@@ -197,21 +200,19 @@
         .scraping-page .filter-group select:focus {
             outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2);
         }
-        /* CHANGE: Enable BOTH horizontal and vertical scrolling for scraping table */
         .scraping-page .table-container {
             background: white; border-radius: 8px; overflow: hidden;
             box-shadow: 0 1px 8px rgba(0,0,0,0.08);
             max-height: calc(100vh - 280px);
-            overflow-x: auto;   /* ← horizontal scroll enabled */
-            overflow-y: auto;   /* ← vertical scroll enabled */
+            overflow-x: auto;
+            overflow-y: auto;
             width: 100%; margin: 0;
         }
-        /* CHANGE: table uses max-content width so columns don't compress */
         .scraping-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
         .scraping-page th, .scraping-page td {
             padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee;
             vertical-align: middle; font-size: 12px;
-            white-space: nowrap; /* prevent wrapping so horizontal scroll is useful */
+            white-space: nowrap;
         }
         .scraping-page th {
             background: #f8f9fa; font-weight: 600; color: #2c3e50;
@@ -228,7 +229,9 @@
         .scraping-page th:nth-child(6) { min-width: 140px; }
         .scraping-page th:nth-child(7) { min-width: 80px; }
 
-        /* Social Media Accounts Page Styles */
+        /* ============================================================
+           SOCIAL MEDIA ACCOUNTS PAGE STYLES
+        ============================================================ */
         .social-page .filters {
             background: white; border-radius: 8px; padding: 12px;
             margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%;
@@ -302,34 +305,66 @@
         }
         .social-page th:last-child { border-right: none; }
 
-        /* Row color classes */
-        .social-page .row-active { background-color: #eaf7ee !important; }
-        .social-page .row-active:hover { background-color: #d4edda !important; }
-        .social-page .row-block { background-color: #fdf2f2 !important; }
-        .social-page .row-block:hover { background-color: #fde8e8 !important; }
-        .social-page .row-blocked { background-color: #fdf2f2 !important; }
-        .social-page .row-blocked:hover { background-color: #fde8e8 !important; }
+        /* Row color classes — Active/Blocked/Restricted use darker shades */
+        .social-page .row-active { background-color: #bbf7d0 !important; }
+        .social-page .row-active:hover { background-color: #86efac !important; }
+        .social-page .row-block { background-color: #fecaca !important; }
+        .social-page .row-block:hover { background-color: #fca5a5 !important; }
+        .social-page .row-blocked { background-color: #fecaca !important; }
+        .social-page .row-blocked:hover { background-color: #fca5a5 !important; }
         .social-page .row-permanent-block { background-color: #fddede !important; }
         .social-page .row-permanent-block:hover { background-color: #fccaca !important; }
-        .social-page .row-restricted { background-color: #fffbf0 !important; }
-        .social-page .row-restricted:hover { background-color: #fff3cd !important; }
+        .social-page .row-restricted { background-color: #fef08a !important; }
+        .social-page .row-restricted:hover { background-color: #fde047 !important; }
         .social-page .row-frozen { background-color: #f0f8fd !important; }
         .social-page .row-frozen:hover { background-color: #d1ecf1 !important; }
         .social-page .row-video-verification { background-color: #f5f0ff !important; }
         .social-page .row-video-verification:hover { background-color: #e8d4ff !important; }
 
-        /* Status display - oval pill badges */
+        /* ============================================================
+           CHANGE 1: Status badge colors made noticeably darker
+           (Social Media Accounts section only)
+        ============================================================ */
         .social-page .status-display {
             padding: 3px 12px !important; border-radius: 50px !important; font-size: 11px !important;
             font-weight: 600 !important; display: inline-block !important; white-space: nowrap !important;
             letter-spacing: 0.3px !important; min-width: 60px !important; text-align: center !important;
         }
-        .social-page .status-active { background: #d4f5de !important; color: #1a7a3a !important; border: 1px solid #a8e6b8 !important; }
-        .social-page .status-blocked { background: #fde8e8 !important; color: #c0392b !important; border: 1px solid #f5b7b1 !important; }
-        .social-page .status-permanent-block { background: #fadbd8 !important; color: #922b21 !important; border: 1px solid #f1948a !important; }
-        .social-page .status-restricted { background: #fef9e7 !important; color: #9a7d0a !important; border: 1px solid #f9e79f !important; }
-        .social-page .status-frozen { background: #d6eaf8 !important; color: #1a5276 !important; border: 1px solid #a9cce3 !important; }
-        .social-page .status-video-verification { background: #e8daef !important; color: #6c3483 !important; border: 1px solid #c39bd3 !important; }
+        /* Active: noticeably darker green */
+        .social-page .status-active {
+            background: #86efac !important;
+            color: #14532d !important;
+            border: 1px solid #4ade80 !important;
+        }
+        /* Block / Blocked: noticeably darker red */
+        .social-page .status-blocked {
+            background: #fca5a5 !important;
+            color: #7f1d1d !important;
+            border: 1px solid #f87171 !important;
+        }
+        /* Permanent Block: deepest red */
+        .social-page .status-permanent-block {
+            background: #f87171 !important;
+            color: #5c0a0a !important;
+            border: 1px solid #ef4444 !important;
+        }
+        /* Restricted: noticeably darker amber/yellow */
+        .social-page .status-restricted {
+            background: #fcd34d !important;
+            color: #713f12 !important;
+            border: 1px solid #f59e0b !important;
+        }
+        /* Frozen: deeper blue */
+        .social-page .status-frozen {
+            background: #93c5fd !important;
+            color: #1e3a8a !important;
+            border: 1px solid #3b82f6 !important;
+        }
+        .social-page .status-video-verification {
+            background: #c4b5fd !important;
+            color: #4c1d95 !important;
+            border: 1px solid #8b5cf6 !important;
+        }
 
         .social-page .status-cell { display: flex; align-items: center; gap: 8px; }
 
@@ -362,7 +397,7 @@
         .social-page th:nth-child(22), .social-page td:nth-child(22) { width: 80px; }
 
         /* ============================================================
-           TRACKER MODAL — STATUS BADGES (light colored by status)
+           TRACKER MODAL
         ============================================================ */
         .tracker-modal {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -386,6 +421,23 @@
             padding: 5px; border-radius: 4px; transition: background 0.2s;
         }
         .tracker-close:hover { background: rgba(255,255,255,0.2); }
+
+        /* CHANGE 2: Tracker view-toggle buttons (Active / Total Counts) */
+        .tracker-view-toggle {
+            display: flex; gap: 8px; padding: 12px 20px 0;
+            border-bottom: 1px solid #eee; background: white;
+        }
+        .tracker-toggle-btn {
+            padding: 6px 18px; border: 2px solid #5d9cec; border-radius: 20px;
+            font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+            background: white; color: #5d9cec;
+        }
+        .tracker-toggle-btn:hover { background: #eef6ff; }
+        .tracker-toggle-btn.active {
+            background: #5d9cec; color: white;
+            box-shadow: 0 2px 8px rgba(93,156,236,0.35);
+        }
+
         .tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
         .tracker-summary {
             background: #f8f9fa; border-radius: 8px; padding: 15px;
@@ -397,6 +449,8 @@
         .summary-item .platform { font-size: 12px; color: #7f8c8d; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .summary-item .platform i { font-size: 14px; color: #5d9cec; }
         .summary-item .count { font-size: 20px; font-weight: bold; color: #5d9cec; }
+        /* CHANGE 2: Active-mode summary count shown in green */
+        .summary-item .count.active-count { color: #16a34a; }
         .total-accounts { font-size: 14px; text-align: center; margin-top: 10px; color: #2c3e50; font-weight: 600; }
         .total-accounts .total-count { color: #48c774; font-size: 18px; }
         .tracker-details { margin-top: 25px; }
@@ -417,32 +471,36 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 7px 10px; border-radius: 6px; border: 1px solid transparent;
         }
-        /* CHANGE: Tracker status items use light background colors by status type */
-        .status-item.status-bg-active { background: #d4f5de; border-color: #a8e6b8; }
-        .status-item.status-bg-block { background: #fde8e8; border-color: #f5b7b1; }
-        .status-item.status-bg-restricted { background: #fef9e7; border-color: #f9e79f; }
-        .status-item.status-bg-frozen { background: #d6eaf8; border-color: #a9cce3; }
-        .status-item.status-bg-permanent { background: #fadbd8; border-color: #f1948a; }
-        .status-item.status-bg-default { background: #f8f9fa; border-color: #dee2e6; }
+
+        /* ============================================================
+           CHANGE 1: Tracker status item backgrounds also made darker
+           to match the badge colors in the table.
+        ============================================================ */
+        .status-item.status-bg-active    { background: #86efac; border-color: #4ade80; }
+        .status-item.status-bg-block     { background: #fca5a5; border-color: #f87171; }
+        .status-item.status-bg-restricted{ background: #fcd34d; border-color: #f59e0b; }
+        .status-item.status-bg-frozen    { background: #93c5fd; border-color: #3b82f6; }
+        .status-item.status-bg-permanent { background: #f87171; border-color: #ef4444; }
+        .status-item.status-bg-default   { background: #f8f9fa; border-color: #dee2e6; }
 
         .status-name { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
-        .status-name.color-active { color: #1a7a3a; }
-        .status-name.color-block { color: #c0392b; }
-        .status-name.color-restricted { color: #9a7d0a; }
-        .status-name.color-frozen { color: #1a5276; }
-        .status-name.color-permanent { color: #922b21; }
-        .status-name.color-default { color: #495057; }
+        .status-name.color-active      { color: #14532d; }
+        .status-name.color-block       { color: #7f1d1d; }
+        .status-name.color-restricted  { color: #713f12; }
+        .status-name.color-frozen      { color: #1e3a8a; }
+        .status-name.color-permanent   { color: #5c0a0a; }
+        .status-name.color-default     { color: #495057; }
 
         .status-count {
             font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
             min-width: 26px; text-align: center; background: rgba(255,255,255,0.7);
         }
-        .status-count.count-active { color: #1a7a3a; }
-        .status-count.count-block { color: #c0392b; }
-        .status-count.count-restricted { color: #9a7d0a; }
-        .status-count.count-frozen { color: #1a5276; }
-        .status-count.count-permanent { color: #922b21; }
-        .status-count.count-default { color: #2c3e50; }
+        .status-count.count-active      { color: #14532d; }
+        .status-count.count-block       { color: #7f1d1d; }
+        .status-count.count-restricted  { color: #713f12; }
+        .status-count.count-frozen      { color: #1e3a8a; }
+        .status-count.count-permanent   { color: #5c0a0a; }
+        .status-count.count-default     { color: #2c3e50; }
 
         /* Activity Log Modal */
         .activity-modal {
@@ -609,7 +667,7 @@
         .flash-message.error { border-left-color: #e74c3c; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
-        .toast { position: fixed; bottom: 60px; right: 12px; background: #2c3e50; color: white; padding: 8px 16px; border-radius: 6px; font-size: 12px; animation: fadeInUp 0.3s; z-index: 1001; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .toast { position: fixed; bottom: 20px; right: 12px; background: #2c3e50; color: white; padding: 8px 16px; border-radius: 6px; font-size: 12px; animation: fadeInUp 0.3s; z-index: 1001; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
         .toast.error { background: #e74c3c; }
         .toast.success { background: #2ecc71; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
@@ -623,7 +681,7 @@
             .social-page .action-buttons { grid-column: span 2; }
         }
         @media (max-width: 768px) {
-            .container { padding-top: 120px; padding-bottom: 70px; }
+            .container { padding-top: 120px; padding-bottom: 20px; }
             .header { flex-direction: column; gap: 10px; }
             .header-controls { width: 100%; }
             .sheet-maker-row { grid-template-columns: 1fr; }
@@ -641,6 +699,15 @@
             <div class="tracker-header">
                 <h2><i class="fas fa-chart-line"></i> Social Media Accounts Tracker</h2>
                 <button class="tracker-close" onclick="closeTracker()"><i class="fas fa-times"></i></button>
+            </div>
+            <!-- CHANGE 2: Active / Total Counts toggle buttons -->
+            <div class="tracker-view-toggle">
+                <button class="tracker-toggle-btn active" id="toggleActiveBtn" onclick="setTrackerView('active')">
+                    <i class="fas fa-check-circle"></i> Active
+                </button>
+                <button class="tracker-toggle-btn" id="toggleTotalBtn" onclick="setTrackerView('total')">
+                    <i class="fas fa-list-ol"></i> Total Counts
+                </button>
             </div>
             <div class="tracker-body" id="trackerBody">
                 <div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>
@@ -775,7 +842,6 @@
                     </div>
                 </form>
             </div>
-            <!-- CHANGE: table-container now supports overflow-x: auto for horizontal scroll -->
             <div class="table-container">
                 <table>
                     <thead>
@@ -903,7 +969,6 @@
         </div>
 
         <!-- ===== SOCIAL MEDIA ACCOUNTS PAGE ===== -->
-        <!-- CHANGE: Records are now displayed sorted by Data ID (ascending) via backend .order("id") -->
         <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
@@ -1025,7 +1090,7 @@
         </div>
     </div>
 
-    <div class="footer">Devloped by <span>Shubhankar Shukla</span></div>
+    <!-- CHANGE 4: Footer div removed entirely. Credit is now in the header. -->
 
     <div class="flash-container">
         {% with messages = get_flashed_messages() %}
@@ -1055,37 +1120,38 @@
             'Frozen': 'row-frozen', 'Video Verification': 'row-video-verification'
         };
 
-        const ACCOUNT_STATUS_DISPLAY_CLASSES = {
-            'Active': 'status-active', 'Block': 'status-blocked',
-            'Permanent Block': 'status-permanent-block', 'Restricted': 'status-restricted',
-            'Frozen': 'status-frozen', 'Video Verification': 'status-video-verification'
-        };
-
         const PLATFORM_ICONS = {
             'Facebook': 'facebook-f', 'Instagram': 'instagram',
             'Telegram': 'telegram-plane', 'WhatsApp': 'whatsapp', 'Amazon': 'amazon'
         };
 
-        // CHANGE: Map each status to its tracker color classes
+        // ============================================================
+        // CHANGE 2 & 3: Tracker view state. Default = 'active'.
+        // Permanent Block is excluded in both views.
+        // ============================================================
+        let trackerCurrentView = 'active'; // 'active' | 'total'
+        let cachedTrackerStats = null;
+
+        // Status color classes (updated to match Change 1 darker colors)
         const STATUS_BG_CLASS = {
-            'Active': 'status-bg-active',
-            'Block': 'status-bg-block',
-            'Restricted': 'status-bg-restricted',
-            'Frozen': 'status-bg-frozen',
+            'Active':          'status-bg-active',
+            'Block':           'status-bg-block',
+            'Restricted':      'status-bg-restricted',
+            'Frozen':          'status-bg-frozen',
             'Permanent Block': 'status-bg-permanent'
         };
         const STATUS_NAME_CLASS = {
-            'Active': 'color-active',
-            'Block': 'color-block',
-            'Restricted': 'color-restricted',
-            'Frozen': 'color-frozen',
+            'Active':          'color-active',
+            'Block':           'color-block',
+            'Restricted':      'color-restricted',
+            'Frozen':          'color-frozen',
             'Permanent Block': 'color-permanent'
         };
         const STATUS_COUNT_CLASS = {
-            'Active': 'count-active',
-            'Block': 'count-block',
-            'Restricted': 'count-restricted',
-            'Frozen': 'count-frozen',
+            'Active':          'count-active',
+            'Block':           'count-block',
+            'Restricted':      'count-restricted',
+            'Frozen':          'count-frozen',
             'Permanent Block': 'count-permanent'
         };
 
@@ -1132,12 +1198,10 @@
             const search = urlParams.get('social_search') || '';
             const platform = urlParams.get('social_platform') || '';
             const pageNum = urlParams.get('page_num') || '1';
-
             const fetchUrl = '/?page=social'
                 + (search ? '&social_search=' + encodeURIComponent(search) : '')
                 + (platform ? '&social_platform=' + encodeURIComponent(platform) : '')
                 + '&page_num=' + pageNum;
-
             fetch(fetchUrl)
                 .then(r => r.text())
                 .then(html => {
@@ -1205,14 +1269,31 @@
         }
 
         // ============================================================
-        // TRACKER — CHANGE: status items use light colored backgrounds
+        // TRACKER — Toggle between Active view and Total Counts view
+        // CHANGE 2: setTrackerView switches which data is rendered.
+        // CHANGE 3: Permanent Block is never shown in either view.
         // ============================================================
         function showTracker() {
             document.getElementById('trackerModal').classList.add('active');
+            // Reset toggle to 'active' each time the tracker is opened
+            trackerCurrentView = 'active';
+            document.getElementById('toggleActiveBtn').classList.add('active');
+            document.getElementById('toggleTotalBtn').classList.remove('active');
             loadTrackerData();
         }
 
-        function closeTracker() { document.getElementById('trackerModal').classList.remove('active'); }
+        function closeTracker() {
+            document.getElementById('trackerModal').classList.remove('active');
+        }
+
+        function setTrackerView(view) {
+            trackerCurrentView = view;
+            document.getElementById('toggleActiveBtn').classList.toggle('active', view === 'active');
+            document.getElementById('toggleTotalBtn').classList.toggle('active', view === 'total');
+            if (cachedTrackerStats) {
+                displayTrackerData(cachedTrackerStats);
+            }
+        }
 
         function loadTrackerData() {
             const trackerBody = document.getElementById('trackerBody');
@@ -1220,8 +1301,12 @@
             fetch('/tracker-stats')
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) displayTrackerData(data.stats);
-                    else trackerBody.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p><button class="btn btn-outline" onclick="loadTrackerData()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
+                    if (data.success) {
+                        cachedTrackerStats = data.stats;
+                        displayTrackerData(data.stats);
+                    } else {
+                        trackerBody.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p><button class="btn btn-outline" onclick="loadTrackerData()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
+                    }
                 })
                 .catch(() => {
                     trackerBody.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker. Please try again.</p><button class="btn btn-outline" onclick="loadTrackerData()" style="margin-top:10px;"><i class="fas fa-sync-alt"></i> Try Again</button></div>`;
@@ -1229,65 +1314,111 @@
         }
 
         function getStatusColorClasses(status) {
-            const bg = STATUS_BG_CLASS[status] || 'status-bg-default';
-            const nameClass = STATUS_NAME_CLASS[status] || 'color-default';
-            const countClass = STATUS_COUNT_CLASS[status] || 'count-default';
-            return { bg, nameClass, countClass };
+            return {
+                bg:        STATUS_BG_CLASS[status]    || 'status-bg-default',
+                nameClass: STATUS_NAME_CLASS[status]  || 'color-default',
+                countClass:STATUS_COUNT_CLASS[status] || 'count-default'
+            };
         }
 
         function displayTrackerData(stats) {
             const trackerBody = document.getElementById('trackerBody');
             const platforms = ['Facebook', 'Telegram', 'WhatsApp', 'Instagram', 'Amazon'];
-            let html = `<div class="tracker-summary"><h3><i class="fas fa-chart-bar"></i> Platform-Wise Account Summary</h3><div class="summary-grid">`;
-            platforms.forEach(platform => {
-                const count = stats.platform_counts[platform] || 0;
-                const icon = PLATFORM_ICONS[platform] || 'question';
-                html += `<div class="summary-item"><div class="platform"><i class="fab fa-${icon}"></i>${platform}</div><div class="count">${count}</div></div>`;
-            });
-            html += `</div><div class="total-accounts">Total Accounts: <span class="total-count">${stats.total_accounts}</span></div></div>`;
-            html += `<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>`;
+            const isActiveView = (trackerCurrentView === 'active');
 
+            // ── Summary section ──────────────────────────────────────
+            const summaryTitle = isActiveView
+                ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform'
+                : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
+
+            let html = `<div class="tracker-summary"><h3>${summaryTitle}</h3><div class="summary-grid">`;
+
+            let grandTotal = 0;
             platforms.forEach(platform => {
-                const total = stats.platform_counts[platform] || 0;
                 const statusData = stats.platform_status_counts[platform] || {};
+                const totalForPlatform = stats.platform_counts[platform] || 0;
                 const icon = PLATFORM_ICONS[platform] || 'question';
-                if (total > 0) {
-                    html += `<div class="platform-section"><div class="platform-header"><h4><i class="fab fa-${icon}"></i> ${platform}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
-                    const platformStatuses = PLATFORM_ACCOUNT_STATUS[platform] || ['Active'];
 
-                    // Show defined statuses for this platform
-                    platformStatuses.forEach(status => {
-                        const count = statusData[status] || 0;
-                        if (count > 0) {
-                            const { bg, nameClass, countClass } = getStatusColorClasses(status);
-                            html += `
-                                <div class="status-item ${bg}">
-                                    <div class="status-name ${nameClass}">
-                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
-                                    </div>
-                                    <div class="status-count ${countClass}">${count}</div>
-                                </div>`;
-                        }
-                    });
-
-                    // Show any other statuses not in the defined list
-                    Object.entries(statusData).forEach(([status, count]) => {
-                        if (!platformStatuses.includes(status) && count > 0) {
-                            const { bg, nameClass, countClass } = getStatusColorClasses(status);
-                            html += `
-                                <div class="status-item ${bg}">
-                                    <div class="status-name ${nameClass}">
-                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
-                                    </div>
-                                    <div class="status-count ${countClass}">${count}</div>
-                                </div>`;
-                        }
-                    });
-
-                    html += `</div></div>`;
+                let displayCount, countClass;
+                if (isActiveView) {
+                    // CHANGE 2: show only Active count per platform
+                    displayCount = statusData['Active'] || 0;
+                    countClass = 'active-count';
+                } else {
+                    // CHANGE 3: exclude Permanent Block from total
+                    displayCount = Object.entries(statusData)
+                        .filter(([s]) => s !== 'Permanent Block')
+                        .reduce((sum, [, n]) => sum + n, 0);
+                    countClass = '';
                 }
+                grandTotal += displayCount;
+
+                html += `<div class="summary-item">
+                    <div class="platform"><i class="fab fa-${icon}"></i>${platform}</div>
+                    <div class="count ${countClass}">${displayCount}</div>
+                </div>`;
             });
-            html += `</div>`;
+
+            const totalLabel = isActiveView ? 'Total Active Accounts:' : 'Total Accounts:';
+            html += `</div><div class="total-accounts">${totalLabel} <span class="total-count">${grandTotal}</span></div></div>`;
+
+            // ── Details section ──────────────────────────────────────
+            if (!isActiveView) {
+                // CHANGE 2: details section only shown in Total Counts view
+                html += `<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>`;
+                platforms.forEach(platform => {
+                    const statusData = stats.platform_status_counts[platform] || {};
+                    const icon = PLATFORM_ICONS[platform] || 'question';
+
+                    // CHANGE 3: exclude Permanent Block from count shown in header
+                    const totalExcludingPerm = Object.entries(statusData)
+                        .filter(([s]) => s !== 'Permanent Block')
+                        .reduce((sum, [, n]) => sum + n, 0);
+
+                    if (totalExcludingPerm > 0) {
+                        html += `<div class="platform-section">
+                            <div class="platform-header">
+                                <h4><i class="fab fa-${icon}"></i> ${platform}</h4>
+                                <span class="platform-total">Total: ${totalExcludingPerm}</span>
+                            </div>
+                            <div class="status-grid">`;
+
+                        const platformStatuses = (PLATFORM_ACCOUNT_STATUS[platform] || ['Active'])
+                            .filter(s => s !== 'Permanent Block'); // CHANGE 3: exclude Permanent Block
+
+                        // Show defined statuses (excluding Permanent Block)
+                        platformStatuses.forEach(status => {
+                            const count = statusData[status] || 0;
+                            if (count > 0) {
+                                const { bg, nameClass, countClass } = getStatusColorClasses(status);
+                                html += `<div class="status-item ${bg}">
+                                    <div class="status-name ${nameClass}">
+                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
+                                    </div>
+                                    <div class="status-count ${countClass}">${count}</div>
+                                </div>`;
+                            }
+                        });
+
+                        // Any extra statuses not in list, still excluding Permanent Block
+                        Object.entries(statusData).forEach(([status, count]) => {
+                            if (!platformStatuses.includes(status) && status !== 'Permanent Block' && count > 0) {
+                                const { bg, nameClass, countClass } = getStatusColorClasses(status);
+                                html += `<div class="status-item ${bg}">
+                                    <div class="status-name ${nameClass}">
+                                        <i class="fas fa-circle" style="font-size:7px;"></i> ${status}
+                                    </div>
+                                    <div class="status-count ${countClass}">${count}</div>
+                                </div>`;
+                            }
+                        });
+
+                        html += `</div></div>`;
+                    }
+                });
+                html += `</div>`;
+            }
+
             trackerBody.innerHTML = html;
         }
 
@@ -1602,5 +1733,8 @@
             if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
         });
     </script>
+    <!-- Bottom-right dev credit: compact, not full-width -->
+    <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+
 </body>
 </html>
