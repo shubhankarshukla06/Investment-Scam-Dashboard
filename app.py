@@ -167,6 +167,105 @@ MASTER_URL_DATA = {}
 BANK_NAME_MAPPING = {}
 IFSC_MAPPING = {}
 
+# ============================================================
+# UNIVERSAL FILE IMPORT — all Excel/CSV/TSV types supported
+# ============================================================
+
+# Every extension we accept for import
+ALLOWED_IMPORT_EXTENSIONS = {
+    # CSV / text-delimited
+    'csv', 'tsv', 'txt',
+    # Modern Excel
+    'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm',
+    # Legacy Excel
+    'xls', 'xla', 'xlam',
+    # OpenDocument
+    'ods', 'ots',
+}
+
+
+def is_allowed_file(filename):
+    """Accept any spreadsheet/CSV file regardless of config."""
+    if not filename:
+        return False
+    ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+    return ext in ALLOWED_IMPORT_EXTENSIONS
+
+
+def read_data_file(file_path, file_ext):
+    """
+    Read any spreadsheet or delimited text file into a DataFrame.
+    Supports: csv, tsv, txt, xlsx, xlsm, xlsb, xltx, xltm, xls,
+              xla, xlam, ods, ots
+    """
+    try:
+        ext = file_ext.lower().lstrip('.')
+
+        # ── CSV / TSV / plain text ──────────────────────────────
+        if ext == 'csv':
+            for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
+                try:
+                    return pd.read_csv(file_path, encoding=encoding)
+                except UnicodeDecodeError:
+                    continue
+            return pd.read_csv(file_path, encoding='latin-1', engine='python')
+
+        if ext == 'tsv':
+            for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+                try:
+                    return pd.read_csv(file_path, sep='\t', encoding=encoding)
+                except UnicodeDecodeError:
+                    continue
+            return pd.read_csv(file_path, sep='\t', encoding='latin-1')
+
+        if ext == 'txt':
+            # Try tab-separated first, then comma
+            for sep in ['\t', ',', ';', '|']:
+                for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
+                    try:
+                        df = pd.read_csv(file_path, sep=sep, encoding=encoding)
+                        if len(df.columns) > 1:
+                            return df
+                    except Exception:
+                        continue
+            # Last resort
+            return pd.read_csv(file_path, encoding='latin-1', engine='python')
+
+        # ── Modern Excel (openpyxl engine) ──────────────────────
+        if ext in ('xlsx', 'xlsm', 'xltx', 'xltm'):
+            return pd.read_excel(file_path, engine='openpyxl')
+
+        # ── Binary Excel (pyxlsb engine) ────────────────────────
+        if ext == 'xlsb':
+            return pd.read_excel(file_path, engine='pyxlsb')
+
+        # ── Legacy Excel (xlrd engine) ──────────────────────────
+        if ext in ('xls', 'xla', 'xlam'):
+            try:
+                return pd.read_excel(file_path, engine='xlrd')
+            except Exception:
+                # Some .xlam are zip-based; try openpyxl
+                return pd.read_excel(file_path, engine='openpyxl')
+
+        # ── OpenDocument ────────────────────────────────────────
+        if ext in ('ods', 'ots'):
+            return pd.read_excel(file_path, engine='odf')
+
+        # ── Generic fallback — let pandas auto-detect ────────────
+        try:
+            return pd.read_excel(file_path)
+        except Exception:
+            return pd.read_csv(file_path, encoding='latin-1')
+
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+        raise
+
+
+def get_allowed_extensions():
+    """Return list of allowed extensions (used in flash messages)."""
+    return sorted(['.' + e for e in ALLOWED_IMPORT_EXTENSIONS])
+
 
 def load_excel_data():
     global MASTER_URL_DATA, BANK_NAME_MAPPING, IFSC_MAPPING
@@ -273,48 +372,13 @@ def create_default_config():
         "global_settings": {
             "date_format": "%Y-%m-%d",
             "na_values": ["NA", "N/A", "", "null", "NULL", "None", "nan", "NaN", "undefined"],
-            "allowed_extensions": [".csv", ".xlsx", ".xls", ".xlsm", ".xlsb", ".ods"],
+            "allowed_extensions": list(ALLOWED_IMPORT_EXTENSIONS),
             "max_file_size_mb": 50
         }
     }
     with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
         json.dump(default_config, f, indent=2)
     return default_config
-
-
-def get_allowed_extensions():
-    config = load_config()
-    if config and 'global_settings' in config:
-        return config['global_settings'].get('allowed_extensions', ['.csv', '.xlsx', '.xls'])
-    return ['.csv', '.xlsx', '.xls']
-
-
-def is_allowed_file(filename):
-    if not filename:
-        return False
-    allowed_extensions = get_allowed_extensions()
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in [ext.lstrip('.') for ext in allowed_extensions]
-
-
-def read_data_file(file_path, file_ext):
-    try:
-        file_ext = file_ext.lower()
-        if file_ext == 'csv':
-            for encoding in ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
-                try:
-                    return pd.read_csv(file_path, encoding=encoding)
-                except UnicodeDecodeError:
-                    continue
-            return pd.read_csv(file_path, encoding=None, engine='python')
-        elif file_ext in ['xlsx', 'xls', 'xlsm', 'xlsb']:
-            return pd.read_excel(file_path)
-        elif file_ext == 'ods':
-            return pd.read_excel(file_path, engine='odf')
-        else:
-            raise ValueError(f"Unsupported file format: {file_ext}")
-    except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
-        raise
 
 
 def get_sheet_headers(sheet_type):
@@ -816,17 +880,12 @@ def admin_delete_user(user_id):
 
 
 # ============================================================
-# SCRAPING TRACKER STATS — UPDATED WITH PLATFORM BREAKDOWN
+# SCRAPING TRACKER STATS
 # ============================================================
 @app.route("/scraping-tracker-stats", methods=["GET"])
 @login_required
 def scraping_tracker_stats():
-    """
-    Return scam type counts, platform counts, and a scam_type × platform
-    breakdown matrix for the scraping tracker.
-    """
     try:
-        # Supabase caps each request at 1000 rows — paginate to get all data
         CHUNK = 1000
         rows = []
         offset = 0
@@ -844,7 +903,6 @@ def scraping_tracker_stats():
 
         scam_counts = {}
         platform_counts = {}
-        # nested dict: scam_type -> platform -> count
         scam_platform_breakdown = {}
 
         for row in rows:
@@ -949,22 +1007,15 @@ def index():
         if social_platform and social_platform != "":
             query = query.eq("platform", social_platform)
 
-        # FIX: Account status filter logic
-        # "Block" in the DB could be stored as "Block" or "Blocked" — use ilike for safety
         if social_permanent_block == "true":
-            # Show only permanent block accounts
             query = query.eq("account_status", "Permanent Block")
         else:
             if social_status_filter:
-                # Filter by the specific status using ilike to catch case/value variations
-                # e.g. "Block" matches "Block", "Blocked", etc.
                 if social_status_filter.lower() == "block":
-                    # Match both "Block" and "Blocked" but not "Permanent Block"
                     query = query.ilike("account_status", "block%").neq("account_status", "Permanent Block")
                 else:
                     query = query.eq("account_status", social_status_filter)
             else:
-                # No status filter — exclude permanent block from main view
                 query = query.neq("account_status", "Permanent Block")
 
         query = query.order("id", desc=False)
@@ -1024,7 +1075,6 @@ def tracker_stats():
 
         for platform in platforms:
             try:
-                # Paginate to fetch ALL rows for this platform (bypass 1000-row Supabase cap)
                 all_rows = []
                 offset = 0
                 total_count = 0
@@ -1044,7 +1094,6 @@ def tracker_stats():
 
                 platform_counts[platform] = total_count
 
-                # Build status map — exclude Permanent Block from main counts
                 status_map = {}
                 pb_count = 0
                 for item in all_rows:
@@ -1145,6 +1194,9 @@ def update_social_data():
         return jsonify({"success": False, "error": str(e)})
 
 
+# ============================================================
+# SOCIAL IMPORT — universal file support + date NULL fix
+# ============================================================
 @app.route("/social-import", methods=["POST"])
 @login_required
 def social_import():
@@ -1154,44 +1206,65 @@ def social_import():
             flash("No file selected", "error")
             return redirect("/?page=social")
         if not is_allowed_file(file.filename):
-            flash(f"Only {', '.join(get_allowed_extensions())} files are allowed.", "error")
+            flash(f"Unsupported file type. Allowed: CSV, TSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error")
             return redirect("/?page=social")
+
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
-        file_ext = filename.rsplit('.', 1)[1].lower()
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
+
         df = read_data_file(temp_path, file_ext)
         df.columns = df.columns.astype(str).str.strip()
         df = df.fillna('')
+
         ALL_SOCIAL_COLUMNS = [
             'owned_by', 'login_user', 'number', 'login_device', 'sim_inserted_device',
             'account_status', 'review_status', 'number_type', 'blocked_date', 'unblock_date',
             'account_create_date', 'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
             'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform',
         ]
+
         file_columns = list(df.columns)
         matched_columns = [col for col in file_columns if col in ALL_SOCIAL_COLUMNS and col != 'id']
         if not matched_columns:
             flash("Import Error: No matching column names found.", "error")
             os.remove(temp_path)
             return redirect("/?page=social")
+
         try:
             max_id_response = social_supabase.table("social_media_accounts").select("id").order("id", desc=True).limit(1).execute()
             next_id = int(max_id_response.data[0]['id']) + 1 if max_id_response.data else 1
         except Exception:
             next_id = None
+
+        # Date columns — must be NULL in Supabase, never "NA" or empty string
+        DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date',
+                        'recharge_date', 'sim_buy_date'}
+
+        def sanitize_value(col, value):
+            v = str(value).strip()
+            if col in DATE_COLUMNS:
+                # Any non-date value → None (SQL NULL)
+                if not v or v.upper() in ('NA', 'N/A', 'NAN', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.'):
+                    return None
+                return v  # valid date string e.g. "2025-07-19"
+            else:
+                return v if v else "NA"
+
         records = []
         for i, (_, row) in enumerate(df.iterrows()):
             record = {}
             if next_id is not None:
                 record['id'] = next_id + i
             for col in matched_columns:
-                value = str(row[col]).strip()
-                record[col] = value if value else "NA"
+                record[col] = sanitize_value(col, row[col])
             records.append(record)
+
         social_supabase.table("social_media_accounts").insert(records).execute()
         flash(f"File Imported Successfully! {len(records)} records added.", "success")
         os.remove(temp_path)
+
     except Exception as e:
         flash(f"Import Error: {str(e)}", "error")
     return redirect("/?page=social")
@@ -1275,12 +1348,12 @@ def preview_sheet():
         if not file or file.filename == '':
             return jsonify({"success": False, "error": "Please select a file"})
         if not is_allowed_file(file.filename):
-            return jsonify({"success": False, "error": f"Only {', '.join(get_allowed_extensions())} files are allowed."})
+            return jsonify({"success": False, "error": "Unsupported file type. Allowed: CSV, XLSX, XLS, XLSM, XLSB, ODS and more."})
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
         try:
-            file_ext = filename.rsplit('.', 1)[1].lower()
+            file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
             df = read_data_file(temp_path, file_ext)
             if df.empty:
                 return jsonify({"success": False, "error": "The uploaded file is empty"})
@@ -1319,12 +1392,12 @@ def generate_sheet():
         if not file or file.filename == '':
             flash("Please select a file", "error"); return redirect("/?page=sheet")
         if not is_allowed_file(file.filename):
-            flash(f"Only {', '.join(get_allowed_extensions())} files are allowed.", "error"); return redirect("/?page=sheet")
+            flash("Unsupported file type. Allowed: CSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error"); return redirect("/?page=sheet")
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
         try:
-            file_ext = filename.rsplit('.', 1)[1].lower()
+            file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
             df = read_data_file(temp_path, file_ext)
             if df.empty:
                 flash("The uploaded file is empty", "error"); return redirect("/?page=sheet")
@@ -1384,6 +1457,9 @@ def reload_data():
         return jsonify({"success": False, "error": str(e)})
 
 
+# ============================================================
+# SCRAPING DATA IMPORT — universal file support
+# ============================================================
 @app.route("/upload", methods=["POST"])
 @login_required
 def upload():
@@ -1393,12 +1469,13 @@ def upload():
     if not file or file.filename == '':
         flash("No file selected", "error"); return redirect("/?page=scraping")
     if not is_allowed_file(file.filename):
-        flash(f"Only {', '.join(get_allowed_extensions())} files are allowed.", "error"); return redirect("/?page=scraping")
+        flash("Unsupported file type. Allowed: CSV, TSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error")
+        return redirect("/?page=scraping")
     try:
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
-        file_ext = filename.rsplit('.', 1)[1].lower()
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
         df = read_data_file(temp_path, file_ext)
         df.columns = df.columns.astype(str).str.strip()
         df = df.fillna('')
@@ -1436,8 +1513,6 @@ def export():
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
 
-        # ── Supabase caps each request at 1000 rows by default.
-        # ── We paginate in chunks of 1000 until no more data is returned.
         CHUNK = 1000
         all_rows = []
         offset = 0
@@ -1472,7 +1547,7 @@ def export():
             rows = chunk_resp.data or []
             all_rows.extend(rows)
             if len(rows) < CHUNK:
-                break          # last page reached
+                break
             offset += CHUNK
 
         df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
@@ -1560,9 +1635,18 @@ def save_social_field():
                            'review_status', 'blocked_date', 'unblock_date', 'recharge_date']
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
-        update_payload = {field: value if value else "NA"}
+
+        # Date fields: empty/NA → NULL
+        DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date'}
+        if field in DATE_FIELDS:
+            save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
+        else:
+            save_value = value if value else "NA"
+
+        update_payload = {field: save_value}
         if field == 'account_status' and value == 'Permanent Block':
             update_payload['blocked_date'] = datetime.now().strftime("%Y-%m-%d")
+
         response = social_supabase.table("social_media_accounts").update(update_payload).eq("id", account_id).execute()
         if hasattr(response, 'data'):
             if response.data:
