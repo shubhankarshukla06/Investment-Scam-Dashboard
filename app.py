@@ -35,7 +35,7 @@ DEMO_ADMIN = {
     "email": "test123@gmail.com",
     "password": "test123",
     "display_name": "Shubhankar Shukla (Test User)",
-    "allowed_pages": ["scraping", "sheet", "social"],
+    "allowed_pages": ["scraping", "sheet", "social", "investment"],
     "is_admin": True,
     "is_active": True,
     "created_at": "2025-01-01"
@@ -145,6 +145,30 @@ PLATFORM_ACCOUNT_STATUS = {
     "Amazon": ["Active", "Block", "Permanent Block"]
 }
 
+# ============================================================
+# BS Investment Scam — column/filter options
+# ============================================================
+BS_INVESTMENT_COLUMNS = [
+    "id", "bank_account_number", "bank_name", "upi_vpa", "screenshot",
+    "search_for", "upi_bank_account_wallet", "handle", "payment_gateway_name",
+    "scam_type", "ifsc_code", "upi_url", "website_url", "inserted_date",
+    "input_user", "web_contact_no"
+]
+
+BS_INVESTMENT_SCAM_TYPE_OPTIONS = [
+    "Investment Scam", "Loan Scam", "Subscription Scam", "Carding Scam",
+    "Fake Website Scam", "Currency Exchange Scam", "Job Scam", "Shopping Scam"
+]
+
+BS_INVESTMENT_SEARCH_FOR_OPTIONS = [
+    "Web", "Telegram", "WhatsApp", "Facebook",
+    "Instagram", "YouTube", "X", "Thread"
+]
+
+BS_INVESTMENT_WALLET_OPTIONS = [
+    "UPI", "Bank Account", "Wallet"
+]
+
 REQUIRED_COLUMNS = [
     'customer', 'package_name', 'channel_name', 'bank_account_number',
     'bank_name', 'upi_vpa', 'ac_holder_name', 'screenshot', 'platform',
@@ -171,21 +195,15 @@ IFSC_MAPPING = {}
 # UNIVERSAL FILE IMPORT — all Excel/CSV/TSV types supported
 # ============================================================
 
-# Every extension we accept for import
 ALLOWED_IMPORT_EXTENSIONS = {
-    # CSV / text-delimited
     'csv', 'tsv', 'txt',
-    # Modern Excel
     'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm',
-    # Legacy Excel
     'xls', 'xla', 'xlam',
-    # OpenDocument
     'ods', 'ots',
 }
 
 
 def is_allowed_file(filename):
-    """Accept any spreadsheet/CSV file regardless of config."""
     if not filename:
         return False
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
@@ -193,15 +211,9 @@ def is_allowed_file(filename):
 
 
 def read_data_file(file_path, file_ext):
-    """
-    Read any spreadsheet or delimited text file into a DataFrame.
-    Supports: csv, tsv, txt, xlsx, xlsm, xlsb, xltx, xltm, xls,
-              xla, xlam, ods, ots
-    """
     try:
         ext = file_ext.lower().lstrip('.')
 
-        # ── CSV / TSV / plain text ──────────────────────────────
         if ext == 'csv':
             for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
                 try:
@@ -219,7 +231,6 @@ def read_data_file(file_path, file_ext):
             return pd.read_csv(file_path, sep='\t', encoding='latin-1')
 
         if ext == 'txt':
-            # Try tab-separated first, then comma
             for sep in ['\t', ',', ';', '|']:
                 for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
                     try:
@@ -228,30 +239,23 @@ def read_data_file(file_path, file_ext):
                             return df
                     except Exception:
                         continue
-            # Last resort
             return pd.read_csv(file_path, encoding='latin-1', engine='python')
 
-        # ── Modern Excel (openpyxl engine) ──────────────────────
         if ext in ('xlsx', 'xlsm', 'xltx', 'xltm'):
             return pd.read_excel(file_path, engine='openpyxl')
 
-        # ── Binary Excel (pyxlsb engine) ────────────────────────
         if ext == 'xlsb':
             return pd.read_excel(file_path, engine='pyxlsb')
 
-        # ── Legacy Excel (xlrd engine) ──────────────────────────
         if ext in ('xls', 'xla', 'xlam'):
             try:
                 return pd.read_excel(file_path, engine='xlrd')
             except Exception:
-                # Some .xlam are zip-based; try openpyxl
                 return pd.read_excel(file_path, engine='openpyxl')
 
-        # ── OpenDocument ────────────────────────────────────────
         if ext in ('ods', 'ots'):
             return pd.read_excel(file_path, engine='odf')
 
-        # ── Generic fallback — let pandas auto-detect ────────────
         try:
             return pd.read_excel(file_path)
         except Exception:
@@ -263,7 +267,6 @@ def read_data_file(file_path, file_ext):
 
 
 def get_allowed_extensions():
-    """Return list of allowed extensions (used in flash messages)."""
     return sorted(['.' + e for e in ALLOWED_IMPORT_EXTENSIONS])
 
 
@@ -612,12 +615,13 @@ def extract_payment_gateway_name(upi_url, website_url):
 def process_sheet_data(df, sheet_type):
     result_df = pd.DataFrame(columns=REQUIRED_COLUMNS)
     if df.empty:
-        return result_df, {'total_values': 0, 'unique_upi_ids': 0, 'unique_bank_accounts': 0}
+        return result_df, {'total_values': 0, 'unique_upi_ids': 0, 'unique_bank_accounts': 0, 'unique_websites': 0}
     input_headers = list(df.columns)
     standardized_headers = standardize_headers(input_headers, sheet_type)
     df.columns = standardized_headers
     unique_upi_ids = set()
     unique_bank_accounts = set()
+    unique_websites = set()
     for idx in range(len(df)):
         row_data = {col: "NA" for col in REQUIRED_COLUMNS}
         row_data['case_generated_time'] = "NA"
@@ -639,6 +643,8 @@ def process_sheet_data(df, sheet_type):
                 row_data['ifsc_code'] = cleaned_value
             elif std_header == "Website URL":
                 row_data['website_url'] = cleaned_value
+                if cleaned_value != "NA":
+                    unique_websites.add(cleaned_value)
             elif std_header == "Payment Gateway URL":
                 row_data['payment_gateway_url'] = cleaned_value
             elif std_header == "Transaction Method":
@@ -729,7 +735,8 @@ def process_sheet_data(df, sheet_type):
     return result_df, {
         'total_values': len(result_df),
         'unique_upi_ids': len(unique_upi_ids),
-        'unique_bank_accounts': len(unique_bank_accounts)
+        'unique_bank_accounts': len(unique_bank_accounts),
+        'unique_websites': len(unique_websites)
     }
 
 
@@ -963,6 +970,14 @@ def index():
     social_permanent_block = request.args.get("permanent_block", "").strip()
     social_status_filter = request.args.get("social_status", "").strip()
 
+    # BS Investment Scam filters
+    inv_search = request.args.get("inv_search", "").strip()
+    inv_scam_type = request.args.get("inv_scam_type", "").strip()
+    inv_search_for = request.args.get("inv_search_for", "").strip()
+    inv_wallet = request.args.get("inv_wallet", "").strip()
+    inv_date_from = request.args.get("inv_date_from", "").strip()
+    inv_date_to = request.args.get("inv_date_to", "").strip()
+
     items = []
     total_rows = 0
     total_pages = 1
@@ -1030,6 +1045,47 @@ def index():
             print(f"Error fetching social media data: {e}")
             flash(f"Error fetching social media data: {str(e)}", "error")
 
+    elif page_type == "investment":
+        query = supabase.table("BS_Investment_Scam").select("*", count='exact')
+        if inv_search:
+            like_term = f"%{inv_search}%"
+            query = query.or_(
+                f"Bank_account_number.ilike.{like_term},"
+                f"Upi_vpa.ilike.{like_term},"
+                f"Handle.ilike.{like_term},"
+                f"Website_url.ilike.{like_term},"
+                f"Web_contact_no.ilike.{like_term},"
+                f"Input_user.ilike.{like_term}"
+            )
+        if inv_scam_type:
+            query = query.eq("Scam_type", inv_scam_type)
+        if inv_search_for:
+            query = query.eq("Search_for", inv_search_for)
+        if inv_wallet:
+            query = query.eq("Upi_bank_account_wallet", inv_wallet)
+        if inv_date_from:
+            query = query.gte("Inserted_date", inv_date_from)
+        if inv_date_to:
+            query = query.lte("Inserted_date", inv_date_to)
+        query = query.order("Id", desc=True)
+        offset = (page - 1) * PER_PAGE
+        query = query.range(offset, offset + PER_PAGE - 1)
+        try:
+            response = query.execute()
+            raw = response.data or []
+            if raw:
+                print("RAW KEYS:", list(raw[0].keys()))
+            # Normalize all keys to lowercase so template works correctly
+            items = [{k.lower(): v for k, v in row.items()} for row in raw]
+            if items:
+                print("NORMALIZED KEYS:", list(items[0].keys()))
+                print("SAMPLE ROW:", items[0])
+            total_rows = response.count
+            total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
+        except Exception as e:
+            print(f"Error fetching BS Investment Scam data: {e}")
+            flash(f"Error fetching BS Investment Scam data: {str(e)}", "error")
+
     return render_template(
         "index.html",
         page_type=page_type,
@@ -1046,16 +1102,171 @@ def index():
         social_activity_log=social_activity_log,
         social_permanent_block=social_permanent_block,
         social_status_filter=social_status_filter,
+        inv_search=inv_search,
+        inv_scam_type=inv_scam_type,
+        inv_search_for=inv_search_for,
+        inv_wallet=inv_wallet,
+        inv_date_from=inv_date_from,
+        inv_date_to=inv_date_to,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
         platform_options=PLATFORM_OPTIONS,
         scam_type_options=SCAM_TYPE_OPTIONS,
         social_platform_options=SOCIAL_PLATFORM_OPTIONS,
+        bs_investment_scam_type_options=BS_INVESTMENT_SCAM_TYPE_OPTIONS,
+        bs_investment_search_for_options=BS_INVESTMENT_SEARCH_FOR_OPTIONS,
+        bs_investment_wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
         current_user=user,
         allowed_pages=allowed_pages,
         display_name=session.get("display_name", "User")
     )
+
+
+# ============================================================
+# BS Investment Scam Tracker Stats
+# ============================================================
+@app.route("/investment-tracker-stats", methods=["GET"])
+@login_required
+def investment_tracker_stats():
+    try:
+        date_from = request.args.get("date_from", "").strip()
+        date_to = request.args.get("date_to", "").strip()
+
+        CHUNK = 1000
+        all_rows = []
+        offset = 0
+        while True:
+            q = supabase.table("BS_Investment_Scam").select("Input_user,Search_for,Scam_type,Inserted_date,Upi_vpa,Bank_account_number,Upi_bank_account_wallet")
+            if date_from:
+                q = q.gte("Inserted_date", date_from)
+            if date_to:
+                q = q.lte("Inserted_date", date_to)
+            resp = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        # Normalize keys
+        rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
+
+        # --- UPI and Bank Account totals ---
+        upi_set = set()
+        bank_set = set()
+        for r in rows:
+            wallet = (r.get("upi_bank_account_wallet") or "").strip()
+            upi_vpa = (r.get("upi_vpa") or "").strip()
+            bank_acc = (r.get("bank_account_number") or "").strip()
+            if wallet == "UPI" and upi_vpa and upi_vpa.upper() not in ("NA", "N/A", ""):
+                upi_set.add(upi_vpa)
+            if wallet == "Bank Account" and bank_acc and bank_acc.upper() not in ("NA", "N/A", ""):
+                bank_set.add(bank_acc)
+
+        # --- Users Count: input_user → search_for → count ---
+        users_count = {}
+        for r in rows:
+            user = (r.get("input_user") or "Unknown").strip()
+            sf = (r.get("search_for") or "Unknown").strip()
+            if user not in users_count:
+                users_count[user] = {}
+            users_count[user][sf] = users_count[user].get(sf, 0) + 1
+
+        # --- Scam Type Counts: input_user → scam_type → count ---
+        scam_type_counts = {}
+        for r in rows:
+            user = (r.get("input_user") or "Unknown").strip()
+            st = (r.get("scam_type") or "Unknown").strip()
+            if user not in scam_type_counts:
+                scam_type_counts[user] = {}
+            scam_type_counts[user][st] = scam_type_counts[user].get(st, 0) + 1
+
+        # --- Total Counts: scam_type → search_for → count ---
+        total_counts = {}
+        for r in rows:
+            st = (r.get("scam_type") or "Unknown").strip()
+            sf = (r.get("search_for") or "Unknown").strip()
+            if st not in total_counts:
+                total_counts[st] = {}
+            total_counts[st][sf] = total_counts[st].get(sf, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "total_rows": len(rows),
+            "unique_upi_count": len(upi_set),
+            "unique_bank_count": len(bank_set),
+            "users_count": users_count,
+            "scam_type_counts": scam_type_counts,
+            "total_counts": total_counts
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ============================================================
+# BS Investment Scam Export
+# ============================================================
+@app.route("/investment-export", methods=["GET"])
+@login_required
+def investment_export():
+    try:
+        inv_search = request.args.get("inv_search", "").strip()
+        inv_scam_type = request.args.get("inv_scam_type", "").strip()
+        inv_search_for = request.args.get("inv_search_for", "").strip()
+        inv_wallet = request.args.get("inv_wallet", "").strip()
+        inv_date_from = request.args.get("inv_date_from", "").strip()
+        inv_date_to = request.args.get("inv_date_to", "").strip()
+
+        CHUNK = 1000
+        all_rows = []
+        offset = 0
+
+        while True:
+            def _build_inv_query():
+                q = supabase.table("BS_Investment_Scam").select("*")
+                if inv_search:
+                    like_term = f"%{inv_search}%"
+                    q = q.or_(
+                        f"Bank_account_number.ilike.{like_term},"
+                        f"Upi_vpa.ilike.{like_term},"
+                        f"Handle.ilike.{like_term},"
+                        f"Website_url.ilike.{like_term},"
+                        f"Web_contact_no.ilike.{like_term},"
+                        f"Input_user.ilike.{like_term}"
+                    )
+                if inv_scam_type:
+                    q = q.eq("Scam_type", inv_scam_type)
+                if inv_search_for:
+                    q = q.eq("Search_for", inv_search_for)
+                if inv_wallet:
+                    q = q.eq("Upi_bank_account_wallet", inv_wallet)
+                if inv_date_from:
+                    q = q.gte("Inserted_date", inv_date_from)
+                if inv_date_to:
+                    q = q.lte("Inserted_date", inv_date_to)
+                return q
+
+            chunk_resp = _build_inv_query().order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            rows = chunk_resp.data or []
+            all_rows.extend(rows)
+            if len(rows) < CHUNK:
+                break
+            offset += CHUNK
+
+        df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
+        output = io.StringIO()
+        df.to_csv(output, index=False, encoding='utf-8-sig')
+        output.seek(0)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            download_name=f"bs_investment_scam_{timestamp}.csv",
+            as_attachment=True, mimetype="text/csv"
+        )
+    except Exception as e:
+        flash(f"Export Error: {str(e)}", "error")
+        return redirect("/?page=investment")
 
 
 # ============================================================
@@ -1238,17 +1449,15 @@ def social_import():
         except Exception:
             next_id = None
 
-        # Date columns — must be NULL in Supabase, never "NA" or empty string
         DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date',
                         'recharge_date', 'sim_buy_date'}
 
         def sanitize_value(col, value):
             v = str(value).strip()
             if col in DATE_COLUMNS:
-                # Any non-date value → None (SQL NULL)
                 if not v or v.upper() in ('NA', 'N/A', 'NAN', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.'):
                     return None
-                return v  # valid date string e.g. "2025-07-19"
+                return v
             else:
                 return v if v else "NA"
 
@@ -1367,6 +1576,7 @@ def preview_sheet():
                 "total_values": preview_metrics['total_values'],
                 "unique_upi_ids": preview_metrics['unique_upi_ids'],
                 "unique_bank_accounts": preview_metrics['unique_bank_accounts'],
+                "unique_websites": preview_metrics['unique_websites'],
                 "total_columns": len(result_df.columns),
                 "columns": list(result_df.columns),
                 "preview_rows": result_df.fillna('').head(50).to_dict(orient='records'),
@@ -1578,23 +1788,37 @@ def health_check():
     })
 
 
+# ============================================================
+# UPDATE SOCIAL ACCOUNTS PAGE — with Account Status filter fix
+# ============================================================
 @app.route("/update-social-accounts", methods=["GET"])
 @login_required
 def update_social_accounts():
     search = request.args.get("search", "").strip()
     platform = request.args.get("platform", "").strip()
+    account_status_filter = request.args.get("account_status_filter", "").strip()
     page = int(request.args.get("page_num", 1))
 
     query = social_supabase.table("social_media_accounts").select(
         "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name",
         count='exact'
     )
+    # Always exclude Permanent Block from this page
     query = query.neq("account_status", "Permanent Block")
+
     if search:
         like_term = f"%{search}%"
         query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term}")
     if platform:
         query = query.eq("platform", platform)
+
+    # Apply account status filter correctly
+    if account_status_filter:
+        if account_status_filter == "Block":
+            query = query.ilike("account_status", "block%")
+        else:
+            query = query.eq("account_status", account_status_filter)
+
     query = query.order("id", desc=False)
     offset = (page - 1) * PER_PAGE
     query = query.range(offset, offset + PER_PAGE - 1)
@@ -1611,6 +1835,7 @@ def update_social_accounts():
         items=items,
         search=search,
         platform=platform,
+        account_status_filter=account_status_filter,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
@@ -1632,12 +1857,12 @@ def save_social_field():
         if not account_id or not field:
             return jsonify({"success": False, "error": "Missing id or field"})
         EDITABLE_FIELDS = ['login_user', 'number', 'login_device', 'account_status',
-                           'review_status', 'blocked_date', 'unblock_date', 'recharge_date']
+                           'review_status', 'blocked_date', 'unblock_date', 'recharge_date',
+                           'full_name', 'account_create_date']
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
 
-        # Date fields: empty/NA → NULL
-        DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date'}
+        DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date'}
         if field in DATE_FIELDS:
             save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
         else:
@@ -1665,9 +1890,12 @@ def save_social_field():
 def get_permanent_block_accounts():
     try:
         search = request.args.get("search", "").strip()
+        platform = request.args.get("platform", "").strip()
         query = social_supabase.table("social_media_accounts") \
             .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
             .eq("account_status", "Permanent Block")
+        if platform:
+            query = query.eq("platform", platform)
         if search:
             like_term = f"%{search}%"
             query = query.or_(f"owned_by.ilike.{like_term},number.ilike.{like_term},login_device.ilike.{like_term},platform.ilike.{like_term}")

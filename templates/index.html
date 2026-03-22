@@ -79,6 +79,35 @@
         .scraping-page tr:hover { background: #f8fafc; }
 
         /* ============================================================
+           BS INVESTMENT SCAM PAGE
+        ============================================================ */
+        .investment-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .investment-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .investment-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
+        .investment-page .clear-filters { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
+        .investment-page .clear-filters:hover { background: #c0392b; }
+        .investment-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
+        .investment-page .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .investment-page .filter-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; }
+        .investment-page .search-box { position: relative; width: 100%; }
+        .investment-page .search-box input { width: 100%; padding: 8px 12px 8px 32px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; height: 34px; }
+        .investment-page .search-box input:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .investment-page .search-icon { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: #7f8c8d; font-size: 14px; }
+        .investment-page .filter-group select,
+        .investment-page .filter-group input[type="date"] { width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; height: 34px; }
+        .investment-page .filter-group select:focus,
+        .investment-page .filter-group input[type="date"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+        .investment-page .filter-group select.active-filter,
+        .investment-page .filter-group input[type="date"].active-filter { border-color: #e67e22; background: #fef9f0; }
+        .investment-page .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 300px); overflow-x: auto; overflow-y: auto; width: 100%; }
+        .investment-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
+        .investment-page th, .investment-page td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 12px; white-space: nowrap; }
+        .investment-page th { background: #fff8f0; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #f0e0d0; border-bottom: 2px solid #f0c070; }
+        .investment-page th:last-child { border-right: none; }
+        .investment-page tr:hover { background: #fffbf5; }
+        .investment-page tr:nth-child(even) { background: #fefefe; }
+
+        /* ============================================================
            SOCIAL MEDIA ACCOUNTS PAGE STYLES
         ============================================================ */
         .social-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
@@ -202,7 +231,7 @@
         }
 
         .scraping-tracker-header {
-            background: #2ecc71; color: white; padding: 15px 20px;
+            background: #3498db; color: white; padding: 15px 20px;
             display: flex; justify-content: space-between; align-items: center;
         }
         .scraping-tracker-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
@@ -213,18 +242,18 @@
             display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white;
         }
         .scraping-tracker-toggle-btn {
-            padding: 6px 18px; border: 2px solid #2ecc71; border-radius: 20px;
+            padding: 6px 18px; border: 2px solid #3498db; border-radius: 20px;
             font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-            background: white; color: #2ecc71; display: flex; align-items: center; gap: 6px;
+            background: white; color: #3498db; display: flex; align-items: center; gap: 6px;
         }
-        .scraping-tracker-toggle-btn:hover { background: #f0fff4; }
-        .scraping-tracker-toggle-btn.active { background: #2ecc71; color: white; box-shadow: 0 2px 8px rgba(46,204,113,0.35); }
+        .scraping-tracker-toggle-btn:hover { background: #ebf5fb; }
+        .scraping-tracker-toggle-btn.active { background: #3498db; color: white; box-shadow: 0 2px 8px rgba(52,152,219,0.35); }
 
         .scraping-tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; background: white; }
 
         /* Total banner */
         .scraping-total-banner {
-            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            background: linear-gradient(135deg, #3498db, #2980b9);
             border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;
             display: flex; justify-content: space-between; align-items: center;
         }
@@ -249,8 +278,8 @@
             margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid #dee2e6;
         }
         .scrap-scam-name { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 7px; }
-        .scrap-scam-name i { color: #2ecc71; font-size: 13px; }
-        .scrap-scam-total { background: #2ecc71; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .scrap-scam-name i { color: #3498db; font-size: 13px; }
+        .scrap-scam-total { background: #3498db; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
 
         /* Platform pills inside scam card */
         .scrap-platform-pills { display: flex; flex-wrap: wrap; gap: 5px; }
@@ -278,8 +307,8 @@
         }
         .scrap-stat-card:hover { background: #f8f9fa; }
         .scrap-stat-label { font-size: 13px; color: #2c3e50; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .scrap-stat-label i { font-size: 14px; color: #2ecc71; }
-        .scrap-stat-count { background: #2ecc71; color: white; padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; }
+        .scrap-stat-label i { font-size: 14px; color: #3498db; }
+        .scrap-stat-count { background: #3498db; color: white; padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; }
 
         .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
         .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
@@ -391,6 +420,60 @@
         .text-content { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
         .platform-badge { background: #e3f2fd; color: #1976d2; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
         .scam-type { background: #ffebee; color: #c62828; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
+        .inv-badge { background: #fff3e0; color: #e65100; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; white-space: nowrap; border: 1px solid #ffcc02; }
+        .wallet-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+        /* Investment Tracker Modal */
+        .inv-tracker-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .inv-tracker-modal.active { display: flex; }
+        .inv-tracker-content { background: white; border-radius: 12px; width: 100%; max-width: 960px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .inv-tracker-header { background: #5d9cec; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .inv-tracker-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .inv-tracker-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .inv-tracker-close:hover { background: rgba(255,255,255,0.2); }
+        .inv-tracker-toggle { display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white; flex-wrap: wrap; align-items: center; }
+        .inv-tracker-btn { padding: 6px 16px; border: 2px solid #5d9cec; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: white; color: #5d9cec; }
+        .inv-tracker-btn:hover { background: #eef6ff; }
+        .inv-tracker-btn.active { background: #5d9cec; color: white; box-shadow: 0 2px 8px rgba(93,156,236,0.35); }
+        .inv-date-filter { display: flex; align-items: center; gap: 6px; margin-left: auto; padding-bottom: 10px; }
+        .inv-date-filter label { font-size: 11px; font-weight: 600; color: #7f8c8d; }
+        .inv-date-filter input[type="date"] { padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; height: 28px; }
+        .inv-date-filter button { padding: 4px 10px; background: #5d9cec; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; height: 28px; }
+        .inv-date-filter button:hover { background: #4a89dc; }
+        .inv-tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
+        .inv-total-banner { background: linear-gradient(135deg, #5d9cec, #4a89dc); border-radius: 8px; padding: 12px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .inv-total-banner .banner-label { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .inv-total-banner .banner-num { font-size: 24px; font-weight: 800; color: white; }
+        .inv-mini-stats { display: flex; gap: 10px; flex-wrap: wrap; }
+        .inv-mini-stat { background: rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 12px; text-align: center; }
+        .inv-mini-stat .mini-label { font-size: 10px; color: rgba(255,255,255,0.85); display: block; margin-bottom: 2px; }
+        .inv-mini-stat .mini-num { font-size: 16px; font-weight: 800; color: white; }
+        .inv-total-banner .banner-label { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .inv-total-banner .banner-num { font-size: 24px; font-weight: 800; color: white; }
+        .inv-user-card { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e9ecef; }
+        .inv-user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #dee2e6; }
+        .inv-user-name { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
+        .inv-user-name i { color: #5d9cec; }
+        .inv-user-total { background: #5d9cec; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .inv-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+        .inv-pill { display: flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
+        .inv-pill-web      { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
+        .inv-pill-telegram { background: #e3f2fd; color: #1a237e; border-color: #7986cb; }
+        .inv-pill-whatsapp { background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
+        .inv-pill-facebook { background: #e8eaf6; color: #1a237e; border-color: #9fa8da; }
+        .inv-pill-instagram{ background: #fce4ec; color: #880e4f; border-color: #f48fb1; }
+        .inv-pill-youtube  { background: #ffebee; color: #b71c1c; border-color: #ef9a9a; }
+        .inv-pill-x        { background: #f5f5f5; color: #212121; border-color: #bdbdbd; }
+        .inv-pill-thread   { background: #f3e5f5; color: #4a148c; border-color: #ce93d8; }
+        .inv-pill-default  { background: #f5f5f5; color: #616161; border-color: #bdbdbd; }
+        .inv-pill-count    { background: rgba(0,0,0,0.1); padding: 0 5px; border-radius: 8px; }
+        .inv-scam-row { background: white; border-radius: 8px; padding: 10px 14px; border: 1px solid #dee2e6; margin-bottom: 8px; }
+        .inv-scam-row:hover { background: #eef6ff; }
+        .inv-scam-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+        .inv-scam-label { font-size: 13px; color: #2c3e50; font-weight: 700; }
+        .inv-scam-total { background: #5d9cec; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+        .inv-section-title { font-size: 11px; font-weight: 700; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; margin: 14px 0 10px; display: flex; align-items: center; gap: 8px; }
+        .inv-section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
         .empty-state { text-align: center; padding: 30px 12px; color: #7f8c8d; }
         .empty-state i { font-size: 28px; margin-bottom: 8px; color: #ddd; }
 
@@ -414,6 +497,32 @@
                 <button class="tracker-toggle-btn perm" id="togglePermBtn" onclick="setTrackerView('perm')"><i class="fas fa-ban"></i> Permanent Block Accounts</button>
             </div>
             <div class="tracker-body" id="trackerBody">
+                <div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Investment Tracker Modal -->
+    <div class="inv-tracker-modal" id="invTrackerModal">
+        <div class="inv-tracker-content">
+            <div class="inv-tracker-header">
+                <h2><i class="fas fa-chart-bar"></i> BS Investment Scam Tracker</h2>
+                <button class="inv-tracker-close" onclick="closeInvestmentTracker()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="inv-tracker-toggle">
+                <button class="inv-tracker-btn active" id="invBtn1" onclick="setInvView('users')"><i class="fas fa-users"></i> Users Count</button>
+                <button class="inv-tracker-btn" id="invBtn2" onclick="setInvView('scamtype')"><i class="fas fa-exclamation-triangle"></i> Scam Type Counts</button>
+                <button class="inv-tracker-btn" id="invBtn3" onclick="setInvView('total')"><i class="fas fa-chart-pie"></i> Total Counts</button>
+                <div class="inv-date-filter">
+                    <label><i class="fas fa-calendar-alt"></i></label>
+                    <input type="date" id="invTrackerFrom" placeholder="From">
+                    <span style="font-size:11px;color:#7f8c8d;">to</span>
+                    <input type="date" id="invTrackerTo" placeholder="To">
+                    <button onclick="loadInvTrackerData()"><i class="fas fa-search"></i> Apply</button>
+                    <button onclick="clearInvTrackerDates()" style="background:#95a5a6;"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="inv-tracker-body" id="invTrackerBody">
                 <div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>
             </div>
         </div>
@@ -460,6 +569,17 @@
                 <h2><i class="fas fa-ban"></i> Permanent Block Accounts</h2>
                 <button class="permanent-close" onclick="closePermanentAccounts()"><i class="fas fa-times"></i></button>
             </div>
+            <div style="padding:10px 20px 0; background:white; display:flex; gap:10px; align-items:center; border-bottom:1px solid #eee;">
+                <label style="font-size:12px;font-weight:600;color:#2c3e50;white-space:nowrap;"><i class="fas fa-mobile-alt"></i> Platform:</label>
+                <select id="permPlatformFilter" onchange="loadPermanentAccounts(document.getElementById('permSearchInput')?.value||'', this.value)" style="padding:5px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:30px;background:white;cursor:pointer;">
+                    <option value="">All Platforms</option>
+                    <option value="Facebook">Facebook</option>
+                    <option value="Instagram">Instagram</option>
+                    <option value="Telegram">Telegram</option>
+                    <option value="WhatsApp">WhatsApp</option>
+                    <option value="Amazon">Amazon</option>
+                </select>
+            </div>
             <div class="permanent-body" id="permanentBody">
                 <div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>
             </div>
@@ -484,13 +604,13 @@
             <div class="logo">
                 <div class="logo-title-row">
                     <h1>Scam Intelligence Dashboard</h1>
-                    <!-- Math-italic username next to title -->
                     <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
                 </div>
                 <p id="pageSubtitle">
                     {% if page_type == 'scraping' %}Scrapping Data Management &amp; Filtering
                     {% elif page_type == 'sheet' %}Report Generation Tool
                     {% elif page_type == 'social' %}Social Media Accounts Management
+                    {% elif page_type == 'investment' %}BS Investment Scam — Data View
                     {% else %}Dashboard{% endif %}
                 </p>
             </div>
@@ -506,6 +626,9 @@
                         {% endif %}
                         {% if 'social' in allowed_pages %}
                         <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
+                        {% endif %}
+                        {% if 'investment' in allowed_pages %}
+                        <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>BS Investment Scam</option>
                         {% endif %}
                     </select>
                 </div>
@@ -533,6 +656,17 @@
                     <form action="/social-export" method="GET" style="display:inline;">
                         <input type="hidden" name="social_search" value="{{ social_search }}">
                         <input type="hidden" name="social_platform" value="{{ social_platform }}">
+                        <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
+                    </form>
+                    {% elif page_type == 'investment' %}
+                    <button type="button" class="btn btn-warning" onclick="showInvestmentTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
+                    <form action="/investment-export" method="GET" style="display:inline;">
+                        <input type="hidden" name="inv_search" value="{{ inv_search }}">
+                        <input type="hidden" name="inv_scam_type" value="{{ inv_scam_type }}">
+                        <input type="hidden" name="inv_search_for" value="{{ inv_search_for }}">
+                        <input type="hidden" name="inv_wallet" value="{{ inv_wallet }}">
+                        <input type="hidden" name="inv_date_from" value="{{ inv_date_from }}">
+                        <input type="hidden" name="inv_date_to" value="{{ inv_date_to }}">
                         <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
                     </form>
                     {% endif %}
@@ -678,6 +812,7 @@
                             <div class="stat-badge"><i class="fas fa-database"></i><span>Total:</span><span class="stat-value" id="statTotal">0</span></div>
                             <div class="stat-badge"><i class="fas fa-id-card"></i><span>Unique UPI:</span><span class="stat-value upi" id="statUPI">0</span></div>
                             <div class="stat-badge"><i class="fas fa-university"></i><span>Unique Bank:</span><span class="stat-value bank" id="statBank">0</span></div>
+                            <div class="stat-badge"><i class="fas fa-globe"></i><span>Unique Website:</span><span class="stat-value" style="color:#8e44ad;" id="statWebsite">0</span></div>
                         </div>
                         <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled><i class="fas fa-file-download"></i> Download Template</button>
                     </div>
@@ -706,10 +841,6 @@
                         </div>
                     </div>
                     <div class="sheet-maker-group">
-                        <label><i class="fas fa-eye"></i> Preview Data</label>
-                        <button class="preview-btn" id="previewBtn" onclick="previewData()" disabled><i class="fas fa-eye"></i> Preview Output</button>
-                    </div>
-                    <div class="sheet-maker-group">
                         <label><i class="fas fa-download"></i> Generate Sheet</label>
                         <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled><i class="fas fa-download"></i> Generate CSV</button>
                     </div>
@@ -728,6 +859,195 @@
                     <div style="margin-top:8px;text-align:center;font-size:11px;color:#666;padding:5px;border-top:1px solid #eee;flex-shrink:0;"><i class="fas fa-info-circle"></i> <span id="previewRowCount">Showing 0 rows</span></div>
                 </div>
             </div>
+        </div>
+        {% endif %}
+
+        <!-- ===== BS INVESTMENT SCAM PAGE ===== -->
+        {% if 'investment' in allowed_pages %}
+        <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
+            <div class="filters">
+                <div class="filters-header">
+                    <h2><i class="fas fa-search-dollar"></i> BS Investment Scam — Filter Data</h2>
+                    <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
+                </div>
+                <form method="GET" action="/" class="filters-grid" id="investmentFilterForm">
+                    <input type="hidden" name="page" value="investment">
+                    <div class="filter-group">
+                        <label><i class="fas fa-search"></i> Search</label>
+                        <div class="search-box">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" name="inv_search" value="{{ inv_search }}" placeholder="Search by UPI, account, bank, URL..." onkeyup="if(event.keyCode===13) this.form.submit()">
+                        </div>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-exclamation-triangle"></i> Scam Type</label>
+                        <select name="inv_scam_type" onchange="this.form.submit()" class="{% if inv_scam_type %}active-filter{% endif %}">
+                            <option value="">All Scam Types</option>
+                            {% for st in bs_investment_scam_type_options %}
+                            <option value="{{ st }}" {% if inv_scam_type == st %}selected{% endif %}>{{ st }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-globe"></i> Search For</label>
+                        <select name="inv_search_for" onchange="this.form.submit()" class="{% if inv_search_for %}active-filter{% endif %}">
+                            <option value="">All</option>
+                            {% for sf in bs_investment_search_for_options %}
+                            <option value="{{ sf }}" {% if inv_search_for == sf %}selected{% endif %}>{{ sf }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-wallet"></i> UPI / Bank / Wallet</label>
+                        <select name="inv_wallet" onchange="this.form.submit()" class="{% if inv_wallet %}active-filter{% endif %}">
+                            <option value="">All</option>
+                            {% for w in bs_investment_wallet_options %}
+                            <option value="{{ w }}" {% if inv_wallet == w %}selected{% endif %}>{{ w }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                        <div class="date-range-group">
+                            <input type="date" name="inv_date_from" value="{{ inv_date_from }}" onchange="this.form.submit()" class="{% if inv_date_from %}active-filter{% endif %}" title="From date">
+                            <span class="date-range-sep">to</span>
+                            <input type="date" name="inv_date_to" value="{{ inv_date_to }}" onchange="this.form.submit()" class="{% if inv_date_to %}active-filter{% endif %}" title="To date">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Bank Account No.</th>
+                            <th>Bank Name</th>
+                            <th>UPI VPA</th>
+                            <th>Handle</th>
+                            <th>IFSC Code</th>
+                            <th>Scam Type</th>
+                            <th>Search For</th>
+                            <th>UPI / Bank / Wallet</th>
+                            <th>Payment Gateway</th>
+                            <th>UPI URL</th>
+                            <th>Website URL</th>
+                            <th>Web Contact No.</th>
+                            <th>Input User</th>
+                            <th>Inserted Date</th>
+                            <th>Screenshot</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if items %}
+                        {% for item in items %}
+                        <tr>
+                            <td><strong style="color:#e65100;">#{{ item.get("id", "N/A") }}</strong></td>
+                            <td>
+                                <div class="field-container">
+                                    {% if item.get("bank_account_number") and item["bank_account_number"] not in ["NA","N/A","",None] %}
+                                    <span class="text-content" style="font-family:monospace;font-size:11px;">{{ item["bank_account_number"] }}</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['bank_account_number']|escape }}', 'Bank Account')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.get("bank_name") and item["bank_name"] not in ["NA","N/A","",None] %}
+                                <span class="text-content" style="font-size:11px;color:#1565c0;font-weight:600;">{{ item["bank_name"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                <div class="field-container">
+                                    {% if item.get("upi_vpa") and item["upi_vpa"] not in ["NA","N/A","",None] %}
+                                    <span class="text-content" style="font-family:monospace;font-size:11px;">{{ item["upi_vpa"] }}</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['upi_vpa']|escape }}', 'UPI VPA')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.get("handle") and item["handle"] not in ["NA","N/A","",None] %}
+                                <span style="font-size:11px;color:#37474f;">{{ item["handle"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("ifsc_code") and item["ifsc_code"] not in ["NA","N/A","",None] %}
+                                <span style="font-family:monospace;font-size:11px;color:#2e7d32;">{{ item["ifsc_code"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("scam_type") and item["scam_type"] not in ["NA","N/A","",None] %}
+                                <span style="font-size:11px;color:#37474f;">{{ item["scam_type"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("search_for") and item["search_for"] not in ["NA","N/A","",None] %}
+                                <span class="platform-badge">{{ item["search_for"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("upi_bank_account_wallet") and item["upi_bank_account_wallet"] not in ["NA","N/A","",None] %}
+                                <span class="wallet-badge">{{ item["upi_bank_account_wallet"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("payment_gateway_name") and item["payment_gateway_name"] not in ["NA","N/A","",None] %}
+                                <span style="font-size:11px;color:#4a148c;background:#f3e5f5;padding:2px 6px;border-radius:3px;">{{ item["payment_gateway_name"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                <div class="field-container">
+                                    {% if item.get("upi_url") and item["upi_url"] not in ["NA","N/A","",None] %}
+                                    <a href="{{ item['upi_url'] }}" target="_blank" class="url-link" title="{{ item['upi_url'] }}">{{ item['upi_url'][:30] }}{% if item['upi_url']|length > 30 %}...{% endif %}</a>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['upi_url']|escape }}', 'UPI URL')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="field-container">
+                                    {% if item.get("website_url") and item["website_url"] not in ["NA","N/A","",None] %}
+                                    <a href="{{ item['website_url'] }}" target="_blank" class="url-link" title="{{ item['website_url'] }}">{{ item['website_url'][:30] }}{% if item['website_url']|length > 30 %}...{% endif %}</a>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['website_url']|escape }}', 'Website URL')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="field-container">
+                                    {% if item.get("web_contact_no") and item["web_contact_no"] not in ["NA","N/A","",None] %}
+                                    <span class="text-content">{{ item["web_contact_no"] }}</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item['web_contact_no']|escape }}', 'Contact')"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if item.get("input_user") and item["input_user"] not in ["NA","N/A","",None] %}
+                                <span style="font-size:11px;color:#37474f;">{{ item["input_user"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("inserted_date") and item["inserted_date"] not in ["NA","N/A","",None] %}
+                                <span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item["inserted_date"] }}</span>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                            <td>
+                                {% if item.get("screenshot") and item["screenshot"] not in ["NA","N/A","",None] %}
+                                <a href="{{ item['screenshot'] }}" target="_blank" title="View Screenshot"><i class="fas fa-eye" style="color:#e67e22;"></i></a>
+                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr><td colspan="16"><div class="empty-state"><i class="fas fa-search-dollar"></i><h3>No records found</h3><p>Try adjusting your search filters</p><button class="btn btn-primary" style="margin-top:10px;" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear All Filters</button></div></td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            {% if total_pages is defined and total_pages > 1 %}
+            <div class="pagination">
+                <button class="pagination-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}><i class="fas fa-chevron-left"></i> Previous</button>
+                <span class="pagination-info">Page {{ page_num }} of {{ total_pages }} ({{ total_rows }} total)</span>
+                <button class="pagination-btn" onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>Next <i class="fas fa-chevron-right"></i></button>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 
@@ -757,13 +1077,12 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <!-- FIX: Account Status filter — includes "Block" option that works correctly -->
                     <div class="filter-group">
                         <label><i class="fas fa-shield-alt"></i> Account Status</label>
                         <select name="social_status" id="socialStatusSelect" onchange="this.form.submit()" class="{% if social_status_filter %}active-filter{% endif %}">
                             <option value="">All Status (excl. Perm. Block)</option>
                             <option value="Active" {% if social_status_filter == 'Active' %}selected{% endif %}>🟢 Active</option>
-                            <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Blocked</option>
+                            <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Block</option>
                             <option value="Restricted" {% if social_status_filter == 'Restricted' %}selected{% endif %}>🟡 Restricted</option>
                             <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
                         </select>
@@ -780,13 +1099,13 @@
                 <table id="socialMediaTable">
                     <thead>
                         <tr>
-                            <th>ID</th><th>Owned By</th><th>Login User</th><th>Number</th>
+                            <th>ID</th><th>Platform</th><th>Owned By</th><th>Login User</th><th>Number</th>
                             <th>Login Device</th><th>SIM Inserted Device</th><th>Account Status</th>
                             <th>Review Status</th><th>Number Type</th><th>Blocked Date</th>
                             <th>Unblocked Date</th><th>Account Create Date</th><th>Sim Operator</th>
                             <th>Full Name</th><th>Recharge Date</th><th>SIM Buy Date</th>
                             <th>Account Type</th><th>Mail Id</th><th>Account Id</th>
-                            <th>Password</th><th>Page Name</th><th>Platform</th>
+                            <th>Password</th><th>Page Name</th>
                         </tr>
                     </thead>
                     <tbody id="socialMediaTableBody">
@@ -812,6 +1131,7 @@
                         {% endif %}
                         <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}">
                             <td>{{ item.id }}</td>
+                            <td><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
                             <td>{{ item.owned_by or 'N/A' }}</td>
                             <td>{{ item.login_user or 'N/A' }}</td>
                             <td>
@@ -848,7 +1168,6 @@
                                 </span>
                             </td>
                             <td>{{ item.page_name or 'N/A' }}</td>
-                            <td><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
                         </tr>
                         {% endfor %}
                         {% else %}
@@ -929,6 +1248,167 @@
             }
         })();
 
+        // ─── Investment Scam filter clear ───────────────────────────
+        function clearInvestmentFilters() {
+            window.location.href = "/?page=investment";
+        }
+
+        // ─── Investment Tracker ──────────────────────────────────────
+        let cachedInvStats = null;
+        let invCurrentView = 'users';
+
+        function showInvestmentTracker() {
+            document.getElementById('invTrackerModal').classList.add('active');
+            invCurrentView = 'users';
+            document.getElementById('invBtn1').classList.add('active');
+            document.getElementById('invBtn2').classList.remove('active');
+            document.getElementById('invBtn3').classList.remove('active');
+            if (!cachedInvStats) {
+                loadInvTrackerData();
+            } else {
+                displayInvTrackerData(cachedInvStats);
+            }
+        }
+
+        function closeInvestmentTracker() {
+            document.getElementById('invTrackerModal').classList.remove('active');
+        }
+
+        function setInvView(view) {
+            invCurrentView = view;
+            document.getElementById('invBtn1').classList.toggle('active', view === 'users');
+            document.getElementById('invBtn2').classList.toggle('active', view === 'scamtype');
+            document.getElementById('invBtn3').classList.toggle('active', view === 'total');
+            if (cachedInvStats) displayInvTrackerData(cachedInvStats);
+        }
+
+        function clearInvTrackerDates() {
+            document.getElementById('invTrackerFrom').value = '';
+            document.getElementById('invTrackerTo').value = '';
+            cachedInvStats = null;
+            loadInvTrackerData();
+        }
+
+        async function loadInvTrackerData() {
+            document.getElementById('invTrackerBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>';
+            try {
+                const from = document.getElementById('invTrackerFrom').value;
+                const to   = document.getElementById('invTrackerTo').value;
+                let url = '/investment-tracker-stats';
+                const params = [];
+                if (from) params.push('date_from=' + from);
+                if (to)   params.push('date_to='   + to);
+                if (params.length) url += '?' + params.join('&');
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (data.success) {
+                    cachedInvStats = data;
+                    displayInvTrackerData(data);
+                } else {
+                    document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
+                }
+            } catch(e) {
+                document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Network error: ${e.message}</p></div>`;
+            }
+        }
+
+        function getInvPillClass(sf) {
+            const m = {'web':'web','telegram':'telegram','whatsapp':'whatsapp','facebook':'facebook','instagram':'instagram','youtube':'youtube','x':'x','thread':'thread'};
+            return 'inv-pill-' + (m[(sf||'').toLowerCase()] || 'default');
+        }
+
+        function displayInvTrackerData(data) {
+            const body = document.getElementById('invTrackerBody');
+            let html = `<div class="inv-total-banner">
+                <div>
+                    <span class="banner-label"><i class="fas fa-database"></i> Total Records</span>
+                    <span class="banner-num">${(data.total_rows||0).toLocaleString()}</span>
+                </div>
+                <div class="inv-mini-stats">
+                    <div class="inv-mini-stat">
+                        <span class="mini-label"><i class="fas fa-id-card"></i> Unique UPI IDs</span>
+                        <span class="mini-num">${(data.unique_upi_count||0).toLocaleString()}</span>
+                    </div>
+                    <div class="inv-mini-stat">
+                        <span class="mini-label"><i class="fas fa-university"></i> Unique Bank Accounts</span>
+                        <span class="mini-num">${(data.unique_bank_count||0).toLocaleString()}</span>
+                    </div>
+                </div>
+            </div>`;
+
+            if (invCurrentView === 'users') {
+                // Users Count: input_user → search_for → count
+                const uc = data.users_count || {};
+                const users = Object.keys(uc).sort();
+                if (!users.length) { html += '<div class="empty-state"><i class="fas fa-users"></i><p>No data found</p></div>'; }
+                else {
+                    html += `<p class="inv-section-title"><i class="fas fa-users"></i> Users Count — by Search For</p>`;
+                    users.forEach(user => {
+                        const sfMap = uc[user];
+                        const total = Object.values(sfMap).reduce((a,b) => a+b, 0);
+                        html += `<div class="inv-user-card">
+                            <div class="inv-user-header">
+                                <span class="inv-user-name"><i class="fas fa-user"></i>${user}</span>
+                                <span class="inv-user-total">${total}</span>
+                            </div>
+                            <div class="inv-pills">`;
+                        Object.entries(sfMap).sort((a,b) => b[1]-a[1]).forEach(([sf, cnt]) => {
+                            html += `<span class="inv-pill ${getInvPillClass(sf)}">${sf}<span class="inv-pill-count">${cnt}</span></span>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                }
+
+            } else if (invCurrentView === 'scamtype') {
+                // Scam Type Counts: input_user → scam_type → count
+                const sc = data.scam_type_counts || {};
+                const users = Object.keys(sc).sort();
+                if (!users.length) { html += '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>No data found</p></div>'; }
+                else {
+                    html += `<p class="inv-section-title"><i class="fas fa-exclamation-triangle"></i> Scam Type Counts — per User</p>`;
+                    users.forEach(user => {
+                        const stMap = sc[user];
+                        const total = Object.values(stMap).reduce((a,b) => a+b, 0);
+                        html += `<div class="inv-user-card">
+                            <div class="inv-user-header">
+                                <span class="inv-user-name"><i class="fas fa-user"></i>${user}</span>
+                                <span class="inv-user-total">${total}</span>
+                            </div>
+                            <div class="inv-pills">`;
+                        Object.entries(stMap).sort((a,b) => b[1]-a[1]).forEach(([st, cnt]) => {
+                            html += `<span class="inv-pill inv-pill-default">${st}<span class="inv-pill-count">${cnt}</span></span>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                }
+
+            } else if (invCurrentView === 'total') {
+                // Total Counts: scam_type → search_for → count
+                const tc = data.total_counts || {};
+                const scamTypes = Object.keys(tc).sort();
+                if (!scamTypes.length) { html += '<div class="empty-state"><i class="fas fa-chart-pie"></i><p>No data found</p></div>'; }
+                else {
+                    html += `<p class="inv-section-title"><i class="fas fa-chart-pie"></i> Total Counts — Scam Type × Search For</p>`;
+                    scamTypes.forEach(st => {
+                        const sfMap = tc[st];
+                        const total = Object.values(sfMap).reduce((a,b) => a+b, 0);
+                        html += `<div class="inv-scam-row">
+                            <div class="inv-scam-header">
+                                <span class="inv-scam-label">${st}</span>
+                                <span class="inv-scam-total">${total}</span>
+                            </div>
+                            <div class="inv-pills">`;
+                        Object.entries(sfMap).sort((a,b) => b[1]-a[1]).forEach(([sf, cnt]) => {
+                            html += `<span class="inv-pill ${getInvPillClass(sf)}">${sf}<span class="inv-pill-count">${cnt}</span></span>`;
+                        });
+                        html += `</div></div>`;
+                    });
+                }
+            }
+
+            body.innerHTML = html;
+        }
+
         // ─── Scraping Tracker ────────────────────────────────────────
         function showScrapingTracker() {
             document.getElementById('scrapingTrackerModal').classList.add('active');
@@ -971,7 +1451,6 @@
                 });
         }
 
-        /* Platform → CSS pill class */
         function getPillClass(platform) {
             const map = {
                 'Telegram':'pill-telegram', 'WhatsApp':'pill-whatsapp',
@@ -982,7 +1461,6 @@
             return map[platform] || 'pill-default';
         }
 
-        /* Platform → FA icon */
         function getPlatformIcon(platform) {
             const map = {
                 'Telegram':'paper-plane','WhatsApp':'whatsapp','Facebook':'facebook-f',
@@ -998,7 +1476,6 @@
         function displayScrapingTrackerData(stats) {
             const body = document.getElementById('scrapingTrackerBody');
 
-            // ── Total banner ──
             let html = `<div class="scraping-total-banner">
                 <span class="banner-label"><i class="fas fa-database"></i> Total Data Records</span>
                 <span class="banner-num">${stats.total.toLocaleString()}</span>
@@ -1052,7 +1529,6 @@
                 }
 
             } else {
-                // ── Platform only view ──
                 const platformCounts = stats.platform_counts || {};
                 const sorted = Object.entries(platformCounts).sort((a,b) => b[1]-a[1]);
 
@@ -1191,12 +1667,10 @@
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const icon = PLATFORM_ICONS[p] || 'globe';
-                    // Use actual keys from DB data (not hardcoded list) — excludes Permanent Block already
                     const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
                     const total = actualStatuses.reduce((sum, [,n]) => sum + n, 0);
                     if (total > 0) {
                         html += `<div class="platform-section"><div class="platform-header"><h4><i class="fab fa-${icon}"></i> ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
-                        // Sort: Active first, then rest by count desc
                         actualStatuses.sort((a, b) => {
                             if (a[0] === 'Active') return -1;
                             if (b[0] === 'Active') return 1;
@@ -1226,18 +1700,23 @@
         // ─── Permanent Block Modal ───────────────────────────────────
         function showPermanentAccounts() {
             document.getElementById('permanentModal').classList.add('active');
-            loadPermanentAccounts();
+            const permPlatform = document.getElementById('permPlatformFilter');
+            if (permPlatform) permPlatform.value = '';
+            loadPermanentAccounts('', '');
         }
         function closePermanentAccounts() { document.getElementById('permanentModal').classList.remove('active'); }
 
-        function loadPermanentAccounts(search) {
+        function loadPermanentAccounts(search, platform) {
             const body = document.getElementById('permanentBody');
             body.innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>';
-            const url = '/get-permanent-block-accounts' + (search ? '?search=' + encodeURIComponent(search) : '');
+            const params = [];
+            if (search) params.push('search=' + encodeURIComponent(search));
+            if (platform) params.push('platform=' + encodeURIComponent(platform));
+            const url = '/get-permanent-block-accounts' + (params.length ? '?' + params.join('&') : '');
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) displayPermanentAccounts(data.accounts, data.count, search || '');
+                    if (data.success) displayPermanentAccounts(data.accounts, data.count, search || '', platform || '');
                     else body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                 })
                 .catch(() => {
@@ -1246,10 +1725,12 @@
         }
 
         function searchPermanentAccounts() {
-            loadPermanentAccounts(document.getElementById('permSearchInput').value);
+            const search = document.getElementById('permSearchInput').value;
+            const platform = document.getElementById('permPlatformFilter')?.value || '';
+            loadPermanentAccounts(search, platform);
         }
 
-        function displayPermanentAccounts(accounts, count, searchVal) {
+        function displayPermanentAccounts(accounts, count, searchVal, platformVal) {
             const body = document.getElementById('permanentBody');
             const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
                 <div style="position:relative;flex:1;">
@@ -1258,7 +1739,7 @@
                 </div>
                 <button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button>
             </div>`;
-            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
+            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts${platformVal ? ' — ' + platformVal : ''}</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
             if (count > 0) {
                 html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
                 accounts.forEach((a,i) => {
@@ -1294,14 +1775,14 @@
                             document.getElementById('templateStats').style.display = 'flex';
                             if (document.getElementById('fileUpload').files.length > 0) {
                                 document.getElementById('generateBtn').disabled = false;
-                                document.getElementById('previewBtn').disabled = false;
+                                // Auto-preview when sheet type changes and file already selected
+                                previewData();
                             }
                         }
                     });
             } else {
                 headersDisplay.style.display = 'none';
                 document.getElementById('generateBtn').disabled = true;
-                document.getElementById('previewBtn').disabled = true;
                 document.getElementById('templateBtn').disabled = true;
                 document.getElementById('templateStats').style.display = 'none';
             }
@@ -1316,9 +1797,12 @@
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const hasFile = input.files.length > 0;
             document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
-            document.getElementById('previewBtn').disabled = !(sheetType && hasFile);
             closePreview(); previewDataCache = null;
             document.getElementById('templateStats').style.display = 'none';
+            // Auto-preview as soon as file is selected
+            if (sheetType && hasFile) {
+                previewData();
+            }
         }
 
         function downloadTemplate() {
@@ -1352,6 +1836,7 @@
             document.getElementById('statTotal').textContent = data.total_values;
             document.getElementById('statUPI').textContent = data.unique_upi_ids || 0;
             document.getElementById('statBank').textContent = data.unique_bank_accounts || 0;
+            document.getElementById('statWebsite').textContent = data.unique_websites || 0;
         }
 
         function displayPreviewData(data) {
@@ -1468,7 +1953,7 @@
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); }
+            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); }
         });
 
         // Auto-dismiss flash messages
