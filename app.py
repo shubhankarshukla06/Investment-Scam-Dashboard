@@ -1027,7 +1027,7 @@ def index():
         else:
             if social_status_filter:
                 if social_status_filter.lower() == "block":
-                    query = query.ilike("account_status", "block%").neq("account_status", "Permanent Block")
+                    query = query.eq("account_status", "Block")
                 else:
                     query = query.eq("account_status", social_status_filter)
             else:
@@ -1815,7 +1815,7 @@ def update_social_accounts():
     # Apply account status filter correctly
     if account_status_filter:
         if account_status_filter == "Block":
-            query = query.ilike("account_status", "block%")
+            query = query.eq("account_status", "Block")
         else:
             query = query.eq("account_status", account_status_filter)
 

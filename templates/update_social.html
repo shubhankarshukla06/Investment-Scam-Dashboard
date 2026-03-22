@@ -162,7 +162,7 @@
                 <div class="filter-group">
                     <label><i class="fas fa-circle"></i> Account Status</label>
                     <select name="account_status_filter" onchange="this.form.submit()" class="{{ 'active-filter' if account_status_filter else '' }}">
-                        <option value="">All Statuses</option>
+                        <option value="">All Status</option>
                         <option value="Active" {% if account_status_filter == 'Active' %}selected{% endif %}>Active</option>
                         <option value="Block" {% if account_status_filter == 'Block' %}selected{% endif %}>Block</option>
                         <option value="Restricted" {% if account_status_filter == 'Restricted' %}selected{% endif %}>Restricted</option>
