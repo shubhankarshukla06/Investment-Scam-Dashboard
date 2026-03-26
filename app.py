@@ -134,7 +134,12 @@ SCAM_TYPE_OPTIONS = [
 ]
 
 SOCIAL_PLATFORM_OPTIONS = [
-    "Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp"
+    "Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp",
+    "Gmail Accounts", "Total Numbers"
+]
+
+DEPARTMENT_OPTIONS = [
+    "AML", "Investment Scam", "ITC", "Infringement", "Chargeback"
 ]
 
 PLATFORM_ACCOUNT_STATUS = {
@@ -969,6 +974,7 @@ def index():
     social_activity_log = request.args.get("activity_log", "").strip()
     social_permanent_block = request.args.get("permanent_block", "").strip()
     social_status_filter = request.args.get("social_status", "").strip()
+    social_department_filter = request.args.get("social_department", "").strip()
 
     # BS Investment Scam filters
     inv_search = request.args.get("inv_search", "").strip()
@@ -1021,6 +1027,9 @@ def index():
             )
         if social_platform and social_platform != "":
             query = query.eq("platform", social_platform)
+
+        if social_department_filter:
+            query = query.eq("department", social_department_filter)
 
         if social_permanent_block == "true":
             query = query.eq("account_status", "Permanent Block")
@@ -1102,6 +1111,7 @@ def index():
         social_activity_log=social_activity_log,
         social_permanent_block=social_permanent_block,
         social_status_filter=social_status_filter,
+        social_department_filter=social_department_filter,
         inv_search=inv_search,
         inv_scam_type=inv_scam_type,
         inv_search_for=inv_search_for,
@@ -1117,6 +1127,7 @@ def index():
         bs_investment_scam_type_options=BS_INVESTMENT_SCAM_TYPE_OPTIONS,
         bs_investment_search_for_options=BS_INVESTMENT_SEARCH_FOR_OPTIONS,
         bs_investment_wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
+        department_options=DEPARTMENT_OPTIONS,
         current_user=user,
         allowed_pages=allowed_pages,
         display_name=session.get("display_name", "User")
@@ -1406,7 +1417,7 @@ def update_social_data():
 
 
 # ============================================================
-# SOCIAL IMPORT — universal file support + date NULL fix
+# SOCIAL IMPORT — universal file support + full NaT/datetime fix
 # ============================================================
 @app.route("/social-import", methods=["POST"])
 @login_required
@@ -1434,6 +1445,7 @@ def social_import():
             'account_status', 'review_status', 'number_type', 'blocked_date', 'unblock_date',
             'account_create_date', 'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
             'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform',
+            'department',
         ]
 
         file_columns = list(df.columns)
@@ -1452,14 +1464,39 @@ def social_import():
         DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date',
                         'recharge_date', 'sim_buy_date'}
 
+        # ── FIXED sanitize_value ──────────────────────────────────────
         def sanitize_value(col, value):
+            # 1. Handle Python None
+            if value is None:
+                return None if col in DATE_COLUMNS else "NA"
+
+            # 2. Handle pandas NaT / NaN BEFORE calling str()
+            try:
+                if pd.isna(value):
+                    return None if col in DATE_COLUMNS else "NA"
+            except (TypeError, ValueError):
+                pass
+
+            # 3. Stringify
             v = str(value).strip()
+
             if col in DATE_COLUMNS:
-                if not v or v.upper() in ('NA', 'N/A', 'NAN', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.'):
+                # Null-like strings (including "NaT" which str(pd.NaT) produces)
+                if not v or v.upper() in (
+                    'NA', 'N/A', 'NAN', 'NAT', 'NONE', 'NULL',
+                    'UNDEFINED', '-', 'N.A', 'N.A.', ''
+                ):
                     return None
+                # datetime objects stringify to "2026-03-14 00:00:00" — keep date only
+                if ' ' in v:
+                    v = v.split(' ')[0]
+                # Strip time component if present with T separator (ISO format)
+                if 'T' in v:
+                    v = v.split('T')[0]
                 return v
             else:
                 return v if v else "NA"
+        # ─────────────────────────────────────────────────────────────
 
         records = []
         for i, (_, row) in enumerate(df.iterrows()):
@@ -1797,10 +1834,11 @@ def update_social_accounts():
     search = request.args.get("search", "").strip()
     platform = request.args.get("platform", "").strip()
     account_status_filter = request.args.get("account_status_filter", "").strip()
+    department_filter = request.args.get("department_filter", "").strip()
     page = int(request.args.get("page_num", 1))
 
     query = social_supabase.table("social_media_accounts").select(
-        "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name",
+        "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name,department",
         count='exact'
     )
     # Always exclude Permanent Block from this page
@@ -1811,6 +1849,8 @@ def update_social_accounts():
         query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term}")
     if platform:
         query = query.eq("platform", platform)
+    if department_filter:
+        query = query.eq("department", department_filter)
 
     # Apply account status filter correctly
     if account_status_filter:
@@ -1836,11 +1876,13 @@ def update_social_accounts():
         search=search,
         platform=platform,
         account_status_filter=account_status_filter,
+        department_filter=department_filter,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
         social_platform_options=SOCIAL_PLATFORM_OPTIONS,
-        platform_account_status=PLATFORM_ACCOUNT_STATUS
+        platform_account_status=PLATFORM_ACCOUNT_STATUS,
+        department_options=DEPARTMENT_OPTIONS
     )
 
 

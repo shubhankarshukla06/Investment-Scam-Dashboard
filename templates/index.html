@@ -1087,6 +1087,15 @@
                             <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
                         </select>
                     </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-building"></i> Department</label>
+                        <select name="social_department" id="socialDepartmentSelect" onchange="this.form.submit()" class="{% if social_department_filter %}active-filter{% endif %}">
+                            <option value="">All Departments</option>
+                            {% for dept in department_options %}
+                            <option value="{{ dept }}" {% if social_department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="action-buttons">
                         <button type="button" class="action-btn update" onclick="goToUpdatePage()"><i class="fas fa-edit"></i> Update Data</button>
                         <button type="button" class="action-btn activity" onclick="showActivityLog()"><i class="fas fa-history"></i> Activity Log</button>
@@ -1099,7 +1108,7 @@
                 <table id="socialMediaTable">
                     <thead>
                         <tr>
-                            <th>ID</th><th>Platform</th><th>Owned By</th><th>Login User</th><th>Number</th>
+                            <th>ID</th><th>Platform</th><th>Department</th><th>Owned By</th><th>Login User</th><th>Number</th>
                             <th>Login Device</th><th>SIM Inserted Device</th><th>Account Status</th>
                             <th>Review Status</th><th>Number Type</th><th>Blocked Date</th>
                             <th>Unblocked Date</th><th>Account Create Date</th><th>Sim Operator</th>
@@ -1132,6 +1141,11 @@
                         <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}">
                             <td>{{ item.id }}</td>
                             <td><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
+                            <td>
+                                {% if item.department and item.department not in ['N/A','NA','',None] %}
+                                <span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">{{ item.department }}</span>
+                                {% else %}<span style="color:#95a5a6;">—</span>{% endif %}
+                            </td>
                             <td>{{ item.owned_by or 'N/A' }}</td>
                             <td>{{ item.login_user or 'N/A' }}</td>
                             <td>
@@ -1171,7 +1185,7 @@
                         </tr>
                         {% endfor %}
                         {% else %}
-                        <tr><td colspan="22"><div class="empty-state"><i class="fas fa-users"></i><h3>No social media accounts found</h3><p>Try adjusting your search filters or import some data</p></div></td></tr>
+                        <tr><td colspan="23"><div class="empty-state"><i class="fas fa-users"></i><h3>No social media accounts found</h3><p>Try adjusting your search filters or import some data</p></div></td></tr>
                         {% endif %}
                     </tbody>
                 </table>
@@ -1233,10 +1247,12 @@
         function goToUpdatePage() {
             const search = document.getElementById('socialSearchInput').value;
             const platform = document.getElementById('socialPlatformSelect').value;
+            const department = document.getElementById('socialDepartmentSelect').value;
             let url = '/update-social-accounts';
             const params = [];
             if (search) params.push('search=' + encodeURIComponent(search));
             if (platform) params.push('platform=' + encodeURIComponent(platform));
+            if (department) params.push('department_filter=' + encodeURIComponent(department));
             sessionStorage.setItem('social_needs_refresh', '1');
             if (params.length) url += '?' + params.join('&');
             window.location.href = url;
