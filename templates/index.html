@@ -448,8 +448,6 @@
         .inv-mini-stat { background: rgba(255,255,255,0.2); border-radius: 6px; padding: 6px 12px; text-align: center; }
         .inv-mini-stat .mini-label { font-size: 10px; color: rgba(255,255,255,0.85); display: block; margin-bottom: 2px; }
         .inv-mini-stat .mini-num { font-size: 16px; font-weight: 800; color: white; }
-        .inv-total-banner .banner-label { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .inv-total-banner .banner-num { font-size: 24px; font-weight: 800; color: white; }
         .inv-user-card { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e9ecef; }
         .inv-user-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #dee2e6; }
         .inv-user-name { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
@@ -578,6 +576,8 @@
                     <option value="Telegram">Telegram</option>
                     <option value="WhatsApp">WhatsApp</option>
                     <option value="Amazon">Amazon</option>
+                    <option value="Gmail Accounts">Gmail Accounts</option>
+                    <option value="Total Numbers">Total Numbers</option>
                 </select>
             </div>
             <div class="permanent-body" id="permanentBody">
@@ -1070,7 +1070,7 @@
                     </div>
                     <div class="filter-group">
                         <label><i class="fas fa-mobile-alt"></i> Platform</label>
-                        <select name="social_platform" id="socialPlatformSelect" onchange="this.form.submit()">
+                        <select name="social_platform" id="socialPlatformSelect" onchange="filterSocialColumns(this.value); this.form.submit();">
                             <option value="">All Platforms</option>
                             {% for platform in social_platform_options %}
                             <option value="{{ platform }}" {% if social_platform == platform %}selected{% endif %}>{{ platform }}</option>
@@ -1108,13 +1108,29 @@
                 <table id="socialMediaTable">
                     <thead>
                         <tr>
-                            <th>ID</th><th>Platform</th><th>Department</th><th>Owned By</th><th>Login User</th><th>Number</th>
-                            <th>Login Device</th><th>SIM Inserted Device</th><th>Account Status</th>
-                            <th>Review Status</th><th>Number Type</th><th>Blocked Date</th>
-                            <th>Unblocked Date</th><th>Account Create Date</th><th>Sim Operator</th>
-                            <th>Full Name</th><th>Recharge Date</th><th>SIM Buy Date</th>
-                            <th>Account Type</th><th>Mail Id</th><th>Account Id</th>
-                            <th>Password</th><th>Page Name</th>
+                            <th data-col="id">ID</th>
+                            <th data-col="platform">Platform</th>
+                            <th data-col="department">Department</th>
+                            <th data-col="owned_by">Owned By</th>
+                            <th data-col="login_user">Login User</th>
+                            <th data-col="number">Number</th>
+                            <th data-col="login_device">Login Device</th>
+                            <th data-col="sim_inserted_device">SIM Inserted Device</th>
+                            <th data-col="account_status">Account Status</th>
+                            <th data-col="review_status">Review Status</th>
+                            <th data-col="number_type">Number Type</th>
+                            <th data-col="blocked_date">Blocked Date</th>
+                            <th data-col="unblocked_date">Unblocked Date</th>
+                            <th data-col="account_create_date">Account Create Date</th>
+                            <th data-col="sim_operator">Sim Operator</th>
+                            <th data-col="full_name">Full Name</th>
+                            <th data-col="recharge_date">Recharge Date</th>
+                            <th data-col="sim_buy_date">SIM Buy Date</th>
+                            <th data-col="account_type">Account Type</th>
+                            <th data-col="mail_id">Mail Id</th>
+                            <th data-col="account_id">Account Id</th>
+                            <th data-col="password">Password</th>
+                            <th data-col="page_name">Page Name</th>
                         </tr>
                     </thead>
                     <tbody id="socialMediaTableBody">
@@ -1139,16 +1155,16 @@
                             {% set badge_class = 'status-active' %}
                         {% endif %}
                         <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}">
-                            <td>{{ item.id }}</td>
-                            <td><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
-                            <td>
+                            <td data-col="id">{{ item.id }}</td>
+                            <td data-col="platform"><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
+                            <td data-col="department">
                                 {% if item.department and item.department not in ['N/A','NA','',None] %}
                                 <span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">{{ item.department }}</span>
                                 {% else %}<span style="color:#95a5a6;">—</span>{% endif %}
                             </td>
-                            <td>{{ item.owned_by or 'N/A' }}</td>
-                            <td>{{ item.login_user or 'N/A' }}</td>
-                            <td>
+                            <td data-col="owned_by">{{ item.owned_by or 'N/A' }}</td>
+                            <td data-col="login_user">{{ item.login_user or 'N/A' }}</td>
+                            <td data-col="number">
                                 <span style="display:inline-flex;align-items:center;gap:4px;flex-wrap:nowrap;">
                                     <span>{{ item.number or 'N/A' }}</span>
                                     {% if item.number and item.number not in ['N/A','NA','',None] %}
@@ -1156,32 +1172,32 @@
                                     {% endif %}
                                 </span>
                             </td>
-                            <td>{{ item.login_device or 'N/A' }}</td>
-                            <td>{{ item.sim_inserted_device or 'N/A' }}</td>
-                            <td>
+                            <td data-col="login_device">{{ item.login_device or 'N/A' }}</td>
+                            <td data-col="sim_inserted_device">{{ item.sim_inserted_device or 'N/A' }}</td>
+                            <td data-col="account_status">
                                 <span class="status-display {{ badge_class }}">{{ raw_status }}</span>
                             </td>
-                            <td>{{ item.review_status or 'NA' }}</td>
-                            <td>{{ item.number_type or 'N/A' }}</td>
-                            <td>{{ item.blocked_date or 'N/A' }}</td>
-                            <td>{{ item.unblocked_date or item.unblock_date or 'N/A' }}</td>
-                            <td>{{ item.account_create_date or 'N/A' }}</td>
-                            <td>{{ item.sim_operator or 'N/A' }}</td>
-                            <td>{{ item.full_name or 'N/A' }}</td>
-                            <td>{{ item.recharge_date or 'N/A' }}</td>
-                            <td>{{ item.sim_buy_date or 'N/A' }}</td>
-                            <td>{{ item.account_type or 'N/A' }}</td>
-                            <td>{{ item.mail_id or 'N/A' }}</td>
-                            <td>{{ item.account_id or 'N/A' }}</td>
-                            <td>
+                            <td data-col="review_status">{{ item.review_status or 'NA' }}</td>
+                            <td data-col="number_type">{{ item.number_type or 'N/A' }}</td>
+                            <td data-col="blocked_date">{{ item.blocked_date or 'N/A' }}</td>
+                            <td data-col="unblocked_date">{{ item.unblocked_date or item.unblock_date or 'N/A' }}</td>
+                            <td data-col="account_create_date">{{ item.account_create_date or 'N/A' }}</td>
+                            <td data-col="sim_operator">{{ item.sim_operator or 'N/A' }}</td>
+                            <td data-col="full_name">{{ item.full_name or 'N/A' }}</td>
+                            <td data-col="recharge_date">{{ item.recharge_date or 'N/A' }}</td>
+                            <td data-col="sim_buy_date">{{ item.sim_buy_date or 'N/A' }}</td>
+                            <td data-col="account_type">{{ item.account_type or 'N/A' }}</td>
+                            <td data-col="mail_id">{{ item.mail_id or 'N/A' }}</td>
+                            <td data-col="account_id">{{ item.account_id or 'N/A' }}</td>
+                            <td data-col="password">
                                 <span style="display:inline-flex;align-items:center;gap:4px;">
-                                    <span class="password-field" id="password-{{ item.id }}">••••••••</span>
                                     {% if item.password and item.password not in ['N/A','NA','',None] %}
-                                    <button class="copy-btn" onclick="togglePassword({{ item.id }},'{{ item.password|escape }}')" title="Show/Hide"><i class="fas fa-eye" id="pwd-icon-{{ item.id }}"></i></button>
-                                    {% endif %}
+                                    <span style="font-family:monospace;font-size:11px;color:#c0392b;">{{ item.password }}</span>
+                                    <button class="copy-btn" onclick="copyToClipboard('{{ item.password|escape }}','Password')" title="Copy Password"><i class="fas fa-copy"></i></button>
+                                    {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </span>
                             </td>
-                            <td>{{ item.page_name or 'N/A' }}</td>
+                            <td data-col="page_name">{{ item.page_name or 'N/A' }}</td>
                         </tr>
                         {% endfor %}
                         {% else %}
@@ -1215,13 +1231,49 @@
     </form>
 
     <script>
-        const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon' };
+        // ── CHANGE 1: Platform-specific column visibility ─────────────
+        const PLATFORM_COLUMNS = {
+            'Facebook':       ['id','platform','department','login_user','number','login_device','account_status','account_type','mail_id','account_id','password','page_name'],
+            'Amazon':         ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','mail_id','account_id','password'],
+            'Instagram':      ['id','platform','department','login_user','number','login_device','account_status','mail_id','account_id','password'],
+            'Telegram':       ['id','platform','department','login_user','number','login_device','account_status','full_name'],
+            'WhatsApp':       ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','account_type'],
+            'Gmail Accounts': ['id','platform','department','account_status','mail_id','password'],
+            'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator'],
+        };
+
+        const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
+
+        function filterSocialColumns(platform) {
+            const table = document.getElementById('socialMediaTable');
+            if (!table) return;
+            const visibleCols = (platform && PLATFORM_COLUMNS[platform]) ? PLATFORM_COLUMNS[platform] : ALL_SOCIAL_COLS;
+            table.querySelectorAll('thead th[data-col]').forEach(th => {
+                th.style.display = visibleCols.includes(th.dataset.col) ? '' : 'none';
+            });
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                tr.querySelectorAll('td[data-col]').forEach(td => {
+                    td.style.display = visibleCols.includes(td.dataset.col) ? '' : 'none';
+                });
+            });
+        }
+
+        // Apply column filter on page load based on current platform selection
+        (function initSocialColumns() {
+            const sel = document.getElementById('socialPlatformSelect');
+            if (sel) filterSocialColumns(sel.value);
+        })();
+
+        // ── CHANGE 3: Tracker platforms include Gmail Accounts + Total Numbers ──
+        const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
         const PLATFORM_ACCOUNT_STATUS = {
             "Facebook":["Active","Block","Restricted","Permanent Block"],
             "Instagram":["Active","Block","Permanent Block"],
             "Telegram":["Active","Frozen","Permanent Block"],
             "WhatsApp":["Active","Block","Permanent Block","Restricted"],
-            "Amazon":["Active","Block","Permanent Block"]
+            "Amazon":["Active","Block","Permanent Block"],
+            "Gmail Accounts":["Active","Block","Permanent Block"],
+            "Total Numbers":["Active","Block","Permanent Block"]
         };
         const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Blocked':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
         const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Blocked':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
@@ -1233,6 +1285,14 @@
         let cachedScrapingStats = null;
         let pendingAction = null;
         let previewDataCache = null;
+
+        // Helper: get correct icon prefix for platform
+        function getPlatformIconHtml(iconName, extraStyle) {
+            const fasIcons = ['envelope', 'sim-card', 'globe', 'question'];
+            const prefix = fasIcons.includes(iconName) ? 'fas' : 'fab';
+            const styleAttr = extraStyle ? ` style="${extraStyle}"` : '';
+            return `<i class="${prefix} fa-${iconName}"${styleAttr}></i>`;
+        }
 
         // ─── Page / Navigation ──────────────────────────────────────
         function changePage(pageType) {
@@ -1353,7 +1413,6 @@
             </div>`;
 
             if (invCurrentView === 'users') {
-                // Users Count: input_user → search_for → count
                 const uc = data.users_count || {};
                 const users = Object.keys(uc).sort();
                 if (!users.length) { html += '<div class="empty-state"><i class="fas fa-users"></i><p>No data found</p></div>'; }
@@ -1374,9 +1433,7 @@
                         html += `</div></div>`;
                     });
                 }
-
             } else if (invCurrentView === 'scamtype') {
-                // Scam Type Counts: input_user → scam_type → count
                 const sc = data.scam_type_counts || {};
                 const users = Object.keys(sc).sort();
                 if (!users.length) { html += '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>No data found</p></div>'; }
@@ -1397,9 +1454,7 @@
                         html += `</div></div>`;
                     });
                 }
-
             } else if (invCurrentView === 'total') {
-                // Total Counts: scam_type → search_for → count
                 const tc = data.total_counts || {};
                 const scamTypes = Object.keys(tc).sort();
                 if (!scamTypes.length) { html += '<div class="empty-state"><i class="fas fa-chart-pie"></i><p>No data found</p></div>'; }
@@ -1612,7 +1667,8 @@
 
         function displayTrackerData(stats) {
             const body = document.getElementById('trackerBody');
-            const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon'];
+            // ── CHANGE 3: include Gmail Accounts + Total Numbers ──
+            const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon','Gmail Accounts','Total Numbers'];
 
             if (trackerCurrentView === 'perm') {
                 const permCounts = stats.perm_block_counts || {};
@@ -1621,10 +1677,10 @@
                     <h3><i class="fas fa-ban" style="color:#ef4444;"></i> Permanent Block Accounts by Platform</h3>
                     <div class="summary-grid">`;
                 platforms.forEach(p => {
-                    const icon = PLATFORM_ICONS[p] || 'globe';
+                    const iconName = PLATFORM_ICONS[p] || 'globe';
                     const count = permCounts[p] || 0;
                     html += `<div class="summary-item">
-                        <div class="platform"><i class="fab fa-${icon}" style="color:#ef4444;"></i>${p}</div>
+                        <div class="platform">${getPlatformIconHtml(iconName, 'color:#ef4444;font-size:14px;')}${p}</div>
                         <div class="count perm-count">${count}</div>
                     </div>`;
                 });
@@ -1633,10 +1689,10 @@
                 platforms.forEach(p => {
                     const count = permCounts[p] || 0;
                     if (count > 0) {
-                        const icon = PLATFORM_ICONS[p] || 'globe';
+                        const iconName = PLATFORM_ICONS[p] || 'globe';
                         html += `<div class="platform-section">
                             <div class="platform-header">
-                                <h4><i class="fab fa-${icon}" style="color:#ef4444;"></i> ${p}</h4>
+                                <h4>${getPlatformIconHtml(iconName, 'color:#ef4444;')} ${p}</h4>
                                 <span class="platform-total perm">Permanent Block: ${count}</span>
                             </div>
                             <div class="status-item status-bg-permanent" style="max-width:200px;">
@@ -1660,7 +1716,7 @@
             let grandTotal = 0;
             platforms.forEach(p => {
                 const statusData = stats.platform_status_counts[p] || {};
-                const icon = PLATFORM_ICONS[p] || 'globe';
+                const iconName = PLATFORM_ICONS[p] || 'globe';
                 let displayCount, countClass;
                 if (isActiveView) {
                     displayCount = statusData['Active'] || 0;
@@ -1671,7 +1727,7 @@
                 }
                 grandTotal += displayCount;
                 html += `<div class="summary-item">
-                    <div class="platform"><i class="fab fa-${icon}"></i>${p}</div>
+                    <div class="platform">${getPlatformIconHtml(iconName)}${p}</div>
                     <div class="count ${countClass}">${displayCount}</div>
                 </div>`;
             });
@@ -1682,11 +1738,11 @@
                 html += '<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>';
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
-                    const icon = PLATFORM_ICONS[p] || 'globe';
+                    const iconName = PLATFORM_ICONS[p] || 'globe';
                     const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
                     const total = actualStatuses.reduce((sum, [,n]) => sum + n, 0);
                     if (total > 0) {
-                        html += `<div class="platform-section"><div class="platform-header"><h4><i class="fab fa-${icon}"></i> ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
+                        html += `<div class="platform-section"><div class="platform-header"><h4>${getPlatformIconHtml(iconName)} ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
                         actualStatuses.sort((a, b) => {
                             if (a[0] === 'Active') return -1;
                             if (b[0] === 'Active') return 1;
@@ -1759,8 +1815,8 @@
             if (count > 0) {
                 html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
                 accounts.forEach((a,i) => {
-                    const icon = PLATFORM_ICONS[a.platform] || 'globe';
-                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;"><i class="fab fa-${icon}" style="margin-right:3px;"></i>${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
+                    const iconName = PLATFORM_ICONS[a.platform] || 'globe';
+                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${getPlatformIconHtml(iconName, 'margin-right:3px;')}${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
                 });
                 html += '</tbody></table></div>';
             } else {
@@ -1791,7 +1847,6 @@
                             document.getElementById('templateStats').style.display = 'flex';
                             if (document.getElementById('fileUpload').files.length > 0) {
                                 document.getElementById('generateBtn').disabled = false;
-                                // Auto-preview when sheet type changes and file already selected
                                 previewData();
                             }
                         }
@@ -1815,7 +1870,6 @@
             document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
             closePreview(); previewDataCache = null;
             document.getElementById('templateStats').style.display = 'none';
-            // Auto-preview as soon as file is selected
             if (sheetType && hasFile) {
                 previewData();
             }
@@ -1904,18 +1958,6 @@
             } catch {
                 if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast(`${fieldName} copied!`)).catch(() => showToast('Failed to copy', true));
             } finally { document.body.removeChild(ta); }
-        }
-
-        function togglePassword(id, password) {
-            const field = document.getElementById(`password-${id}`);
-            const icon = document.getElementById(`pwd-icon-${id}`);
-            if (field.textContent === '••••••••') {
-                field.textContent = password; field.style.color = '#e74c3c';
-                if (icon) { icon.classList.remove('fa-eye'); icon.classList.add('fa-eye-slash'); }
-            } else {
-                field.textContent = '••••••••'; field.style.color = '';
-                if (icon) { icon.classList.remove('fa-eye-slash'); icon.classList.add('fa-eye'); }
-            }
         }
 
         function showToast(message, isError=false, isSuccess=false) {

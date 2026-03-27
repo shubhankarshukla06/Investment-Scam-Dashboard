@@ -147,7 +147,9 @@ PLATFORM_ACCOUNT_STATUS = {
     "Instagram": ["Active", "Block", "Permanent Block"],
     "Telegram": ["Active", "Frozen", "Permanent Block"],
     "WhatsApp": ["Active", "Block", "Permanent Block", "Restricted"],
-    "Amazon": ["Active", "Block", "Permanent Block"]
+    "Amazon": ["Active", "Block", "Permanent Block"],
+    "Gmail Accounts": ["Active", "Block", "Permanent Block"],
+    "Total Numbers": ["Active", "Block", "Permanent Block"],
 }
 
 # ============================================================
@@ -1281,35 +1283,45 @@ def investment_export():
 
 
 # ============================================================
-# TRACKER STATS
+# TRACKER STATS  ← FIXED: now includes Gmail Accounts + Total Numbers
 # ============================================================
 @app.route("/tracker-stats", methods=["GET"])
 @login_required
 def tracker_stats():
     try:
-        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp"]
-        platform_counts = {}
+        # ── ALL 7 platforms — Gmail Accounts & Total Numbers added ──
+        platforms = [
+            "Facebook", "Amazon", "Instagram",
+            "Telegram", "WhatsApp",
+            "Gmail Accounts", "Total Numbers"
+        ]
+
+        platform_counts      = {}
         platform_status_counts = {}
-        perm_block_counts = {}
-        perm_block_total = 0
+        perm_block_counts    = {}
+        perm_block_total     = 0
 
         CHUNK = 1000
 
         for platform in platforms:
             try:
-                all_rows = []
-                offset = 0
+                all_rows   = []
+                offset     = 0
                 total_count = 0
+
                 while True:
                     resp = social_supabase.table("social_media_accounts") \
                         .select("account_status", count='exact') \
                         .eq("platform", platform) \
                         .range(offset, offset + CHUNK - 1) \
                         .execute()
+
                     if offset == 0:
                         total_count = resp.count or 0
+
                     chunk = resp.data or []
                     all_rows.extend(chunk)
+
                     if len(chunk) < CHUNK:
                         break
                     offset += CHUNK
@@ -1317,7 +1329,8 @@ def tracker_stats():
                 platform_counts[platform] = total_count
 
                 status_map = {}
-                pb_count = 0
+                pb_count   = 0
+
                 for item in all_rows:
                     status = (item.get('account_status') or 'Active').strip()
                     if status == 'Permanent Block':
@@ -1326,14 +1339,14 @@ def tracker_stats():
                         status_map[status] = status_map.get(status, 0) + 1
 
                 platform_status_counts[platform] = status_map
-                perm_block_counts[platform] = pb_count
-                perm_block_total += pb_count
+                perm_block_counts[platform]       = pb_count
+                perm_block_total                 += pb_count
 
             except Exception as e:
                 print(f"[tracker_stats] error for {platform}: {e}")
-                platform_counts[platform] = 0
+                platform_counts[platform]        = 0
                 platform_status_counts[platform] = {}
-                perm_block_counts[platform] = 0
+                perm_block_counts[platform]      = 0
 
         try:
             total_response = social_supabase.table("social_media_accounts") \
@@ -1345,11 +1358,11 @@ def tracker_stats():
         return jsonify({
             "success": True,
             "stats": {
-                "platform_counts": platform_counts,
+                "platform_counts":       platform_counts,
                 "platform_status_counts": platform_status_counts,
-                "total_accounts": total_accounts,
-                "perm_block_counts": perm_block_counts,
-                "perm_block_total": perm_block_total
+                "total_accounts":        total_accounts,
+                "perm_block_counts":     perm_block_counts,
+                "perm_block_total":      perm_block_total
             }
         })
     except Exception as e:
@@ -1360,7 +1373,8 @@ def tracker_stats():
 @login_required
 def get_platform_counts():
     try:
-        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp"]
+        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp",
+                     "Gmail Accounts", "Total Numbers"]
         platform_counts = {}
         status_counts = {}
         for platform in platforms:
@@ -1464,39 +1478,28 @@ def social_import():
         DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date',
                         'recharge_date', 'sim_buy_date'}
 
-        # ── FIXED sanitize_value ──────────────────────────────────────
         def sanitize_value(col, value):
-            # 1. Handle Python None
             if value is None:
                 return None if col in DATE_COLUMNS else "NA"
-
-            # 2. Handle pandas NaT / NaN BEFORE calling str()
             try:
                 if pd.isna(value):
                     return None if col in DATE_COLUMNS else "NA"
             except (TypeError, ValueError):
                 pass
-
-            # 3. Stringify
             v = str(value).strip()
-
             if col in DATE_COLUMNS:
-                # Null-like strings (including "NaT" which str(pd.NaT) produces)
                 if not v or v.upper() in (
                     'NA', 'N/A', 'NAN', 'NAT', 'NONE', 'NULL',
                     'UNDEFINED', '-', 'N.A', 'N.A.', ''
                 ):
                     return None
-                # datetime objects stringify to "2026-03-14 00:00:00" — keep date only
                 if ' ' in v:
                     v = v.split(' ')[0]
-                # Strip time component if present with T separator (ISO format)
                 if 'T' in v:
                     v = v.split('T')[0]
                 return v
             else:
                 return v if v else "NA"
-        # ─────────────────────────────────────────────────────────────
 
         records = []
         for i, (_, row) in enumerate(df.iterrows()):
@@ -1826,7 +1829,7 @@ def health_check():
 
 
 # ============================================================
-# UPDATE SOCIAL ACCOUNTS PAGE — with Account Status filter fix
+# UPDATE SOCIAL ACCOUNTS PAGE
 # ============================================================
 @app.route("/update-social-accounts", methods=["GET"])
 @login_required
@@ -1841,7 +1844,6 @@ def update_social_accounts():
         "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name,department",
         count='exact'
     )
-    # Always exclude Permanent Block from this page
     query = query.neq("account_status", "Permanent Block")
 
     if search:
@@ -1852,7 +1854,6 @@ def update_social_accounts():
     if department_filter:
         query = query.eq("department", department_filter)
 
-    # Apply account status filter correctly
     if account_status_filter:
         if account_status_filter == "Block":
             query = query.eq("account_status", "Block")
