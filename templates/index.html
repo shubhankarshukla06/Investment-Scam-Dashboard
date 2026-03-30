@@ -219,75 +219,32 @@
         .status-count.count-default { color: #2c3e50; }
 
         /* ============================================================
-           SCRAPING TRACKER MODAL — CLEAN LIGHT THEME
+           SCRAPING TRACKER MODAL
         ============================================================ */
         .scraping-tracker-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .scraping-tracker-modal.active { display: flex; }
-
-        .scraping-tracker-content {
-            background: white; border-radius: 12px; width: 100%; max-width: 860px; max-height: 90vh;
-            overflow: hidden; display: flex; flex-direction: column;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-        }
-
-        .scraping-tracker-header {
-            background: #3498db; color: white; padding: 15px 20px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .scraping-tracker-content { background: white; border-radius: 12px; width: 100%; max-width: 860px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .scraping-tracker-header { background: #3498db; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
         .scraping-tracker-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
         .scraping-tracker-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
         .scraping-tracker-close:hover { background: rgba(255,255,255,0.2); }
-
-        .scraping-tracker-toggle {
-            display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white;
-        }
-        .scraping-tracker-toggle-btn {
-            padding: 6px 18px; border: 2px solid #3498db; border-radius: 20px;
-            font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s;
-            background: white; color: #3498db; display: flex; align-items: center; gap: 6px;
-        }
+        .scraping-tracker-toggle { display: flex; gap: 8px; padding: 12px 20px 0; border-bottom: 1px solid #eee; background: white; }
+        .scraping-tracker-toggle-btn { padding: 6px 18px; border: 2px solid #3498db; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; background: white; color: #3498db; display: flex; align-items: center; gap: 6px; }
         .scraping-tracker-toggle-btn:hover { background: #ebf5fb; }
         .scraping-tracker-toggle-btn.active { background: #3498db; color: white; box-shadow: 0 2px 8px rgba(52,152,219,0.35); }
-
         .scraping-tracker-body { padding: 20px; overflow-y: auto; flex-grow: 1; background: white; }
-
-        /* Total banner */
-        .scraping-total-banner {
-            background: linear-gradient(135deg, #3498db, #2980b9);
-            border-radius: 8px; padding: 14px 18px; margin-bottom: 16px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .scraping-total-banner { background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 8px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
         .scraping-total-banner .banner-label { color: rgba(255,255,255,0.9); font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .scraping-total-banner .banner-num { font-size: 24px; font-weight: 800; color: white; }
-
-        /* Section heading */
-        .scrap-section-title {
-            font-size: 11px; font-weight: 700; color: #7f8c8d;
-            text-transform: uppercase; letter-spacing: 1px;
-            margin: 0 0 10px; display: flex; align-items: center; gap: 8px;
-        }
+        .scrap-section-title { font-size: 11px; font-weight: 700; color: #7f8c8d; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
         .scrap-section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
-
-        /* Scam card */
-        .scrap-scam-card {
-            background: #f8f9fa; border-radius: 8px; padding: 12px 14px;
-            margin-bottom: 12px; border: 1px solid #e9ecef;
-        }
-        .scrap-scam-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid #dee2e6;
-        }
+        .scrap-scam-card { background: #f8f9fa; border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; border: 1px solid #e9ecef; }
+        .scrap-scam-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; padding-bottom: 7px; border-bottom: 1px solid #dee2e6; }
         .scrap-scam-name { font-size: 13px; font-weight: 700; color: #2c3e50; display: flex; align-items: center; gap: 7px; }
         .scrap-scam-name i { color: #3498db; font-size: 13px; }
         .scrap-scam-total { background: #3498db; color: white; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-
-        /* Platform pills inside scam card */
         .scrap-platform-pills { display: flex; flex-wrap: wrap; gap: 5px; }
-        .scrap-pill {
-            display: flex; align-items: center; gap: 4px;
-            padding: 3px 9px; border-radius: 20px;
-            font-size: 11px; font-weight: 600; border: 1px solid;
-        }
+        .scrap-pill { display: flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; border: 1px solid; }
         .scrap-pill.pill-telegram  { background: #e3f2fd; color: #0d47a1; border-color: #90caf9; }
         .scrap-pill.pill-whatsapp  { background: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
         .scrap-pill.pill-facebook  { background: #e8eaf6; color: #1a237e; border-color: #9fa8da; }
@@ -298,18 +255,11 @@
         .scrap-pill.pill-unknown   { background: #f5f5f5; color: #616161; border-color: #bdbdbd; }
         .scrap-pill.pill-default   { background: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
         .scrap-pill-count { background: rgba(0,0,0,0.08); padding: 0px 5px; border-radius: 8px; font-size: 11px; }
-
-        /* Platform-only view */
-        .scrap-stat-card {
-            background: white; border-radius: 8px; padding: 10px 14px;
-            border: 1px solid #dee2e6; display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 8px; transition: background 0.15s;
-        }
+        .scrap-stat-card { background: white; border-radius: 8px; padding: 10px 14px; border: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; transition: background 0.15s; }
         .scrap-stat-card:hover { background: #f8f9fa; }
         .scrap-stat-label { font-size: 13px; color: #2c3e50; font-weight: 600; display: flex; align-items: center; gap: 8px; }
         .scrap-stat-label i { font-size: 14px; color: #3498db; }
         .scrap-stat-count { background: #3498db; color: white; padding: 3px 12px; border-radius: 12px; font-size: 13px; font-weight: 700; min-width: 40px; text-align: center; }
-
         .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
         .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -353,7 +303,9 @@
         .confirmation-btn.cancel { background: #f8f9fa; color: #2c3e50; border: 1px solid #dee2e6; }
         .confirmation-btn.cancel:hover { background: #e9ecef; }
 
-        /* Sheet Maker */
+        /* ============================================================
+           SHEET MAKER — UPDATED
+        ============================================================ */
         .sheet-maker-compact { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; margin-top: 10px; }
         .sheet-maker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
         .sheet-maker-header h2 { font-size: 14px; color: #2c3e50; margin: 0; }
@@ -366,7 +318,15 @@
         .stat-value { font-weight: bold; color: #2ecc71; }
         .stat-value.upi { color: #3498db; }
         .stat-value.bank { color: #e67e22; }
-        .sheet-maker-row { display: grid; grid-template-columns: 1.5fr 1.5fr 1fr 1fr; gap: 8px; align-items: start; width: 100%; }
+
+        /* ── 4-column grid ── */
+        .sheet-maker-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1.4fr 1fr 1fr;
+            gap: 8px;
+            align-items: start;
+            width: 100%;
+        }
         .sheet-maker-group { display: flex; flex-direction: column; gap: 4px; }
         .sheet-maker-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; margin-bottom: 0; }
         .sheet-maker-group label i { color: #3498db; font-size: 13px; }
@@ -380,9 +340,34 @@
         .file-upload-compact i { font-size: 16px; color: #3498db; margin-bottom: 3px; }
         .file-name { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
         .file-info { color: #6c757d; font-size: 9px; line-height: 1.2; text-align: center; }
-        .preview-btn { width: 100%; padding: 7px 9px; background: #f8f9fa; color: #495057; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
-        .preview-btn:hover:not(:disabled) { background: #e9ecef; border-color: #3498db; color: #3498db; }
-        .preview-btn:disabled { background: #f8f9fa; color: #adb5bd; cursor: not-allowed; }
+
+        /* ── Status box (column 3) ── */
+        .sheet-status-box {
+            min-height: 54px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .sheet-status-box.waiting {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            color: #95a5a6;
+        }
+        .sheet-status-box.ready {
+            background: #eafaf1;
+            border: 1px solid #a9dfbf;
+            color: #1e8449;
+            font-weight: 600;
+        }
+        .sheet-status-box.ready i { color: #27ae60; font-size: 15px; flex-shrink: 0; }
+        .sheet-status-box.waiting i { color: #bdc3c7; font-size: 15px; }
+
         .generate-btn-compact { width: 100%; padding: 7px 9px; background: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
         .generate-btn-compact:hover:not(:disabled) { background: #27ae60; }
         .generate-btn-compact:disabled { background: #95a5a6; cursor: not-allowed; }
@@ -474,6 +459,42 @@
         .inv-section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
         .empty-state { text-align: center; padding: 30px 12px; color: #7f8c8d; }
         .empty-state i { font-size: 28px; margin-bottom: 8px; color: #ddd; }
+
+        /* ============================================================
+           USER ACTIVITY LOG MODAL
+        ============================================================ */
+        .user-activity-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .user-activity-modal.active { display: flex; }
+        .ual-content { background: white; border-radius: 12px; width: 100%; max-width: 1100px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
+        .ual-header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .ual-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .ual-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .ual-close:hover { background: rgba(255,255,255,0.2); }
+        .ual-filters { display: flex; gap: 10px; padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+        .ual-search-wrap { position: relative; display: flex; align-items: center; }
+        .ual-search-wrap i { position: absolute; left: 10px; color: #9ca3af; font-size: 13px; pointer-events: none; }
+        .ual-search-wrap input { padding: 7px 12px 7px 32px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; width: 260px; height: 34px; outline: none; }
+        .ual-search-wrap input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+        .ual-filters select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; height: 34px; min-width: 190px; outline: none; }
+        .ual-filters select:focus { border-color: #6366f1; }
+        .ual-clear-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; height: 34px; display: flex; align-items: center; gap: 5px; }
+        .ual-clear-btn:hover { background: #c0392b; }
+        .ual-stats { padding: 8px 16px; background: #eef2ff; border-bottom: 1px solid #c7d2fe; font-size: 12px; color: #4338ca; font-weight: 600; flex-shrink: 0; }
+        .ual-body { overflow-y: auto; flex-grow: 1; }
+        .ual-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+        .ual-table thead th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 5; white-space: nowrap; }
+        .ual-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        .ual-table tbody tr:hover { background: #f8f9ff; }
+        .ual-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .ual-badge-update { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .ual-badge-import { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .ual-page-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #374151; white-space: nowrap; }
+        .ual-val-change { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .ual-old { background: #fee2e2; color: #991b1b; padding: 1px 6px; border-radius: 3px; font-size: 11px; text-decoration: line-through; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ual-new { background: #dcfce7; color: #166534; padding: 1px 6px; border-radius: 3px; font-size: 11px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ual-arrow { color: #9ca3af; font-size: 10px; }
+        .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
+        .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
 
         @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) { .container { padding-top: 120px; padding-bottom: 20px; } .header { flex-direction: column; gap: 10px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
@@ -599,6 +620,39 @@
         </div>
     </div>
 
+    <!-- User Activity Log Modal -->
+    <div class="user-activity-modal" id="userActivityLogModal">
+        <div class="ual-content">
+            <div class="ual-header">
+                <h2><i class="fas fa-history"></i> User's Activity Log</h2>
+                <button class="ual-close" onclick="closeUserActivityLog()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="ual-filters">
+                <div class="ual-search-wrap">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="ualSearch" placeholder="Search by user, field, value, record ID..." oninput="filterUAL()">
+                </div>
+                <select id="ualPageFilter" onchange="filterUAL()">
+                    <option value="">All Pages</option>
+                    <option value="social_media_accounts">Social Media Accounts</option>
+                    <option value="scrapping_data">Scrapping Data</option>
+                    <option value="BS_Investment_Scam">BS Investment Scam</option>
+                </select>
+                <select id="ualActionFilter" onchange="filterUAL()">
+                    <option value="">All Actions</option>
+                    <option value="field_update">Field Updates</option>
+                    <option value="import">Imports</option>
+                </select>
+                <button class="ual-clear-btn" onclick="clearUAL()"><i class="fas fa-times"></i> Clear</button>
+                <button class="ual-clear-btn" onclick="exportUAL()" style="background:#2ecc71;" title="Export activity log as CSV"><i class="fas fa-file-export"></i> Export</button>
+            </div>
+            <div class="ual-stats" id="ualStats"><i class="fas fa-list"></i> Loading...</div>
+            <div class="ual-body" id="ualBody">
+                <div class="tracker-loading"><div class="spinner"></div><p>Loading activity log...</p></div>
+            </div>
+        </div>
+    </div>
+
     <div class="fixed-header">
         <div class="header">
             <div class="logo">
@@ -671,6 +725,11 @@
                     </form>
                     {% endif %}
                     <button class="btn btn-outline" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    {% if can_view_activity_log %}
+                    <button type="button" class="btn" style="background:#6366f1;color:white;gap:5px;" onclick="showUserActivityLog()">
+                        <i class="fas fa-history"></i> User's Activity Log
+                    </button>
+                    {% endif %}
                     <div style="display:flex;align-items:center;gap:6px;margin-left:4px;padding-left:8px;border-left:1px solid #e2e8f0;">
                         <a href="/logout" class="btn" style="background:#e74c3c;color:white;padding:5px 10px;height:30px;font-size:11px;"><i class="fas fa-sign-out-alt"></i> Logout</a>
                     </div>
@@ -817,7 +876,11 @@
                         <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled><i class="fas fa-file-download"></i> Download Template</button>
                     </div>
                 </div>
+
+                <!-- ── 4-column row ── -->
                 <div class="sheet-maker-row">
+
+                    <!-- Col 1: Sheet Type -->
                     <div class="sheet-maker-group">
                         <label><i class="fas fa-file-excel"></i> Select Sheet Type</label>
                         <select class="sheet-maker-select" id="sheetTypeSelect" onchange="updateSelectedSheet()">
@@ -831,6 +894,8 @@
                             <div class="headers-grid" id="headersList"></div>
                         </div>
                     </div>
+
+                    <!-- Col 2: Upload -->
                     <div class="sheet-maker-group">
                         <label><i class="fas fa-upload"></i> Upload Your Data</label>
                         <div class="file-upload-compact" onclick="document.getElementById('fileUpload').click()">
@@ -840,11 +905,33 @@
                             <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                         </div>
                     </div>
+
+                    <!-- Col 3: Status Message (replaces the red-box area) -->
+                    <div class="sheet-maker-group">
+                        <label><i class="fas fa-info-circle"></i> Status</label>
+                        <!-- Waiting state -->
+                        <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Waiting for input...</span>
+                        </div>
+                        <!-- Ready state (hidden by default) -->
+                        <div id="sheetReadyMsg" class="sheet-status-box ready" style="display:none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="sheetReadyText"></span>
+                        </div>
+                    </div>
+
+                    <!-- Col 4: Generate -->
                     <div class="sheet-maker-group">
                         <label><i class="fas fa-download"></i> Generate Sheet</label>
-                        <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled><i class="fas fa-download"></i> Generate CSV</button>
+                        <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
+                            <i class="fas fa-download"></i> Generate CSV
+                        </button>
                     </div>
-                </div>
+
+                </div><!-- /.sheet-maker-row -->
+
+                <!-- Preview Section -->
                 <div class="preview-section" id="previewSection">
                     <div class="preview-header">
                         <h4><i class="fas fa-table"></i> Preview: <span id="previewSheetName" style="color:#3498db;"></span><small style="color:#666;font-size:12px;margin-left:8px;">(36-column output)</small></h4>
@@ -964,36 +1051,12 @@
                                     {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </div>
                             </td>
-                            <td>
-                                {% if item.get("handle") and item["handle"] not in ["NA","N/A","",None] %}
-                                <span style="font-size:11px;color:#37474f;">{{ item["handle"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("ifsc_code") and item["ifsc_code"] not in ["NA","N/A","",None] %}
-                                <span style="font-family:monospace;font-size:11px;color:#2e7d32;">{{ item["ifsc_code"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("scam_type") and item["scam_type"] not in ["NA","N/A","",None] %}
-                                <span style="font-size:11px;color:#37474f;">{{ item["scam_type"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("search_for") and item["search_for"] not in ["NA","N/A","",None] %}
-                                <span class="platform-badge">{{ item["search_for"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("upi_bank_account_wallet") and item["upi_bank_account_wallet"] not in ["NA","N/A","",None] %}
-                                <span class="wallet-badge">{{ item["upi_bank_account_wallet"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("payment_gateway_name") and item["payment_gateway_name"] not in ["NA","N/A","",None] %}
-                                <span style="font-size:11px;color:#4a148c;background:#f3e5f5;padding:2px 6px;border-radius:3px;">{{ item["payment_gateway_name"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
+                            <td>{% if item.get("handle") and item["handle"] not in ["NA","N/A","",None] %}<span style="font-size:11px;color:#37474f;">{{ item["handle"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("ifsc_code") and item["ifsc_code"] not in ["NA","N/A","",None] %}<span style="font-family:monospace;font-size:11px;color:#2e7d32;">{{ item["ifsc_code"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("scam_type") and item["scam_type"] not in ["NA","N/A","",None] %}<span style="font-size:11px;color:#37474f;">{{ item["scam_type"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("search_for") and item["search_for"] not in ["NA","N/A","",None] %}<span class="platform-badge">{{ item["search_for"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("upi_bank_account_wallet") and item["upi_bank_account_wallet"] not in ["NA","N/A","",None] %}<span class="wallet-badge">{{ item["upi_bank_account_wallet"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("payment_gateway_name") and item["payment_gateway_name"] not in ["NA","N/A","",None] %}<span style="font-size:11px;color:#4a148c;background:#f3e5f5;padding:2px 6px;border-radius:3px;">{{ item["payment_gateway_name"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
                             <td>
                                 <div class="field-container">
                                     {% if item.get("upi_url") and item["upi_url"] not in ["NA","N/A","",None] %}
@@ -1018,21 +1081,9 @@
                                     {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
                                 </div>
                             </td>
-                            <td>
-                                {% if item.get("input_user") and item["input_user"] not in ["NA","N/A","",None] %}
-                                <span style="font-size:11px;color:#37474f;">{{ item["input_user"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("inserted_date") and item["inserted_date"] not in ["NA","N/A","",None] %}
-                                <span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item["inserted_date"] }}</span>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
-                            <td>
-                                {% if item.get("screenshot") and item["screenshot"] not in ["NA","N/A","",None] %}
-                                <a href="{{ item['screenshot'] }}" target="_blank" title="View Screenshot"><i class="fas fa-eye" style="color:#e67e22;"></i></a>
-                                {% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}
-                            </td>
+                            <td>{% if item.get("input_user") and item["input_user"] not in ["NA","N/A","",None] %}<span style="font-size:11px;color:#37474f;">{{ item["input_user"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("inserted_date") and item["inserted_date"] not in ["NA","N/A","",None] %}<span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item["inserted_date"] }}</span>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
+                            <td>{% if item.get("screenshot") and item["screenshot"] not in ["NA","N/A","",None] %}<a href="{{ item['screenshot'] }}" target="_blank" title="View Screenshot"><i class="fas fa-eye" style="color:#e67e22;"></i></a>{% else %}<span style="color:#95a5a6;">N/A</span>{% endif %}</td>
                         </tr>
                         {% endfor %}
                         {% else %}
@@ -1231,7 +1282,7 @@
     </form>
 
     <script>
-        // ── CHANGE 1: Platform-specific column visibility ─────────────
+        // ── Platform-specific column visibility ─────────────
         const PLATFORM_COLUMNS = {
             'Facebook':       ['id','platform','department','login_user','number','login_device','account_status','account_type','mail_id','account_id','password','page_name'],
             'Amazon':         ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','mail_id','account_id','password'],
@@ -1258,13 +1309,11 @@
             });
         }
 
-        // Apply column filter on page load based on current platform selection
         (function initSocialColumns() {
             const sel = document.getElementById('socialPlatformSelect');
             if (sel) filterSocialColumns(sel.value);
         })();
 
-        // ── CHANGE 3: Tracker platforms include Gmail Accounts + Total Numbers ──
         const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
         const PLATFORM_ACCOUNT_STATUS = {
             "Facebook":["Active","Block","Restricted","Permanent Block"],
@@ -1286,7 +1335,6 @@
         let pendingAction = null;
         let previewDataCache = null;
 
-        // Helper: get correct icon prefix for platform
         function getPlatformIconHtml(iconName, extraStyle) {
             const fasIcons = ['envelope', 'sim-card', 'globe', 'question'];
             const prefix = fasIcons.includes(iconName) ? 'fas' : 'fab';
@@ -1324,10 +1372,7 @@
             }
         })();
 
-        // ─── Investment Scam filter clear ───────────────────────────
-        function clearInvestmentFilters() {
-            window.location.href = "/?page=investment";
-        }
+        function clearInvestmentFilters() { window.location.href = "/?page=investment"; }
 
         // ─── Investment Tracker ──────────────────────────────────────
         let cachedInvStats = null;
@@ -1339,16 +1384,11 @@
             document.getElementById('invBtn1').classList.add('active');
             document.getElementById('invBtn2').classList.remove('active');
             document.getElementById('invBtn3').classList.remove('active');
-            if (!cachedInvStats) {
-                loadInvTrackerData();
-            } else {
-                displayInvTrackerData(cachedInvStats);
-            }
+            if (!cachedInvStats) loadInvTrackerData();
+            else displayInvTrackerData(cachedInvStats);
         }
 
-        function closeInvestmentTracker() {
-            document.getElementById('invTrackerModal').classList.remove('active');
-        }
+        function closeInvestmentTracker() { document.getElementById('invTrackerModal').classList.remove('active'); }
 
         function setInvView(view) {
             invCurrentView = view;
@@ -1377,12 +1417,8 @@
                 if (params.length) url += '?' + params.join('&');
                 const resp = await fetch(url);
                 const data = await resp.json();
-                if (data.success) {
-                    cachedInvStats = data;
-                    displayInvTrackerData(data);
-                } else {
-                    document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
-                }
+                if (data.success) { cachedInvStats = data; displayInvTrackerData(data); }
+                else document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
             } catch(e) {
                 document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Network error: ${e.message}</p></div>`;
             }
@@ -1396,22 +1432,12 @@
         function displayInvTrackerData(data) {
             const body = document.getElementById('invTrackerBody');
             let html = `<div class="inv-total-banner">
-                <div>
-                    <span class="banner-label"><i class="fas fa-database"></i> Total Records</span>
-                    <span class="banner-num">${(data.total_rows||0).toLocaleString()}</span>
-                </div>
+                <div><span class="banner-label"><i class="fas fa-database"></i> Total Records</span><span class="banner-num">${(data.total_rows||0).toLocaleString()}</span></div>
                 <div class="inv-mini-stats">
-                    <div class="inv-mini-stat">
-                        <span class="mini-label"><i class="fas fa-id-card"></i> Unique UPI IDs</span>
-                        <span class="mini-num">${(data.unique_upi_count||0).toLocaleString()}</span>
-                    </div>
-                    <div class="inv-mini-stat">
-                        <span class="mini-label"><i class="fas fa-university"></i> Unique Bank Accounts</span>
-                        <span class="mini-num">${(data.unique_bank_count||0).toLocaleString()}</span>
-                    </div>
+                    <div class="inv-mini-stat"><span class="mini-label"><i class="fas fa-id-card"></i> Unique UPI IDs</span><span class="mini-num">${(data.unique_upi_count||0).toLocaleString()}</span></div>
+                    <div class="inv-mini-stat"><span class="mini-label"><i class="fas fa-university"></i> Unique Bank Accounts</span><span class="mini-num">${(data.unique_bank_count||0).toLocaleString()}</span></div>
                 </div>
             </div>`;
-
             if (invCurrentView === 'users') {
                 const uc = data.users_count || {};
                 const users = Object.keys(uc).sort();
@@ -1421,12 +1447,7 @@
                     users.forEach(user => {
                         const sfMap = uc[user];
                         const total = Object.values(sfMap).reduce((a,b) => a+b, 0);
-                        html += `<div class="inv-user-card">
-                            <div class="inv-user-header">
-                                <span class="inv-user-name"><i class="fas fa-user"></i>${user}</span>
-                                <span class="inv-user-total">${total}</span>
-                            </div>
-                            <div class="inv-pills">`;
+                        html += `<div class="inv-user-card"><div class="inv-user-header"><span class="inv-user-name"><i class="fas fa-user"></i>${user}</span><span class="inv-user-total">${total}</span></div><div class="inv-pills">`;
                         Object.entries(sfMap).sort((a,b) => b[1]-a[1]).forEach(([sf, cnt]) => {
                             html += `<span class="inv-pill ${getInvPillClass(sf)}">${sf}<span class="inv-pill-count">${cnt}</span></span>`;
                         });
@@ -1442,12 +1463,7 @@
                     users.forEach(user => {
                         const stMap = sc[user];
                         const total = Object.values(stMap).reduce((a,b) => a+b, 0);
-                        html += `<div class="inv-user-card">
-                            <div class="inv-user-header">
-                                <span class="inv-user-name"><i class="fas fa-user"></i>${user}</span>
-                                <span class="inv-user-total">${total}</span>
-                            </div>
-                            <div class="inv-pills">`;
+                        html += `<div class="inv-user-card"><div class="inv-user-header"><span class="inv-user-name"><i class="fas fa-user"></i>${user}</span><span class="inv-user-total">${total}</span></div><div class="inv-pills">`;
                         Object.entries(stMap).sort((a,b) => b[1]-a[1]).forEach(([st, cnt]) => {
                             html += `<span class="inv-pill inv-pill-default">${st}<span class="inv-pill-count">${cnt}</span></span>`;
                         });
@@ -1463,12 +1479,7 @@
                     scamTypes.forEach(st => {
                         const sfMap = tc[st];
                         const total = Object.values(sfMap).reduce((a,b) => a+b, 0);
-                        html += `<div class="inv-scam-row">
-                            <div class="inv-scam-header">
-                                <span class="inv-scam-label">${st}</span>
-                                <span class="inv-scam-total">${total}</span>
-                            </div>
-                            <div class="inv-pills">`;
+                        html += `<div class="inv-scam-row"><div class="inv-scam-header"><span class="inv-scam-label">${st}</span><span class="inv-scam-total">${total}</span></div><div class="inv-pills">`;
                         Object.entries(sfMap).sort((a,b) => b[1]-a[1]).forEach(([sf, cnt]) => {
                             html += `<span class="inv-pill ${getInvPillClass(sf)}">${sf}<span class="inv-pill-count">${cnt}</span></span>`;
                         });
@@ -1476,7 +1487,6 @@
                     });
                 }
             }
-
             body.innerHTML = html;
         }
 
@@ -1486,16 +1496,11 @@
             scrapingCurrentView = 'scam';
             document.getElementById('scrapToggleScam').classList.add('active');
             document.getElementById('scrapTogglePlatform').classList.remove('active');
-            if (!cachedScrapingStats) {
-                loadScrapingTrackerData();
-            } else {
-                displayScrapingTrackerData(cachedScrapingStats);
-            }
+            if (!cachedScrapingStats) loadScrapingTrackerData();
+            else displayScrapingTrackerData(cachedScrapingStats);
         }
 
-        function closeScrapingTracker() {
-            document.getElementById('scrapingTrackerModal').classList.remove('active');
-        }
+        function closeScrapingTracker() { document.getElementById('scrapingTrackerModal').classList.remove('active'); }
 
         function setScrapingView(view) {
             scrapingCurrentView = view;
@@ -1510,34 +1515,19 @@
             fetch('/scraping-tracker-stats')
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        cachedScrapingStats = data.stats;
-                        displayScrapingTrackerData(data.stats);
-                    } else {
-                        body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
-                    }
+                    if (data.success) { cachedScrapingStats = data.stats; displayScrapingTrackerData(data.stats); }
+                    else body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                 })
-                .catch(() => {
-                    body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data. Please try again.</p></div>';
-                });
+                .catch(() => { body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>'; });
         }
 
         function getPillClass(platform) {
-            const map = {
-                'Telegram':'pill-telegram', 'WhatsApp':'pill-whatsapp',
-                'Facebook':'pill-facebook', 'Instagram':'pill-instagram',
-                'YouTube':'pill-youtube', 'Threads':'pill-threads',
-                'X':'pill-x', 'Unknown':'pill-unknown'
-            };
+            const map = {'Telegram':'pill-telegram','WhatsApp':'pill-whatsapp','Facebook':'pill-facebook','Instagram':'pill-instagram','YouTube':'pill-youtube','Threads':'pill-threads','X':'pill-x','Unknown':'pill-unknown'};
             return map[platform] || 'pill-default';
         }
 
         function getPlatformIcon(platform) {
-            const map = {
-                'Telegram':'paper-plane','WhatsApp':'whatsapp','Facebook':'facebook-f',
-                'Instagram':'instagram','YouTube':'youtube','Threads':'at','X':'times',
-                'Unknown':'question-circle'
-            };
+            const map = {'Telegram':'paper-plane','WhatsApp':'whatsapp','Facebook':'facebook-f','Instagram':'instagram','YouTube':'youtube','Threads':'at','X':'times','Unknown':'question-circle'};
             const fab = ['paper-plane','whatsapp','facebook-f','instagram','youtube','at'];
             const icon = map[platform] || 'globe';
             const prefix = fab.includes(icon) ? 'fab' : 'fas';
@@ -1546,77 +1536,33 @@
 
         function displayScrapingTrackerData(stats) {
             const body = document.getElementById('scrapingTrackerBody');
-
-            let html = `<div class="scraping-total-banner">
-                <span class="banner-label"><i class="fas fa-database"></i> Total Data Records</span>
-                <span class="banner-num">${stats.total.toLocaleString()}</span>
-            </div>`;
-
+            let html = `<div class="scraping-total-banner"><span class="banner-label"><i class="fas fa-database"></i> Total Data Records</span><span class="banner-num">${stats.total.toLocaleString()}</span></div>`;
             if (scrapingCurrentView === 'scam') {
                 const breakdown = stats.scam_platform_breakdown || {};
                 const scamCounts = stats.scam_counts || {};
-
-                const scamIconMap = {
-                    'Investment Scam':'chart-line','Carding Scam':'credit-card',
-                    'Shopping Scam':'shopping-cart','Job Scam':'briefcase',
-                    'Subscription Scam':'bell','Loan Scam':'hand-holding-usd',
-                    'Currency Exchange Scam':'exchange-alt',
-                    'Fake Account Selling Scam':'user-secret','Unknown':'tag'
-                };
-
+                const scamIconMap = {'Investment Scam':'chart-line','Carding Scam':'credit-card','Shopping Scam':'shopping-cart','Job Scam':'briefcase','Subscription Scam':'bell','Loan Scam':'hand-holding-usd','Currency Exchange Scam':'exchange-alt','Fake Account Selling Scam':'user-secret','Unknown':'tag'};
                 const sortedScams = Object.entries(scamCounts).sort((a,b) => b[1]-a[1]);
-
-                if (sortedScams.length === 0) {
-                    html += '<div class="empty-state"><i class="fas fa-inbox"></i><p>No scam data available.</p></div>';
-                } else {
+                if (!sortedScams.length) { html += '<div class="empty-state"><i class="fas fa-inbox"></i><p>No scam data available.</p></div>'; }
+                else {
                     html += `<div class="scrap-section-title"><i class="fas fa-layer-group"></i> Scam Type × Platform Breakdown</div>`;
                     sortedScams.forEach(([scam, total]) => {
                         const icon = scamIconMap[scam] || 'tag';
                         const platforms = breakdown[scam] || {};
                         const sortedPlatforms = Object.entries(platforms).sort((a,b) => b[1]-a[1]);
-
-                        let pillsHtml = '';
-                        if (sortedPlatforms.length === 0) {
-                            pillsHtml = '<span style="font-size:11px;color:#adb5bd;font-style:italic;">No platform data</span>';
-                        } else {
-                            sortedPlatforms.forEach(([plat, cnt]) => {
-                                const pillClass = getPillClass(plat);
-                                const platIcon = getPlatformIcon(plat);
-                                pillsHtml += `<span class="scrap-pill ${pillClass}" title="${plat}: ${cnt}">
-                                    ${platIcon} ${plat}
-                                    <span class="scrap-pill-count">${cnt.toLocaleString()}</span>
-                                </span>`;
-                            });
-                        }
-
-                        html += `<div class="scrap-scam-card">
-                            <div class="scrap-scam-header">
-                                <div class="scrap-scam-name"><i class="fas fa-${icon}"></i> ${scam}</div>
-                                <span class="scrap-scam-total">${total.toLocaleString()}</span>
-                            </div>
-                            <div class="scrap-platform-pills">${pillsHtml}</div>
-                        </div>`;
+                        let pillsHtml = sortedPlatforms.length === 0 ? '<span style="font-size:11px;color:#adb5bd;font-style:italic;">No platform data</span>' : '';
+                        sortedPlatforms.forEach(([plat, cnt]) => {
+                            pillsHtml += `<span class="scrap-pill ${getPillClass(plat)}" title="${plat}: ${cnt}">${getPlatformIcon(plat)} ${plat}<span class="scrap-pill-count">${cnt.toLocaleString()}</span></span>`;
+                        });
+                        html += `<div class="scrap-scam-card"><div class="scrap-scam-header"><div class="scrap-scam-name"><i class="fas fa-${icon}"></i> ${scam}</div><span class="scrap-scam-total">${total.toLocaleString()}</span></div><div class="scrap-platform-pills">${pillsHtml}</div></div>`;
                     });
                 }
-
             } else {
                 const platformCounts = stats.platform_counts || {};
                 const sorted = Object.entries(platformCounts).sort((a,b) => b[1]-a[1]);
-
                 html += `<div class="scrap-section-title"><i class="fas fa-mobile-alt"></i> Platform-wise Total Count</div>`;
-                if (sorted.length === 0) {
-                    html += '<div class="empty-state"><p>No platform data available.</p></div>';
-                } else {
-                    sorted.forEach(([plat, cnt]) => {
-                        const platIcon = getPlatformIcon(plat);
-                        html += `<div class="scrap-stat-card">
-                            <div class="scrap-stat-label">${platIcon} ${plat}</div>
-                            <span class="scrap-stat-count">${cnt.toLocaleString()}</span>
-                        </div>`;
-                    });
-                }
+                if (!sorted.length) { html += '<div class="empty-state"><p>No platform data available.</p></div>'; }
+                else { sorted.forEach(([plat, cnt]) => { html += `<div class="scrap-stat-card"><div class="scrap-stat-label">${getPlatformIcon(plat)} ${plat}</div><span class="scrap-stat-count">${cnt.toLocaleString()}</span></div>`; }); }
             }
-
             body.innerHTML = html;
         }
 
@@ -1645,44 +1591,26 @@
             fetch('/tracker-stats')
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) {
-                        cachedTrackerStats = data.stats;
-                        displayTrackerData(data.stats);
-                    } else {
-                        document.getElementById('trackerBody').innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
-                    }
+                    if (data.success) { cachedTrackerStats = data.stats; displayTrackerData(data.stats); }
+                    else document.getElementById('trackerBody').innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                 })
-                .catch(() => {
-                    document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker.</p></div>';
-                });
+                .catch(() => { document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker.</p></div>'; });
         }
 
         function getStatusColorClasses(status) {
-            return {
-                bg: STATUS_BG_CLASS[status] || 'status-bg-default',
-                nameClass: STATUS_NAME_CLASS[status] || 'color-default',
-                countClass: STATUS_COUNT_CLASS[status] || 'count-default'
-            };
+            return { bg: STATUS_BG_CLASS[status] || 'status-bg-default', nameClass: STATUS_NAME_CLASS[status] || 'color-default', countClass: STATUS_COUNT_CLASS[status] || 'count-default' };
         }
 
         function displayTrackerData(stats) {
             const body = document.getElementById('trackerBody');
-            // ── CHANGE 3: include Gmail Accounts + Total Numbers ──
             const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon','Gmail Accounts','Total Numbers'];
-
             if (trackerCurrentView === 'perm') {
                 const permCounts = stats.perm_block_counts || {};
                 const permTotal = stats.perm_block_total || 0;
-                let html = `<div class="tracker-summary">
-                    <h3><i class="fas fa-ban" style="color:#ef4444;"></i> Permanent Block Accounts by Platform</h3>
-                    <div class="summary-grid">`;
+                let html = `<div class="tracker-summary"><h3><i class="fas fa-ban" style="color:#ef4444;"></i> Permanent Block Accounts by Platform</h3><div class="summary-grid">`;
                 platforms.forEach(p => {
                     const iconName = PLATFORM_ICONS[p] || 'globe';
-                    const count = permCounts[p] || 0;
-                    html += `<div class="summary-item">
-                        <div class="platform">${getPlatformIconHtml(iconName, 'color:#ef4444;font-size:14px;')}${p}</div>
-                        <div class="count perm-count">${count}</div>
-                    </div>`;
+                    html += `<div class="summary-item"><div class="platform">${getPlatformIconHtml(iconName,'color:#ef4444;font-size:14px;')}${p}</div><div class="count perm-count">${permCounts[p]||0}</div></div>`;
                 });
                 html += `</div><div class="total-accounts">Total Permanent Block: <span class="total-count" style="color:#ef4444;">${permTotal}</span></div></div>`;
                 html += `<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Platform-wise Breakdown</h3>`;
@@ -1690,67 +1618,41 @@
                     const count = permCounts[p] || 0;
                     if (count > 0) {
                         const iconName = PLATFORM_ICONS[p] || 'globe';
-                        html += `<div class="platform-section">
-                            <div class="platform-header">
-                                <h4>${getPlatformIconHtml(iconName, 'color:#ef4444;')} ${p}</h4>
-                                <span class="platform-total perm">Permanent Block: ${count}</span>
-                            </div>
-                            <div class="status-item status-bg-permanent" style="max-width:200px;">
-                                <div class="status-name color-permanent"><i class="fas fa-ban"></i> Permanent Block</div>
-                                <div class="status-count count-permanent">${count}</div>
-                            </div>
-                        </div>`;
+                        html += `<div class="platform-section"><div class="platform-header"><h4>${getPlatformIconHtml(iconName,'color:#ef4444;')} ${p}</h4><span class="platform-total perm">Permanent Block: ${count}</span></div><div class="status-item status-bg-permanent" style="max-width:200px;"><div class="status-name color-permanent"><i class="fas fa-ban"></i> Permanent Block</div><div class="status-count count-permanent">${count}</div></div></div>`;
                     }
                 });
                 html += '</div>';
                 body.innerHTML = html;
                 return;
             }
-
             const isActiveView = trackerCurrentView === 'active';
-            const summaryTitle = isActiveView
-                ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform'
-                : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
-
+            const summaryTitle = isActiveView ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform' : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
             let html = `<div class="tracker-summary"><h3>${summaryTitle}</h3><div class="summary-grid">`;
             let grandTotal = 0;
             platforms.forEach(p => {
                 const statusData = stats.platform_status_counts[p] || {};
                 const iconName = PLATFORM_ICONS[p] || 'globe';
                 let displayCount, countClass;
-                if (isActiveView) {
-                    displayCount = statusData['Active'] || 0;
-                    countClass = 'active-count';
-                } else {
-                    displayCount = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum, [,n]) => sum+n, 0);
-                    countClass = '';
-                }
+                if (isActiveView) { displayCount = statusData['Active'] || 0; countClass = 'active-count'; }
+                else { displayCount = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum,[,n]) => sum+n, 0); countClass = ''; }
                 grandTotal += displayCount;
-                html += `<div class="summary-item">
-                    <div class="platform">${getPlatformIconHtml(iconName)}${p}</div>
-                    <div class="count ${countClass}">${displayCount}</div>
-                </div>`;
+                html += `<div class="summary-item"><div class="platform">${getPlatformIconHtml(iconName)}${p}</div><div class="count ${countClass}">${displayCount}</div></div>`;
             });
             const totalLabel = isActiveView ? 'Total Active Accounts:' : 'Total Accounts (excl. Perm. Block):';
             html += `</div><div class="total-accounts">${totalLabel} <span class="total-count" style="color:${isActiveView?'#16a34a':'#5d9cec'};">${grandTotal}</span></div></div>`;
-
             if (!isActiveView) {
                 html += '<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>';
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const iconName = PLATFORM_ICONS[p] || 'globe';
                     const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
-                    const total = actualStatuses.reduce((sum, [,n]) => sum + n, 0);
+                    const total = actualStatuses.reduce((sum,[,n]) => sum+n, 0);
                     if (total > 0) {
                         html += `<div class="platform-section"><div class="platform-header"><h4>${getPlatformIconHtml(iconName)} ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
-                        actualStatuses.sort((a, b) => {
-                            if (a[0] === 'Active') return -1;
-                            if (b[0] === 'Active') return 1;
-                            return b[1] - a[1];
-                        });
+                        actualStatuses.sort((a,b) => { if(a[0]==='Active') return -1; if(b[0]==='Active') return 1; return b[1]-a[1]; });
                         actualStatuses.forEach(([status, count]) => {
                             if (count > 0) {
-                                const {bg, nameClass, countClass} = getStatusColorClasses(status);
+                                const {bg,nameClass,countClass} = getStatusColorClasses(status);
                                 html += `<div class="status-item ${bg}"><div class="status-name ${nameClass}"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</div><div class="status-count ${countClass}">${count}</div></div>`;
                             }
                         });
@@ -1765,7 +1667,7 @@
         // ─── Activity Log ────────────────────────────────────────────
         function showActivityLog() {
             document.getElementById('activityModal').classList.add('active');
-            document.getElementById('activityBody').innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience 🙏</p></div>`;
+            document.getElementById('activityBody').innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience</p></div>`;
         }
         function closeActivityLog() { document.getElementById('activityModal').classList.remove('active'); }
 
@@ -1788,12 +1690,10 @@
             fetch(url)
                 .then(r => r.json())
                 .then(data => {
-                    if (data.success) displayPermanentAccounts(data.accounts, data.count, search || '', platform || '');
+                    if (data.success) displayPermanentAccounts(data.accounts, data.count, search||'', platform||'');
                     else body.innerHTML = `<div class="tracker-loading" style="color:#e74c3c;"><p>Error: ${data.error}</p></div>`;
                 })
-                .catch(() => {
-                    body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>';
-                });
+                .catch(() => { body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>'; });
         }
 
         function searchPermanentAccounts() {
@@ -1804,19 +1704,13 @@
 
         function displayPermanentAccounts(accounts, count, searchVal, platformVal) {
             const body = document.getElementById('permanentBody');
-            const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;">
-                <div style="position:relative;flex:1;">
-                    <i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i>
-                    <input id="permSearchInput" type="text" value="${searchVal||''}" placeholder="Search by number, device, platform..." style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter') searchPermanentAccounts()">
-                </div>
-                <button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button>
-            </div>`;
-            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts${platformVal ? ' — ' + platformVal : ''}</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
+            const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i><input id="permSearchInput" type="text" value="${searchVal||''}" placeholder="Search by number, device, platform..." style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter') searchPermanentAccounts()"></div><button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button></div>`;
+            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts${platformVal?' — '+platformVal:''}</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
             if (count > 0) {
                 html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
                 accounts.forEach((a,i) => {
                     const iconName = PLATFORM_ICONS[a.platform] || 'globe';
-                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${getPlatformIconHtml(iconName, 'margin-right:3px;')}${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
+                    html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${getPlatformIconHtml(iconName,'margin-right:3px;')}${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
                 });
                 html += '</tbody></table></div>';
             } else {
@@ -1829,6 +1723,30 @@
         function confirmAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
 
         // ─── Sheet Maker ─────────────────────────────────────────────
+        function getFirstName() {
+            const raw = "{{ display_name }}";
+            const cleaned = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
+            return cleaned.split(' ')[0] || cleaned;
+        }
+
+        // ── Updated showSheetReadyMessage — toggles between waiting & ready boxes ──
+        function showSheetReadyMessage() {
+            const sheetType = document.getElementById('sheetTypeSelect').value;
+            const fileInput = document.getElementById('fileUpload');
+            const readyEl   = document.getElementById('sheetReadyMsg');
+            const waitEl    = document.getElementById('sheetNotReadyMsg');
+            const textEl    = document.getElementById('sheetReadyText');
+
+            if (sheetType && fileInput.files.length > 0) {
+                textEl.textContent = `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
+                readyEl.style.display = 'flex';
+                waitEl.style.display  = 'none';
+            } else {
+                readyEl.style.display = 'none';
+                waitEl.style.display  = 'flex';
+            }
+        }
+
         function updateSelectedSheet() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const headersDisplay = document.getElementById('headersDisplay');
@@ -1849,6 +1767,7 @@
                                 document.getElementById('generateBtn').disabled = false;
                                 previewData();
                             }
+                            showSheetReadyMessage();
                         }
                     });
             } else {
@@ -1856,6 +1775,7 @@
                 document.getElementById('generateBtn').disabled = true;
                 document.getElementById('templateBtn').disabled = true;
                 document.getElementById('templateStats').style.display = 'none';
+                showSheetReadyMessage();
             }
             closePreview(); previewDataCache = null;
         }
@@ -1870,9 +1790,8 @@
             document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
             closePreview(); previewDataCache = null;
             document.getElementById('templateStats').style.display = 'none';
-            if (sheetType && hasFile) {
-                previewData();
-            }
+            if (sheetType && hasFile) previewData();
+            showSheetReadyMessage();
         }
 
         function downloadTemplate() {
@@ -1885,8 +1804,7 @@
         function previewData() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const fileInput = document.getElementById('fileUpload');
-            if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
-            if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
+            if (!sheetType || !fileInput.files.length) return;
             showLoading();
             const formData = new FormData();
             formData.append('sheet_type', sheetType);
@@ -2011,7 +1929,7 @@
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); }
+            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); }
         });
 
         // Auto-dismiss flash messages
@@ -2028,6 +1946,131 @@
         });
         document.getElementById('fileInputSocial')?.addEventListener('change', function() {
             if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
+        });
+
+        // ============================================================
+        // USER ACTIVITY LOG JS
+        // ============================================================
+        let _ualAllLogs = [];
+
+        function showUserActivityLog() {
+            document.getElementById('userActivityLogModal').classList.add('active');
+            _loadUAL();
+        }
+
+        function closeUserActivityLog() { document.getElementById('userActivityLogModal').classList.remove('active'); }
+
+        async function _loadUAL() {
+            document.getElementById('ualBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading activity log...</p></div>';
+            document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
+            try {
+                const resp = await fetch('/get-user-activity-log');
+                const data = await resp.json();
+                if (data.success) { _ualAllLogs = data.logs; _renderUAL(_ualAllLogs); }
+                else document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
+            } catch(e) {
+                document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Network error</p></div>`;
+            }
+        }
+
+        function filterUAL() {
+            const search = document.getElementById('ualSearch').value.toLowerCase();
+            const page   = document.getElementById('ualPageFilter').value;
+            const action = document.getElementById('ualActionFilter').value;
+            const filtered = _ualAllLogs.filter(log => {
+                const mp = !page   || log.target_table === page;
+                const ma = !action || log.action_type  === action;
+                const ms = !search || [log.display_name,log.user_email,log.field_name,log.old_value,log.new_value,log.action_type,log.target_table,String(log.target_record_id||''),JSON.stringify(log.extra_info||{})].some(v => (v||'').toLowerCase().includes(search));
+                return mp && ma && ms;
+            });
+            _renderUAL(filtered);
+        }
+
+        function clearUAL() {
+            document.getElementById('ualSearch').value = '';
+            document.getElementById('ualPageFilter').value = '';
+            document.getElementById('ualActionFilter').value = '';
+            _renderUAL(_ualAllLogs);
+        }
+
+        const _UAL_PAGE_LABEL = { 'social_media_accounts':'Social Media Accounts','scrapping_data':'Scrapping Data','BS_Investment_Scam':'BS Investment Scam' };
+
+        function _getPlatformFromLog(log) {
+            if (log.target_table !== 'social_media_accounts' || log.action_type !== 'field_update') return '—';
+            if (log.extra_info && log.extra_info.platform) return log.extra_info.platform;
+            return '—';
+        }
+
+        function _fmtTimestamp(created_at) {
+            if (!created_at) return { date: '—', time: '—' };
+            const d = new Date(created_at);
+            return { date: d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}), time: d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}) };
+        }
+
+        function _renderUAL(logs) {
+            document.getElementById('ualStats').innerHTML = `<i class="fas fa-list"></i> Showing <strong>${logs.length}</strong> records`;
+            if (!logs.length) { document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-history"></i><p>No activity found</p></div>`; return; }
+            let rows = '';
+            logs.forEach((log, i) => {
+                const { date, time } = _fmtTimestamp(log.created_at);
+                const badge = log.action_type === 'field_update' ? `<span class="ual-badge ual-badge-update"><i class="fas fa-edit"></i> Field Update</span>` : `<span class="ual-badge ual-badge-import"><i class="fas fa-file-import"></i> Import</span>`;
+                const pageLabel = _UAL_PAGE_LABEL[log.target_table] || log.target_table || '—';
+                const platform = _getPlatformFromLog(log);
+                let changeHtml = '—';
+                if (log.action_type === 'field_update') {
+                    changeHtml = `<div class="ual-val-change"><span class="ual-old" title="${log.old_value||''}">${log.old_value||'—'}</span><span class="ual-arrow"><i class="fas fa-arrow-right"></i></span><span class="ual-new" title="${log.new_value||''}">${log.new_value||'—'}</span></div>`;
+                } else if (log.action_type === 'import' && log.extra_info) {
+                    changeHtml = `<span style="font-size:11px;color:#374151;"><i class="fas fa-file-excel" style="color:#2ecc71;"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
+                }
+                rows += `<tr>
+                    <td style="color:#9ca3af;font-size:11px;text-align:center;">${log.id||(i+1)}</td>
+                    <td><div style="font-weight:600;color:#2c3e50;font-size:12px;">${log.display_name||'—'}</div><div style="font-size:10px;color:#9ca3af;">${log.user_email||''}</div></td>
+                    <td style="font-size:11px;color:#4b5563;font-family:monospace;">${log.old_value||'—'}</td>
+                    <td style="font-size:11px;">${changeHtml.includes('ual-new')?`<span class="ual-new" style="font-size:11px;">${log.new_value||'—'}</span>`:(log.action_type==='import'&&log.extra_info?`<span style="font-size:11px;color:#166534;font-weight:600;">${log.extra_info.records_count||0} records</span>`:'—')}</td>
+                    <td><span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${platform}</span></td>
+                    <td><div style="font-size:11px;color:#374151;white-space:nowrap;">${date}</div><div style="font-size:11px;color:#6366f1;font-weight:600;white-space:nowrap;">${time}</div></td>
+                    <td>${badge}</td>
+                    <td><span class="ual-page-badge">${pageLabel}</span></td>
+                    <td style="font-size:11px;color:#4b5563;font-family:monospace;">${log.field_name||'—'}</td>
+                    <td style="font-size:11px;color:#6b7280;">${log.target_record_id||'—'}</td>
+                </tr>`;
+            });
+            document.getElementById('ualBody').innerHTML = `<table class="ual-table"><thead><tr><th>ID</th><th>Login User</th><th>Previous Value</th><th>Updated Value</th><th>Platform</th><th>Time Stamp</th><th>Action</th><th>Page</th><th>Field</th><th>Record ID</th></tr></thead><tbody>${rows}</tbody></table>`;
+        }
+
+        function exportUAL() {
+            const search = document.getElementById('ualSearch').value.toLowerCase();
+            const page   = document.getElementById('ualPageFilter').value;
+            const action = document.getElementById('ualActionFilter').value;
+            const filtered = _ualAllLogs.filter(log => {
+                const mp = !page   || log.target_table === page;
+                const ma = !action || log.action_type  === action;
+                const ms = !search || [log.display_name,log.user_email,log.field_name,log.old_value,log.new_value,log.action_type,log.target_table,String(log.target_record_id||''),JSON.stringify(log.extra_info||{})].some(v => (v||'').toLowerCase().includes(search));
+                return mp && ma && ms;
+            });
+            if (!filtered.length) { showToast('No records to export', true); return; }
+            const headers = ['ID','Login User Name','User Email','Previous Value','Updated Value','Platform','Time Stamp','Action','Page','Field','Record ID'];
+            const escapeCSV = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
+            const rows = filtered.map(log => {
+                const {date,time} = _fmtTimestamp(log.created_at);
+                const platform = _getPlatformFromLog(log);
+                let updatedVal = log.new_value||'';
+                if (log.action_type==='import'&&log.extra_info) updatedVal = `${log.extra_info.records_count||0} records imported (${log.extra_info.file_name||''})`;
+                return [log.id||'',log.display_name||'',log.user_email||'',log.old_value||'',updatedVal,platform,`${date} ${time}`,log.action_type||'',_UAL_PAGE_LABEL[log.target_table]||log.target_table||'',log.field_name||'',log.target_record_id||''].map(escapeCSV).join(',');
+            });
+            const csv = [headers.join(','),...rows].join('\n');
+            const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+            a.href=url; a.download=`user_activity_log_${ts}.csv`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast(`Exported ${filtered.length} records`,false,true);
+        }
+
+        document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
+            if (e.target===document.getElementById('userActivityLogModal')) closeUserActivityLog();
         });
     </script>
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>

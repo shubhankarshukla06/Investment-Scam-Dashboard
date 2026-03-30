@@ -21,7 +21,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-change-this")
 
 # ============================================================
-# AUTH HELPERS — users stored in Supabase `dashboard_users` table
+# AUTH HELPERS
 # ============================================================
 
 def get_auth_supabase():
@@ -38,6 +38,7 @@ DEMO_ADMIN = {
     "allowed_pages": ["scraping", "sheet", "social", "investment"],
     "is_admin": True,
     "is_active": True,
+    "can_view_activity_log": True,
     "created_at": "2025-01-01"
 }
 
@@ -92,7 +93,32 @@ def get_current_user():
         "display_name": session.get("display_name"),
         "allowed_pages": session.get("allowed_pages", []),
         "is_admin": session.get("is_admin", False),
+        "can_view_activity_log": session.get("can_view_activity_log", False),
     }
+
+
+# ============================================================
+# ACTIVITY LOG HELPER
+# ============================================================
+
+def log_activity(action_type, target_table=None, target_record_id=None,
+                 field_name=None, old_value=None, new_value=None, extra_info=None):
+    try:
+        client = get_auth_supabase()
+        client.table("activity_logs").insert({
+            "user_id":          session.get("user_id"),
+            "user_email":       session.get("email"),
+            "display_name":     session.get("display_name"),
+            "action_type":      action_type,
+            "target_table":     target_table,
+            "target_record_id": target_record_id,
+            "field_name":       field_name,
+            "old_value":        str(old_value) if old_value is not None else None,
+            "new_value":        str(new_value) if new_value is not None else None,
+            "extra_info":       extra_info,
+        }).execute()
+    except Exception as e:
+        print(f"[ACTIVITY LOG] Failed to log activity: {e}")
 
 
 # ============================================================
@@ -152,9 +178,6 @@ PLATFORM_ACCOUNT_STATUS = {
     "Total Numbers": ["Active", "Block", "Permanent Block"],
 }
 
-# ============================================================
-# BS Investment Scam — column/filter options
-# ============================================================
 BS_INVESTMENT_COLUMNS = [
     "id", "bank_account_number", "bank_name", "upi_vpa", "screenshot",
     "search_for", "upi_bank_account_wallet", "handle", "payment_gateway_name",
@@ -198,10 +221,6 @@ MASTER_URL_DATA = {}
 BANK_NAME_MAPPING = {}
 IFSC_MAPPING = {}
 
-# ============================================================
-# UNIVERSAL FILE IMPORT — all Excel/CSV/TSV types supported
-# ============================================================
-
 ALLOWED_IMPORT_EXTENSIONS = {
     'csv', 'tsv', 'txt',
     'xlsx', 'xlsm', 'xlsb', 'xltx', 'xltm',
@@ -220,7 +239,6 @@ def is_allowed_file(filename):
 def read_data_file(file_path, file_ext):
     try:
         ext = file_ext.lower().lstrip('.')
-
         if ext == 'csv':
             for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'iso-8859-1', 'cp1252']:
                 try:
@@ -228,7 +246,6 @@ def read_data_file(file_path, file_ext):
                 except UnicodeDecodeError:
                     continue
             return pd.read_csv(file_path, encoding='latin-1', engine='python')
-
         if ext == 'tsv':
             for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
                 try:
@@ -236,7 +253,6 @@ def read_data_file(file_path, file_ext):
                 except UnicodeDecodeError:
                     continue
             return pd.read_csv(file_path, sep='\t', encoding='latin-1')
-
         if ext == 'txt':
             for sep in ['\t', ',', ';', '|']:
                 for encoding in ['utf-8-sig', 'utf-8', 'latin-1', 'cp1252']:
@@ -247,34 +263,24 @@ def read_data_file(file_path, file_ext):
                     except Exception:
                         continue
             return pd.read_csv(file_path, encoding='latin-1', engine='python')
-
         if ext in ('xlsx', 'xlsm', 'xltx', 'xltm'):
             return pd.read_excel(file_path, engine='openpyxl')
-
         if ext == 'xlsb':
             return pd.read_excel(file_path, engine='pyxlsb')
-
         if ext in ('xls', 'xla', 'xlam'):
             try:
                 return pd.read_excel(file_path, engine='xlrd')
             except Exception:
                 return pd.read_excel(file_path, engine='openpyxl')
-
         if ext in ('ods', 'ots'):
             return pd.read_excel(file_path, engine='odf')
-
         try:
             return pd.read_excel(file_path)
         except Exception:
             return pd.read_csv(file_path, encoding='latin-1')
-
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
         raise
-
-
-def get_allowed_extensions():
-    return sorted(['.' + e for e in ALLOWED_IMPORT_EXTENSIONS])
 
 
 def load_excel_data():
@@ -748,39 +754,47 @@ def process_sheet_data(df, sheet_type):
 
 
 # ============================================================
-# LOGIN / LOGOUT ROUTES
+# Helper function to extract clean display name
+# ============================================================
+def get_clean_display_name(display_name):
+    """Extract display name without parentheses content"""
+    if not display_name:
+        return "User"
+    # Remove everything in parentheses and trim
+    clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
+    return clean_name if clean_name else display_name
+
+
+# ============================================================
+# LOGIN / LOGOUT
 # ============================================================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if "user_id" in session:
         return redirect("/")
-
     error = None
     prefill_email = ""
-
     if request.method == "POST":
         email    = request.form.get("email", "").strip().lower()
         password = request.form.get("password", "")
         prefill_email = email
-
         if not email or not password:
             error = "Please enter both email and password."
         else:
             user = fetch_user_by_email(email)
             if user and user.get("password") == password:
                 session.permanent = False
-                session["user_id"]      = user["id"]
-                session["email"]        = user["email"]
-                session["display_name"] = user["display_name"]
-                session["allowed_pages"]= user.get("allowed_pages") or []
-                session["is_admin"]     = bool(user.get("is_admin", False))
-
+                session["user_id"]               = user["id"]
+                session["email"]                 = user["email"]
+                session["display_name"]          = user["display_name"]
+                session["allowed_pages"]         = user.get("allowed_pages") or []
+                session["is_admin"]              = bool(user.get("is_admin", False))
+                session["can_view_activity_log"] = bool(user.get("can_view_activity_log", False))
                 allowed = session["allowed_pages"]
                 first_page = allowed[0] if allowed else "scraping"
                 return redirect(f"/?page={first_page}")
             else:
                 error = "Invalid email or password. Please try again."
-
     return render_template("login.html", error=error, prefill_email=prefill_email)
 
 
@@ -791,7 +805,7 @@ def logout():
 
 
 # ============================================================
-# ADMIN — USER MANAGEMENT PANEL
+# ADMIN — USER MANAGEMENT
 # ============================================================
 @app.route("/admin/users", methods=["GET"])
 @admin_required
@@ -822,7 +836,8 @@ def admin_add_user():
         name     = (data.get("display_name") or "").strip()
         pages    = data.get("allowed_pages", [])
         is_admin = bool(data.get("is_admin", False))
-        is_active= bool(data.get("is_active", True))
+        is_active = bool(data.get("is_active", True))
+        can_view_activity_log = bool(data.get("can_view_activity_log", False))
         if not email or not password or not name:
             return jsonify({"success": False, "error": "Email, password, and name are required."})
         if not pages:
@@ -833,7 +848,8 @@ def admin_add_user():
             return jsonify({"success": False, "error": f"A user with email {email} already exists."})
         client.table("dashboard_users").insert({
             "email": email, "password": password, "display_name": name,
-            "allowed_pages": pages, "is_admin": is_admin, "is_active": is_active
+            "allowed_pages": pages, "is_admin": is_admin, "is_active": is_active,
+            "can_view_activity_log": can_view_activity_log
         }).execute()
         return jsonify({"success": True, "message": "User added successfully."})
     except Exception as e:
@@ -866,6 +882,8 @@ def admin_edit_user(user_id):
             update_payload["allowed_pages"] = pages
         if "is_admin" in data: update_payload["is_admin"] = bool(data["is_admin"])
         if "is_active" in data: update_payload["is_active"] = bool(data["is_active"])
+        if "can_view_activity_log" in data:
+            update_payload["can_view_activity_log"] = bool(data["can_view_activity_log"])
         if not update_payload:
             return jsonify({"success": False, "error": "Nothing to update."})
         client = get_auth_supabase()
@@ -875,6 +893,8 @@ def admin_edit_user(user_id):
             if "allowed_pages" in update_payload: session["allowed_pages"] = update_payload["allowed_pages"]
             if "is_admin" in update_payload: session["is_admin"] = update_payload["is_admin"]
             if "email" in update_payload: session["email"] = update_payload["email"]
+            if "can_view_activity_log" in update_payload:
+                session["can_view_activity_log"] = update_payload["can_view_activity_log"]
         return jsonify({"success": True, "message": "User updated successfully."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -891,6 +911,96 @@ def admin_delete_user(user_id):
         return jsonify({"success": True, "message": "User deleted."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+
+# ============================================================
+# USER ACTIVITY LOG ROUTES
+# ============================================================
+@app.route("/get-user-activity-log", methods=["GET"])
+@login_required
+def get_user_activity_log():
+    if not session.get("can_view_activity_log"):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        client = get_auth_supabase()
+        resp = client.table("activity_logs") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(500) \
+            .execute()
+        logs = resp.data or []
+        return jsonify({"success": True, "logs": logs})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/export-user-activity-log", methods=["GET"])
+@login_required
+def export_user_activity_log():
+    """Export user activity log as CSV"""
+    if not session.get("can_view_activity_log"):
+        flash("Access denied.", "error")
+        return redirect("/")
+    
+    try:
+        client = get_auth_supabase()
+        resp = client.table("activity_logs") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .execute()
+        
+        logs = resp.data or []
+        
+        if not logs:
+            flash("No activity logs to export.", "error")
+            return redirect("/")
+        
+        # Create DataFrame
+        df = pd.DataFrame(logs)
+        
+        # Reorder and rename columns
+        column_mapping = {
+            'id': 'ID',
+            'user_id': 'User ID',
+            'user_email': 'User Email',
+            'display_name': 'Login User Name',
+            'action_type': 'Action Type',
+            'target_table': 'Target Table',
+            'target_record_id': 'Target Record ID',
+            'field_name': 'Field Name',
+            'old_value': 'Previous Value',
+            'new_value': 'Updated Value',
+            'extra_info': 'Extra Info',
+            'created_at': 'Timestamp'
+        }
+        
+        # Select and rename columns
+        available_columns = [col for col in column_mapping.keys() if col in df.columns]
+        df = df[available_columns]
+        df = df.rename(columns=column_mapping)
+        
+        # Format timestamp to include time
+        if 'Timestamp' in df.columns:
+            df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Convert to CSV
+        output = io.StringIO()
+        df.to_csv(output, index=False, encoding='utf-8-sig')
+        output.seek(0)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"user_activity_log_{timestamp}.csv"
+        
+        return send_file(
+            io.BytesIO(output.getvalue().encode('utf-8-sig')),
+            download_name=filename,
+            as_attachment=True,
+            mimetype="text/csv"
+        )
+        
+    except Exception as e:
+        flash(f"Export Error: {str(e)}", "error")
+        return redirect("/")
 
 
 # ============================================================
@@ -914,28 +1024,22 @@ def scraping_tracker_stats():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         scam_counts = {}
         platform_counts = {}
         scam_platform_breakdown = {}
-
         for row in rows:
             st = (row.get("scam_type") or "Unknown").strip()
             if not st or st in ("NA", "N/A", "nan", ""):
                 st = "Unknown"
-
             p = (row.get("platform") or "Unknown").strip()
             if not p or p in ("NA", "N/A", "nan", ""):
                 p = "Unknown"
-
             scam_counts[st] = scam_counts.get(st, 0) + 1
             platform_counts[p] = platform_counts.get(p, 0) + 1
             if st not in scam_platform_breakdown:
                 scam_platform_breakdown[st] = {}
             scam_platform_breakdown[st][p] = scam_platform_breakdown[st].get(p, 0) + 1
-
         total = len(rows)
-
         return jsonify({
             "success": True,
             "stats": {
@@ -978,7 +1082,6 @@ def index():
     social_status_filter = request.args.get("social_status", "").strip()
     social_department_filter = request.args.get("social_department", "").strip()
 
-    # BS Investment Scam filters
     inv_search = request.args.get("inv_search", "").strip()
     inv_scam_type = request.args.get("inv_scam_type", "").strip()
     inv_search_for = request.args.get("inv_search_for", "").strip()
@@ -995,16 +1098,11 @@ def index():
         if search_query:
             like_term = f"%{search_query}%"
             query = query.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
-        if scam_filter:
-            query = query.eq("scam_type", scam_filter)
-        if platform_filter:
-            query = query.eq("platform", platform_filter)
-        if date_from:
-            query = query.gte("inserted_date", date_from)
-        if date_to:
-            query = query.lte("inserted_date", date_to)
-        if date_filter and not date_from and not date_to:
-            query = query.eq("inserted_date", date_filter)
+        if scam_filter: query = query.eq("scam_type", scam_filter)
+        if platform_filter: query = query.eq("platform", platform_filter)
+        if date_from: query = query.gte("inserted_date", date_from)
+        if date_to: query = query.lte("inserted_date", date_to)
+        if date_filter and not date_from and not date_to: query = query.eq("inserted_date", date_filter)
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -1017,33 +1115,17 @@ def index():
         query = social_supabase.table("social_media_accounts").select("*", count='exact')
         if social_search:
             like_term = f"%{social_search}%"
-            query = query.or_(
-                f"login_user.ilike.{like_term},"
-                f"number.ilike.{like_term},"
-                f"full_name.ilike.{like_term},"
-                f"page_name.ilike.{like_term},"
-                f"platform.ilike.{like_term},"
-                f"account_status.ilike.{like_term},"
-                f"review_status.ilike.{like_term},"
-                f"login_device.ilike.{like_term}"
-            )
-        if social_platform and social_platform != "":
-            query = query.eq("platform", social_platform)
-
-        if social_department_filter:
-            query = query.eq("department", social_department_filter)
-
+            query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term},review_status.ilike.{like_term},login_device.ilike.{like_term}")
+        if social_platform and social_platform != "": query = query.eq("platform", social_platform)
+        if social_department_filter: query = query.eq("department", social_department_filter)
         if social_permanent_block == "true":
             query = query.eq("account_status", "Permanent Block")
         else:
             if social_status_filter:
-                if social_status_filter.lower() == "block":
-                    query = query.eq("account_status", "Block")
-                else:
-                    query = query.eq("account_status", social_status_filter)
+                if social_status_filter.lower() == "block": query = query.eq("account_status", "Block")
+                else: query = query.eq("account_status", social_status_filter)
             else:
                 query = query.neq("account_status", "Permanent Block")
-
         query = query.order("id", desc=False)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -1060,42 +1142,27 @@ def index():
         query = supabase.table("BS_Investment_Scam").select("*", count='exact')
         if inv_search:
             like_term = f"%{inv_search}%"
-            query = query.or_(
-                f"Bank_account_number.ilike.{like_term},"
-                f"Upi_vpa.ilike.{like_term},"
-                f"Handle.ilike.{like_term},"
-                f"Website_url.ilike.{like_term},"
-                f"Web_contact_no.ilike.{like_term},"
-                f"Input_user.ilike.{like_term}"
-            )
-        if inv_scam_type:
-            query = query.eq("Scam_type", inv_scam_type)
-        if inv_search_for:
-            query = query.eq("Search_for", inv_search_for)
-        if inv_wallet:
-            query = query.eq("Upi_bank_account_wallet", inv_wallet)
-        if inv_date_from:
-            query = query.gte("Inserted_date", inv_date_from)
-        if inv_date_to:
-            query = query.lte("Inserted_date", inv_date_to)
+            query = query.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
+        if inv_scam_type: query = query.eq("Scam_type", inv_scam_type)
+        if inv_search_for: query = query.eq("Search_for", inv_search_for)
+        if inv_wallet: query = query.eq("Upi_bank_account_wallet", inv_wallet)
+        if inv_date_from: query = query.gte("Inserted_date", inv_date_from)
+        if inv_date_to: query = query.lte("Inserted_date", inv_date_to)
         query = query.order("Id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
         try:
             response = query.execute()
             raw = response.data or []
-            if raw:
-                print("RAW KEYS:", list(raw[0].keys()))
-            # Normalize all keys to lowercase so template works correctly
             items = [{k.lower(): v for k, v in row.items()} for row in raw]
-            if items:
-                print("NORMALIZED KEYS:", list(items[0].keys()))
-                print("SAMPLE ROW:", items[0])
             total_rows = response.count
             total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
         except Exception as e:
             print(f"Error fetching BS Investment Scam data: {e}")
             flash(f"Error fetching BS Investment Scam data: {str(e)}", "error")
+
+    # Get clean display name for template
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
 
     return render_template(
         "index.html",
@@ -1132,7 +1199,9 @@ def index():
         department_options=DEPARTMENT_OPTIONS,
         current_user=user,
         allowed_pages=allowed_pages,
-        display_name=session.get("display_name", "User")
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+        can_view_activity_log=session.get("can_view_activity_log", False),
     )
 
 
@@ -1145,27 +1214,20 @@ def investment_tracker_stats():
     try:
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
-
         CHUNK = 1000
         all_rows = []
         offset = 0
         while True:
             q = supabase.table("BS_Investment_Scam").select("Input_user,Search_for,Scam_type,Inserted_date,Upi_vpa,Bank_account_number,Upi_bank_account_wallet")
-            if date_from:
-                q = q.gte("Inserted_date", date_from)
-            if date_to:
-                q = q.lte("Inserted_date", date_to)
+            if date_from: q = q.gte("Inserted_date", date_from)
+            if date_to: q = q.lte("Inserted_date", date_to)
             resp = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
-        # Normalize keys
         rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
-
-        # --- UPI and Bank Account totals ---
         upi_set = set()
         bank_set = set()
         for r in rows:
@@ -1176,34 +1238,24 @@ def investment_tracker_stats():
                 upi_set.add(upi_vpa)
             if wallet == "Bank Account" and bank_acc and bank_acc.upper() not in ("NA", "N/A", ""):
                 bank_set.add(bank_acc)
-
-        # --- Users Count: input_user → search_for → count ---
         users_count = {}
         for r in rows:
             user = (r.get("input_user") or "Unknown").strip()
             sf = (r.get("search_for") or "Unknown").strip()
-            if user not in users_count:
-                users_count[user] = {}
+            if user not in users_count: users_count[user] = {}
             users_count[user][sf] = users_count[user].get(sf, 0) + 1
-
-        # --- Scam Type Counts: input_user → scam_type → count ---
         scam_type_counts = {}
         for r in rows:
             user = (r.get("input_user") or "Unknown").strip()
             st = (r.get("scam_type") or "Unknown").strip()
-            if user not in scam_type_counts:
-                scam_type_counts[user] = {}
+            if user not in scam_type_counts: scam_type_counts[user] = {}
             scam_type_counts[user][st] = scam_type_counts[user].get(st, 0) + 1
-
-        # --- Total Counts: scam_type → search_for → count ---
         total_counts = {}
         for r in rows:
             st = (r.get("scam_type") or "Unknown").strip()
             sf = (r.get("search_for") or "Unknown").strip()
-            if st not in total_counts:
-                total_counts[st] = {}
+            if st not in total_counts: total_counts[st] = {}
             total_counts[st][sf] = total_counts[st].get(sf, 0) + 1
-
         return jsonify({
             "success": True,
             "total_rows": len(rows),
@@ -1230,43 +1282,27 @@ def investment_export():
         inv_wallet = request.args.get("inv_wallet", "").strip()
         inv_date_from = request.args.get("inv_date_from", "").strip()
         inv_date_to = request.args.get("inv_date_to", "").strip()
-
         CHUNK = 1000
         all_rows = []
         offset = 0
-
         while True:
             def _build_inv_query():
                 q = supabase.table("BS_Investment_Scam").select("*")
                 if inv_search:
                     like_term = f"%{inv_search}%"
-                    q = q.or_(
-                        f"Bank_account_number.ilike.{like_term},"
-                        f"Upi_vpa.ilike.{like_term},"
-                        f"Handle.ilike.{like_term},"
-                        f"Website_url.ilike.{like_term},"
-                        f"Web_contact_no.ilike.{like_term},"
-                        f"Input_user.ilike.{like_term}"
-                    )
-                if inv_scam_type:
-                    q = q.eq("Scam_type", inv_scam_type)
-                if inv_search_for:
-                    q = q.eq("Search_for", inv_search_for)
-                if inv_wallet:
-                    q = q.eq("Upi_bank_account_wallet", inv_wallet)
-                if inv_date_from:
-                    q = q.gte("Inserted_date", inv_date_from)
-                if inv_date_to:
-                    q = q.lte("Inserted_date", inv_date_to)
+                    q = q.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
+                if inv_scam_type: q = q.eq("Scam_type", inv_scam_type)
+                if inv_search_for: q = q.eq("Search_for", inv_search_for)
+                if inv_wallet: q = q.eq("Upi_bank_account_wallet", inv_wallet)
+                if inv_date_from: q = q.gte("Inserted_date", inv_date_from)
+                if inv_date_to: q = q.lte("Inserted_date", inv_date_to)
                 return q
-
             chunk_resp = _build_inv_query().order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
             rows = chunk_resp.data or []
             all_rows.extend(rows)
             if len(rows) < CHUNK:
                 break
             offset += CHUNK
-
         df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
         output = io.StringIO()
         df.to_csv(output, index=False, encoding='utf-8-sig')
@@ -1283,86 +1319,62 @@ def investment_export():
 
 
 # ============================================================
-# TRACKER STATS  ← FIXED: now includes Gmail Accounts + Total Numbers
+# TRACKER STATS
 # ============================================================
 @app.route("/tracker-stats", methods=["GET"])
 @login_required
 def tracker_stats():
     try:
-        # ── ALL 7 platforms — Gmail Accounts & Total Numbers added ──
-        platforms = [
-            "Facebook", "Amazon", "Instagram",
-            "Telegram", "WhatsApp",
-            "Gmail Accounts", "Total Numbers"
-        ]
-
-        platform_counts      = {}
+        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp", "Gmail Accounts", "Total Numbers"]
+        platform_counts = {}
         platform_status_counts = {}
-        perm_block_counts    = {}
-        perm_block_total     = 0
-
+        perm_block_counts = {}
+        perm_block_total = 0
         CHUNK = 1000
-
         for platform in platforms:
             try:
-                all_rows   = []
-                offset     = 0
+                all_rows = []
+                offset = 0
                 total_count = 0
-
                 while True:
                     resp = social_supabase.table("social_media_accounts") \
                         .select("account_status", count='exact') \
                         .eq("platform", platform) \
                         .range(offset, offset + CHUNK - 1) \
                         .execute()
-
-                    if offset == 0:
-                        total_count = resp.count or 0
-
+                    if offset == 0: total_count = resp.count or 0
                     chunk = resp.data or []
                     all_rows.extend(chunk)
-
-                    if len(chunk) < CHUNK:
-                        break
+                    if len(chunk) < CHUNK: break
                     offset += CHUNK
-
                 platform_counts[platform] = total_count
-
                 status_map = {}
-                pb_count   = 0
-
+                pb_count = 0
                 for item in all_rows:
                     status = (item.get('account_status') or 'Active').strip()
-                    if status == 'Permanent Block':
-                        pb_count += 1
-                    else:
-                        status_map[status] = status_map.get(status, 0) + 1
-
+                    if status == 'Permanent Block': pb_count += 1
+                    else: status_map[status] = status_map.get(status, 0) + 1
                 platform_status_counts[platform] = status_map
-                perm_block_counts[platform]       = pb_count
-                perm_block_total                 += pb_count
-
+                perm_block_counts[platform] = pb_count
+                perm_block_total += pb_count
             except Exception as e:
                 print(f"[tracker_stats] error for {platform}: {e}")
-                platform_counts[platform]        = 0
+                platform_counts[platform] = 0
                 platform_status_counts[platform] = {}
-                perm_block_counts[platform]      = 0
-
+                perm_block_counts[platform] = 0
         try:
-            total_response = social_supabase.table("social_media_accounts") \
-                .select("id", count='exact').execute()
+            total_response = social_supabase.table("social_media_accounts").select("id", count='exact').execute()
             total_accounts = total_response.count or 0
         except Exception:
             total_accounts = sum(platform_counts.values())
-
         return jsonify({
             "success": True,
             "stats": {
-                "platform_counts":       platform_counts,
+                "platform_counts": platform_counts,
                 "platform_status_counts": platform_status_counts,
-                "total_accounts":        total_accounts,
-                "perm_block_counts":     perm_block_counts,
-                "perm_block_total":      perm_block_total
+                "total_accounts": total_accounts,
+                "perm_block_counts": perm_block_counts,
+                "perm_block_total": perm_block_total
             }
         })
     except Exception as e:
@@ -1373,8 +1385,7 @@ def tracker_stats():
 @login_required
 def get_platform_counts():
     try:
-        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp",
-                     "Gmail Accounts", "Total Numbers"]
+        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp", "Gmail Accounts", "Total Numbers"]
         platform_counts = {}
         status_counts = {}
         for platform in platforms:
@@ -1386,16 +1397,11 @@ def get_platform_counts():
                 if hasattr(status_response, 'data'):
                     for item in status_response.data:
                         status = (item.get('account_status') or '').lower()
-                        if 'active' in status:
-                            status_counts[platform]["Active"] += 1
-                        elif 'block' in status and 'permanent' not in status:
-                            status_counts[platform]["Block"] += 1
-                        elif 'restricted' in status:
-                            status_counts[platform]["Restricted"] += 1
-                        elif 'frozen' in status:
-                            status_counts[platform]["Frozen"] += 1
-                        elif 'permanent' in status:
-                            status_counts[platform]["Permanent Block"] += 1
+                        if 'active' in status: status_counts[platform]["Active"] += 1
+                        elif 'block' in status and 'permanent' not in status: status_counts[platform]["Block"] += 1
+                        elif 'restricted' in status: status_counts[platform]["Restricted"] += 1
+                        elif 'frozen' in status: status_counts[platform]["Frozen"] += 1
+                        elif 'permanent' in status: status_counts[platform]["Permanent Block"] += 1
             except Exception as e:
                 platform_counts[platform] = 0
                 status_counts[platform] = {"Active": 0, "Block": 0, "Restricted": 0, "Frozen": 0, "Permanent Block": 0}
@@ -1431,7 +1437,7 @@ def update_social_data():
 
 
 # ============================================================
-# SOCIAL IMPORT — universal file support + full NaT/datetime fix
+# SOCIAL IMPORT — with activity logging
 # ============================================================
 @app.route("/social-import", methods=["POST"])
 @login_required
@@ -1442,42 +1448,33 @@ def social_import():
             flash("No file selected", "error")
             return redirect("/?page=social")
         if not is_allowed_file(file.filename):
-            flash(f"Unsupported file type. Allowed: CSV, TSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error")
+            flash(f"Unsupported file type.", "error")
             return redirect("/?page=social")
-
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
         file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
-
         df = read_data_file(temp_path, file_ext)
         df.columns = df.columns.astype(str).str.strip()
         df = df.fillna('')
-
         ALL_SOCIAL_COLUMNS = [
             'owned_by', 'login_user', 'number', 'login_device', 'sim_inserted_device',
             'account_status', 'review_status', 'number_type', 'blocked_date', 'unblock_date',
             'account_create_date', 'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
-            'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform',
-            'department',
+            'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform', 'department',
         ]
-
         file_columns = list(df.columns)
         matched_columns = [col for col in file_columns if col in ALL_SOCIAL_COLUMNS and col != 'id']
         if not matched_columns:
             flash("Import Error: No matching column names found.", "error")
             os.remove(temp_path)
             return redirect("/?page=social")
-
         try:
             max_id_response = social_supabase.table("social_media_accounts").select("id").order("id", desc=True).limit(1).execute()
             next_id = int(max_id_response.data[0]['id']) + 1 if max_id_response.data else 1
         except Exception:
             next_id = None
-
-        DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date',
-                        'recharge_date', 'sim_buy_date'}
-
+        DATE_COLUMNS = {'blocked_date', 'unblock_date', 'account_create_date', 'recharge_date', 'sim_buy_date'}
         def sanitize_value(col, value):
             if value is None:
                 return None if col in DATE_COLUMNS else "NA"
@@ -1488,19 +1485,13 @@ def social_import():
                 pass
             v = str(value).strip()
             if col in DATE_COLUMNS:
-                if not v or v.upper() in (
-                    'NA', 'N/A', 'NAN', 'NAT', 'NONE', 'NULL',
-                    'UNDEFINED', '-', 'N.A', 'N.A.', ''
-                ):
+                if not v or v.upper() in ('NA', 'N/A', 'NAN', 'NAT', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.', ''):
                     return None
-                if ' ' in v:
-                    v = v.split(' ')[0]
-                if 'T' in v:
-                    v = v.split('T')[0]
+                if ' ' in v: v = v.split(' ')[0]
+                if 'T' in v: v = v.split('T')[0]
                 return v
             else:
                 return v if v else "NA"
-
         records = []
         for i, (_, row) in enumerate(df.iterrows()):
             record = {}
@@ -1509,11 +1500,14 @@ def social_import():
             for col in matched_columns:
                 record[col] = sanitize_value(col, row[col])
             records.append(record)
-
         social_supabase.table("social_media_accounts").insert(records).execute()
+        log_activity(
+            action_type="import",
+            target_table="social_media_accounts",
+            extra_info={"file_name": filename, "records_count": len(records)}
+        )
         flash(f"File Imported Successfully! {len(records)} records added.", "success")
         os.remove(temp_path)
-
     except Exception as e:
         flash(f"Import Error: {str(e)}", "error")
     return redirect("/?page=social")
@@ -1597,7 +1591,7 @@ def preview_sheet():
         if not file or file.filename == '':
             return jsonify({"success": False, "error": "Please select a file"})
         if not is_allowed_file(file.filename):
-            return jsonify({"success": False, "error": "Unsupported file type. Allowed: CSV, XLSX, XLS, XLSM, XLSB, ODS and more."})
+            return jsonify({"success": False, "error": "Unsupported file type."})
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
@@ -1642,7 +1636,7 @@ def generate_sheet():
         if not file or file.filename == '':
             flash("Please select a file", "error"); return redirect("/?page=sheet")
         if not is_allowed_file(file.filename):
-            flash("Unsupported file type. Allowed: CSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error"); return redirect("/?page=sheet")
+            flash("Unsupported file type.", "error"); return redirect("/?page=sheet")
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
@@ -1708,7 +1702,7 @@ def reload_data():
 
 
 # ============================================================
-# SCRAPING DATA IMPORT — universal file support
+# SCRAPING DATA IMPORT — with activity logging
 # ============================================================
 @app.route("/upload", methods=["POST"])
 @login_required
@@ -1719,7 +1713,7 @@ def upload():
     if not file or file.filename == '':
         flash("No file selected", "error"); return redirect("/?page=scraping")
     if not is_allowed_file(file.filename):
-        flash("Unsupported file type. Allowed: CSV, TSV, XLSX, XLS, XLSM, XLSB, ODS and more.", "error")
+        flash("Unsupported file type.", "error")
         return redirect("/?page=scraping")
     try:
         filename = secure_filename(file.filename)
@@ -1745,6 +1739,11 @@ def upload():
             df['inserted_datetime'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         records = df[required_cols].to_dict(orient='records')
         supabase.table("scrapping_data").insert(records).execute()
+        log_activity(
+            action_type="import",
+            target_table="scrapping_data",
+            extra_info={"file_name": filename, "records_count": len(records)}
+        )
         flash(f"File Imported Successfully! {len(records)} records added.", "success")
         os.remove(temp_path)
     except Exception as e:
@@ -1762,44 +1761,26 @@ def export():
         date_filter = request.args.get("date_filter", "").strip()
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
-
         CHUNK = 1000
         all_rows = []
         offset = 0
-
         while True:
             def _build_query():
                 q = supabase.table("scrapping_data").select("*")
                 if search_query:
                     like_term = f"%{search_query}%"
-                    q = q.or_(
-                        f"name.ilike.{like_term},"
-                        f"platform.ilike.{like_term},"
-                        f"post_url.ilike.{like_term},"
-                        f"chat_number.ilike.{like_term},"
-                        f"group_name.ilike.{like_term},"
-                        f"chat_link.ilike.{like_term},"
-                        f"scam_type.ilike.{like_term}"
-                    )
-                if scam_filter:
-                    q = q.eq("scam_type", scam_filter)
-                if platform_filter:
-                    q = q.eq("platform", platform_filter)
-                if date_from:
-                    q = q.gte("inserted_date", date_from)
-                if date_to:
-                    q = q.lte("inserted_date", date_to)
-                if date_filter and not date_from and not date_to:
-                    q = q.eq("inserted_date", date_filter)
+                    q = q.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
+                if scam_filter: q = q.eq("scam_type", scam_filter)
+                if platform_filter: q = q.eq("platform", platform_filter)
+                if date_from: q = q.gte("inserted_date", date_from)
+                if date_to: q = q.lte("inserted_date", date_to)
+                if date_filter and not date_from and not date_to: q = q.eq("inserted_date", date_filter)
                 return q
-
             chunk_resp = _build_query().order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             rows = chunk_resp.data or []
             all_rows.extend(rows)
-            if len(rows) < CHUNK:
-                break
+            if len(rows) < CHUNK: break
             offset += CHUNK
-
         df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
         output = io.StringIO()
         df.to_csv(output, index=False, encoding='utf-8-sig')
@@ -1839,27 +1820,19 @@ def update_social_accounts():
     account_status_filter = request.args.get("account_status_filter", "").strip()
     department_filter = request.args.get("department_filter", "").strip()
     page = int(request.args.get("page_num", 1))
-
     query = social_supabase.table("social_media_accounts").select(
         "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name,department",
         count='exact'
     )
     query = query.neq("account_status", "Permanent Block")
-
     if search:
         like_term = f"%{search}%"
         query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term}")
-    if platform:
-        query = query.eq("platform", platform)
-    if department_filter:
-        query = query.eq("department", department_filter)
-
+    if platform: query = query.eq("platform", platform)
+    if department_filter: query = query.eq("department", department_filter)
     if account_status_filter:
-        if account_status_filter == "Block":
-            query = query.eq("account_status", "Block")
-        else:
-            query = query.eq("account_status", account_status_filter)
-
+        if account_status_filter == "Block": query = query.eq("account_status", "Block")
+        else: query = query.eq("account_status", account_status_filter)
     query = query.order("id", desc=False)
     offset = (page - 1) * PER_PAGE
     query = query.range(offset, offset + PER_PAGE - 1)
@@ -1870,7 +1843,6 @@ def update_social_accounts():
         total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
     except Exception as e:
         items = []; total_rows = 0; total_pages = 1
-
     return render_template(
         "update_social.html",
         items=items,
@@ -1887,6 +1859,9 @@ def update_social_accounts():
     )
 
 
+# ============================================================
+# SAVE SOCIAL FIELD — with old value fetch + activity logging
+# ============================================================
 @app.route("/save-social-field", methods=["POST"])
 @login_required
 def save_social_field():
@@ -1905,6 +1880,18 @@ def save_social_field():
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
 
+        # Fetch old value and platform before updating
+        old_value = None
+        platform = None
+        try:
+            old_resp = social_supabase.table("social_media_accounts") \
+                .select(f"{field},platform").eq("id", account_id).limit(1).execute()
+            if old_resp.data:
+                old_value = old_resp.data[0].get(field)
+                platform = old_resp.data[0].get('platform')
+        except Exception as e:
+            print(f"[ACTIVITY LOG] Could not fetch old value: {e}")
+
         DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date'}
         if field in DATE_FIELDS:
             save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
@@ -1916,8 +1903,23 @@ def save_social_field():
             update_payload['blocked_date'] = datetime.now().strftime("%Y-%m-%d")
 
         response = social_supabase.table("social_media_accounts").update(update_payload).eq("id", account_id).execute()
+
         if hasattr(response, 'data'):
             if response.data:
+                # Log the field update with platform info
+                extra_info = {}
+                if platform:
+                    extra_info['platform'] = platform
+                
+                log_activity(
+                    action_type="field_update",
+                    target_table="social_media_accounts",
+                    target_record_id=account_id,
+                    field_name=field,
+                    old_value=old_value,
+                    new_value=save_value,
+                    extra_info=extra_info if extra_info else None
+                )
                 return jsonify({"success": True, "message": "Saved successfully", "updated_row": response.data[0]})
             verify = social_supabase.table("social_media_accounts").select("id").eq("id", account_id).execute()
             if verify.data:
@@ -1937,8 +1939,7 @@ def get_permanent_block_accounts():
         query = social_supabase.table("social_media_accounts") \
             .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
             .eq("account_status", "Permanent Block")
-        if platform:
-            query = query.eq("platform", platform)
+        if platform: query = query.eq("platform", platform)
         if search:
             like_term = f"%{search}%"
             query = query.or_(f"owned_by.ilike.{like_term},number.ilike.{like_term},login_device.ilike.{like_term},platform.ilike.{like_term}")
