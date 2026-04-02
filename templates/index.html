@@ -2200,60 +2200,69 @@
         function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal) {
             const section = document.getElementById('summaryPreviewSection');
             const today = new Date();
-            const d = today, dd = String(d.getDate()).padStart(2,'0'), mm = String(d.getMonth()+1).padStart(2,'0'), yyyy = d.getFullYear();
+            const dd = String(today.getDate()).padStart(2,'0');
+            const mm = String(today.getMonth()+1).padStart(2,'0');
+            const yyyy = today.getFullYear();
             const dateStr = `${dd}-${mm}-${yyyy}`;
-            const titleText = `IS Category Wise Summary - ${dateStr}`;
-            document.getElementById('summaryPreviewTitle').textContent = titleText;
+            document.getElementById('summaryPreviewTitle').textContent = `IS Category Wise Summary - ${dateStr}`;
 
             const thead = document.getElementById('summaryResultHead');
             const tbody = document.getElementById('summaryResultBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
 
-            // Header row
+            const thStyle = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:6px 10px;font-size:13px;white-space:nowrap;background:#f3e5f5;width:20%;`;
+            const tdStyle = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;width:20%;`;
+            const tdLabelStyle = `font-weight:600;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f8f0fc;width:20%;`;
+
+            // Header row with title spanning all columns
             const hr = document.createElement('tr');
-            hr.style.backgroundColor = '#E8D5F7';
+            hr.style.backgroundColor = '#e1bee7';
             hr.innerHTML = `
-                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Category</th>
-                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Web</th>
-                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">SM</th>
-                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">App</th>
-                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Total</th>
+                <th colspan="5" style="font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:8px 10px;font-size:14px;white-space:nowrap;background:#d7bde2;">IS Category Wise Summary - ${dateStr}</th>
             `;
             thead.appendChild(hr);
 
-            // Data rows
+            // Column headers
+            const colRow = document.createElement('tr');
+            colRow.style.backgroundColor = '#e1bee7';
+            colRow.innerHTML = `
+                <th style="${thStyle}">Category</th>
+                <th style="${thStyle}">Web</th>
+                <th style="${thStyle}">SM</th>
+                <th style="${thStyle}">App</th>
+                <th style="${thStyle}">Total</th>
+            `;
+            thead.appendChild(colRow);
+
             sortedScamTypes.forEach(([scamType, data]) => {
                 const tr = document.createElement('tr');
                 const webVal = data.web > 0 ? data.web : 'NA';
-                const smVal = data.sm > 0 ? data.sm : 'NA';
+                const smVal  = data.sm  > 0 ? data.sm  : 'NA';
                 const appVal = data.app > 0 ? data.app : 'NA';
                 tr.innerHTML = `
-                    <td style="font-weight:500;color:#000;text-align:center;border:1px solid #000;padding:2px 10px;font-size:12px;white-space:nowrap;">${scamType}</td>
-                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${webVal}</td>
-                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${smVal}</td>
-                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${appVal}</td>
-                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;font-weight:600;">${data.total}</td>
+                    <td style="${tdLabelStyle}">${scamType}</td>
+                    <td style="${tdStyle}">${webVal}</td>
+                    <td style="${tdStyle}">${smVal}</td>
+                    <td style="${tdStyle}">${appVal}</td>
+                    <td style="${tdStyle}font-weight:700;background:#f3e5f5;">${data.total}</td>
                 `;
                 tbody.appendChild(tr);
             });
 
-            // Total row
             const totalRow = document.createElement('tr');
-            totalRow.style.backgroundColor = '#E8D5F7';
+            totalRow.style.backgroundColor = '#e1bee7';
             totalRow.innerHTML = `
-                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;">Total</td>
-                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalWeb}</td>
-                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalSM}</td>
-                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalApp}</td>
-                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${grandTotal}</td>
+                <td style="${thStyle}">Total</td>
+                <td style="${thStyle}">${totalWeb}</td>
+                <td style="${thStyle}">${totalSM}</td>
+                <td style="${thStyle}">${totalApp}</td>
+                <td style="${thStyle}">${grandTotal}</td>
             `;
             tbody.appendChild(totalRow);
 
-            // Header show karo
+            // Hide the old external header
             const headerEl = document.getElementById('summaryTableHeader');
-            const headerDateEl = document.getElementById('summaryTableHeaderDate');
-            if (headerEl) { headerEl.style.display = 'block'; }
-            if (headerDateEl) { headerDateEl.textContent = dateStr; }
+            if (headerEl) { headerEl.style.display = 'none'; }
 
             section.classList.add('show');
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
