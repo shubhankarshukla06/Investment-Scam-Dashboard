@@ -299,7 +299,7 @@ def load_excel_data():
         if BANK_NAME_MAPPING_PATH.exists():
             df_bank = pd.read_excel(BANK_NAME_MAPPING_PATH)
             BANK_NAME_MAPPING = {}
-            key_col = next((c for c in df_bank.columns if any(k in str(c).lower() for k in ['key','handle','upi'])), df_bank.columns[0] if len(df_bank.columns) > 0 else None)
+            key_col = next((c for c in df_bank.columns if any(k in str(c).lower() for k in ['key', 'handle', 'upi'])), df_bank.columns[0] if len(df_bank.columns) > 0 else None)
             bank_col = next((c for c in df_bank.columns if 'bank' in str(c).lower() and 'name' in str(c).lower()), df_bank.columns[1] if len(df_bank.columns) > 1 else None)
             if key_col and bank_col:
                 for _, row in df_bank.iterrows():
@@ -310,7 +310,7 @@ def load_excel_data():
         if IFSC_MAPPING_PATH.exists():
             df_ifsc = pd.read_excel(IFSC_MAPPING_PATH)
             IFSC_MAPPING = {}
-            prefix_col = next((c for c in df_ifsc.columns if any(k in str(c).lower() for k in ['ifsc','prefix','code'])), df_ifsc.columns[0] if len(df_ifsc.columns) > 0 else None)
+            prefix_col = next((c for c in df_ifsc.columns if any(k in str(c).lower() for k in ['ifsc', 'prefix', 'code'])), df_ifsc.columns[0] if len(df_ifsc.columns) > 0 else None)
             bank_col2 = next((c for c in df_ifsc.columns if 'bank' in str(c).lower() and 'name' in str(c).lower()), df_ifsc.columns[1] if len(df_ifsc.columns) > 1 else None)
             if prefix_col and bank_col2:
                 for _, row in df_ifsc.iterrows():
@@ -320,7 +320,9 @@ def load_excel_data():
                         IFSC_MAPPING[k] = v
     except Exception as e:
         print(f"Error loading Excel data: {e}")
-        MASTER_URL_DATA = {}; BANK_NAME_MAPPING = {}; IFSC_MAPPING = {}
+        MASTER_URL_DATA = {}
+        BANK_NAME_MAPPING = {}
+        IFSC_MAPPING = {}
 
 
 load_excel_data()
@@ -690,7 +692,8 @@ def process_sheet_data(df, sheet_type):
                 row_data['origin'] = origin
                 row_data['category_of_website'] = category
             else:
-                row_data['origin'] = "NA"; row_data['category_of_website'] = "NA"
+                row_data['origin'] = "NA"
+                row_data['category_of_website'] = "NA"
 
         elif sheet_type == 'investment':
             row_data.update({
@@ -760,7 +763,6 @@ def get_clean_display_name(display_name):
     """Extract display name without parentheses content"""
     if not display_name:
         return "User"
-    # Remove everything in parentheses and trim
     clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
     return clean_name if clean_name else display_name
 
@@ -941,24 +943,17 @@ def export_user_activity_log():
     if not session.get("can_view_activity_log"):
         flash("Access denied.", "error")
         return redirect("/")
-    
     try:
         client = get_auth_supabase()
         resp = client.table("activity_logs") \
             .select("*") \
             .order("created_at", desc=True) \
             .execute()
-        
         logs = resp.data or []
-        
         if not logs:
             flash("No activity logs to export.", "error")
             return redirect("/")
-        
-        # Create DataFrame
         df = pd.DataFrame(logs)
-        
-        # Reorder and rename columns
         column_mapping = {
             'id': 'ID',
             'user_id': 'User ID',
@@ -973,31 +968,22 @@ def export_user_activity_log():
             'extra_info': 'Extra Info',
             'created_at': 'Timestamp'
         }
-        
-        # Select and rename columns
         available_columns = [col for col in column_mapping.keys() if col in df.columns]
         df = df[available_columns]
         df = df.rename(columns=column_mapping)
-        
-        # Format timestamp to include time
         if 'Timestamp' in df.columns:
             df['Timestamp'] = pd.to_datetime(df['Timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Convert to CSV
         output = io.StringIO()
         df.to_csv(output, index=False, encoding='utf-8-sig')
         output.seek(0)
-        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"user_activity_log_{timestamp}.csv"
-        
         return send_file(
             io.BytesIO(output.getvalue().encode('utf-8-sig')),
             download_name=filename,
             as_attachment=True,
             mimetype="text/csv"
         )
-        
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/")
@@ -1094,71 +1080,111 @@ def index():
     total_pages = 1
 
     if page_type == "scraping":
-        query = supabase.table("scrapping_data").select("*", count='exact')
-        if search_query:
-            like_term = f"%{search_query}%"
-            query = query.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
-        if scam_filter: query = query.eq("scam_type", scam_filter)
-        if platform_filter: query = query.eq("platform", platform_filter)
-        if date_from: query = query.gte("inserted_date", date_from)
-        if date_to: query = query.lte("inserted_date", date_to)
-        if date_filter and not date_from and not date_to: query = query.eq("inserted_date", date_filter)
-        query = query.order("id", desc=True)
-        offset = (page - 1) * PER_PAGE
-        query = query.range(offset, offset + PER_PAGE - 1)
-        response = query.execute()
-        items = response.data
-        total_rows = response.count
-        total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
-
-    elif page_type == "social":
-        query = social_supabase.table("social_media_accounts").select("*", count='exact')
-        if social_search:
-            like_term = f"%{social_search}%"
-            query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term},review_status.ilike.{like_term},login_device.ilike.{like_term}")
-        if social_platform and social_platform != "": query = query.eq("platform", social_platform)
-        if social_department_filter: query = query.eq("department", social_department_filter)
-        if social_permanent_block == "true":
-            query = query.eq("account_status", "Permanent Block")
-        else:
-            if social_status_filter:
-                if social_status_filter.lower() == "block": query = query.eq("account_status", "Block")
-                else: query = query.eq("account_status", social_status_filter)
-            else:
-                query = query.neq("account_status", "Permanent Block")
-        query = query.order("id", desc=False)
-        offset = (page - 1) * PER_PAGE
-        query = query.range(offset, offset + PER_PAGE - 1)
         try:
+            query = supabase.table("scrapping_data").select("*", count='exact')
+            if search_query:
+                like_term = f"%{search_query}%"
+                query = query.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
+            if scam_filter:
+                query = query.eq("scam_type", scam_filter)
+            if platform_filter:
+                query = query.eq("platform", platform_filter)
+            if date_from:
+                query = query.gte("inserted_date", date_from)
+            if date_to:
+                query = query.lte("inserted_date", date_to)
+            if date_filter and not date_from and not date_to:
+                query = query.eq("inserted_date", date_filter)
+            query = query.order("id", desc=True)
+            offset = (page - 1) * PER_PAGE
+            query = query.range(offset, offset + PER_PAGE - 1)
             response = query.execute()
-            items = response.data
-            total_rows = response.count
+            items = response.data or []
+            total_rows = response.count or 0
             total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
         except Exception as e:
-            print(f"Error fetching social media data: {e}")
+            print(f"[DEBUG] Scraping error: {e}")
+            items = []
+            total_rows = 0
+            total_pages = 1
+            flash(f"Error fetching scraping data: {str(e)}", "error")
+
+    elif page_type == "social":
+        try:
+            query = social_supabase.table("social_media_accounts").select("*", count='exact')
+            if social_search:
+                like_term = f"%{social_search}%"
+                query = query.or_(
+                    f"login_user.ilike.{like_term},"
+                    f"number.ilike.{like_term},"
+                    f"full_name.ilike.{like_term},"
+                    f"page_name.ilike.{like_term},"
+                    f"platform.ilike.{like_term},"
+                    f"account_status.ilike.{like_term}"
+                )
+            if social_platform and social_platform != "":
+                query = query.eq("platform", social_platform)
+            if social_department_filter:
+                query = query.eq("department", social_department_filter)
+            if social_permanent_block == "true":
+                query = query.eq("account_status", "Permanent Block")
+            else:
+                if social_status_filter:
+                    query = query.eq("account_status", social_status_filter)
+                else:
+                    query = query.neq("account_status", "Permanent Block")
+            query = query.order("id", desc=False)
+            offset = (page - 1) * PER_PAGE
+            query = query.range(offset, offset + PER_PAGE - 1)
+            response = query.execute()
+            items = [dict(row) for row in (response.data or [])]
+            total_rows = response.count or 0
+            total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
+            print(f"[DEBUG] Social items: {len(items)}, total: {total_rows}")
+        except Exception as e:
+            print(f"[DEBUG] Social error: {e}")
+            items = []
+            total_rows = 0
+            total_pages = 1
             flash(f"Error fetching social media data: {str(e)}", "error")
 
     elif page_type == "investment":
-        query = supabase.table("BS_Investment_Scam").select("*", count='exact')
-        if inv_search:
-            like_term = f"%{inv_search}%"
-            query = query.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
-        if inv_scam_type: query = query.eq("Scam_type", inv_scam_type)
-        if inv_search_for: query = query.eq("Search_for", inv_search_for)
-        if inv_wallet: query = query.eq("Upi_bank_account_wallet", inv_wallet)
-        if inv_date_from: query = query.gte("Inserted_date", inv_date_from)
-        if inv_date_to: query = query.lte("Inserted_date", inv_date_to)
-        query = query.order("Id", desc=True)
-        offset = (page - 1) * PER_PAGE
-        query = query.range(offset, offset + PER_PAGE - 1)
         try:
+            query = supabase.table("BS_Investment_Scam").select("*", count='exact')
+            if inv_search:
+                like_term = f"%{inv_search}%"
+                query = query.or_(
+                    f"Bank_account_number.ilike.{like_term},"
+                    f"Upi_vpa.ilike.{like_term},"
+                    f"Handle.ilike.{like_term},"
+                    f"Website_url.ilike.{like_term},"
+                    f"Web_contact_no.ilike.{like_term},"
+                    f"Input_user.ilike.{like_term}"
+                )
+            if inv_scam_type:
+                query = query.eq("Scam_type", inv_scam_type)
+            if inv_search_for:
+                query = query.eq("Search_for", inv_search_for)
+            if inv_wallet:
+                query = query.eq("Upi_bank_account_wallet", inv_wallet)
+            if inv_date_from:
+                query = query.gte("Inserted_date", inv_date_from)
+            if inv_date_to:
+                query = query.lte("Inserted_date", inv_date_to)
+            query = query.order("Id", desc=True)
+            offset = (page - 1) * PER_PAGE
+            query = query.range(offset, offset + PER_PAGE - 1)
             response = query.execute()
             raw = response.data or []
             items = [{k.lower(): v for k, v in row.items()} for row in raw]
-            total_rows = response.count
+            total_rows = response.count or 0
             total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
+            print(f"[DEBUG] Investment items: {len(items)}, total: {total_rows}")
         except Exception as e:
-            print(f"Error fetching BS Investment Scam data: {e}")
+            print(f"[DEBUG] Investment error: {e}")
+            items = []
+            total_rows = 0
+            total_pages = 1
             flash(f"Error fetching BS Investment Scam data: {str(e)}", "error")
 
     # Get clean display name for template
@@ -1632,11 +1658,14 @@ def generate_sheet():
         sheet_type = request.form.get("sheet_type")
         file = request.files.get("file")
         if not sheet_type:
-            flash("Please select a sheet type", "error"); return redirect("/?page=sheet")
+            flash("Please select a sheet type", "error")
+            return redirect("/?page=sheet")
         if not file or file.filename == '':
-            flash("Please select a file", "error"); return redirect("/?page=sheet")
+            flash("Please select a file", "error")
+            return redirect("/?page=sheet")
         if not is_allowed_file(file.filename):
-            flash("Unsupported file type.", "error"); return redirect("/?page=sheet")
+            flash("Unsupported file type.", "error")
+            return redirect("/?page=sheet")
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
         file.save(temp_path)
@@ -1644,7 +1673,8 @@ def generate_sheet():
             file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
             df = read_data_file(temp_path, file_ext)
             if df.empty:
-                flash("The uploaded file is empty", "error"); return redirect("/?page=sheet")
+                flash("The uploaded file is empty", "error")
+                return redirect("/?page=sheet")
             result_df, _ = process_sheet_data(df, sheet_type)
             output = io.StringIO()
             result_df.to_csv(output, index=False, encoding='utf-8-sig')
@@ -1659,9 +1689,11 @@ def generate_sheet():
         except Exception as e:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-            flash(f"Error processing file: {str(e)}", "error"); return redirect("/?page=sheet")
+            flash(f"Error processing file: {str(e)}", "error")
+            return redirect("/?page=sheet")
     except Exception as e:
-        flash(f"Error generating sheet: {str(e)}", "error"); return redirect("/?page=sheet")
+        flash(f"Error generating sheet: {str(e)}", "error")
+        return redirect("/?page=sheet")
 
 
 @app.route("/get-excel-headers", methods=["GET"])
@@ -1708,10 +1740,12 @@ def reload_data():
 @login_required
 def upload():
     if "file" not in request.files:
-        flash("No file uploaded", "error"); return redirect("/?page=scraping")
+        flash("No file uploaded", "error")
+        return redirect("/?page=scraping")
     file = request.files["file"]
     if not file or file.filename == '':
-        flash("No file selected", "error"); return redirect("/?page=scraping")
+        flash("No file selected", "error")
+        return redirect("/?page=scraping")
     if not is_allowed_file(file.filename):
         flash("Unsupported file type.", "error")
         return redirect("/?page=scraping")
@@ -1779,7 +1813,8 @@ def export():
             chunk_resp = _build_query().order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             rows = chunk_resp.data or []
             all_rows.extend(rows)
-            if len(rows) < CHUNK: break
+            if len(rows) < CHUNK:
+                break
             offset += CHUNK
         df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
         output = io.StringIO()
@@ -1794,6 +1829,32 @@ def export():
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=scraping")
+
+
+@app.route("/parse-raw-file", methods=["POST"])
+@login_required
+def parse_raw_file():
+    try:
+        file = request.files.get("file")
+        if not file or file.filename == '':
+            return jsonify({"success": False, "error": "No file"})
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
+        df = read_data_file(temp_path, file_ext)
+        df = df.fillna('')
+        os.remove(temp_path)
+        headers = list(df.columns)
+        rows = df.head(5000).to_dict(orient='records')
+        return jsonify({
+            "success": True,
+            "headers": headers,
+            "rows": rows,
+            "total_rows": len(df)
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 
 @app.route("/health", methods=["GET"])
@@ -1838,11 +1899,14 @@ def update_social_accounts():
     query = query.range(offset, offset + PER_PAGE - 1)
     try:
         response = query.execute()
-        items = response.data
-        total_rows = response.count
+        items = response.data or []
+        total_rows = response.count or 0
         total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
     except Exception as e:
-        items = []; total_rows = 0; total_pages = 1
+        print(f"[DEBUG] update_social_accounts error: {e}")
+        items = []
+        total_rows = 0
+        total_pages = 1
     return render_template(
         "update_social.html",
         items=items,
@@ -1879,8 +1943,6 @@ def save_social_field():
                            'full_name', 'account_create_date']
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
-
-        # Fetch old value and platform before updating
         old_value = None
         platform = None
         try:
@@ -1891,26 +1953,20 @@ def save_social_field():
                 platform = old_resp.data[0].get('platform')
         except Exception as e:
             print(f"[ACTIVITY LOG] Could not fetch old value: {e}")
-
         DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date'}
         if field in DATE_FIELDS:
             save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
         else:
             save_value = value if value else "NA"
-
         update_payload = {field: save_value}
         if field == 'account_status' and value == 'Permanent Block':
             update_payload['blocked_date'] = datetime.now().strftime("%Y-%m-%d")
-
         response = social_supabase.table("social_media_accounts").update(update_payload).eq("id", account_id).execute()
-
         if hasattr(response, 'data'):
             if response.data:
-                # Log the field update with platform info
                 extra_info = {}
                 if platform:
                     extra_info['platform'] = platform
-                
                 log_activity(
                     action_type="field_update",
                     target_table="social_media_accounts",
@@ -1955,7 +2011,8 @@ def get_permanent_block_accounts():
                     for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
                         try:
                             days = (datetime.strptime(b_date_str[:10], fmt) - datetime.strptime(create_date_str[:10], fmt)).days
-                            active_duration = f"{days} days" if days >= 0 else 'N/A'; break
+                            active_duration = f"{days} days" if days >= 0 else 'N/A'
+                            break
                         except ValueError:
                             continue
                 except Exception:
@@ -1975,6 +2032,29 @@ def get_permanent_block_accounts():
 @login_required
 def get_activity_log():
     return jsonify({"success": True, "placeholder": True, "message": "Implement Soon Have Some Patience"})
+
+
+@app.route("/debug-data", methods=["GET"])
+@login_required
+def debug_data():
+    """Temporary debug route - remove after fixing"""
+    try:
+        social_resp = social_supabase.table("social_media_accounts").select("*").limit(3).execute()
+        social_data = social_resp.data or []
+        social_cols = list(social_data[0].keys()) if social_data else []
+        inv_resp = supabase.table("BS_Investment_Scam").select("*").limit(3).execute()
+        inv_data = inv_resp.data or []
+        inv_cols = list(inv_data[0].keys()) if inv_data else []
+        return jsonify({
+            "social_count": len(social_data),
+            "social_columns": social_cols,
+            "social_sample": social_data[0] if social_data else None,
+            "investment_count": len(inv_data),
+            "investment_columns": inv_cols,
+            "investment_sample": inv_data[0] if inv_data else None
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 if __name__ == "__main__":

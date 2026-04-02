@@ -324,9 +324,10 @@
                             </div>
                             <div class="inline-edit-form" id="form_review_status_{{ item.id }}">
                                 <select class="inline-select" data-field="review_status" data-id="{{ item.id }}">
-                                    <option value="Pending" {% if item.review_status == 'Pending' %}selected{% endif %}>Pending</option>
-                                    <option value="Reviewed" {% if item.review_status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
-                                    <option value="Flagged" {% if item.review_status == 'Flagged' %}selected{% endif %}>Flagged</option>
+                                    <option value="Send" {% if item.review_status == 'Send' %}selected{% endif %}>Send</option>
+                                    <option value="NA" {% if item.review_status == 'NA' %}selected{% endif %}>NA</option>
+                                    <option value="Appeal Submit" {% if item.review_status == 'Appeal Submit' %}selected{% endif %}>Appeal Submit</option>
+                                    <option value="Video Verification Done" {% if item.review_status == 'Video Verification Done' %}selected{% endif %}>Video Verification Done</option>
                                 </select>
                                 <button class="save-btn-inline" onclick="saveField(event, {{ item.id }}, 'review_status')"><i class="fas fa-check"></i></button>
                                 <button class="cancel-btn-inline" onclick="cancelEdit(event, {{ item.id }}, 'review_status')"><i class="fas fa-times"></i></button>

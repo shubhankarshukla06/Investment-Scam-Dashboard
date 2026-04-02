@@ -12,7 +12,6 @@
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
         .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
 
-        /* ── Logo + username ── */
         .logo { display: flex; flex-direction: column; gap: 2px; }
         .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .logo h1 { font-size: 18px; color: #2c3e50; }
@@ -304,7 +303,7 @@
         .confirmation-btn.cancel:hover { background: #e9ecef; }
 
         /* ============================================================
-           SHEET MAKER — UPDATED
+           SHEET MAKER
         ============================================================ */
         .sheet-maker-compact { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; margin-top: 10px; }
         .sheet-maker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
@@ -319,14 +318,12 @@
         .stat-value.upi { color: #3498db; }
         .stat-value.bank { color: #e67e22; }
 
-        /* ── 4-column grid ── */
-        .sheet-maker-row {
-            display: grid;
-            grid-template-columns: 1.4fr 1.4fr 1fr 1fr;
-            gap: 8px;
-            align-items: start;
-            width: 100%;
-        }
+        .mode-selector-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+        .mode-selector-row label { font-size: 12px; font-weight: 700; color: #2c3e50; white-space: nowrap; }
+        .mode-select { padding: 7px 12px; border: 1.5px solid #3498db; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; color: #2c3e50; font-weight: 600; height: 34px; min-width: 200px; }
+        .mode-select:focus { outline: none; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+
+        .sheet-maker-row { display: grid; grid-template-columns: 1.4fr 1.4fr 1fr 1fr; gap: 8px; align-items: start; width: 100%; }
         .sheet-maker-group { display: flex; flex-direction: column; gap: 4px; }
         .sheet-maker-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; margin-bottom: 0; }
         .sheet-maker-group label i { color: #3498db; font-size: 13px; }
@@ -341,36 +338,21 @@
         .file-name { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
         .file-info { color: #6c757d; font-size: 9px; line-height: 1.2; text-align: center; }
 
-        /* ── Status box (column 3) ── */
-        .sheet-status-box {
-            min-height: 54px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 12px;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .sheet-status-box.waiting {
-            background: #f8f9fa;
-            border: 2px dashed #dee2e6;
-            color: #95a5a6;
-        }
-        .sheet-status-box.ready {
-            background: #eafaf1;
-            border: 1px solid #a9dfbf;
-            color: #1e8449;
-            font-weight: 600;
-        }
+        .sheet-status-box { min-height: 54px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; font-size: 12px; font-weight: 500; transition: all 0.3s ease; }
+        .sheet-status-box.waiting { background: #f8f9fa; border: 2px dashed #dee2e6; color: #95a5a6; }
+        .sheet-status-box.ready { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e8449; font-weight: 600; }
         .sheet-status-box.ready i { color: #27ae60; font-size: 15px; flex-shrink: 0; }
         .sheet-status-box.waiting i { color: #bdc3c7; font-size: 15px; }
+        .sheet-status-box.summary-ready { background: #f0f3ff; border: 1px solid #b0bdf7; color: #3949ab; font-weight: 600; }
+        .sheet-status-box.summary-ready i { color: #3f51b5; font-size: 15px; flex-shrink: 0; }
 
         .generate-btn-compact { width: 100%; padding: 7px 9px; background: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
         .generate-btn-compact:hover:not(:disabled) { background: #27ae60; }
         .generate-btn-compact:disabled { background: #95a5a6; cursor: not-allowed; }
+        .generate-summary-btn { width: 100%; padding: 7px 9px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
+        .generate-summary-btn:hover:not(:disabled) { background: #3949ab; }
+        .generate-summary-btn:disabled { background: #95a5a6; cursor: not-allowed; }
+
         .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: 70vh; overflow: hidden; display: none; flex-direction: column; }
         .preview-section.show { display: flex; flex-direction: column; height: 70vh; }
         .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; flex-shrink: 0; }
@@ -381,6 +363,21 @@
         .preview-table td { padding: 4px 10px; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 110px; max-width: 200px; }
         .preview-table .na-cell { color: #95a5a6; font-style: italic; font-size: 10px; }
         .preview-table tr:hover td { background: #f8fafc; }
+
+        .summary-preview-section { background: white; border-radius: 8px; padding: 10px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: none; }
+        .summary-preview-section.show { display: block; }
+        .summary-preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
+        .summary-preview-header h4 { color: #2c3e50; font-size: 13px; display: flex; align-items: center; gap: 6px; margin: 0; }
+        .summary-export-btn { padding: 5px 12px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
+        .summary-export-btn:hover { background: #3949ab; }
+        .summary-table-wrap { overflow-x: auto; border-radius: 6px; border: 1px solid #e9ecef; display: inline-block; width: 100%; }
+        .summary-table { width: auto; border-collapse: collapse; font-size: 12px; table-layout: auto; }
+        .summary-table th { background: #5c6bc0; color: white; padding: 8px 14px; text-align: left; font-weight: 600; font-size: 12px; white-space: nowrap; }
+        .summary-table td { padding: 7px 14px; border-bottom: 1px solid #f0f0f0; color: #2c3e50; vertical-align: middle; }
+        .summary-table tr:nth-child(even) td { background: #f7f8ff; }
+        .summary-table tr:hover td { background: #eef0ff; }
+        .summary-table .total-row td { background: #e8eaf6 !important; font-weight: 700; color: #1a237e; border-top: 2px solid #9fa8da; }
+        .summary-count-badge { display: inline-block; background: #5c6bc0; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 
         .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
         .pagination-btn { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 3px; height: 30px; }
@@ -662,7 +659,7 @@
                 </div>
                 <p id="pageSubtitle">
                     {% if page_type == 'scraping' %}Scrapping Data Management &amp; Filtering
-                    {% elif page_type == 'sheet' %}Report Generation Tool
+                    {% elif page_type == 'sheet' %}Summary &amp; Sheet Generator
                     {% elif page_type == 'social' %}Social Media Accounts Management
                     {% elif page_type == 'investment' %}BS Investment Scam — Data View
                     {% else %}Dashboard{% endif %}
@@ -676,7 +673,7 @@
                         <option value="scraping" {% if page_type == 'scraping' %}selected{% endif %}>Scraping Data</option>
                         {% endif %}
                         {% if 'sheet' in allowed_pages %}
-                        <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Sheet Maker</option>
+                        <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Summary &amp; Sheet Generator</option>
                         {% endif %}
                         {% if 'social' in allowed_pages %}
                         <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
@@ -860,12 +857,12 @@
         </div>
         {% endif %}
 
-        <!-- ===== SHEET MAKER PAGE ===== -->
+        <!-- ===== SUMMARY & SHEET GENERATOR PAGE ===== -->
         {% if 'sheet' in allowed_pages %}
         <div class="page-content sheet-page {% if page_type == 'sheet' %}active{% endif %}">
             <div class="sheet-maker-compact">
                 <div class="sheet-maker-header">
-                    <h2>Sheet Maker</h2>
+                    <h2><i class="fas fa-layer-group"></i> Summary &amp; Sheet Generator</h2>
                     <div class="template-actions">
                         <div class="template-stats" id="templateStats" style="display:none;">
                             <div class="stat-badge"><i class="fas fa-database"></i><span>Total:</span><span class="stat-value" id="statTotal">0</span></div>
@@ -873,81 +870,146 @@
                             <div class="stat-badge"><i class="fas fa-university"></i><span>Unique Bank:</span><span class="stat-value bank" id="statBank">0</span></div>
                             <div class="stat-badge"><i class="fas fa-globe"></i><span>Unique Website:</span><span class="stat-value" style="color:#8e44ad;" id="statWebsite">0</span></div>
                         </div>
-                        <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled><i class="fas fa-file-download"></i> Download Template</button>
+                        <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled style="display:none;"><i class="fas fa-file-download"></i> Download Template</button>
                     </div>
                 </div>
 
-                <!-- ── 4-column row ── -->
-                <div class="sheet-maker-row">
+                <div class="mode-selector-row">
+                    <label><i class="fas fa-sliders-h" style="color:#3498db;"></i> Select Mode:</label>
+                    <select class="mode-select" id="modeSelect" onchange="switchMode(this.value)">
+                        <option value="sheet">📊 Sheet Maker</option>
+                        <option value="summary">📋 Summary Maker</option>
+                    </select>
+                </div>
 
-                    <!-- Col 1: Sheet Type -->
-                    <div class="sheet-maker-group">
-                        <label><i class="fas fa-file-excel"></i> Select Sheet Type</label>
-                        <select class="sheet-maker-select" id="sheetTypeSelect" onchange="updateSelectedSheet()">
-                            <option value="">-- Select Sheet Type --</option>
-                            <option value="upi">UPI (AML)</option>
-                            <option value="investment">Investment Scam</option>
-                            <option value="messaging">Messaging Channel</option>
-                        </select>
-                        <div class="headers-display" id="headersDisplay">
-                            <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left:auto;font-weight:bold;"></span></div>
-                            <div class="headers-grid" id="headersList"></div>
+                <!-- SHEET MAKER MODE -->
+                <div id="sheetMakerSection">
+                    <div class="sheet-maker-row">
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-file-excel"></i> Select Sheet Type</label>
+                            <select class="sheet-maker-select" id="sheetTypeSelect" onchange="updateSelectedSheet()">
+                                <option value="">-- Select Sheet Type --</option>
+                                <option value="upi">UPI (AML)</option>
+                                <option value="investment">Investment Scam</option>
+                                <option value="messaging">Messaging Channel</option>
+                            </select>
+                            <div class="headers-display" id="headersDisplay">
+                                <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left:auto;font-weight:bold;"></span></div>
+                                <div class="headers-grid" id="headersList"></div>
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-upload"></i> Upload Your Data</label>
+                            <div class="file-upload-compact" onclick="document.getElementById('fileUpload').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div id="fileName" class="file-name">No file chosen</div>
+                                <div class="file-info">CSV, Excel → Output: CSV</div>
+                                <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-info-circle"></i> Status</label>
+                            <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>Waiting for input...</span>
+                            </div>
+                            <div id="sheetReadyMsg" class="sheet-status-box ready" style="display:none;">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="sheetReadyText"></span>
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-download"></i> Generate Sheet</label>
+                            <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
+                                <i class="fas fa-download"></i> Generate CSV
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Col 2: Upload -->
-                    <div class="sheet-maker-group">
-                        <label><i class="fas fa-upload"></i> Upload Your Data</label>
-                        <div class="file-upload-compact" onclick="document.getElementById('fileUpload').click()">
-                            <i class="fas fa-cloud-upload-alt"></i>
-                            <div id="fileName" class="file-name">No file chosen</div>
-                            <div class="file-info">CSV, Excel → Output: CSV</div>
-                            <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
+                    <div class="preview-section" id="previewSection">
+                        <div class="preview-header">
+                            <h4><i class="fas fa-table"></i> Preview: <span id="previewSheetName" style="color:#3498db;"></span><small style="color:#666;font-size:12px;margin-left:8px;">(36-column output)</small></h4>
+                            <button class="btn btn-outline" onclick="closePreview()"><i class="fas fa-times"></i> Close Preview</button>
+                        </div>
+                        <div class="preview-table-container">
+                            <table class="preview-table" id="previewTable">
+                                <thead id="previewTableHead"></thead>
+                                <tbody id="previewTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top:8px;text-align:center;font-size:11px;color:#666;padding:5px;border-top:1px solid #eee;flex-shrink:0;"><i class="fas fa-info-circle"></i> <span id="previewRowCount">Showing 0 rows</span></div>
+                    </div>
+                </div>
+
+                <!-- SUMMARY MAKER MODE -->
+                <div id="summaryMakerSection" style="display:none;">
+                    <div class="sheet-maker-row">
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-list-alt"></i> Summary Type</label>
+                            <select class="sheet-maker-select" id="summaryTypeSelect" onchange="onSummaryTypeChange()">
+                                <option value="">-- Select Summary Type --</option>
+                                <option value="users">👤 Users Summary</option>
+                                <option value="category">📂 Category-wise Summary</option>
+                            </select>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-file-excel"></i> Upload Your Excel File</label>
+                            <div class="file-upload-compact" onclick="document.getElementById('summaryFileUpload').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div id="summaryFileName" class="file-name">No file chosen</div>
+                                <div class="file-info">Excel (.xlsx, .xls, .xlsm, .xlsb, .ods, .csv)</div>
+                                <input type="file" id="summaryFileUpload" style="display:none;"
+                                    onchange="updateSummaryFileName(this)"
+                                    accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xlsm,.xltx,.xltm,.xla,.xlam,.ods,.ots,.tsv,.txt">
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-info-circle"></i> Data Processing Status</label>
+                            <div id="summaryNotReadyMsg" class="sheet-status-box waiting">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>Waiting for input...</span>
+                            </div>
+                            <div id="summaryReadyMsg" class="sheet-status-box summary-ready" style="display:none;">
+                                <i class="fas fa-check-circle"></i>
+                                <span id="summaryReadyText"></span>
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-chart-pie"></i> Generate Summary</label>
+                            <button class="generate-summary-btn" id="generateSummaryBtn" onclick="generateSummary()" disabled>
+                                <i class="fas fa-chart-pie"></i> Generate Summary
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Col 3: Status Message (replaces the red-box area) -->
-                    <div class="sheet-maker-group">
-                        <label><i class="fas fa-info-circle"></i> Status</label>
-                        <!-- Waiting state -->
-                        <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
-                            <i class="fas fa-hourglass-half"></i>
-                            <span>Waiting for input...</span>
-                        </div>
-                        <!-- Ready state (hidden by default) -->
-                        <div id="sheetReadyMsg" class="sheet-status-box ready" style="display:none;">
-                            <i class="fas fa-check-circle"></i>
-                            <span id="sheetReadyText"></span>
+                    <div class="summary-preview-section" id="summaryPreviewSection">
+                        <div class="summary-preview-header">
+                        <h4><i class="fas fa-table" style="color:#5c6bc0;"></i> Summary Result: <span id="summaryPreviewTitle" style="color:#5c6bc0;"></span></h4>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="summary-export-btn" onclick="copySummaryAsImage()" title="Copy as Image" style="background:#2ecc71;">
+                                <i class="fas fa-copy"></i> Copy Image
+                            </button>
+                            <button class="summary-export-btn" onclick="exportSummaryCSV()">
+                                <i class="fas fa-file-export"></i> Export CSV
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Col 4: Generate -->
-                    <div class="sheet-maker-group">
-                        <label><i class="fas fa-download"></i> Generate Sheet</label>
-                        <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
-                            <i class="fas fa-download"></i> Generate CSV
-                        </button>
+                        <div id="summaryTableWrapper" style="display:inline-block;min-width:100%;">
+                            <div id="summaryTableHeader" style="display:none;background:#5c6bc0;color:white;text-align:center;padding:10px 16px;font-size:14px;font-weight:700;letter-spacing:0.3px;border-radius:6px 6px 0 0;">
+                                IS Category Wise Summary - <span id="summaryTableHeaderDate"></span>
+                            </div>
+                            <div class="summary-table-wrap" style="border-radius:0 0 6px 6px;">
+                            <table class="summary-table" id="summaryResultTable">
+                                <thead id="summaryResultHead"></thead>
+                                <tbody id="summaryResultBody"></tbody>
+                            </table>
+                        </div>
                     </div>
-
-                </div><!-- /.sheet-maker-row -->
-
-                <!-- Preview Section -->
-                <div class="preview-section" id="previewSection">
-                    <div class="preview-header">
-                        <h4><i class="fas fa-table"></i> Preview: <span id="previewSheetName" style="color:#3498db;"></span><small style="color:#666;font-size:12px;margin-left:8px;">(36-column output)</small></h4>
-                        <button class="btn btn-outline" onclick="closePreview()"><i class="fas fa-times"></i> Close Preview</button>
-                    </div>
-                    <div class="preview-table-container">
-                        <table class="preview-table" id="previewTable">
-                            <thead id="previewTableHead"></thead>
-                            <tbody id="previewTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div style="margin-top:8px;text-align:center;font-size:11px;color:#666;padding:5px;border-top:1px solid #eee;flex-shrink:0;"><i class="fas fa-info-circle"></i> <span id="previewRowCount">Showing 0 rows</span></div>
                 </div>
             </div>
-        </div>
-        {% endif %}
+        </div>    
+    </div>
+    {% endif %}
 
         <!-- ===== BS INVESTMENT SCAM PAGE ===== -->
         {% if 'investment' in allowed_pages %}
@@ -1335,11 +1397,37 @@
         let pendingAction = null;
         let previewDataCache = null;
 
+        // ── Summary Maker state ──────────────────────────────
+        let summaryParsedData = [];
+        let summaryHeaders = [];
+        let lastSummaryResult = null;
+
         function getPlatformIconHtml(iconName, extraStyle) {
             const fasIcons = ['envelope', 'sim-card', 'globe', 'question'];
             const prefix = fasIcons.includes(iconName) ? 'fas' : 'fab';
             const styleAttr = extraStyle ? ` style="${extraStyle}"` : '';
             return `<i class="${prefix} fa-${iconName}"${styleAttr}></i>`;
+        }
+
+        // ─── Mode Switcher ───────────────────────────────────────
+        function switchMode(mode) {
+            const sheetSection = document.getElementById('sheetMakerSection');
+            const summarySection = document.getElementById('summaryMakerSection');
+            const templateBtn = document.getElementById('templateBtn');
+            const templateStats = document.getElementById('templateStats');
+
+            if (mode === 'sheet') {
+                sheetSection.style.display = '';
+                summarySection.style.display = 'none';
+                templateBtn.style.display = '';
+                document.getElementById('summaryPreviewSection').classList.remove('show');
+            } else {
+                sheetSection.style.display = 'none';
+                summarySection.style.display = '';
+                templateBtn.style.display = 'none';
+                templateStats.style.display = 'none';
+                closePreview();
+            }
         }
 
         // ─── Page / Navigation ──────────────────────────────────────
@@ -1729,7 +1817,6 @@
             return cleaned.split(' ')[0] || cleaned;
         }
 
-        // ── Updated showSheetReadyMessage — toggles between waiting & ready boxes ──
         function showSheetReadyMessage() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const fileInput = document.getElementById('fileUpload');
@@ -1863,6 +1950,443 @@
             setTimeout(hideLoading, 5000);
         }
 
+        // ════════════════════════════════════════════════════
+        // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
+        // ════════════════════════════════════════════════════
+
+        function onSummaryTypeChange() {
+            checkSummaryReady();
+        }
+
+        function updateSummaryFileName(input) {
+            const file = input.files[0];
+            document.getElementById('summaryFileName').textContent = file ? file.name : 'No file chosen';
+            if (file) {
+                parseSummaryFile(file);
+            } else {
+                summaryParsedData = [];
+                summaryHeaders = [];
+                checkSummaryReady();
+            }
+        }
+
+        // ── FIX: Clean, correct parseSummaryFile ────────────────────
+        function parseSummaryFile(file) {
+            // Show processing status
+            const readyEl = document.getElementById('summaryReadyMsg');
+            const waitEl  = document.getElementById('summaryNotReadyMsg');
+            readyEl.style.display = 'none';
+            waitEl.style.display = 'flex';
+            waitEl.querySelector('span').textContent = 'Parsing file...';
+
+            const fileName = file.name.toLowerCase();
+
+            if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const sep = fileName.endsWith('.tsv') ? '\t' : ',';
+                        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+                        if (!lines.length) { showToast('File appears empty', true); return; }
+
+                        function parseCSVLine(line, delimiter) {
+                            const result = [];
+                            let current = '';
+                            let inQuotes = false;
+                            for (let i = 0; i < line.length; i++) {
+                                const ch = line[i];
+                                if (ch === '"') {
+                                    inQuotes = !inQuotes;
+                                } else if (ch === delimiter && !inQuotes) {
+                                    result.push(current.trim());
+                                    current = '';
+                                } else {
+                                    current += ch;
+                                }
+                            }
+                            result.push(current.trim()); // push last field
+                            return result;
+                        }
+
+                        summaryHeaders = parseCSVLine(lines[0], sep);
+                        summaryParsedData = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            const vals = parseCSVLine(lines[i], sep);
+                            if (vals.every(v => !v)) continue;
+                            const row = {};
+                            summaryHeaders.forEach((h, idx) => { row[h] = vals[idx] || ''; });
+                            summaryParsedData.push(row);
+                        }
+                        checkSummaryReady();
+                    } catch(err) { showToast('Error parsing CSV: ' + err.message, true); }
+                };
+                reader.readAsText(file, 'utf-8');
+            } else {
+                // Excel / other formats — send to server
+                parseSummaryFileViaServer(file);
+            }
+        }
+
+        function parseSummaryFileViaServer(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/parse-raw-file', {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.rows) {
+                    summaryHeaders = data.headers || [];
+                    summaryParsedData = data.rows || [];
+                    checkSummaryReady();
+                } else {
+                    showToast('Could not parse Excel file via server. Please try saving as CSV.', true);
+                    summaryParsedData = [];
+                    summaryHeaders = [];
+                    checkSummaryReady();
+                }
+            })
+            .catch(err => {
+                showToast('Error reading file: ' + err.message, true);
+                summaryParsedData = [];
+                summaryHeaders = [];
+                checkSummaryReady();
+            });
+        }
+
+        function checkSummaryReady() {
+            const summaryType = document.getElementById('summaryTypeSelect').value;
+            const hasData = summaryParsedData.length > 0;
+            const readyEl = document.getElementById('summaryReadyMsg');
+            const waitEl  = document.getElementById('summaryNotReadyMsg');
+            const textEl  = document.getElementById('summaryReadyText');
+            const btn     = document.getElementById('generateSummaryBtn');
+
+            if (summaryType && hasData) {
+                textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Click 'Generate Summary'.`;
+                readyEl.style.display = 'flex';
+                waitEl.style.display = 'none';
+                btn.disabled = false;
+            } else if (hasData && !summaryType) {
+                waitEl.style.display = 'flex';
+                waitEl.querySelector('span').textContent = `${summaryParsedData.length} rows loaded. Select a summary type.`;
+                readyEl.style.display = 'none';
+                btn.disabled = true;
+            } else if (!hasData && summaryType) {
+                waitEl.style.display = 'flex';
+                waitEl.querySelector('span').textContent = 'Upload a file to continue.';
+                readyEl.style.display = 'none';
+                btn.disabled = true;
+            } else {
+                waitEl.style.display = 'flex';
+                waitEl.querySelector('span').textContent = 'Waiting for input...';
+                readyEl.style.display = 'none';
+                btn.disabled = true;
+            }
+        }
+
+        function generateSummary() {
+            const summaryType = document.getElementById('summaryTypeSelect').value;
+            if (!summaryType) { showToast('Please select a summary type first!', true); return; }
+            if (!summaryParsedData.length) { showToast('Please upload a file first!', true); return; }
+
+            if (summaryType === 'users') {
+                generateUsersSummary();
+            } else if (summaryType === 'category') {
+                generateCategorySummary();
+            }
+        }
+
+        function generateUsersSummary() {
+            const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name','operator','Operator','analyst','Analyst'];
+            let userCol = null;
+            for (const c of userColCandidates) {
+                if (summaryHeaders.includes(c)) { userCol = c; break; }
+            }
+            if (!userCol && summaryHeaders.length > 0) {
+                userCol = summaryHeaders[0];
+            }
+            if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
+
+            const counts = {};
+            summaryParsedData.forEach(row => {
+                const val = (row[userCol] || 'Unknown').trim() || 'Unknown';
+                counts[val] = (counts[val] || 0) + 1;
+            });
+
+            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+            const total = Object.values(counts).reduce((a,b) => a+b, 0);
+
+            lastSummaryResult = {
+                type: 'users',
+                columns: [userCol, 'Count', 'Percentage'],
+                rows: sorted.map(([name, cnt]) => [name, cnt, ((cnt/total)*100).toFixed(1)+'%']),
+                totalRow: ['Total', total, '100%']
+            };
+
+            renderSummaryTable(
+                `Users Summary — by "${userCol}"`,
+                [userCol, 'Count', 'Percentage'],
+                sorted.map(([name, cnt]) => [name, cnt, ((cnt/total)*100).toFixed(1)+'%']),
+                ['Total', total, '100%']
+            );
+        }
+
+        function generateCategorySummary() {
+            let scamTypeCol = null;
+            let searchForCol = null;
+
+            const scamColCandidates = ['scam_type','Scam_type','Scam_Type','SCAM_TYPE','scamtype','ScamType','scam type','Scam Type','Scam type','SCAM TYPE'];
+            for (const c of scamColCandidates) {
+                if (summaryHeaders.includes(c)) { scamTypeCol = c; break; }
+            }
+
+            const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR','platform','Platform'];
+            for (const c of searchColCandidates) {
+                if (summaryHeaders.includes(c)) { searchForCol = c; break; }
+            }
+
+            if (!scamTypeCol) { showToast('Could not find "Scam_type" column in the file.', true); return; }
+            if (!searchForCol) { showToast('Could not find "Search_for" column in the file.', true); return; }
+
+            const socialMediaPlatforms = ['telegram', 'whatsapp', 'facebook', 'instagram', 'threads', 'thread', 'youtube', 'x', 'twitter', 'snapchat', 'tiktok', 'linkedin', 'pinterest', 'reddit'];
+
+            const scamTypeData = {};
+            let totalWeb = 0, totalApp = 0, totalSM = 0;
+
+            summaryParsedData.forEach(row => {
+                const scamType = (row[scamTypeCol] || 'Unknown').trim();
+                const searchFor = (row[searchForCol] || 'Unknown').trim().toLowerCase();
+
+                if (!scamType || scamType.toUpperCase() === 'NA' || scamType === '') return;
+
+                if (!scamTypeData[scamType]) {
+                    scamTypeData[scamType] = { web: 0, app: 0, sm: 0, total: 0 };
+                }
+
+                if (searchFor === 'app' || searchFor === 'application') {
+                    scamTypeData[scamType].app++;
+                    totalApp++;
+                } else if (searchFor === 'web' || searchFor === 'website') {
+                    scamTypeData[scamType].web++;
+                    totalWeb++;
+                } else {
+                    const isSM = socialMediaPlatforms.some(sm => searchFor.includes(sm) || sm.includes(searchFor));
+                    if (isSM || ['telegram', 'whatsapp', 'facebook', 'instagram', 'youtube', 'x', 'threads', 'thread'].includes(searchFor)) {
+                        scamTypeData[scamType].sm++;
+                        totalSM++;
+                    } else if (searchFor && searchFor !== 'na' && searchFor !== 'unknown') {
+                        scamTypeData[scamType].sm++;
+                        totalSM++;
+                    }
+                }
+                scamTypeData[scamType].total++;
+            });
+
+            const sortedScamTypes = Object.entries(scamTypeData).sort((a, b) => b[1].total - a[1].total);
+            const grandTotal = sortedScamTypes.reduce((sum, [, data]) => sum + data.total, 0);
+
+            lastSummaryResult = {
+                type: 'category_detailed',
+                scamTypeData: sortedScamTypes,
+                totals: { web: totalWeb, app: totalApp, sm: totalSM, grandTotal }
+            };
+
+            renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal);
+        }
+
+        function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal) {
+            const section = document.getElementById('summaryPreviewSection');
+            const today = new Date();
+            const d = today, dd = String(d.getDate()).padStart(2,'0'), mm = String(d.getMonth()+1).padStart(2,'0'), yyyy = d.getFullYear();
+            const dateStr = `${dd}-${mm}-${yyyy}`;
+            const titleText = `IS Category Wise Summary - ${dateStr}`;
+            document.getElementById('summaryPreviewTitle').textContent = titleText;
+
+            const thead = document.getElementById('summaryResultHead');
+            const tbody = document.getElementById('summaryResultBody');
+            thead.innerHTML = ''; tbody.innerHTML = '';
+
+            // Header row
+            const hr = document.createElement('tr');
+            hr.style.backgroundColor = '#E8D5F7';
+            hr.innerHTML = `
+                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Category</th>
+                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Web</th>
+                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">SM</th>
+                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">App</th>
+                <th style="font-weight:700;color:#000;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;width:1%;min-width:0;">Total</th>
+            `;
+            thead.appendChild(hr);
+
+            // Data rows
+            sortedScamTypes.forEach(([scamType, data]) => {
+                const tr = document.createElement('tr');
+                const webVal = data.web > 0 ? data.web : 'NA';
+                const smVal = data.sm > 0 ? data.sm : 'NA';
+                const appVal = data.app > 0 ? data.app : 'NA';
+                tr.innerHTML = `
+                    <td style="font-weight:500;color:#000;text-align:center;border:1px solid #000;padding:2px 10px;font-size:12px;white-space:nowrap;">${scamType}</td>
+                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${webVal}</td>
+                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${smVal}</td>
+                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;">${appVal}</td>
+                    <td style="text-align:center;border:1px solid #000;padding:5px;font-size:12px;font-weight:600;">${data.total}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Total row
+            const totalRow = document.createElement('tr');
+            totalRow.style.backgroundColor = '#E8D5F7';
+            totalRow.innerHTML = `
+                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:3px 10px;font-size:12px;white-space:nowrap;">Total</td>
+                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalWeb}</td>
+                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalSM}</td>
+                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${totalApp}</td>
+                <td style="font-weight:700;text-align:center;border:1px solid #000;padding:6px;font-size:12px;">${grandTotal}</td>
+            `;
+            tbody.appendChild(totalRow);
+
+            // Header show karo
+            const headerEl = document.getElementById('summaryTableHeader');
+            const headerDateEl = document.getElementById('summaryTableHeaderDate');
+            if (headerEl) { headerEl.style.display = 'block'; }
+            if (headerDateEl) { headerDateEl.textContent = dateStr; }
+
+            section.classList.add('show');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function renderSummaryTable(title, columns, rows, totalRow) {
+            const section = document.getElementById('summaryPreviewSection');
+            document.getElementById('summaryPreviewTitle').textContent = title;
+
+            const thead = document.getElementById('summaryResultHead');
+            const tbody = document.getElementById('summaryResultBody');
+            thead.innerHTML = ''; tbody.innerHTML = '';
+
+            const hr = document.createElement('tr');
+            columns.forEach(col => { const th = document.createElement('th'); th.textContent = col; hr.appendChild(th); });
+            thead.appendChild(hr);
+
+            rows.forEach((row) => {
+                const tr = document.createElement('tr');
+                row.forEach((cell, ci) => {
+                    const td = document.createElement('td');
+                    if (ci === 1) {
+                        td.innerHTML = `<span class="summary-count-badge">${cell}</span>`;
+                    } else {
+                        td.textContent = cell;
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+
+            if (totalRow) {
+                const tr = document.createElement('tr');
+                tr.className = 'total-row';
+                totalRow.forEach((cell, ci) => {
+                    const td = document.createElement('td');
+                    if (ci === 1) {
+                        td.innerHTML = `<span class="summary-count-badge" style="background:#1a237e;">${cell}</span>`;
+                    } else {
+                        td.textContent = cell;
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            }
+
+            section.classList.add('show');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function exportSummaryCSV() {
+            if (!lastSummaryResult) { showToast('No summary to export', true); return; }
+            const escCSV = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
+
+            let lines = [];
+            const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+            let filename = `summary_${lastSummaryResult.type}_${ts}.csv`;
+
+            if (lastSummaryResult.type === 'category_detailed') {
+                filename = `IS_Category_Wise_Summary_${ts}.csv`;
+                lines = ['Category,Web,SM,App,Total'];
+                lastSummaryResult.scamTypeData.forEach(([scamType, data]) => {
+                    const webVal = data.web > 0 ? data.web : 'NA';
+                    const smVal = data.sm > 0 ? data.sm : 'NA';
+                    const appVal = data.app > 0 ? data.app : 'NA';
+                    lines.push(`${escCSV(scamType)},${webVal},${smVal},${appVal},${data.total}`);
+                });
+                const t = lastSummaryResult.totals;
+                lines.push(`Total,${t.web},${t.sm},${t.app},${t.grandTotal}`);
+            } else {
+                const { columns, rows, totalRow } = lastSummaryResult;
+                lines = [
+                    columns.map(escCSV).join(','),
+                    ...rows.map(r => r.map(escCSV).join(',')),
+                    totalRow.map(escCSV).join(',')
+                ];
+            }
+
+            const csv = '\uFEFF' + lines.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast('Summary exported successfully!', false, true);
+        }
+        // ─── Copy Summary as Image ───────────────────────────────────
+        async function copySummaryAsImage() {
+           const wrapper = document.getElementById('summaryTableWrapper');
+           if (!wrapper) { showToast('No summary to copy', true); return; }
+
+           try {
+               if (!window.html2canvas) {
+                   await new Promise((resolve, reject) => {
+                        const script = document.createElement('script');
+                        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                        script.onload = resolve; script.onerror = reject;
+                        document.head.appendChild(script);
+                    });
+                }
+
+                showToast('Generating image...', false, false);
+
+                const canvas = await html2canvas(wrapper, {
+                     backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false
+                });
+
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+
+                if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
+                    try {
+                         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                         showToast('Summary copied as image!', false, true);
+                        return;
+                    }       catch(e) {
+                              console.warn('Clipboard write failed, downloading instead:', e);
+                    }
+                }
+
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'summary.png';
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
+                showToast('Copied to clipboard not supported — image downloaded!', false, true);
+  
+            } catch(e) {
+               showToast('Error: ' + e.message, true);
+            }
+        }
+
         // ─── Helpers ─────────────────────────────────────────────────
         function copyToClipboard(text, fieldName) {
             if (!text || ['NA','null','N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
@@ -1898,16 +2422,20 @@
         function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
 
-        // Drag-drop for file upload
+        // Drag-drop for file uploads
         document.querySelectorAll('.file-upload-compact').forEach(area => {
             area.addEventListener('dragover', e => { e.preventDefault(); area.style.borderColor = '#3498db'; area.style.background = '#e8f4fc'; });
             area.addEventListener('dragleave', e => { e.preventDefault(); area.style.borderColor = '#dee2e6'; area.style.background = 'white'; });
             area.addEventListener('drop', e => {
                 e.preventDefault(); area.style.borderColor = '#dee2e6'; area.style.background = 'white';
                 if (e.dataTransfer.files.length) {
-                    const fi = document.getElementById('fileUpload');
-                    const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
-                    fi.files = dt.files; updateFileName(fi);
+                    const targetInput = area.querySelector('input[type="file"]');
+                    if (targetInput) {
+                        const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]);
+                        targetInput.files = dt.files;
+                        if (targetInput.id === 'fileUpload') updateFileName(targetInput);
+                        else if (targetInput.id === 'summaryFileUpload') updateSummaryFileName(targetInput);
+                    }
                 }
             });
         });
