@@ -39,6 +39,7 @@ DEMO_ADMIN = {
     "is_admin": True,
     "is_active": True,
     "can_view_activity_log": True,
+    "allowed_departments": ["AML"],
     "created_at": "2025-01-01"
 }
 
@@ -71,19 +72,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated
 
-
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user_id" not in session:
-            return redirect("/login")
-        if not session.get("is_admin"):
-            flash("You don't have permission to access that page.", "error")
-            return redirect("/")
-        return f(*args, **kwargs)
-    return decorated
-
-
 def get_current_user():
     if "user_id" not in session:
         return None
@@ -94,6 +82,7 @@ def get_current_user():
         "allowed_pages": session.get("allowed_pages", []),
         "is_admin": session.get("is_admin", False),
         "can_view_activity_log": session.get("can_view_activity_log", False),
+        "allowed_departments": session.get("allowed_departments"),
     }
 
 
@@ -792,6 +781,7 @@ def login():
                 session["allowed_pages"]         = user.get("allowed_pages") or []
                 session["is_admin"]              = bool(user.get("is_admin", False))
                 session["can_view_activity_log"] = bool(user.get("can_view_activity_log", False))
+                session["allowed_departments"] = user.get("allowed_departments") or None
                 allowed = session["allowed_pages"]
                 first_page = allowed[0] if allowed else "scraping"
                 return redirect(f"/?page={first_page}")
@@ -804,116 +794,6 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
-
-
-# ============================================================
-# ADMIN — USER MANAGEMENT
-# ============================================================
-@app.route("/admin/users", methods=["GET"])
-@admin_required
-def admin_users():
-    try:
-        client = get_auth_supabase()
-        res = client.table("dashboard_users").select("*").order("id", desc=False).execute()
-        users = res.data or []
-    except Exception as e:
-        flash(f"Error loading users: {e}", "error")
-        users = []
-    return render_template(
-        "admin.html",
-        users=users,
-        display_name=session.get("display_name", "Admin")
-    )
-
-
-@app.route("/admin/users", methods=["POST"])
-@admin_required
-def admin_add_user():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"})
-        email    = (data.get("email") or "").strip().lower()
-        password = (data.get("password") or "").strip()
-        name     = (data.get("display_name") or "").strip()
-        pages    = data.get("allowed_pages", [])
-        is_admin = bool(data.get("is_admin", False))
-        is_active = bool(data.get("is_active", True))
-        can_view_activity_log = bool(data.get("can_view_activity_log", False))
-        if not email or not password or not name:
-            return jsonify({"success": False, "error": "Email, password, and name are required."})
-        if not pages:
-            return jsonify({"success": False, "error": "Select at least one page for this user."})
-        client = get_auth_supabase()
-        dup = client.table("dashboard_users").select("id").eq("email", email).execute()
-        if dup.data:
-            return jsonify({"success": False, "error": f"A user with email {email} already exists."})
-        client.table("dashboard_users").insert({
-            "email": email, "password": password, "display_name": name,
-            "allowed_pages": pages, "is_admin": is_admin, "is_active": is_active,
-            "can_view_activity_log": can_view_activity_log
-        }).execute()
-        return jsonify({"success": True, "message": "User added successfully."})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-
-@app.route("/admin/users/<int:user_id>", methods=["PUT"])
-@admin_required
-def admin_edit_user(user_id):
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"})
-        update_payload = {}
-        name = (data.get("display_name") or "").strip()
-        if name: update_payload["display_name"] = name
-        email = (data.get("email") or "").strip().lower()
-        if email:
-            client = get_auth_supabase()
-            dup = client.table("dashboard_users").select("id").eq("email", email).neq("id", user_id).execute()
-            if dup.data:
-                return jsonify({"success": False, "error": f"Email {email} is already used by another user."})
-            update_payload["email"] = email
-        password = (data.get("password") or "").strip()
-        if password: update_payload["password"] = password
-        pages = data.get("allowed_pages")
-        if pages is not None:
-            if not pages:
-                return jsonify({"success": False, "error": "Select at least one page."})
-            update_payload["allowed_pages"] = pages
-        if "is_admin" in data: update_payload["is_admin"] = bool(data["is_admin"])
-        if "is_active" in data: update_payload["is_active"] = bool(data["is_active"])
-        if "can_view_activity_log" in data:
-            update_payload["can_view_activity_log"] = bool(data["can_view_activity_log"])
-        if not update_payload:
-            return jsonify({"success": False, "error": "Nothing to update."})
-        client = get_auth_supabase()
-        client.table("dashboard_users").update(update_payload).eq("id", user_id).execute()
-        if session.get("user_id") == user_id:
-            if "display_name" in update_payload: session["display_name"] = update_payload["display_name"]
-            if "allowed_pages" in update_payload: session["allowed_pages"] = update_payload["allowed_pages"]
-            if "is_admin" in update_payload: session["is_admin"] = update_payload["is_admin"]
-            if "email" in update_payload: session["email"] = update_payload["email"]
-            if "can_view_activity_log" in update_payload:
-                session["can_view_activity_log"] = update_payload["can_view_activity_log"]
-        return jsonify({"success": True, "message": "User updated successfully."})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-
-@app.route("/admin/users/<int:user_id>", methods=["DELETE"])
-@admin_required
-def admin_delete_user(user_id):
-    try:
-        if session.get("user_id") == user_id:
-            return jsonify({"success": False, "error": "You cannot delete your own account."})
-        client = get_auth_supabase()
-        client.table("dashboard_users").delete().eq("id", user_id).execute()
-        return jsonify({"success": True, "message": "User deleted."})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
 
 # ============================================================
 # USER ACTIVITY LOG ROUTES
@@ -1112,6 +992,12 @@ def index():
     elif page_type == "social":
         try:
             query = social_supabase.table("social_media_accounts").select("*", count='exact')
+            allowed_depts = session.get("allowed_departments")
+            if allowed_depts:  # None = see all, list = restricted
+                if len(allowed_depts) == 1:
+                    query = query.eq("department", allowed_depts[0])
+                else:
+                    query = query.in_("department", allowed_depts)
             if social_search:
                 like_term = f"%{social_search}%"
                 query = query.or_(
@@ -1363,11 +1249,16 @@ def tracker_stats():
                 offset = 0
                 total_count = 0
                 while True:
-                    resp = social_supabase.table("social_media_accounts") \
+                    _q = social_supabase.table("social_media_accounts") \
                         .select("account_status", count='exact') \
-                        .eq("platform", platform) \
-                        .range(offset, offset + CHUNK - 1) \
-                        .execute()
+                        .eq("platform", platform)
+                    allowed_depts = session.get("allowed_departments")
+                    if allowed_depts:
+                        if len(allowed_depts) == 1:
+                            _q = _q.eq("department", allowed_depts[0])
+                        else:
+                             _q = _q.in_("department", allowed_depts)
+                    resp = _q.range(offset, offset + CHUNK - 1).execute()
                     if offset == 0: total_count = resp.count or 0
                     chunk = resp.data or []
                     all_rows.extend(chunk)
@@ -1389,7 +1280,14 @@ def tracker_stats():
                 platform_status_counts[platform] = {}
                 perm_block_counts[platform] = 0
         try:
-            total_response = social_supabase.table("social_media_accounts").select("id", count='exact').execute()
+            _tq = social_supabase.table("social_media_accounts").select("id", count='exact')
+            allowed_depts = session.get("allowed_departments")
+            if allowed_depts:
+                if len(allowed_depts) == 1:
+                    _tq = _tq.eq("department", allowed_depts[0])
+                else:
+                    _tq = _tq.in_("department", allowed_depts)
+                    total_response = _tq.execute()
             total_accounts = total_response.count or 0
         except Exception:
             total_accounts = sum(platform_counts.values())
@@ -1547,6 +1445,12 @@ def social_export():
         social_platform = request.args.get("social_platform", "").strip()
         social_permanent_block = request.args.get("permanent_block", "").strip()
         query = social_supabase.table("social_media_accounts").select("*")
+        allowed_depts = session.get("allowed_departments")
+        if allowed_depts:
+            if len(allowed_depts) == 1:
+                query = query.eq("department", allowed_depts[0])
+            else:
+                query = query.in_("department", allowed_depts)
         if social_search:
             like_term = f"%{social_search}%"
             query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term}")
@@ -1886,6 +1790,12 @@ def update_social_accounts():
         count='exact'
     )
     query = query.neq("account_status", "Permanent Block")
+    allowed_depts = session.get("allowed_departments")
+    if allowed_depts:
+        if len(allowed_depts) == 1:
+            query = query.eq("department", allowed_depts[0])
+        else:
+            query = query.in_("department", allowed_depts)
     if search:
         like_term = f"%{search}%"
         query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term}")
@@ -1993,8 +1903,14 @@ def get_permanent_block_accounts():
         search = request.args.get("search", "").strip()
         platform = request.args.get("platform", "").strip()
         query = social_supabase.table("social_media_accounts") \
-            .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
-            .eq("account_status", "Permanent Block")
+        .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
+        .eq("account_status", "Permanent Block")
+        allowed_depts = session.get("allowed_departments")
+        if allowed_depts:
+            if len(allowed_depts) == 1:
+                query = query.eq("department", allowed_depts[0])
+            else:
+                query = query.in_("department", allowed_depts)
         if platform: query = query.eq("platform", platform)
         if search:
             like_term = f"%{search}%"
@@ -2032,30 +1948,6 @@ def get_permanent_block_accounts():
 @login_required
 def get_activity_log():
     return jsonify({"success": True, "placeholder": True, "message": "Implement Soon Have Some Patience"})
-
-
-@app.route("/debug-data", methods=["GET"])
-@login_required
-def debug_data():
-    """Temporary debug route - remove after fixing"""
-    try:
-        social_resp = social_supabase.table("social_media_accounts").select("*").limit(3).execute()
-        social_data = social_resp.data or []
-        social_cols = list(social_data[0].keys()) if social_data else []
-        inv_resp = supabase.table("BS_Investment_Scam").select("*").limit(3).execute()
-        inv_data = inv_resp.data or []
-        inv_cols = list(inv_data[0].keys()) if inv_data else []
-        return jsonify({
-            "social_count": len(social_data),
-            "social_columns": social_cols,
-            "social_sample": social_data[0] if social_data else None,
-            "investment_count": len(inv_data),
-            "investment_columns": inv_cols,
-            "investment_sample": inv_data[0] if inv_data else None
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)})
-
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

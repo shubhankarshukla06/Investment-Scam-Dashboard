@@ -2184,8 +2184,41 @@
                 }
                 scamTypeData[scamType].total++;
             });
-
-            const sortedScamTypes = Object.entries(scamTypeData).sort((a, b) => b[1].total - a[1].total);
+            let maxDate = null;
+            const dateColCandidates = ['inserted_date','Inserted_date','date','Date','created_date','report_date'];
+            let dateCol = null;
+            for (const c of dateColCandidates) {
+                if (summaryHeaders.includes(c)) { dateCol = c; break; }
+            }
+            if (dateCol) {
+                summaryParsedData.forEach(row => {
+                    const d = (row[dateCol] || '').trim();
+                    if (d && d.toUpperCase() !== 'NA' && d !== '') {
+                        if (!maxDate || d > maxDate) maxDate = d;
+                    }
+                });
+            }
+            const CATEGORY_ORDER = [
+                "Investment Scam",
+                "LPG Booking Scam",
+                "Government Scheme Scam",
+                "Fake Account Selling Scam",
+                "Job Scam",
+                "Currency Exchange Scam",
+                "Loan Scam",
+                "Carding Scam",
+                "Fake Website Scam",
+                "Shopping Scam",
+                "Subscription Scam"
+            ];
+            const sortedScamTypes = Object.entries(scamTypeData).sort((a, b) => {
+                const idxA = CATEGORY_ORDER.indexOf(a[0]);
+                const idxB = CATEGORY_ORDER.indexOf(b[0]);
+                if (idxA === -1 && idxB === -1) return a[0].localeCompare(b[0]);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
             const grandTotal = sortedScamTypes.reduce((sum, [, data]) => sum + data.total, 0);
 
             lastSummaryResult = {
@@ -2194,16 +2227,26 @@
                 totals: { web: totalWeb, app: totalApp, sm: totalSM, grandTotal }
             };
 
-            renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal);
+            renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal, maxDate);
         }
 
-        function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal) {
+        function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal, dataDate) {
             const section = document.getElementById('summaryPreviewSection');
-            const today = new Date();
-            const dd = String(today.getDate()).padStart(2,'0');
-            const mm = String(today.getMonth()+1).padStart(2,'0');
-            const yyyy = today.getFullYear();
-            const dateStr = `${dd}-${mm}-${yyyy}`;
+            let dateStr;
+            if (dataDate) {
+                const parts = dataDate.split('-');
+                if (parts.length === 3) {
+                    dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                } else {
+                    dateStr = dataDate;
+                }
+            } else {
+                 const today = new Date();
+                 const dd = String(today.getDate()).padStart(2,'0');
+                 const mm = String(today.getMonth()+1).padStart(2,'0');
+                 const yyyy = today.getFullYear();
+                 dateStr = `${dd}-${mm}-${yyyy}`;
+            }
             document.getElementById('summaryPreviewTitle').textContent = `IS Category Wise Summary - ${dateStr}`;
 
             const thead = document.getElementById('summaryResultHead');
@@ -2368,9 +2411,14 @@
 
                 showToast('Generating image...', false, false);
 
+                const originalStyle = wrapper.style.cssText;
+                wrapper.style.display = 'inline-block';
+                wrapper.style.width = 'auto';
+                wrapper.style.minWidth = 'unset';
                 const canvas = await html2canvas(wrapper, {
                      backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false
                 });
+                wrapper.style.cssText = originalStyle;
 
                 const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
 
