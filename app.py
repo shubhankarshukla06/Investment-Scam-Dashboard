@@ -1243,6 +1243,7 @@ def tracker_stats():
         platform_status_counts = {}
         perm_block_counts = {}
         perm_block_total = 0
+        platform_dept_counts = {}
         CHUNK = 1000
         for platform in platforms:
             try:
@@ -1251,7 +1252,7 @@ def tracker_stats():
                 total_count = 0
                 while True:
                     _q = social_supabase.table("social_media_accounts") \
-                        .select("account_status", count='exact') \
+                        .select("account_status,department", count='exact') \
                         .eq("platform", platform)
                     allowed_depts = session.get("allowed_departments")
                     if allowed_depts:
@@ -1268,13 +1269,22 @@ def tracker_stats():
                 platform_counts[platform] = total_count
                 status_map = {}
                 pb_count = 0
+                dept_map = {}
                 for item in all_rows:
                     status = (item.get('account_status') or 'Active').strip()
-                    if status == 'Permanent Block': pb_count += 1
-                    else: status_map[status] = status_map.get(status, 0) + 1
+                    dept = (item.get('department') or 'Unknown').strip()
+                    if not dept or dept in ('NA', 'N/A', 'nan', ''):
+                        dept = 'Unknown'
+                    if status == 'Permanent Block':
+                        pb_count += 1
+                    else:
+                        status_map[status] = status_map.get(status, 0) + 1
+                    if status != 'Permanent Block':
+                        dept_map[dept] = dept_map.get(dept, 0) + 1
                 platform_status_counts[platform] = status_map
                 perm_block_counts[platform] = pb_count
                 perm_block_total += pb_count
+                platform_dept_counts[platform] = dept_map
             except Exception as e:
                 print(f"[tracker_stats] error for {platform}: {e}")
                 platform_counts[platform] = 0
@@ -1292,7 +1302,8 @@ def tracker_stats():
                 "platform_status_counts": platform_status_counts,
                 "total_accounts": total_accounts,
                 "perm_block_counts": perm_block_counts,
-                "perm_block_total": perm_block_total
+                "perm_block_total": perm_block_total,
+                "platform_dept_counts": platform_dept_counts,
             }
         })
     except Exception as e:
