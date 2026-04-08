@@ -2,6 +2,7 @@ from flask import Flask, render_template, render_template_string, request, redir
 import pandas as pd
 import io
 import math
+import urllib.parse
 import os
 import json
 from pathlib import Path
@@ -23,7 +24,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-change-this")
 # ============================================================
 # AUTH HELPERS
 # ============================================================
-
+    
 def get_auth_supabase():
     url = os.environ.get("DASHBOARD_SUPABASE_URL") or os.environ.get("SOCIAL_SUPABASE_URL")
     key = os.environ.get("DASHBOARD_SUPABASE_KEY") or os.environ.get("SOCIAL_SUPABASE_KEY")
@@ -503,7 +504,7 @@ def extract_search_for_from_url(url):
         platform_domains = {
             't.me': 'Telegram', 'wa.me': 'WhatsApp',
             'chat.whatsapp.com': 'WhatsApp', 'facebook.com': 'Facebook',
-            'instagram.com': 'Instagram', 'telegram.org': 'Telegram',
+            'instagram.com': 'Instagram', 'telegram.org': 'Telegram','web.telegram.org': 'Telegram',
             'threads.com': 'Thread', 'youtube.com': 'YouTube', 'x.com': 'X'
         }
         if domain in platform_domains:
@@ -1257,7 +1258,7 @@ def tracker_stats():
                         if len(allowed_depts) == 1:
                             _q = _q.eq("department", allowed_depts[0])
                         else:
-                             _q = _q.in_("department", allowed_depts)
+                            _q = _q.in_("department", allowed_depts)
                     resp = _q.range(offset, offset + CHUNK - 1).execute()
                     if offset == 0: total_count = resp.count or 0
                     chunk = resp.data or []
@@ -1280,14 +1281,7 @@ def tracker_stats():
                 platform_status_counts[platform] = {}
                 perm_block_counts[platform] = 0
         try:
-            _tq = social_supabase.table("social_media_accounts").select("id", count='exact')
-            allowed_depts = session.get("allowed_departments")
-            if allowed_depts:
-                if len(allowed_depts) == 1:
-                    _tq = _tq.eq("department", allowed_depts[0])
-                else:
-                    _tq = _tq.in_("department", allowed_depts)
-                    total_response = _tq.execute()
+            total_response = social_supabase.table("social_media_accounts").select("id", count='exact').execute()
             total_accounts = total_response.count or 0
         except Exception:
             total_accounts = sum(platform_counts.values())
@@ -1903,14 +1897,8 @@ def get_permanent_block_accounts():
         search = request.args.get("search", "").strip()
         platform = request.args.get("platform", "").strip()
         query = social_supabase.table("social_media_accounts") \
-        .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
-        .eq("account_status", "Permanent Block")
-        allowed_depts = session.get("allowed_departments")
-        if allowed_depts:
-            if len(allowed_depts) == 1:
-                query = query.eq("department", allowed_depts[0])
-            else:
-                query = query.in_("department", allowed_depts)
+            .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
+            .eq("account_status", "Permanent Block")
         if platform: query = query.eq("platform", platform)
         if search:
             like_term = f"%{search}%"
@@ -1943,11 +1931,100 @@ def get_permanent_block_accounts():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/check-duplicates", methods=["POST"])
+@login_required
+def check_duplicates():
+    try:
+        data = request.get_json()
+        entries = data.get("entries", [])
+        if not entries:
+            return jsonify({"success": False, "error": "No entries provided"})
+
+        results = []
+        for entry in entries:
+            val = str(entry.get("value", "")).strip()
+            typ = entry.get("type", "upi")
+            if not val or val.upper() in ("NA", "N/A", "", "NONE"):
+                continue
+            try:
+                if typ == "upi":
+                    res = supabase.table("BS_Investment_Scam")\
+                        .select("Id, Upi_vpa, Inserted_date, Scam_type, Input_user")\
+                        .ilike("Upi_vpa", val)\
+                        .limit(10).execute()
+                else:
+                    res = supabase.table("BS_Investment_Scam")\
+                        .select("Id, Bank_account_number, Inserted_date, Scam_type, Input_user")\
+                        .ilike("Bank_account_number", val)\
+                        .limit(10).execute()
+
+                found = res.data or []
+                results.append({
+                    "value": val,
+                    "type": typ,
+                    "status": "DUPLICATE" if found else "NEW",
+                    "count": len(found),
+                    "earliest_date": found[0].get("Inserted_date") if found else None,
+                    "latest_date": found[-1].get("Inserted_date") if len(found) > 1 else None,
+                    "scam_type": found[0].get("Scam_type") if found else None,
+                    "input_user": found[0].get("Input_user") if found else None,
+                    "record_ids": [str(r.get("Id")) for r in found]
+                })
+            except Exception as e:
+                results.append({
+                    "value": val, "type": typ,
+                    "status": "ERROR", "count": 0,
+                    "error": str(e)
+                })
+
+        total = len(results)
+        duplicates = sum(1 for r in results if r["status"] == "DUPLICATE")
+        new_entries = sum(1 for r in results if r["status"] == "NEW")
+
+        return jsonify({
+            "success": True,
+            "results": results,
+            "summary": {
+                "total": total,
+                "duplicates": duplicates,
+                "new": new_entries,
+                "errors": total - duplicates - new_entries
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route("/get-activity-log", methods=["GET"])
 @login_required
 def get_activity_log():
     return jsonify({"success": True, "placeholder": True, "message": "Implement Soon Have Some Patience"})
+
+import urllib.request
+
+@app.route("/getDepartmentData", methods=["GET"])
+@login_required  
+def get_department_data_proxy():
+    """Proxy for external MIS API to avoid CORS issues"""
+    try:
+        user_mail = request.args.get("user_mail", "")
+        department = request.args.get("department", "")
+        role = request.args.get("role", "")
+        
+        external_url = (
+            f"https://mis-iw3m.onrender.com/getDepartmentData"
+            f"?user_mail={urllib.parse.quote(user_mail)}"
+            f"&department={urllib.parse.quote(department)}"
+            f"&role={urllib.parse.quote(role)}"
+        )
+        
+        req = urllib.request.Request(external_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        
+        return jsonify(data)
+    except Exception as e:
+        print(f"[MIS PROXY] Error: {e}")
+        return jsonify([])
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

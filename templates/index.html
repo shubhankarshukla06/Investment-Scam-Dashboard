@@ -82,7 +82,6 @@
         ============================================================ */
         .investment-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
         .investment-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .investment-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
         .investment-page .clear-filters { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
         .investment-page .clear-filters:hover { background: #c0392b; }
         .investment-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
@@ -111,7 +110,6 @@
         ============================================================ */
         .social-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
         .social-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .social-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
         .social-page .batch-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .social-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
         .social-page .filter-group { display: flex; flex-direction: column; gap: 5px; }
@@ -742,7 +740,7 @@
         <div class="page-content scraping-page {% if page_type == 'scraping' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
-                    <h2><i class="fas fa-filter"></i> Filter Data</h2>
+                    <h2>Scrapping Data Management & Filtering</h2>
                     <button type="button" class="clear-filters" onclick="clearFilters()"><i class="fas fa-times"></i> Clear Filters</button>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="filterForm">
@@ -879,6 +877,7 @@
                     <select class="mode-select" id="modeSelect" onchange="switchMode(this.value)">
                         <option value="sheet">📊 Sheet Maker</option>
                         <option value="summary">📋 Summary Maker</option>
+                        <option value="duplicates">🔍 UPI/Bank Duplicate Checker</option>
                     </select>
                 </div>
 
@@ -1007,6 +1006,124 @@
                     </div>
                 </div>
             </div>
+
+            <!-- DUPLICATE CHECKER SECTION -->
+            <div id="duplicateCheckerSection" style="display:none;">
+                <div class="sheet-maker-row" style="margin-bottom:12px;">
+                    <div class="sheet-maker-group">
+                        <label><i class="fas fa-toggle-on"></i> Check Type</label>
+                        <select class="sheet-maker-select" id="dupCheckType">
+                            <option value="upi">UPI VPA</option>
+                            <option value="bank">Bank Account Number</option>
+                        </select>
+                    </div>
+                    <div class="sheet-maker-group">
+                        <label><i class="fas fa-keyboard"></i> Input Mode</label>
+                        <select class="sheet-maker-select" id="dupInputMode" onchange="toggleDupInputMode(this.value)">
+                            <option value="manual">Manual Entry</option>
+                            <option value="file">File Upload</option>
+                        </select>
+                    </div>
+                    <div class="sheet-maker-group">
+                        <label><i class="fas fa-info-circle"></i> Status</label>
+                        <div id="dupStatusBox" class="sheet-status-box waiting">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Waiting for input...</span>
+                        </div>
+                    </div>
+                    <div class="sheet-maker-group">
+                        <label><i class="fas fa-search"></i> Run Check</label>
+                        <button class="generate-btn-compact" id="dupCheckBtn" onclick="runDuplicateCheck()" disabled>
+                            <i class="fas fa-search"></i> Check Duplicates
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Input Area -->
+                <div id="dupManualArea" style="margin-bottom:12px;">
+                    <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;margin-bottom:5px;">
+                        <i class="fas fa-list" style="color:#3498db;font-size:13px;"></i>
+                        Enter values — one per line (max 200)
+                    </label>
+                    <textarea id="dupManualInput"
+                        placeholder="Example: 9876543210@ybl | 1234567890123456 | test@okaxis"
+                        oninput="onDupManualInput()"
+                        style="width:100%;height:120px;padding:10px 12px;border:1px solid #ddd;border-radius:5px;
+                               font-size:12px;font-family:monospace;resize:vertical;outline:none;
+                               background:white;color:#2c3e50;line-height:1.6;"></textarea>
+                    <span id="dupManualCount" style="font-size:11px;color:#7f8c8d;margin-top:3px;display:block;">
+                        0 entries
+                    </span>
+                </div>
+
+                <!-- File Upload Area -->
+                <div id="dupFileArea" style="display:none;margin-bottom:12px;">
+                    <div class="sheet-maker-row" style="grid-template-columns:1fr 1fr;gap:8px;">
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-upload"></i> Upload File</label>
+                            <div class="file-upload-compact" onclick="document.getElementById('dupFileInput').click()">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                                <div id="dupFileName" class="file-name">No file chosen</div>
+                                <div class="file-info">CSV or Excel (.xlsx, .xls)</div>
+                                <input type="file" id="dupFileInput" style="display:none;"
+                                    accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods"
+                                    onchange="onDupFileSelected(this)">
+                            </div>
+                        </div>
+                        <div class="sheet-maker-group">
+                            <label><i class="fas fa-columns"></i> Select Column</label>
+                            <select class="sheet-maker-select" id="dupColumnSelect" onchange="onDupColumnSelected()">
+                                <option value="">-- Upload file first --</option>
+                            </select>
+                            <span id="dupFileRowCount" style="font-size:11px;color:#7f8c8d;margin-top:3px;display:block;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Area -->
+                <div id="dupResultArea" style="display:none;">
+                    <!-- Summary Cards -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;" id="dupSummaryCards"></div>
+
+                    <!-- Result Table -->
+                    <div style="background:white;border-radius:8px;border:1px solid #eee;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
+                        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #eee;background:#f8f9fa;">
+                            <span style="font-size:13px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-table" style="color:#3498db;"></i>
+                                Results
+                            </span>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <select id="dupFilterSelect" onchange="filterDupResults()" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:28px;background:white;cursor:pointer;">
+                                    <option value="all">All Results</option>
+                                    <option value="DUPLICATE">Duplicates Only</option>
+                                    <option value="NEW">New Only</option>
+                                </select>
+                                <button onclick="exportDupResults()" style="padding:4px 10px;background:#3498db;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;height:28px;">
+                                    <i class="fas fa-file-export"></i> Export CSV
+                                </button>
+                            </div>
+                        </div>
+                        <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:12px;" id="dupResultTable">
+                                <thead>
+                                    <tr style="background:#f8f9fa;position:sticky;top:0;z-index:5;">
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">#</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Value</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Type</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Status</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Count in DB</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">First Seen</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Scam Type</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Input User</th>
+                                        <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Record IDs</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dupResultTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>    
     </div>
     {% endif %}
@@ -1016,7 +1133,7 @@
         <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
-                    <h2><i class="fas fa-search-dollar"></i> BS Investment Scam — Filter Data</h2>
+                    <h2 style="font-size:12px;">Scam++ — Filter Data</h2>
                     <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="investmentFilterForm">
@@ -1169,7 +1286,7 @@
         <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
-                    <h2><i class="fas fa-filter"></i> Filter Data</h2>
+                    <h2 style="font-size:12px;">Social Media Accounts Management - Filter Data</h2>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="socialFilterForm">
                     <input type="hidden" name="page" value="social">
@@ -1402,6 +1519,23 @@
         let summaryHeaders = [];
         let lastSummaryResult = null;
 
+        // ─── DUPLICATE CHECKER STATE ─────────────────────────
+        function excelNameToApiName(raw) {
+            let s = (raw || '').trim();
+            s = s.replace(/^icuser/i, '').trim();
+            s = s.replace(/^Emp/i, '').trim();
+            s = s.replace(/^INT/i, '').trim();
+            s = s.replace(/icuser/gi, '').trim();
+            s = s.replace(/([a-z])([A-Z])/g, '$1 $2');
+            s = s.replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
+            s = s.replace(/\s+/g, ' ').trim();
+            return s;
+        }
+        
+        let _dupAllResults = [];
+        let _dupFileData   = [];
+        let _dupFileHeaders = [];
+
         function getPlatformIconHtml(iconName, extraStyle) {
             const fasIcons = ['envelope', 'sim-card', 'globe', 'question'];
             const prefix = fasIcons.includes(iconName) ? 'fas' : 'fab';
@@ -1413,20 +1547,34 @@
         function switchMode(mode) {
             const sheetSection = document.getElementById('sheetMakerSection');
             const summarySection = document.getElementById('summaryMakerSection');
+            const duplicateSection = document.getElementById('duplicateCheckerSection');
             const templateBtn = document.getElementById('templateBtn');
             const templateStats = document.getElementById('templateStats');
 
             if (mode === 'sheet') {
                 sheetSection.style.display = '';
                 summarySection.style.display = 'none';
+                duplicateSection.style.display = 'none';
                 templateBtn.style.display = '';
                 document.getElementById('summaryPreviewSection').classList.remove('show');
-            } else {
+                document.getElementById('dupResultArea').style.display = 'none';
+            } else if (mode === 'summary') {
                 sheetSection.style.display = 'none';
                 summarySection.style.display = '';
+                duplicateSection.style.display = 'none';
                 templateBtn.style.display = 'none';
                 templateStats.style.display = 'none';
                 closePreview();
+                document.getElementById('dupResultArea').style.display = 'none';
+            } else if (mode === 'duplicates') {
+                sheetSection.style.display = 'none';
+                summarySection.style.display = 'none';
+                duplicateSection.style.display = '';
+                templateBtn.style.display = 'none';
+                templateStats.style.display = 'none';
+                closePreview();
+                document.getElementById('summaryPreviewSection').classList.remove('show');
+                document.getElementById('dupResultArea').style.display = 'none';
             }
         }
 
@@ -1949,11 +2097,7 @@
             document.getElementById('sheetForm').submit();
             setTimeout(hideLoading, 5000);
         }
-
-        // ════════════════════════════════════════════════════
         // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
-        // ════════════════════════════════════════════════════
-
         function onSummaryTypeChange() {
             checkSummaryReady();
         }
@@ -2098,40 +2242,180 @@
                 generateCategorySummary();
             }
         }
-
-        function generateUsersSummary() {
-            const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name','operator','Operator','analyst','Analyst'];
+    
+        async function generateUsersSummary() {
+            const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name',];
             let userCol = null;
             for (const c of userColCandidates) {
                 if (summaryHeaders.includes(c)) { userCol = c; break; }
             }
-            if (!userCol && summaryHeaders.length > 0) {
-                userCol = summaryHeaders[0];
-            }
+            if (!userCol && summaryHeaders.length > 0) userCol = summaryHeaders[0];
             if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
 
-            const counts = {};
-            summaryParsedData.forEach(row => {
-                const val = (row[userCol] || 'Unknown').trim() || 'Unknown';
-                counts[val] = (counts[val] || 0) + 1;
+            const dateColCandidates = ['Inserted_date','inserted_date','Date','date'];
+            let dateCol = null;
+            for (const c of dateColCandidates) {
+                if (summaryHeaders.includes(c)) { dateCol = c; break; }
+            }
+            let excelDates = [];
+            if (dateCol) {
+                excelDates = [...new Set(
+                    summaryParsedData
+                    .map(row => (row[dateCol] || '').trim())
+                    .filter(d => d && d.toUpperCase() !== 'NA')
+                )];
+            }
+            let apiData = [];
+            try {
+                showToast('Fetching department data...', false, false);
+                const resp = await fetch('/getDepartmentData?user_mail=tl_shubhankar.shukla%40pixeltruth.com&department=Anti_Money_Laundering&role=Team_Lead');
+                apiData = await resp.json();
+            } catch(e) {
+                showToast('API fetch failed — missing columns will be empty', true);
+            }
+            const apiLookup = {};
+            const numericFields = ['investment_scam_scrap','Total_Qc','Website_Searching','Credential_Making'];
+            apiData.forEach(row => {
+                const apiName = (row.user_name || '').trim();
+                const apiDate = (row.date || '').split('T')[0]; // "2026-03-30T00:00:00.000Z" → "2026-03-30"
+                const key = `${apiName}__${apiDate}`;
+                if (!apiLookup[key]) {
+                    apiLookup[key] = {
+                        investment_scam_scrap: 0,
+                        Total_Qc: 0,
+                        Website_Searching: 0,
+                        Credential_Making: 0,
+                        remark: row.remark || ''
+                    };
+                }
+                numericFields.forEach(f => {
+                    apiLookup[key][f] += parseInt(row[f] || 0) || 0;
+                });
+                if (row.remark && row.remark !== 'NA') {
+                    apiLookup[key].remark = row.remark;
+                }
+            });
+            const NAME_ORDER = [
+                "Shubhankar Shukla",
+                "Sheetal Dubey",
+                "Parul Satsangi",
+                "Honey Singhal",
+                "Ankit Kumar",
+                "Ananya Verma"
+            ];
+            const users = [...new Set(
+                summaryParsedData
+                .map(row => (row[userCol] || '').trim())
+                .filter(u => u)
+            )].sort((a, b) => {
+                const cleanA = excelNameToApiName(a);
+                const cleanB = excelNameToApiName(b);
+                const idxA = NAME_ORDER.findIndex(n => cleanA.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanA.toLowerCase()));
+                const idxB = NAME_ORDER.findIndex(n => cleanB.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanB.toLowerCase()));
+                if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
+                const userData = {};
+                users.forEach(u => {
+                    userData[u] = {
+                        sm: 0, web: 0, app: 0, total: 0,
+                        scrapping: 0, qualityCheck: 0,
+                        webSearching: 0, credentials: 0,
+                        remark: ''
+                    };
+                });
+                const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
+                let searchCol = null;
+                for (const c of searchColCandidates) {
+                    if (summaryHeaders.includes(c)) { searchCol = c; break; }
+                }
+                const socialPlatforms = ['telegram','whatsapp','facebook','instagram','threads','thread','youtube','x','twitter','snapchat','tiktok','linkedin','pinterest','reddit'];
+                summaryParsedData.forEach(row => {
+                    const user = (row[userCol] || '').trim();
+                    if (!userData[user]) return;
+                    const sf = searchCol ? (row[searchCol] || '').trim().toLowerCase() : '';
+                    if (sf === 'app' || sf === 'application') {
+                        userData[user].app++;
+                    } else if (sf === 'web' || sf === 'website') {
+                        userData[user].web++;
+                    } else if (sf && sf !== 'na' && sf !== 'unknown') {
+                        const isSM = socialPlatforms.some(sm => sf.includes(sm) || sm.includes(sf));
+                        if (isSM) userData[user].sm++;
+                        else userData[user].web++;
+                    }
+                    userData[user].total++;
+                });
+                users.forEach(excelUser => {
+                    const apiName = excelNameToApiName(excelUser);
+                    const userDates = dateCol
+                        ? [...new Set(
+                            summaryParsedData
+                                 .filter(row => (row[userCol] || '').trim() === excelUser)
+                                 .map(row => (row[dateCol] || '').trim())
+                                 .filter(d => d && d.toUpperCase() !== 'NA')
+                          )]
+                        : [''];
+                        let totalScrapping = 0, totalQC = 0, totalWS = 0, totalCred = 0;
+                        let lastRemark = '';
+                        if (userDates.length > 0) {
+                            userDates.forEach(excelDate => {
+                                let normalizedDate = excelDate;
+                                const dmyMatch = excelDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+                                if (dmyMatch) {
+                                    normalizedDate = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
+                                }
+                                const key = `${apiName}__${normalizedDate}`;
+                                if (apiLookup[key]) {
+                                    totalScrapping += apiLookup[key].investment_scam_scrap;
+                                    totalQC        += apiLookup[key].Total_Qc;
+                                    totalWS        += apiLookup[key].Website_Searching;
+                                    totalCred      += apiLookup[key].Credential_Making;
+                                    if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
+                                        lastRemark = apiLookup[key].remark;
+                                    }
+                                }
+                            });
+                        } else {
+                            const matchingKeys = Object.keys(apiLookup).filter(k => k.startsWith(`${apiName}__`));
+                            matchingKeys.forEach(key => {
+                                totalScrapping += apiLookup[key].investment_scam_scrap;
+                                totalQC        += apiLookup[key].Total_Qc;
+                                totalWS        += apiLookup[key].Website_Searching;
+                                totalCred      += apiLookup[key].Credential_Making;
+                                if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
+                                    lastRemark = apiLookup[key].remark;
+                                }
+                            });
+                        }
+                userData[excelUser].scrapping    = totalScrapping;
+                userData[excelUser].qualityCheck = totalQC;
+                userData[excelUser].webSearching = totalWS;
+                userData[excelUser].credentials  = totalCred;
+                userData[excelUser].remark       = lastRemark;
             });
 
-            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-            const total = Object.values(counts).reduce((a,b) => a+b, 0);
-
-            lastSummaryResult = {
-                type: 'users',
-                columns: [userCol, 'Count', 'Percentage'],
-                rows: sorted.map(([name, cnt]) => [name, cnt, ((cnt/total)*100).toFixed(1)+'%']),
-                totalRow: ['Total', total, '100%']
-            };
-
-            renderSummaryTable(
-                `Users Summary — by "${userCol}"`,
-                [userCol, 'Count', 'Percentage'],
-                sorted.map(([name, cnt]) => [name, cnt, ((cnt/total)*100).toFixed(1)+'%']),
-                ['Total', total, '100%']
-            );
+            let maxDate = null;
+            if (dateCol) {
+                summaryParsedData.forEach(row => {
+                    const d = (row[dateCol] || '').trim();
+                    if (d && d.toUpperCase() !== 'NA') {
+                        if (!maxDate || d > maxDate) maxDate = d;
+                    }
+                });
+            }
+            let dateStr = '';
+            if (maxDate) {
+                const parts = maxDate.split('-');
+                if (parts.length === 3) dateStr = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                else dateStr = maxDate;
+            } else {
+                const today = new Date();
+                dateStr = `${String(today.getDate()).padStart(2,'0')}-${String(today.getMonth()+1).padStart(2,'0')}-${today.getFullYear()}`;
+            }
+            lastSummaryResult = { type: 'users_detailed', userData, users, dateStr };
+            renderUsersSummaryTable(userData, users, dateStr);
         }
 
         function generateCategorySummary() {
@@ -2311,50 +2595,97 @@
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        function renderSummaryTable(title, columns, rows, totalRow) {
+        function renderUsersSummaryTable(userData, users, dateStr) {
             const section = document.getElementById('summaryPreviewSection');
-            document.getElementById('summaryPreviewTitle').textContent = title;
-
+            document.getElementById('summaryPreviewTitle').textContent = `Scam++ Summary - ${dateStr}`;
             const thead = document.getElementById('summaryResultHead');
             const tbody = document.getElementById('summaryResultBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
 
-            const hr = document.createElement('tr');
-            columns.forEach(col => { const th = document.createElement('th'); th.textContent = col; hr.appendChild(th); });
-            thead.appendChild(hr);
+            const thS = `font-weight:700;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:6px 10px;font-size:12px;white-space:nowrap;background:#e8eaf6;`;
+            const tdS = `text-align:center;border:1px solid #9fa8da;padding:5px 8px;font-size:12px;`;
+            const tdNameS = `font-weight:600;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f3f4ff;`;
 
-            rows.forEach((row) => {
-                const tr = document.createElement('tr');
-                row.forEach((cell, ci) => {
-                    const td = document.createElement('td');
-                    if (ci === 1) {
-                        td.innerHTML = `<span class="summary-count-badge">${cell}</span>`;
-                    } else {
-                        td.textContent = cell;
-                    }
-                    tr.appendChild(td);
-                });
+            const titleRow = document.createElement('tr');
+            titleRow.innerHTML = `<th colspan="10" style="${thS}font-size:14px;background:#c5cae9;">Scam++ Summary - ${dateStr}</th>`;
+            thead.appendChild(titleRow);
+
+            const hr1 = document.createElement('tr');
+            hr1.innerHTML = `
+                <th rowspan="2" style="${thS}">Name</th>
+                <th colspan="4" style="${thS}">Insertion</th>
+                <th rowspan="2" style="${thS}">Scrapping</th>
+                <th rowspan="2" style="${thS}">Quality Check</th>
+                <th colspan="2" style="${thS}">Website Monitoring</th>
+                <th rowspan="2" style="${thS}">Remark</th>
+            `;
+            thead.appendChild(hr1);
+
+            const hr2 = document.createElement('tr');
+            hr2.innerHTML = `
+                <th style="${thS}">SM Cases</th>
+                <th style="${thS}">Web Cases</th>
+                <th style="${thS}">App Cases</th>
+                <th style="${thS}">Total Cases</th>
+                <th style="${thS}">Web Searching</th>
+                <th style="${thS}">Credentials</th>
+            `;
+            thead.appendChild(hr2);
+            let totals = { sm: 0, web: 0, app: 0, total: 0, scrapping: 0, qualityCheck: 0, webSearching: 0, credentials: 0 };
+            users.forEach(user => {
+                 const d = userData[user];
+                 const cleanUser = excelNameToApiName(user);
+                 const smVal = d.sm > 0 ? d.sm : 'NA';
+                 const webVal = d.web > 0 ? d.web : 'NA';
+                 const appVal = d.app > 0 ? d.app : 'NA';
+                 const scVal = d.scrapping > 0 ? d.scrapping : 'NA';
+                 const qcVal = d.qualityCheck > 0 ? d.qualityCheck : 'NA';
+                 const wsVal = d.webSearching > 0 ? d.webSearching : 'NA';
+                 const crVal = d.credentials > 0 ? d.credentials : 'NA';
+                 totals.sm += d.sm;
+                 totals.web += d.web;
+                 totals.app += d.app;
+                 totals.total += d.total;
+                 totals.scrapping += d.scrapping;
+                 totals.qualityCheck += d.qualityCheck;
+                 totals.webSearching += d.webSearching;
+                 totals.credentials += d.credentials;
+
+                 const tr = document.createElement('tr');
+                 tr.innerHTML = `
+                    <td style="${tdNameS}">${cleanUser}</td>
+                    <td style="${tdS}">${smVal}</td>
+                    <td style="${tdS}">${webVal}</td>
+                    <td style="${tdS}">${appVal}</td>
+                    <td style="${tdS}font-weight:700;">${d.total}</td>
+                    <td style="${tdS}">${scVal}</td>
+                    <td style="${tdS}">${qcVal}</td>
+                    <td style="${tdS}">${wsVal}</td>
+                    <td style="${tdS}">${crVal}</td>
+                    <td style="${tdS}">${d.remark || 'NA'}</td>
+                `;
                 tbody.appendChild(tr);
             });
-
-            if (totalRow) {
-                const tr = document.createElement('tr');
-                tr.className = 'total-row';
-                totalRow.forEach((cell, ci) => {
-                    const td = document.createElement('td');
-                    if (ci === 1) {
-                        td.innerHTML = `<span class="summary-count-badge" style="background:#1a237e;">${cell}</span>`;
-                    } else {
-                        td.textContent = cell;
-                    }
-                    tr.appendChild(td);
-                });
-                tbody.appendChild(tr);
-            }
-
+            const totalRow = document.createElement('tr');
+            totalRow.style.backgroundColor = '#c5cae9';
+            totalRow.innerHTML = `
+                     <td style="${thS}">Total</td>
+                     <td style="${thS}">${totals.sm || 'NA'}</td>
+                     <td style="${thS}">${totals.web || 'NA'}</td>
+                     <td style="${thS}">${totals.app || 'NA'}</td>
+                     <td style="${thS}">${totals.total}</td>
+                     <td style="${thS}">${totals.scrapping || 'NA'}</td>
+                     <td style="${thS}">${totals.qualityCheck || 'NA'}</td>
+                     <td style="${thS}">${totals.webSearching || 'NA'}</td>
+                     <td style="${thS}">${totals.credentials || 'NA'}</td>
+                     <td style="${thS}"> </td>
+            `;
+            tbody.appendChild(totalRow);
+            const headerEl = document.getElementById('summaryTableHeader');
+            if (headerEl) headerEl.style.display = 'none';
             section.classList.add('show');
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
+           }
 
         function exportSummaryCSV() {
             if (!lastSummaryResult) { showToast('No summary to export', true); return; }
@@ -2363,6 +2694,29 @@
             let lines = [];
             const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
             let filename = `summary_${lastSummaryResult.type}_${ts}.csv`;
+
+            if (lastSummaryResult.type === 'users_detailed') {
+                filename = `Scam_Plus_Summary_${ts}.csv`;
+                lines = ['Name,SM Cases,Web Cases,App Cases,Total Cases,Scrapping,Quality Check,Web Searching,Credentials,Remark'];
+                const { userData, users, dateStr } = lastSummaryResult;
+                users.forEach(user => {
+                    const d = userData[user];
+                    lines.push([
+                        escCSV(user),
+                        d.sm || 'NA', d.web || 'NA', d.app || 'NA', d.total,
+                        d.scrapping || 'NA', d.qualityCheck || 'NA',
+                        d.webSearching || 'NA', d.credentials || 'NA',
+                        escCSV(d.remark || '')
+                    ].join(','));
+                });
+                const t = Object.values(userData).reduce((acc, d) => {
+                    acc.sm += d.sm; acc.web += d.web; acc.app += d.app; acc.total += d.total;
+                    acc.scrapping += d.scrapping; acc.qualityCheck += d.qualityCheck;
+                    acc.webSearching += d.webSearching; acc.credentials += d.credentials;
+                    return acc;
+                }, { sm:0, web:0, app:0, total:0, scrapping:0, qualityCheck:0, webSearching:0, credentials:0 });
+                lines.push(`Total,${t.sm||'NA'},${t.web||'NA'},${t.app||'NA'},${t.total},${t.scrapping||'NA'},${t.qualityCheck||'NA'},${t.webSearching||'NA'},${t.credentials||'NA'},`);
+            } else
 
             if (lastSummaryResult.type === 'category_detailed') {
                 filename = `IS_Category_Wise_Summary_${ts}.csv`;
@@ -2444,6 +2798,244 @@
             }
         }
 
+        // ─── DUPLICATE CHECKER ───────────────────────────────────────
+        function toggleDupInputMode(mode) {
+            document.getElementById('dupManualArea').style.display = mode === 'manual' ? '' : 'none';
+            document.getElementById('dupFileArea').style.display   = mode === 'file'   ? '' : 'none';
+            _resetDupResults();
+            _updateDupStatus();
+        }
+
+        function onDupManualInput() {
+            const lines = document.getElementById('dupManualInput').value
+                .split('\n').map(l => l.trim()).filter(l => l);
+            document.getElementById('dupManualCount').textContent = `${lines.length} entr${lines.length === 1 ? 'y' : 'ies'}`;
+            _updateDupStatus();
+        }
+
+        function onDupFileSelected(input) {
+            const file = input.files[0];
+            if (!file) return;
+            document.getElementById('dupFileName').textContent = file.name;
+            _dupFileData = []; _dupFileHeaders = [];
+            document.getElementById('dupColumnSelect').innerHTML = '<option value="">-- Parsing... --</option>';
+            document.getElementById('dupFileRowCount').textContent = '';
+            _updateDupStatus();
+
+            const formData = new FormData();
+            formData.append('file', file);
+            fetch('/parse-raw-file', { method: 'POST', body: formData })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        _dupFileHeaders = data.headers;
+                        _dupFileData    = data.rows;
+                        const sel = document.getElementById('dupColumnSelect');
+                        sel.innerHTML = '<option value="">-- Select column --</option>';
+                        data.headers.forEach(h => {
+                            const opt = document.createElement('option');
+                            opt.value = h; opt.textContent = h;
+                            // auto-select likely column
+                            const hl = h.toLowerCase();
+                            if (hl.includes('upi') || hl.includes('bank') || hl.includes('account')) opt.selected = true;
+                            sel.appendChild(opt);
+                        });
+                        document.getElementById('dupFileRowCount').textContent =
+                            `${data.total_rows} rows found`;
+                        _updateDupStatus();
+                    } else {
+                        showToast('Error parsing file: ' + data.error, true);
+                    }
+                })
+                .catch(() => showToast('Network error parsing file', true));
+        }
+
+        function onDupColumnSelected() { _updateDupStatus(); }
+
+        function _updateDupStatus() {
+            const mode      = document.getElementById('dupInputMode').value;
+            const statusBox = document.getElementById('dupStatusBox');
+            const btn       = document.getElementById('dupCheckBtn');
+            let ready = false; let msg = 'Waiting for input...';
+
+            if (mode === 'manual') {
+                const lines = document.getElementById('dupManualInput').value
+                    .split('\n').map(l => l.trim()).filter(l => l);
+                if (lines.length > 0) {
+                    ready = true;
+                    msg = `${lines.length} entr${lines.length===1?'y':'ies'} ready to check.`;
+                } else { msg = 'Enter at least one value.'; }
+            } else {
+                const col = document.getElementById('dupColumnSelect').value;
+                if (_dupFileData.length > 0 && col) {
+                    ready = true;
+                    msg = `${_dupFileData.length} rows from file, column "${col}" selected.`;
+                } else if (_dupFileData.length > 0) {
+                    msg = 'Select a column to check.';
+                } else { msg = 'Upload a file first.'; }
+            }
+
+            statusBox.className = `sheet-status-box ${ready ? 'ready' : 'waiting'}`;
+            statusBox.innerHTML = `<i class="fas fa-${ready ? 'check-circle' : 'hourglass-half'}"></i><span>${msg}</span>`;
+            btn.disabled = !ready;
+        }
+
+        function _resetDupResults() {
+            _dupAllResults = [];
+            document.getElementById('dupResultArea').style.display = 'none';
+            document.getElementById('dupResultTableBody').innerHTML = '';
+            document.getElementById('dupSummaryCards').innerHTML = '';
+        }
+
+        async function runDuplicateCheck() {
+            const mode     = document.getElementById('dupInputMode').value;
+            const checkType = document.getElementById('dupCheckType').value;
+            let entries = [];
+
+            if (mode === 'manual') {
+                const lines = document.getElementById('dupManualInput').value
+                    .split('\n').map(l => l.trim()).filter(l => l).slice(0, 200);
+                entries = lines.map(v => ({ value: v, type: checkType }));
+            } else {
+                const col = document.getElementById('dupColumnSelect').value;
+                if (!col) { showToast('Please select a column', true); return; }
+                entries = _dupFileData
+                    .map(row => ({ value: String(row[col] || '').trim(), type: checkType }))
+                    .filter(e => e.value && !['na','n/a','','none'].includes(e.value.toLowerCase()))
+                    .slice(0, 2000);
+            }
+
+            if (!entries.length) { showToast('No valid entries to check', true); return; }
+
+            // Show loading in button
+            const btn = document.getElementById('dupCheckBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+            _resetDupResults();
+
+            // Batch in chunks of 50 to avoid timeout
+            const CHUNK = 50;
+            let allResults = [];
+            for (let i = 0; i < entries.length; i += CHUNK) {
+                const chunk = entries.slice(i, i + CHUNK);
+                try {
+                    const resp = await fetch('/check-duplicates', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ entries: chunk })
+                    });
+                    const data = await resp.json();
+                    if (data.success) allResults = allResults.concat(data.results);
+                    else { showToast('Error: ' + data.error, true); break; }
+                } catch(e) {
+                    showToast('Network error: ' + e.message, true); break;
+                }
+                // Update button progress
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${Math.min(i+CHUNK, entries.length)}/${entries.length}`;
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search"></i> Check Duplicates';
+            _dupAllResults = allResults;
+            _renderDupResults(allResults);
+        }
+
+        function _renderDupResults(results) {
+            if (!results.length) { showToast('No results to display', true); return; }
+
+            const total      = results.length;
+            const duplicates = results.filter(r => r.status === 'DUPLICATE').length;
+            const newOnes    = results.filter(r => r.status === 'NEW').length;
+            const errors     = results.filter(r => r.status === 'ERROR').length;
+
+            // Summary cards
+            document.getElementById('dupSummaryCards').innerHTML = `
+                <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:11px;color:#7f8c8d;margin-bottom:4px;font-weight:600;">TOTAL CHECKED</div>
+                    <div style="font-size:22px;font-weight:700;color:#2c3e50;">${total}</div>
+                </div>
+                <div style="background:#fde8e8;border:1px solid #fbc7c7;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:11px;color:#c0392b;margin-bottom:4px;font-weight:600;">DUPLICATES</div>
+                    <div style="font-size:22px;font-weight:700;color:#c0392b;">${duplicates}</div>
+                </div>
+                <div style="background:#e8f8f0;border:1px solid #a9dfbf;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:11px;color:#1e8449;margin-bottom:4px;font-weight:600;">NEW</div>
+                    <div style="font-size:22px;font-weight:700;color:#1e8449;">${newOnes}</div>
+                </div>
+                <div style="background:#fef9e7;border:1px solid #f9e79f;border-radius:8px;padding:12px;text-align:center;">
+                    <div style="font-size:11px;color:#b7950b;margin-bottom:4px;font-weight:600;">ERRORS</div>
+                    <div style="font-size:22px;font-weight:700;color:#b7950b;">${errors}</div>
+                </div>
+            `;
+
+            _renderDupTable(results);
+            document.getElementById('dupResultArea').style.display = '';
+            document.getElementById('dupResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function _renderDupTable(results) {
+            const tbody = document.getElementById('dupResultTableBody');
+            if (!results.length) {
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:#95a5a6;">No records match this filter.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = results.map((r, i) => {
+                const isDup = r.status === 'DUPLICATE';
+                const isNew = r.status === 'NEW';
+                const rowBg = isDup ? '#fff5f5' : isNew ? '#f0fff4' : '#fffbf0';
+                const statusBadge = isDup
+                    ? `<span style="background:#fde8e8;color:#c0392b;border:1px solid #fbc7c7;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">DUPLICATE</span>`
+                    : isNew
+                    ? `<span style="background:#e8f8f0;color:#1e8449;border:1px solid #a9dfbf;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">NEW</span>`
+                    : `<span style="background:#fef9e7;color:#b7950b;border:1px solid #f9e79f;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">ERROR</span>`;
+                const typeBadge = r.type === 'upi'
+                    ? `<span style="background:#e8f4fd;color:#1a6a9a;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;">UPI</span>`
+                    : `<span style="background:#f0e8fd;color:#6a1a9a;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;">BANK</span>`;
+
+                return `<tr style="background:${rowBg};border-bottom:1px solid #eee;">
+                    <td style="padding:8px 12px;color:#7f8c8d;font-size:11px;">${i+1}</td>
+                    <td style="padding:8px 12px;font-family:monospace;font-size:12px;font-weight:600;color:#2c3e50;">
+                        ${r.value}
+                        <button class="copy-btn" onclick="copyToClipboard('${r.value.replace(/'/g,"\\'")}','Value')" title="Copy"><i class="fas fa-copy"></i></button>
+                    </td>
+                    <td style="padding:8px 12px;">${typeBadge}</td>
+                    <td style="padding:8px 12px;">${statusBadge}</td>
+                    <td style="padding:8px 12px;text-align:center;font-weight:700;color:${isDup?'#c0392b':'#1e8449'};">${r.count || 0}</td>
+                    <td style="padding:8px 12px;font-size:11px;color:#555;">${r.earliest_date || '—'}</td>
+                    <td style="padding:8px 12px;font-size:11px;">${r.scam_type && r.scam_type !== 'NA' ? `<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;">${r.scam_type}</span>` : '—'}</td>
+                    <td style="padding:8px 12px;font-size:11px;color:#555;">${r.input_user || '—'}</td>
+                    <td style="padding:8px 12px;font-size:11px;color:#7f8c8d;font-family:monospace;">${(r.record_ids || []).join(', ') || '—'}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function filterDupResults() {
+            const filter = document.getElementById('dupFilterSelect').value;
+            const filtered = filter === 'all' ? _dupAllResults : _dupAllResults.filter(r => r.status === filter);
+            _renderDupTable(filtered);
+        }
+
+        function exportDupResults() {
+            if (!_dupAllResults.length) { showToast('No results to export', true); return; }
+            const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
+            const headers = ['#','Value','Type','Status','Count in DB','First Seen','Latest Seen','Scam Type','Input User','Record IDs'];
+            const rows = _dupAllResults.map((r,i) => [
+                i+1, r.value, r.type, r.status, r.count||0,
+                r.earliest_date||'', r.latest_date||'',
+                r.scam_type||'', r.input_user||'',
+                (r.record_ids||[]).join(' | ')
+            ].map(esc).join(','));
+            const csv = '\uFEFF' + [headers.join(','), ...rows].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+            a.href = url; a.download = `duplicate_check_${ts}.csv`;
+            document.body.appendChild(a); a.click();
+            document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast(`Exported ${_dupAllResults.length} records`, false, true);
+        }
+
         // ─── Helpers ─────────────────────────────────────────────────
         function copyToClipboard(text, fieldName) {
             if (!text || ['NA','null','N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
@@ -2492,13 +3084,14 @@
                         targetInput.files = dt.files;
                         if (targetInput.id === 'fileUpload') updateFileName(targetInput);
                         else if (targetInput.id === 'summaryFileUpload') updateSummaryFileName(targetInput);
+                        else if (targetInput.id === 'dupFileInput') onDupFileSelected(targetInput);
                     }
                 }
             });
         });
 
         // Close modals on backdrop click
-        ['trackerModal','activityModal','permanentModal','confirmationModal','scrapingTrackerModal'].forEach(id => {
+        ['trackerModal','activityModal','permanentModal','confirmationModal','scrapingTrackerModal','invTrackerModal','userActivityLogModal'].forEach(id => {
             const modal = document.getElementById(id);
             if (modal) {
                 modal.addEventListener('click', e => {
@@ -2508,6 +3101,8 @@
                         else if (id === 'permanentModal') closePermanentAccounts();
                         else if (id === 'confirmationModal') cancelAction();
                         else if (id === 'scrapingTrackerModal') closeScrapingTracker();
+                        else if (id === 'invTrackerModal') closeInvestmentTracker();
+                        else if (id === 'userActivityLogModal') closeUserActivityLog();
                     }
                 });
             }
@@ -2532,10 +3127,7 @@
         document.getElementById('fileInputSocial')?.addEventListener('change', function() {
             if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
         });
-
-        // ============================================================
         // USER ACTIVITY LOG JS
-        // ============================================================
         let _ualAllLogs = [];
 
         function showUserActivityLog() {
