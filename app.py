@@ -40,7 +40,7 @@ DEMO_ADMIN = {
     "is_admin": True,
     "is_active": True,
     "can_view_activity_log": True,
-    "allowed_departments": ["AML"],
+    "allowed_departments": ["ITC","AML", "Investment Scam", "Infringement", "Chargeback"],
     "created_at": "2025-01-01"
 }
 

@@ -1845,9 +1845,11 @@
             return { bg: STATUS_BG_CLASS[status] || 'status-bg-default', nameClass: STATUS_NAME_CLASS[status] || 'color-default', countClass: STATUS_COUNT_CLASS[status] || 'count-default' };
         }
 
+        // ─── REPLACED FUNCTION (new version) ─────────────────────────────
         function displayTrackerData(stats) {
             const body = document.getElementById('trackerBody');
             const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon','Gmail Accounts','Total Numbers'];
+
             if (trackerCurrentView === 'perm') {
                 const permCounts = stats.perm_block_counts || {};
                 const permTotal = stats.perm_block_total || 0;
@@ -1869,66 +1871,153 @@
                 body.innerHTML = html;
                 return;
             }
+
             const isActiveView = trackerCurrentView === 'active';
-            const summaryTitle = isActiveView ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform' : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
+
+            // ── SUMMARY CARDS (same for both active & total views) ─────────────────────
+            const summaryTitle = isActiveView
+                ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform'
+                : '<i class="fas fa-chart-bar"></i> Platform-Wise Account Summary';
+
             let html = `<div class="tracker-summary"><h3>${summaryTitle}</h3><div class="summary-grid">`;
             let grandTotal = 0;
+
             platforms.forEach(p => {
                 const statusData = stats.platform_status_counts[p] || {};
                 const iconName = PLATFORM_ICONS[p] || 'globe';
                 let displayCount, countClass;
-                if (isActiveView) { displayCount = statusData['Active'] || 0; countClass = 'active-count'; }
-                else { displayCount = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block').reduce((sum,[,n]) => sum+n, 0); countClass = ''; }
+                if (isActiveView) {
+                    displayCount = statusData['Active'] || 0;
+                    countClass = 'active-count';
+                } else {
+                    displayCount = Object.entries(statusData)
+                        .filter(([s]) => s !== 'Permanent Block')
+                        .reduce((sum, [, n]) => sum + n, 0);
+                    countClass = '';
+                }
                 grandTotal += displayCount;
                 html += `<div class="summary-item"><div class="platform">${getPlatformIconHtml(iconName)}${p}</div><div class="count ${countClass}">${displayCount}</div></div>`;
             });
-            const totalLabel = isActiveView ? 'Total Active Accounts:' : 'Total Accounts (excl. Perm. Block):';
-            html += `</div><div class="total-accounts">${totalLabel} <span class="total-count" style="color:${isActiveView?'#16a34a':'#5d9cec'};">${grandTotal}</span></div></div>`;
+
+            const totalLabel = isActiveView
+                ? 'Total Active Accounts:'
+                : 'Total Accounts (excl. Perm. Block):';
+
+            html += `</div><div class="total-accounts">${totalLabel} <span class="total-count" style="color:${isActiveView ? '#16a34a' : '#5d9cec'};">${grandTotal}</span></div></div>`;
+
+            // ── ACTIVE VIEW: Department breakdown per platform ─────────────────────────
+            if (isActiveView) {
+                html += '<div class="tracker-details"><h3><i class="fas a-building"></i> Active Accounts by Platform &amp; Department</h3>';
+
+                const DEPT_COLORS = {
+                    'AML':             'background:#e8f5e9;color:#1b5e20;border-color:#81c784;',
+                    'Investment Scam': 'background:#fff3e0;color:#e65100;border-color:#ffb74d;',
+                    'ITC':             'background:#e3f2fd;color:#0d47a1;border-color:#64b5f6;',
+                    'Infringement':    'background:#f3e5f5;color:#4a148c;border-color:#ce93d8;',
+                    'Chargeback':      'background:#fce4ec;color:#880e4f;border-color:#f48fb1;',
+                    'Unknown':         'background:#f5f5f5;color:#616161;border-color:#bdbdbd;',
+                };
+
+                platforms.forEach(p => {
+                    const statusData = stats.platform_status_counts[p] || {};
+                    const deptMap = (stats.platform_dept_counts || {})[p] || {};
+                    const iconName = PLATFORM_ICONS[p] || 'globe';
+
+                    // Total non-perm accounts for this platform
+                    const total = Object.entries(statusData)
+                        .filter(([s]) => s !== 'Permanent Block')
+                        .reduce((sum, [, n]) => sum + n, 0);
+
+                    if (total === 0) return;
+
+                    const deptEntries = Object.entries(deptMap).sort((a, b) => b[1] - a[1]);
+                    const activeCount = statusData['Active'] || 0;
+
+                    // Status breakdown pills (all statuses except Perm Block)
+                    const statusEntries = Object.entries(statusData)
+                        .filter(([s, c]) => s !== 'Permanent Block' && c > 0)
+                        .sort((a, b) => { if (a[0] === 'Active') return -1; if (b[0] === 'Active') return 1; return b[1] - a[1]; });
+
+                    const statusPills = statusEntries.map(([status, count]) => {
+                        const { bg, nameClass, countClass } = getStatusColorClasses(status);
+                        return `<span class="status-item ${bg}" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;margin:0;border:1px solid transparent;">
+                    <span class="status-name ${nameClass}" style="font-size:11px;"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</span>
+                    <span class="status-count ${countClass}" style="font-size:11px;font-weight:700;background:rgba(0,0,0,0.08);padding:0 5px;border-radius:8px;">${count}</span>
+                </span>`;
+                    }).join('');
+
+                    // Department pills
+                    const deptPills = deptEntries.map(([dept, cnt]) => {
+                        const style = DEPT_COLORS[dept] || DEPT_COLORS['Unknown'];
+                        return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;${style}">
+                    <i class="fas fa-building" style="font-size:9px;"></i>${dept}
+                    <span style="background:rgba(0,0,0,0.1);padding:0 5px;border-radius:8px;">${cnt}</span>
+                </span>`;
+                    }).join('');
+
+                    html += `<div class="platform-section">
+                <div class="platform-header">
+                    <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
+                    <span class="platform-total" style="background:#16a34a;">Active: ${activeCount} / Total: ${total}</span>
+                </div>
+
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
+                        <i class="fas fa-shield-alt"></i> Account Status
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${statusPills || '<span style="font-size:11px;color:#95a5a6;">No data</span>'}</div>
+                </div>
+
+                ${deptEntries.length ? `
+                <div style="padding-top:8px;border-top:1px dashed #e0e0e0;">
+                    <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
+                        <i class="fas fa-building"></i> By Department
+                    </div>
+                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${deptPills}</div>
+                </div>` : ''}
+            </div>`;
+                });
+
+                html += '</div>';
+            }
+
+            // ── TOTAL VIEW: Status breakdown only, NO department section ──────────────
             if (!isActiveView) {
                 html += '<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>';
+
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const iconName = PLATFORM_ICONS[p] || 'globe';
                     const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
-                    const total = actualStatuses.reduce((sum,[,n]) => sum+n, 0);
-                    if (total > 0) {
-                        const deptMap = (stats.platform_dept_counts || {})[p] || {};
-                        const deptEntries = Object.entries(deptMap).sort((a,b) => b[1]-a[1]);
-                        const DEPT_COLORS = {
-                            'AML':             'background:#e8f5e9;color:#1b5e20;border-color:#81c784;',
-                            'Investment Scam': 'background:#fff3e0;color:#e65100;border-color:#ffb74d;',
-                            'ITC':             'background:#e3f2fd;color:#0d47a1;border-color:#64b5f6;',
-                            'Infringement':    'background:#f3e5f5;color:#4a148c;border-color:#ce93d8;',
-                            'Chargeback':      'background:#fce4ec;color:#880e4f;border-color:#f48fb1;',
-                            'Unknown':         'background:#f5f5f5;color:#616161;border-color:#bdbdbd;',
-                        };
-                        const deptPills = deptEntries.map(([dept, cnt]) => {
-                            const style = DEPT_COLORS[dept] || DEPT_COLORS['Unknown'];
-                            return `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid;${style}">
-                                <i class="fas fa-building" style="font-size:9px;"></i>${dept}
-                                <span style="background:rgba(0,0,0,0.1);padding:0 5px;border-radius:8px;">${cnt}</span>
-                             </span>`;
-                        }).join('');
-                        const deptSection = deptEntries.length ? `
-                            <div style="margin-top:10px;padding-top:8px;border-top:1px dashed #e0e0e0;">
-                                <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
-                                    <i class="fas fa-building"></i> By Department
-                                </div>
-                                <div style="display:flex;flex-wrap:wrap;gap:5px;">${deptPills}</div>
-                            </div>` : '';
-                        html += `<div class="platform-section"><div class="platform-header"><h4>${getPlatformIconHtml(iconName)} ${p}</h4><span class="platform-total">Total: ${total}</span></div><div class="status-grid">`;
-                        actualStatuses.sort((a,b) => { if(a[0]==='Active') return -1; if(b[0]==='Active') return 1; return b[1]-a[1]; });
-                        actualStatuses.forEach(([status, count]) => {
+                    const total = actualStatuses.reduce((sum, [, n]) => sum + n, 0);
+
+                    if (total === 0) return;
+
+                    html += `<div class="platform-section">
+                <div class="platform-header">
+                    <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
+                    <span class="platform-total">Total: ${total}</span>
+                </div>
+                <div class="status-grid">`;
+
+                    actualStatuses
+                        .sort((a, b) => { if (a[0] === 'Active') return -1; if (b[0] === 'Active') return 1; return b[1] - a[1]; })
+                        .forEach(([status, count]) => {
                             if (count > 0) {
-                                const {bg,nameClass,countClass} = getStatusColorClasses(status);
-                                html += `<div class="status-item ${bg}"><div class="status-name ${nameClass}"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</div><div class="status-count ${countClass}">${count}</div></div>`;
+                                const { bg, nameClass, countClass } = getStatusColorClasses(status);
+                                html += `<div class="status-item ${bg}">
+                            <div class="status-name ${nameClass}"><i class="fas fa-circle" style="font-size:7px;"></i> ${status}</div>
+                            <div class="status-count ${countClass}">${count}</div>
+                        </div>`;
                             }
                         });
-                        html += `</div>${deptSection}</div>`;
-                    }
+
+                    html += `</div></div>`;
                 });
+
                 html += '</div>';
             }
+
             body.innerHTML = html;
         }
 
