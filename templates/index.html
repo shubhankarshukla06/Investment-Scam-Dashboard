@@ -7,8 +7,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
-        body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; padding-bottom: 60px; }
-        .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 100px; }
+        body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
+        .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 100px; padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
         .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
 
@@ -43,12 +43,12 @@
         .btn-warning { background: #f39c12; color: white; }
         .btn-warning:hover { background: #e67e22; }
         .page-content { display: none; }
-        .page-content.active { display: block; }
+        .page-content.active { display: flex; flex-direction: column; }
 
         /* ============================================================
            SCRAPING PAGE
         ============================================================ */
-        .scraping-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .scraping-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; flex-shrink: 0; }
         .scraping-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .scraping-page .filters-header h2 { font-size: 14px; color: #2c3e50; }
         .scraping-page .clear-filters { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
@@ -70,7 +70,7 @@
         .date-range-group input[type="date"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
         .date-range-group input[type="date"].active-filter { border-color: #3498db; background: #ebf5fb; }
         .date-range-sep { font-size: 11px; color: #7f8c8d; white-space: nowrap; }
-        .scraping-page .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 300px); overflow-x: auto; overflow-y: auto; width: 100%; }
+        .scraping-page .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); overflow-x: auto; overflow-y: auto; width: 100%; max-height: calc(100vh - 310px); }
         .scraping-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
         .scraping-page th, .scraping-page td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 12px; white-space: nowrap; }
         .scraping-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #eee; }
@@ -80,7 +80,7 @@
         /* ============================================================
            BS INVESTMENT SCAM PAGE
         ============================================================ */
-        .investment-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .investment-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; flex-shrink: 0; }
         .investment-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .investment-page .clear-filters { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 5px; height: 30px; }
         .investment-page .clear-filters:hover { background: #c0392b; }
@@ -97,7 +97,7 @@
         .investment-page .filter-group input[type="date"]:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
         .investment-page .filter-group select.active-filter,
         .investment-page .filter-group input[type="date"].active-filter { border-color: #e67e22; background: #fef9f0; }
-        .investment-page .table-container { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 300px); overflow-x: auto; overflow-y: auto; width: 100%; }
+        .investment-page .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); overflow-x: auto; overflow-y: auto; width: 100%; max-height: calc(100vh - 310px); }
         .investment-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
         .investment-page th, .investment-page td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 12px; white-space: nowrap; }
         .investment-page th { background: #fff8f0; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #f0e0d0; border-bottom: 2px solid #f0c070; }
@@ -108,7 +108,7 @@
         /* ============================================================
            SOCIAL MEDIA ACCOUNTS PAGE STYLES
         ============================================================ */
-        .social-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .social-page .filters { background: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; flex-shrink: 0; }
         .social-page .filters-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
         .social-page .batch-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .social-page .filters-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; width: 100%; }
@@ -131,7 +131,7 @@
         .social-page .action-btn.activity:hover { background: #9333ea; }
         .social-page .action-btn.permanent { background: #ef4444; }
         .social-page .action-btn.permanent:hover { background: #dc2626; }
-        .social-page .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); max-height: calc(100vh - 280px); overflow-x: auto; overflow-y: auto; width: 100%; margin: 0; }
+        .social-page .table-container { background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); overflow-x: auto; overflow-y: auto; width: 100%; max-height: calc(100vh - 310px); margin: 0; }
         .social-page table { width: max-content; min-width: 100%; border-collapse: collapse; table-layout: auto; }
         .social-page th, .social-page td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .social-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; white-space: nowrap !important; border-right: 1px solid #eee; }
@@ -377,7 +377,7 @@
         .summary-table .total-row td { background: #e8eaf6 !important; font-weight: 700; color: #1a237e; border-top: 2px solid #9fa8da; }
         .summary-count-badge { display: inline-block; background: #5c6bc0; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
 
-        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 12px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 8px; background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; flex-shrink: 0; margin-top: 10px; }
         .pagination-btn { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 3px; height: 30px; }
         .pagination-btn:hover:not(:disabled) { background: #2980b9; }
         .pagination-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
@@ -1954,28 +1954,19 @@
                     <span style="background:rgba(0,0,0,0.1);padding:0 5px;border-radius:8px;">${cnt}</span>
                 </span>`;
                     }).join('');
-
                     html += `<div class="platform-section">
-                <div class="platform-header">
-                    <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
-                    <span class="platform-total" style="background:#16a34a;">Active: ${activeCount} / Total: ${total}</span>
-                </div>
-
-                <div style="margin-bottom:10px;">
-                    <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
-                        <i class="fas fa-shield-alt"></i> Account Status
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${statusPills || '<span style="font-size:11px;color:#95a5a6;">No data</span>'}</div>
-                </div>
-
-                ${deptEntries.length ? `
-                <div style="padding-top:8px;border-top:1px dashed #e0e0e0;">
-                    <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
-                        <i class="fas fa-building"></i> By Department
-                    </div>
-                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${deptPills}</div>
-                </div>` : ''}
-            </div>`;
+                                <div class="platform-header">
+                                    <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
+                                    <span class="platform-total" style="background:#16a34a;">Active: ${activeCount} / Total: ${total}</span>
+                                </div>
+                                ${deptEntries.length ? `
+                                <div>
+                                    <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">
+                                        <i class="fas fa-building"></i> By Department
+                                    </div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:5px;">${deptPills}</div>
+                                </div>` : '<span style="font-size:11px;color:#95a5a6;">No department data</span>'}
+                            </div>`;
                 });
 
                 html += '</div>';
@@ -3374,7 +3365,10 @@
             const header = document.querySelector('.fixed-header');
             const container = document.querySelector('.container');
             if (header && container) {
-                container.style.paddingTop = (header.offsetHeight + 10) + 'px';
+                const headerH = header.offsetHeight;
+                container.style.paddingTop = (headerH + 10) + 'px';
+                container.style.height = `calc(100vh - ${headerH}px)`;
+                container.style.paddingBottom = '4px';
             }
         }
         adjustContainerPadding();
@@ -3383,9 +3377,9 @@
         if (window.ResizeObserver) {
             new ResizeObserver(adjustContainerPadding).observe(
                 document.querySelector('.fixed-header')
-            );
+            );  
         }
-    </script>
+   </script>
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
 </body>
 </html>
