@@ -264,14 +264,6 @@
         /* ============================================================
            ACTIVITY & PERMANENT BLOCK MODALS
         ============================================================ */
-        .activity-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
-        .activity-modal.active { display: flex; }
-        .activity-content { background: white; border-radius: 12px; width: 100%; max-width: 900px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
-        .activity-header { background: #a855f7; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
-        .activity-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
-        .activity-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
-        .activity-close:hover { background: rgba(255,255,255,0.2); }
-        .activity-body { padding: 20px; overflow-y: auto; flex-grow: 1; }
         .permanent-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .permanent-modal.active { display: flex; }
         .permanent-content { background: white; border-radius: 12px; width: 100%; max-width: 1200px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
@@ -491,6 +483,110 @@
         .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
         .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
 
+        .social-page .edit-col-th { width: 52px; min-width: 52px; }
+        .social-page .edit-row-btn {
+            background: #3498db; color: white; border: none;
+            border-radius: 5px; padding: 4px 8px; font-size: 10px;
+            cursor: pointer; display: flex; align-items: center; gap: 3px;
+            transition: background 0.2s; white-space: nowrap;
+        }
+        .social-page .edit-row-btn:hover { background: #2980b9; }
+        .social-page.edit-mode-active .action-btn.update {
+            background: #e74c3c !important;
+        }
+        .social-page.edit-mode-active .action-btn.update:hover {
+            background: #c0392b !important;
+        }
+        .edit-drawer-overlay {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.55); z-index: 3000;
+            justify-content: flex-end; align-items: flex-end;
+        }
+        .edit-drawer-overlay.active { display: flex; }
+        .edit-drawer {
+            background: white; width: 100%; max-height: 85vh;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
+            display: flex; flex-direction: column; overflow: hidden;
+            animation: drawerSlideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        @keyframes drawerSlideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .edit-drawer-handle {
+            width: 44px; height: 4px; background: #dee2e6;
+            border-radius: 2px; margin: 10px auto 0; flex-shrink: 0;
+        }
+        .edit-drawer-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white; padding: 14px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-shrink: 0;
+        }
+        .edit-drawer-header h3 { font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .edit-drawer-close {
+            background: none; border: none; color: white;
+            font-size: 18px; cursor: pointer; padding: 4px 8px;
+            border-radius: 4px; line-height: 1;
+        }
+        .edit-drawer-close:hover { background: rgba(255,255,255,0.2); }
+        .edit-drawer-meta {
+            background: #f8f9fa; padding: 8px 20px;
+            border-bottom: 1px solid #eee; font-size: 12px;
+            display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .edit-drawer-meta span { color: #7f8c8d; }
+        .edit-drawer-meta strong { color: #2c3e50; }
+        .edit-drawer-body {
+            padding: 18px 20px; overflow-y: auto; flex-grow: 1;
+        }
+        .edit-drawer-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .edit-drawer-field { display: flex; flex-direction: column; gap: 5px; }
+        .edit-drawer-field label {
+            font-size: 11px; font-weight: 700; color: #7f8c8d;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .edit-drawer-field input,
+        .edit-drawer-field select {
+            padding: 8px 10px; border: 1.5px solid #e2e8f0;
+            border-radius: 6px; font-size: 13px; background: white;
+            color: #2c3e50; transition: border-color 0.2s, box-shadow 0.2s;
+            height: 36px;
+        }
+        .edit-drawer-field input:focus,
+        .edit-drawer-field select:focus {
+            outline: none; border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.15);
+        }
+        .edit-drawer-field select { cursor: pointer; }
+        .edit-drawer-footer {
+            padding: 12px 20px; background: #f8f9fa;
+            border-top: 1px solid #eee;
+            display: flex; justify-content: flex-end; gap: 10px;
+            flex-shrink: 0;
+        }
+        .edit-drawer-save {
+            padding: 9px 24px; background: #2ecc71; color: white;
+            border: none; border-radius: 6px; font-size: 13px;
+            font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 6px;
+            transition: background 0.2s;
+        }
+        .edit-drawer-save:hover:not(:disabled) { background: #27ae60; }
+        .edit-drawer-save:disabled { background: #95a5a6; cursor: not-allowed; }
+        .edit-drawer-cancel {
+            padding: 9px 18px; background: #f8f9fa; color: #374151;
+            border: 1px solid #d1d5db; border-radius: 6px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .edit-drawer-cancel:hover { background: #e9ecef; }
+
         @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) { .container { padding-top: 120px; padding-bottom: 20px; } .header { flex-direction: column; gap: 10px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
     </style>
@@ -559,19 +655,6 @@
             </div>
             <div class="scraping-tracker-body" id="scrapingTrackerBody">
                 <div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Activity Log Modal -->
-    <div class="activity-modal" id="activityModal">
-        <div class="activity-content">
-            <div class="activity-header">
-                <h2><i class="fas fa-history"></i> Activity Log</h2>
-                <button class="activity-close" onclick="closeActivityLog()"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="activity-body" id="activityBody">
-                <div class="tracker-loading"><div class="spinner"></div><p>Loading activity log...</p></div>
             </div>
         </div>
     </div>
@@ -1336,7 +1419,7 @@
                     </div>
                     <div class="action-buttons">
                         <button type="button" class="action-btn update" onclick="goToUpdatePage()"><i class="fas fa-edit"></i> Update Data</button>
-                        <button type="button" class="action-btn activity" onclick="showActivityLog()"><i class="fas fa-history"></i> Activity Log</button>
+                        <button type="button" class="action-btn" style="background:#10b981;" onclick="openInsertModal()"><i class="fas fa-plus"></i> Insert Data</button>
                         <button type="button" class="action-btn permanent" onclick="showPermanentAccounts()"><i class="fas fa-ban"></i> Permanent Block Accounts</button>
                     </div>
                 </form>
@@ -1346,6 +1429,7 @@
                 <table id="socialMediaTable">
                     <thead>
                         <tr>
+                            <th class="edit-col-th" id="editColTh" style="display:none;"></th>
                             <th data-col="id">ID</th>
                             <th data-col="platform">Platform</th>
                             <th data-col="department">Department</th>
@@ -1392,8 +1476,30 @@
                             {% set row_class = 'row-active' %}
                             {% set badge_class = 'status-active' %}
                         {% endif %}
-                        <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}">
+                        <tr id="row-{{ item.id }}" class="{{ row_class }}" data-id="{{ item.id }}"
+                            data-platform="{{ item.platform or '' }}"
+                            data-login_user="{{ item.login_user or '' }}"
+                            data-number="{{ item.number or '' }}"
+                            data-login_device="{{ item.login_device or '' }}"
+                            data-full_name="{{ item.full_name or '' }}"
+                            data-account_status="{{ item.account_status or 'Active' }}"
+                            data-review_status="{{ item.review_status or 'NA' }}"
+                            data-blocked_date="{{ item.blocked_date or '' }}"
+                            data-unblock_date="{{ item.unblocked_date or item.unblock_date or '' }}"
+                            data-recharge_date="{{ item.recharge_date or '' }}"
+                            data-account_create_date="{{ item.account_create_date or '' }}"
+                            data-owned_by="{{ item.owned_by or '' }}"
+                            data-sim_operator="{{ item.sim_operator or '' }}"
+                            data-department="{{ item.department or '' }}"
+                        >
+                            <td class="edit-col-td" style="display:none;">
+                                <button class="edit-row-btn" onclick="openEditDrawer(event, this.closest('tr'))">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                            </td>
                             <td data-col="id">{{ item.id }}</td>
+                            </td>
+
                             <td data-col="platform"><span class="platform-badge"><i class="fab fa-{{ (item.platform or 'question')|lower }}"></i> {{ item.platform or 'N/A' }}</span></td>
                             <td data-col="department">
                                 {% if item.department and item.department not in ['N/A','NA','',None] %}
@@ -1595,26 +1701,173 @@
         }
 
         function submitSocialSearch() { document.getElementById('socialFilterForm').submit(); }
-
+        let _editModeActive = false;
+        let _editDrawerCurrentId = null;
+        let _editDrawerChanges = {};
         function goToUpdatePage() {
-            const search = document.getElementById('socialSearchInput').value;
-            const platform = document.getElementById('socialPlatformSelect').value;
-            const department = document.getElementById('socialDepartmentSelect').value;
-            let url = '/update-social-accounts';
-            const params = [];
-            if (search) params.push('search=' + encodeURIComponent(search));
-            if (platform) params.push('platform=' + encodeURIComponent(platform));
-            if (department) params.push('department_filter=' + encodeURIComponent(department));
-            sessionStorage.setItem('social_needs_refresh', '1');
-            if (params.length) url += '?' + params.join('&');
-            window.location.href = url;
-        }
-
-        (function checkSocialRefresh() {
-            if ('{{ page_type }}' === 'social' && sessionStorage.getItem('social_needs_refresh') === '1') {
-                sessionStorage.removeItem('social_needs_refresh');
+            _editModeActive = !_editModeActive;
+            const socialPage = document.querySelector('.social-page');
+            const btn = document.querySelector('.action-btn.update');
+            const editTh = document.getElementById('editColTh');
+            const editTds = document.querySelectorAll('.edit-col-td');
+            if (_editModeActive) {
+                socialPage.classList.add('edit-mode-active');
+                btn.innerHTML = '<i class="fas fa-times"></i> Exit Edit Mode';
+                btn.style.background = '#e74c3c';
+                if (editTh) editTh.style.display = '';
+                editTds.forEach(td => td.style.display = '');
+                showToast('Edit mode ON — Click Edit button on any row', false, false);
+            } else {
+                socialPage.classList.remove('edit-mode-active');
+                btn.innerHTML = '<i class="fas fa-edit"></i> Update Data';
+                btn.style.background = '';
+                if (editTh) editTh.style.display = 'none';
+                editTds.forEach(td => td.style.display = 'none');
+                closeEditDrawer();
+                showToast('Edit mode OFF', false, false);
             }
-        })();
+        }
+        const PLATFORM_STATUS_MAP = {
+            "Facebook":       ["Active","Block","Restricted","Permanent Block"],
+            "Instagram":      ["Active","Block","Permanent Block"],
+            "Telegram":       ["Active","Frozen","Permanent Block"],
+            "WhatsApp":       ["Active","Block","Permanent Block","Restricted"],
+            "Amazon":         ["Active","Block","Permanent Block"],
+            "Gmail Accounts": ["Active","Block","Permanent Block"],
+            "Total Numbers":  ["Active","Block","Permanent Block"]
+        };
+        const DRAWER_FIELDS = [
+            { key: 'login_user',          label: 'Login User',         type: 'text' },
+            { key: 'number',              label: 'Number',             type: 'text' },
+            { key: 'login_device',        label: 'Login Device',       type: 'text' },
+            { key: 'full_name',           label: 'Full Name',          type: 'text' },
+            { key: 'sim_operator',        label: 'SIM Operator',       type: 'text' },
+            { key: 'owned_by',            label: 'Owned By',           type: 'text' },
+            { key: 'account_status',      label: 'Account Status',     type: 'status_select' },
+            { key: 'review_status',       label: 'Review Status',      type: 'review_select' },
+            { key: 'account_create_date', label: 'Account Create Date',type: 'date' },
+            { key: 'blocked_date',        label: 'Blocked Date',       type: 'date' },
+            { key: 'unblock_date',        label: 'Unblock Date',       type: 'date' },
+            { key: 'recharge_date',       label: 'Recharge Date',      type: 'date' },
+        ];
+        function openEditDrawer(event, row) {
+            event.stopPropagation();
+            _editDrawerChanges = {};
+            _editDrawerCurrentId = row.dataset.id;
+            const platform = row.dataset.platform || '';
+            document.getElementById('editDrawerTitle').textContent = `ID #${_editDrawerCurrentId}`;
+            document.getElementById('editDrawerMeta').innerHTML = `
+                <span><i class="fab fa-${platform.toLowerCase()}" style="color:#3498db;"></i> <strong>${platform || 'N/A'}</strong></span>
+                <span>Dept: <strong>${row.dataset.department || '—'}</strong></span>
+                <span>Current Status: <strong style="color:#e67e22;">${row.dataset.account_status || '—'}</strong></span>
+            `;
+            const grid = document.getElementById('editDrawerGrid');
+            grid.innerHTML = '';
+
+            DRAWER_FIELDS.forEach(field => {
+                const currentVal = row.dataset[field.key] || '';
+                const div = document.createElement('div');
+                div.className = 'edit-drawer-field';
+                let inputHtml = '';
+                if (field.type === 'status_select') {
+                    const statuses = PLATFORM_STATUS_MAP[platform] || ['Active','Block','Restricted','Frozen','Permanent Block'];
+                    const opts = statuses.map(s => `<option value="${s}" ${currentVal === s ? 'selected' : ''}>${s}</option>`).join('');
+                    inputHtml = `<select id="edf_${field.key}" onchange="_editDrawerChanges['${field.key}']=this.value">
+                        ${opts}
+                    </select>`;
+                } else if (field.type === 'review_select') {
+                    const revOpts = ['NA','Send','Appeal Submit','Video Verification Done'].map(s =>
+                      `<option value="${s}" ${currentVal === s ? 'selected' : ''}>${s}</option>`
+                    ).join('');
+                    inputHtml = `<select id="edf_${field.key}" onchange="_editDrawerChanges['${field.key}']=this.value">
+                        ${revOpts}
+                    </select>`;
+                } else if (field.type === 'date') {
+                    inputHtml = `<input type="date" id="edf_${field.key}" value="${currentVal}" 
+                       onchange="_editDrawerChanges['${field.key}']=this.value">`;
+                } else {
+                    inputHtml = `<input type="text" id="edf_${field.key}" value="${currentVal}"
+                        placeholder="${field.label}..."
+                        oninput="_editDrawerChanges['${field.key}']=this.value">`;
+                }
+                div.innerHTML = `<label>${field.label}</label>${inputHtml}`;
+                grid.appendChild(div);
+            });
+            document.getElementById('editDrawerOverlay').classList.add('active');
+        }
+        function closeEditDrawer() {
+            document.getElementById('editDrawerOverlay').classList.remove('active');
+            _editDrawerCurrentId = null;
+            _editDrawerChanges = {};
+        }
+        async function saveEditDrawer() {
+            if (!_editDrawerCurrentId) return;
+            const fields = Object.keys(_editDrawerChanges);
+            if (!fields.length) { showToast('Koi change nahi kiya!', true); return; }
+
+            const saveBtn = document.getElementById('editDrawerSaveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            let successCount = 0;
+            let errorMsg = '';
+
+            for (const field of fields) {
+                const value = _editDrawerChanges[field];
+                try {
+                    const resp = await fetch('/save-social-field', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: parseInt(_editDrawerCurrentId), field, value })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        successCount++;
+                        // Update the row's data attribute
+                        const row = document.querySelector(`tr[data-id="${_editDrawerCurrentId}"]`);
+                        if (row) {
+                            row.dataset[field] = value;
+                            const td = row.querySelector(`td[data-col="${field}"]`);
+                            if (td) {
+                                if (field === 'account_status') {
+                                    const sl = value.toLowerCase();
+                                    row.className = row.className.replace(/row-\S+/, '');
+                                    if (sl.includes('permanent')) row.className += ' row-permanent-block';
+                                    else if (sl.includes('block')) row.className += ' row-block';
+                                    else if (sl.includes('restricted')) row.className += ' row-restricted';
+                                    else if (sl.includes('frozen')) row.className += ' row-frozen';
+                                    else row.className += ' row-active';
+                                    // Update badge
+                                    const badgeClass = sl.includes('permanent') ? 'status-permanent-block' : `status-${sl.replace(' ','-')}`;
+                                    td.innerHTML = `<span class="status-display ${badgeClass}">${value}</span>`;
+                                } else {
+                                    td.textContent = value || 'N/A';
+                                }
+                            }
+                        }
+                    } else {
+                        errorMsg = data.error || 'Save failed';
+                    }
+                } catch(e) {
+                    errorMsg = e.message;
+                }
+            }
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+
+            if (errorMsg) {
+                showToast(`Error: ${errorMsg}`, true);
+            } else {
+                showToast(`${successCount} field${successCount>1?'s':''} saved!`, false, true);
+                closeEditDrawer();
+            }
+        }
+        document.getElementById('editDrawerOverlay')?.addEventListener('click', function(e) {
+            if (e.target === this) closeEditDrawer();
+        });
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeEditDrawer();
+        });
 
         function clearInvestmentFilters() { window.location.href = "/?page=investment"; }
 
@@ -2011,13 +2264,6 @@
 
             body.innerHTML = html;
         }
-
-        // ─── Activity Log ────────────────────────────────────────────
-        function showActivityLog() {
-            document.getElementById('activityModal').classList.add('active');
-            document.getElementById('activityBody').innerHTML = `<div style="text-align:center;padding:60px 20px;"><i class="fas fa-clock" style="font-size:52px;color:#a855f7;margin-bottom:18px;display:block;"></i><h2 style="color:#2c3e50;font-size:20px;margin-bottom:10px;">Implement Soon</h2><p style="color:#7f8c8d;font-size:15px;font-weight:500;">Have Some Patience</p></div>`;
-        }
-        function closeActivityLog() { document.getElementById('activityModal').classList.remove('active'); }
 
         // ─── Permanent Block Modal ───────────────────────────────────
         function showPermanentAccounts() {
@@ -3203,7 +3449,7 @@
         });
 
         // Close modals on backdrop click
-        ['trackerModal','activityModal','permanentModal','confirmationModal','scrapingTrackerModal','invTrackerModal','userActivityLogModal'].forEach(id => {
+        ['trackerModal','permanentModal','confirmationModal','scrapingTrackerModal','invTrackerModal','userActivityLogModal'].forEach(id => {
             const modal = document.getElementById(id);
             if (modal) {
                 modal.addEventListener('click', e => {
@@ -3221,7 +3467,7 @@
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeTracker(); closeActivityLog(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); }
+            if (e.key === 'Escape') { closeTracker(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); }
         });
 
         // Auto-dismiss flash messages
@@ -3361,6 +3607,169 @@
         document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
             if (e.target===document.getElementById('userActivityLogModal')) closeUserActivityLog();
         });
+        const INSERT_FORM_FIELDS = {
+            Facebook:      ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name','owned_by'],
+            Instagram:     ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','mail_id','account_id','password','owned_by'],
+            Telegram:      ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','owned_by'],
+            WhatsApp:      ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','owned_by'],
+            Amazon:        ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','owned_by'],
+            'Gmail Accounts': ['login_user','number','account_status','review_status','blocked_date','unblock_date','account_create_date','full_name','mail_id','password','owned_by'],
+            'Total Numbers':  ['owned_by','number','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date'],
+        };
+        const INSERT_FIELD_META = {
+            login_user:          { label: 'Login User',           type: 'text',   placeholder: 'e.g. Shubhankar' },
+            number:              { label: 'Number',               type: 'text',   placeholder: 'e.g. +91XXXXXXXXXX' },
+            login_device:        { label: 'Login Device',         type: 'text',   placeholder: 'e.g. Redmi Note 12' },
+            sim_inserted_device: { label: 'SIM Inserted Device',  type: 'text',   placeholder: 'e.g. Samsung Galaxy' },
+            account_status:      { label: 'Account Status',       type: 'select', options: ['Active','Block','Restricted','Frozen','Permanent Block'] },
+            review_status:       { label: 'Review Status',        type: 'select', options: ['NA','Send','Appeal Submit','Video Verification Done'] },
+            number_type:         { label: 'Number Type',          type: 'select', options: ['Prepaid','Postpaid','Disposable Number','NA'] },
+            blocked_date:        { label: 'Blocked Date',         type: 'date' },
+            unblock_date:        { label: 'Unblock Date',         type: 'date' },
+            account_create_date: { label: 'Account Create Date',  type: 'date' },
+            sim_operator:        { label: 'SIM Operator',         type: 'text',   placeholder: 'e.g. Jio, Airtel' },
+            full_name:           { label: 'Full Name',            type: 'text',   placeholder: 'Full name on account' },
+            recharge_date:       { label: 'Recharge Date',        type: 'date' },
+            sim_buy_date:        { label: 'SIM Buy Date',         type: 'date' },
+            account_type:        { label: 'Account Type',         type: 'text',   placeholder: 'e.g. Personal, Business' },
+            mail_id:             { label: 'Mail ID',              type: 'email',  placeholder: 'e.g. user@gmail.com' },
+            account_id:          { label: 'Account ID',           type: 'text',   placeholder: 'Profile/Account ID' },
+            password:            { label: 'Password',             type: 'text',   placeholder: 'Account password' },
+            page_name:           { label: 'Page Name',            type: 'text',   placeholder: 'Facebook page name' },
+            owned_by:            { label: 'Owned By',             type: 'text',   placeholder: 'Owner name' },
+        };
+        function openInsertModal() {
+            document.getElementById('insertSocialModal').style.display = 'flex';
+            document.getElementById('insertPlatformSelect').value = '';
+            document.getElementById('insertDeptSelect').value = '';
+            document.getElementById('insertFormArea').innerHTML = `
+                <div style="text-align:center;padding:40px 20px;color:#9ca3af;">
+                    <i class="fas fa-hand-point-up" style="font-size:32px;display:block;margin-bottom:10px;"></i>
+                    <p style="font-size:13px;">Select a platform above to load the form</p>
+                </div>`;
+            document.getElementById('insertFormFooter').style.display = 'none';
+        }
+        function closeInsertModal() {
+            document.getElementById('insertSocialModal').style.display = 'none';
+        }
+        function renderInsertForm(platform) {
+            const area = document.getElementById('insertFormArea');
+            const footer = document.getElementById('insertFormFooter');
+            if (!platform) {
+                area.innerHTML = `<div style="text-align:center;padding:40px 20px;color:#9ca3af;"><i class="fas fa-hand-point-up" style="font-size:32px;display:block;margin-bottom:10px;"></i><p style="font-size:13px;">Select a platform above to load the form</p></div>`;
+                footer.style.display = 'none';
+                return;
+            }
+            const fields = INSERT_FORM_FIELDS[platform] || Object.keys(INSERT_FIELD_META);
+            const inputStyle = `width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:12px;outline:none;background:white;color:#374151;height:34px;`;
+            const labelStyle = `font-size:11px;font-weight:700;color:#374151;margin-bottom:3px;display:block;`;
+            const groupStyle = `display:flex;flex-direction:column;`;
+
+            let html = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;">`
+            fields.forEach(f => {
+                const meta = INSERT_FIELD_META[f];
+                if (!meta) return;
+                html += `<div style="${groupStyle}"><label style="${labelStyle}">${meta.label}</label>`;
+                if (meta.type === 'select') {
+                    const defaultStatus = f === 'account_status' ? 'Active' : '';
+                    html += `<select id="ins_${f}" style="${inputStyle}cursor:pointer;">`;
+                    meta.options.forEach(opt => {
+                        html += `<option value="${opt}" ${opt === defaultStatus ? 'selected' : ''}>${opt || '-- None --'}</option>`;
+                    });
+                    html += `</select>`;
+                } else if (meta.type === 'date') {
+                    html += `<input type="date" id="ins_${f}" style="${inputStyle}">`;
+                } else {
+                    html += `<input type="${meta.type}" id="ins_${f}" placeholder="${meta.placeholder || ''}" style="${inputStyle}" autocomplete="off">`;
+                }
+                html += `</div>`;
+            });
+            html += `</div>`;
+            area.innerHTML = html;
+            footer.style.display = 'flex';
+        }
+        async function submitInsertForm() {
+            const platform = document.getElementById('insertPlatformSelect').value;
+            const department = document.getElementById('insertDeptSelect').value;
+            if (!platform) { showToast('Platform select karo pehle!', true); return; }
+            const fields = INSERT_FORM_FIELDS[platform] || Object.keys(INSERT_FIELD_META);
+            const payload = { platform, department };
+            fields.forEach(f => {
+                const el = document.getElementById(`ins_${f}`);
+                if (el) payload[f] = el.value.trim();
+            });
+            const btn = document.getElementById('insertSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
+            try {
+                const resp = await fetch('/insert-social-record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (data.success) {
+                    showToast('Record Inserted Buddy!!!', false, true);
+                    closeInsertModal();
+                    _prependSocialRow(data.record);
+                } else {
+                    showToast('Error: ' + data.error, true);
+                }
+            } catch(e) {
+                showToast('Network error: ' + e.message, true);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Insert Record';
+            }
+        }
+        function _prependSocialRow(item) {
+            const tbody = document.getElementById('socialMediaTableBody');
+            if (!tbody) return;
+            const status = item.account_status || 'Active';
+            const sl = status.toLowerCase();
+            let rowClass = 'row-active', badgeClass = 'status-active';
+            if (sl.includes('permanent')) { rowClass = 'row-permanent-block'; badgeClass = 'status-permanent-block'; }
+            else if (sl.includes('block')) { rowClass = 'row-block'; badgeClass = 'status-block'; }
+            else if (sl.includes('restricted')) { rowClass = 'row-restricted'; badgeClass = 'status-restricted'; }
+            else if (sl.includes('frozen')) { rowClass = 'row-frozen'; badgeClass = 'status-frozen'; }
+            const v = (val) => val && !['N/A','NA','',null].includes(val) ? val : 'N/A';
+            const tr = document.createElement('tr');
+            tr.id = `row-${item.id}`;
+            tr.className = rowClass;
+            tr.dataset.id = item.id;
+            tr.innerHTML = `
+                <td data-col="id">${item.id}</td>
+                <td data-col="platform"><span class="platform-badge">${v(item.platform)}</span></td>
+                <td data-col="department">${item.department && !['N/A','NA','',null].includes(item.department) ? `<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${item.department}</span>` : '<span style="color:#95a5a6;">—</span>'}</td>
+                <td data-col="owned_by">${v(item.owned_by)}</td>
+                <td data-col="login_user">${v(item.login_user)}</td>
+                <td data-col="number"><span style="display:inline-flex;align-items:center;gap:4px;">${v(item.number)}${item.number && !['N/A','NA','',null].includes(item.number) ? `<button class="copy-btn" onclick="copyToClipboard('${(item.number||'').replace(/'/g,"\\'")}','Number')"><i class="fas fa-copy"></i></button>` : ''}</span></td>
+                <td data-col="login_device">${v(item.login_device)}</td>
+                <td data-col="sim_inserted_device">${v(item.sim_inserted_device)}</td>
+                <td data-col="account_status"><span class="status-display ${badgeClass}">${status}</span></td>
+                <td data-col="review_status">${v(item.review_status)}</td>
+                <td data-col="number_type">${v(item.number_type)}</td>
+                <td data-col="blocked_date">${v(item.blocked_date)}</td>
+                <td data-col="unblocked_date">${v(item.unblock_date)}</td>
+                <td data-col="account_create_date">${v(item.account_create_date)}</td>
+                <td data-col="sim_operator">${v(item.sim_operator)}</td>
+                <td data-col="full_name">${v(item.full_name)}</td>
+                <td data-col="recharge_date">${v(item.recharge_date)}</td>
+                <td data-col="sim_buy_date">${v(item.sim_buy_date)}</td>
+                <td data-col="account_type">${v(item.account_type)}</td>
+                <td data-col="mail_id">${v(item.mail_id)}</td>
+                <td data-col="account_id">${v(item.account_id)}</td>
+                <td data-col="password">${item.password && !['N/A','NA','',null].includes(item.password) ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="font-family:monospace;font-size:11px;color:#c0392b;">${item.password}</span><button class="copy-btn" onclick="copyToClipboard('${(item.password||'').replace(/'/g,"\\'")}','Password')"><i class="fas fa-copy"></i></button></span>` : '<span style="color:#95a5a6;">N/A</span>'}</td>
+                <td data-col="page_name">${v(item.page_name)}</td>
+            `;
+            tbody.insertBefore(tr, tbody.firstChild);
+            const sel = document.getElementById('socialPlatformSelect');
+            if (sel) filterSocialColumns(sel.value);
+        }
+        document.getElementById('insertSocialModal')?.addEventListener('click', e => {
+            if (e.target === document.getElementById('insertSocialModal')) closeInsertModal();
+        });
+
         function adjustContainerPadding() {
             const header = document.querySelector('.fixed-header');
             const container = document.querySelector('.container');
@@ -3379,7 +3788,79 @@
                 document.querySelector('.fixed-header')
             );  
         }
-   </script>
+</script>
+        <div id="insertSocialModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:2000;justify-content:center;align-items:center;padding:20px;">
+            <div style="background:white;border-radius:12px;width:100%;max-width:860px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+                <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                    <h2 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-plus-circle"></i> Insert New Social Media Account
+                    </h2>
+                    <button onclick="closeInsertModal()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:5px;border-radius:4px;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div style="padding:12px 20px;background:#f0fdf4;border-bottom:1px solid #d1fae5;flex-shrink:0;display:flex;align-items:center;gap:12px;">
+                    <label style="font-size:12px;font-weight:700;color:#065f46;white-space:nowrap;">
+                        <i class="fas fa-mobile-alt"></i> Platform <span style="color:#ef4444;">*</span>
+                    </label>
+                    <select id="insertPlatformSelect" onchange="renderInsertForm(this.value)"
+                        style="padding:7px 12px;border:1.5px solid #10b981;border-radius:6px;font-size:13px;font-weight:600;background:white;color:#065f46;cursor:pointer;min-width:200px;outline:none;">
+                        <option value="">-- Select Platform --</option>
+                        <option value="Facebook">Facebook</option>
+                        <option value="Instagram">Instagram</option>
+                        <option value="Telegram">Telegram</option>
+                        <option value="WhatsApp">WhatsApp</option>
+                        <option value="Amazon">Amazon</option>
+                        <option value="Gmail Accounts">Gmail Accounts</option>
+                        <option value="Total Numbers">Total Numbers</option>
+                    </select>
+                    <select id="insertDeptSelect"
+                        style="padding:7px 12px;border:1.5px solid #10b981;border-radius:6px;font-size:13px;font-weight:600;background:white;color:#065f46;cursor:pointer;min-width:180px;outline:none;">
+                        <option value="">-- Select Department --</option>
+                        <option value="AML">AML</option>
+                        <option value="Investment Scam">Investment Scam</option>
+                        <option value="ITC">ITC</option>
+                        <option value="Infringement">Infringement</option>
+                        <option value="Chargeback">Chargeback</option>
+                    </select>
+                </div>
+                <div id="insertFormArea" style="padding:16px 20px;overflow-y:auto;flex-grow:1;">
+                    <div style="text-align:center;padding:40px 20px;color:#9ca3af;">
+                        <i class="fas fa-hand-point-up" style="font-size:32px;display:block;margin-bottom:10px;"></i>
+                        <p style="font-size:13px;">Select a platform above to load the form</p>
+                    </div>
+                </div>
+                <div id="insertFormFooter" style="display:none;padding:12px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;justify-content:flex-end;gap:10px;flex-shrink:0;">
+                    <button onclick="closeInsertModal()"
+                        style="padding:8px 18px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+                        Cancel
+                    </button>
+                    <button onclick="submitInsertForm()" id="insertSubmitBtn"
+                        style="padding:8px 20px;background:#10b981;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-save"></i> Insert Record
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="edit-drawer-overlay" id="editDrawerOverlay">
+            <div class="edit-drawer" id="editDrawer">
+                <div class="edit-drawer-handle"></div>
+                <div class="edit-drawer-header">
+                    <h3><i class="fas fa-edit"></i> Edit Account — <span id="editDrawerTitle">ID #</span></h3>
+                    <button class="edit-drawer-close" onclick="closeEditDrawer()"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="edit-drawer-meta" id="editDrawerMeta"></div>
+                <div class="edit-drawer-body">
+                    <div class="edit-drawer-grid" id="editDrawerGrid"></div>
+                </div>
+                <div class="edit-drawer-footer">
+                    <button class="edit-drawer-cancel" onclick="closeEditDrawer()"><i class="fas fa-times"></i> Cancel</button>
+                    <button class="edit-drawer-save" id="editDrawerSaveBtn" onclick="saveEditDrawer()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
 </body>
 </html>

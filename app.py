@@ -2005,11 +2005,6 @@ def check_duplicates():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-@app.route("/get-activity-log", methods=["GET"])
-@login_required
-def get_activity_log():
-    return jsonify({"success": True, "placeholder": True, "message": "Implement Soon Have Some Patience"})
-
 import urllib.request
 
 @app.route("/getDepartmentData", methods=["GET"])
@@ -2037,6 +2032,56 @@ def get_department_data_proxy():
         print(f"[MIS PROXY] Error: {e}")
         return jsonify([])
 
+@app.route("/insert-social-record", methods=["POST"])
+@login_required
+def insert_social_record():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+
+        DATE_FIELDS = {'blocked_date', 'unblock_date', 'account_create_date', 'recharge_date', 'sim_buy_date'}
+        ALLOWED_FIELDS = [
+            'platform', 'department', 'owned_by', 'login_user', 'number',
+            'login_device', 'sim_inserted_device', 'account_status', 'review_status',
+            'number_type', 'blocked_date', 'unblock_date', 'account_create_date',
+            'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
+            'account_type', 'mail_id', 'account_id', 'password', 'page_name'
+        ]
+
+        record = {}
+        for field in ALLOWED_FIELDS:
+            val = str(data.get(field, '')).strip()
+            if field in DATE_FIELDS:
+                record[field] = val if val and val.upper() not in ('NA', 'N/A', 'NONE', 'NULL', '') else None
+            else:
+                record[field] = val if val else "NA"
+
+        # platform is required
+        if not record.get('platform') or record['platform'] == 'NA':
+            return jsonify({"success": False, "error": "Platform is required"})
+
+        # get next id
+        try:
+            max_id_resp = social_supabase.table("social_media_accounts") \
+                .select("id").order("id", desc=True).limit(1).execute()
+            record['id'] = int(max_id_resp.data[0]['id']) + 1 if max_id_resp.data else 1
+        except Exception:
+            pass
+
+        resp = social_supabase.table("social_media_accounts").insert(record).execute()
+        if resp.data:
+            inserted = resp.data[0]
+            log_activity(
+                action_type="import",
+                target_table="social_media_accounts",
+                extra_info={"file_name": "manual_insert", "records_count": 1}
+            )
+            return jsonify({"success": True, "record": inserted})
+        return jsonify({"success": False, "error": "Insert failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
     load_config()
