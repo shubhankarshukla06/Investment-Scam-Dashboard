@@ -772,6 +772,7 @@
                         <input type="hidden" name="platform" value="{{ platform_filter }}">
                         <input type="hidden" name="date_from" value="{{ date_from }}">
                         <input type="hidden" name="date_to" value="{{ date_to }}">
+                        <input type="hidden" name="share_status" value="{{ request.args.get('share_status', '') }}">
                         <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
                     </form>
                     <button type="button" class="btn btn-warning" onclick="showScrapingTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
@@ -854,6 +855,14 @@
                         </select>
                     </div>
                     <div class="filter-group">
+                        <label><i class="fas fa-share-alt"></i> Status</label>
+                        <select name="share_status" onchange="this.form.submit()" class="{% if request.args.get('share_status') %}active-filter{% endif %}">
+                            <option value="">All Status</option>
+                            <option value="Pending" {% if request.args.get('share_status') == 'Pending' %}selected{% endif %}>Pending</option>
+                            <option value="Shared" {% if request.args.get('share_status') == 'Shared' %}selected{% endif %}>Shared</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
                         <label><i class="fas fa-calendar-alt"></i> Date Range</label>
                         <div class="date-range-group">
                             <input type="date" name="date_from" value="{{ date_from }}" onchange="this.form.submit()" class="{% if date_from %}active-filter{% endif %}" title="From date">
@@ -861,6 +870,7 @@
                             <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()" class="{% if date_to %}active-filter{% endif %}" title="To date">
                         </div>
                     </div>
+                        </select>
                 </form>
             </div>
             <div class="table-container">
@@ -1224,7 +1234,13 @@
         <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
             <div class="filters">
                 <div class="filters-header">
-                    <h2 style="font-size:12px;">Scam++ — Filter Data</h2>
+                    <div style="display:flex;flex-direction:column;gap:4px;">
+                        <h2 style="font-size:12px;">Scam++ — Filter Data</h2>
+                        <span id="invLastDateBadge" style="display:none;font-size:11px;color:#7f8c8d;font-weight:500;">
+                            <i class="fas fa-calendar-check" style="color:#e67e22;"></i>
+                            Last Updated: <strong id="invLastDateValue" style="color:#e67e22;"></strong>
+                        </span>
+                    </div>
                     <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="investmentFilterForm">
@@ -1385,9 +1401,9 @@
                         <label><i class="fas fa-search"></i> Search</label>
                         <div class="search-box">
                             <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search... (press Enter)" id="socialSearchInput" onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}">
+                            <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search..." id="socialSearchInput" oninput="filterSocialRows(this.value)" onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}">
                         </div>
-                        <span class="search-hint"><i class="fas fa-info-circle"></i> Press Enter to search</span>
+                        <span class="search-hint"><i class="fas fa-info-circle"></i>Press Enter for full search</span>
                     </div>
                     <div class="filter-group">
                         <label><i class="fas fa-mobile-alt"></i> Platform</label>
@@ -1701,6 +1717,60 @@
         }
 
         function submitSocialSearch() { document.getElementById('socialFilterForm').submit(); }
+        function filterSocialRows(query) {
+            const q = query.trim().toLowerCase();
+            const tbody = document.getElementById('socialMediaTableBody');
+            if (!tbody) return;
+            const rows = tbody.querySelectorAll('tr[data-id]');
+            let visibleCount = 0;
+            rows.forEach(row => {
+                if (!q) {
+                    row.style.display = '';
+                    visibleCount++;
+                    return;
+                }
+                const tds = row.querySelectorAll('td');
+                let matched = false;
+                tds.forEach(td => {
+                    if (td.style.display === 'none') return;
+                    const text = (td.textContent || td.innerText || '').toLowerCase();
+                    if (text.includes(q)) matched = true;
+                });
+                const dataFields = [
+                    row.dataset.login_user,
+                    row.dataset.number,
+                    row.dataset.full_name,
+                    row.dataset.platform,
+                    row.dataset.account_status,
+                    row.dataset.owned_by,
+                    row.dataset.department,
+                    row.dataset.sim_operator,
+                ];
+                if (!matched) {
+                    dataFields.forEach(val => {
+                        if (val && val.toLowerCase().includes(q)) matched = true;
+                    });
+                }
+                row.style.display = matched ? '' : 'none';
+                if (matched) visibleCount++;
+            });
+            let emptyRow = tbody.querySelector('.rt-empty-filter-row');
+            if (visibleCount === 0 && q) {
+                if (!emptyRow) {
+                    emptyRow = document.createElement('tr');
+                    emptyRow.className = 'rt-empty-filter-row';
+                    emptyRow.innerHTML = `<td colspan="24" style="text-align:center;padding:30px;color:#95a5a6;">
+                        <i class="fas fa-search" style="font-size:20px;display:block;margin-bottom:8px;color:#ddd;"></i>
+                        No rows match "<strong style="color:#2c3e50;">${query.trim()}</strong>" on this page.
+                        <br><span style="font-size:11px;margin-top:6px;display:block;">Press <kbd style="background:#f0f0f0;padding:1px 5px;border-radius:3px;border:1px solid #ccc;">Enter</kbd> to search all pages</span>
+                    </td>`;
+                    tbody.appendChild(emptyRow);
+                }
+            } else {
+                if (emptyRow) emptyRow.remove();
+            }
+        }
+
         let _editModeActive = false;
         let _editDrawerCurrentId = null;
         let _editDrawerChanges = {};
@@ -1716,7 +1786,7 @@
                 btn.style.background = '#e74c3c';
                 if (editTh) editTh.style.display = '';
                 editTds.forEach(td => td.style.display = '');
-                showToast('Edit mode ON — Click Edit button on any row', false, false);
+                showToast('Click Edit button on any row', false, false);
             } else {
                 socialPage.classList.remove('edit-mode-active');
                 btn.innerHTML = '<i class="fas fa-edit"></i> Update Data';
@@ -1869,6 +1939,28 @@
             if (e.key === 'Escape') closeEditDrawer();
         });
 
+        (function fetchInvLastDate() {
+            if (!document.querySelector('.investment-page.active')) return;
+            fetch('/investment-last-date')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.last_date) {
+                        const parts = data.last_date.split('-');
+                        const formatted = parts.length === 3
+                            ? `${parts[2]}-${parts[1]}-${parts[0]}`
+                            : data.last_date;
+                        const badge = document.getElementById('invLastDateBadge');
+                        const val   = document.getElementById('invLastDateValue');
+                        if (badge && val) {
+                            val.textContent = formatted;
+                            badge.style.display = 'inline-flex';
+                            badge.style.alignItems = 'center';
+                            badge.style.gap = '4px';
+                        }
+                    }
+                })
+                .catch(() => {});
+        })();
         function clearInvestmentFilters() { window.location.href = "/?page=investment"; }
 
         // ─── Investment Tracker ──────────────────────────────────────
@@ -2661,29 +2753,45 @@
                 "Ankit Kumar",
                 "Ananya Verma"
             ];
-            const users = [...new Set(
+            const sheetUsersRaw = [...new Set(
                 summaryParsedData
                 .map(row => (row[userCol] || '').trim())
                 .filter(u => u)
-            )].sort((a, b) => {
-                const cleanA = excelNameToApiName(a);
-                const cleanB = excelNameToApiName(b);
+            )];
+            const absentNames = NAME_ORDER.filter(orderedName => {
+                return !sheetUsersRaw.some(excelUser => {
+                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+                    const cleanOrdered = orderedName.toLowerCase();
+                    return cleanExcel.includes(cleanOrdered) || cleanOrdered.includes(cleanExcel);
+                });
+            });
+            const absentPlaceholders = absentNames.map(n => '__absent__' + n);
+            const allUsersForSort = [...sheetUsersRaw, ...absentPlaceholders];
+            const users = allUsersForSort.sort((a, b) => {
+                const rawA = a.startsWith('__absent__') ? a.replace('__absent__', '') : a;
+                const rawB = b.startsWith('__absent__') ? b.replace('__absent__', '') : b;
+                const cleanA = a.startsWith('__absent__') ? rawA : excelNameToApiName(a);
+                const cleanB = b.startsWith('__absent__') ? rawB : excelNameToApiName(b);
                 const idxA = NAME_ORDER.findIndex(n => cleanA.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanA.toLowerCase()));
                 const idxB = NAME_ORDER.findIndex(n => cleanB.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanB.toLowerCase()));
-                if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                if (idxA === -1 && idxB === -1) return rawA.localeCompare(rawB);
                 if (idxA === -1) return 1;
                 if (idxB === -1) return -1;
                 return idxA - idxB;
             });
-                const userData = {};
-                users.forEach(u => {
-                    userData[u] = {
-                        sm: 0, web: 0, app: 0, total: 0,
-                        scrapping: 0, qualityCheck: 0,
-                        webSearching: 0, credentials: 0,
-                        remark: ''
-                    };
-                });
+
+            const userData = {};
+            users.forEach(u => {
+                const isAbsent = u.startsWith('__absent__');
+                userData[u] = {
+                    sm: 0, web: 0, app: 0, total: 0,
+                    scrapping: 0, qualityCheck: 0,
+                    webSearching: 0, credentials: 0,
+                    remark: '',
+                    absent: isAbsent,
+                    displayName: isAbsent ? u.replace('__absent__', '') : u
+                };
+            });
                 const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
                 let searchCol = null;
                 for (const c of searchColCandidates) {
@@ -2706,6 +2814,7 @@
                     userData[user].total++;
                 });
                 users.forEach(excelUser => {
+                    if (excelUser.startsWith('__absent__')) return;
                     const apiName = excelNameToApiName(excelUser);
                     const userDates = dateCol
                         ? [...new Set(
@@ -2991,39 +3100,56 @@
             thead.appendChild(hr2);
             let totals = { sm: 0, web: 0, app: 0, total: 0, scrapping: 0, qualityCheck: 0, webSearching: 0, credentials: 0 };
             users.forEach(user => {
-                 const d = userData[user];
-                 const cleanUser = excelNameToApiName(user);
-                 const smVal = d.sm > 0 ? d.sm : 'NA';
-                 const webVal = d.web > 0 ? d.web : 'NA';
-                 const appVal = d.app > 0 ? d.app : 'NA';
-                 const scVal = d.scrapping > 0 ? d.scrapping : 'NA';
-                 const qcVal = d.qualityCheck > 0 ? d.qualityCheck : 'NA';
-                 const wsVal = d.webSearching > 0 ? d.webSearching : 'NA';
-                 const crVal = d.credentials > 0 ? d.credentials : 'NA';
-                 totals.sm += d.sm;
-                 totals.web += d.web;
-                 totals.app += d.app;
-                 totals.total += d.total;
-                 totals.scrapping += d.scrapping;
-                 totals.qualityCheck += d.qualityCheck;
-                 totals.webSearching += d.webSearching;
-                 totals.credentials += d.credentials;
-
-                 const tr = document.createElement('tr');
-                 tr.innerHTML = `
-                    <td style="${tdNameS}">${cleanUser}</td>
-                    <td style="${tdS}">${smVal}</td>
-                    <td style="${tdS}">${webVal}</td>
-                    <td style="${tdS}">${appVal}</td>
-                    <td style="${tdS}font-weight:700;">${d.total}</td>
-                    <td style="${tdS}">${scVal}</td>
-                    <td style="${tdS}">${qcVal}</td>
-                    <td style="${tdS}">${wsVal}</td>
-                    <td style="${tdS}">${crVal}</td>
-                    <td style="${tdS}">${d.remark || 'NA'}</td>
-                `;
+                const d = userData[user];
+                const isAbsent = d.absent;
+                const cleanUser = isAbsent ? d.displayName : excelNameToApiName(user);
+                const tr = document.createElement('tr');
+                if (isAbsent) {
+                    tr.style.cssText = 'background:#fde8d8;';
+                    tr.innerHTML = `
+                        <td style="${tdNameS}color:#7f1d1d;font-weight:700;">${cleanUser}</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                        <td style="${tdS}font-weight:700;color:#7f1d1d;background:#fde8d8;">AB</td>
+                    `;
+                } else {
+                    const smVal = d.sm > 0 ? d.sm : 'NA';
+                    const webVal = d.web > 0 ? d.web : 'NA';
+                    const appVal = d.app > 0 ? d.app : 'NA';
+                    const scVal = d.scrapping > 0 ? d.scrapping : 'NA';
+                    const qcVal = d.qualityCheck > 0 ? d.qualityCheck : 'NA';
+                    const wsVal = d.webSearching > 0 ? d.webSearching : 'NA';
+                    const crVal = d.credentials > 0 ? d.credentials : 'NA';
+                    totals.sm += d.sm;
+                    totals.web += d.web;
+                    totals.app += d.app;
+                    totals.total += d.total;
+                    totals.scrapping += d.scrapping;
+                    totals.qualityCheck += d.qualityCheck;
+                    totals.webSearching += d.webSearching;
+                    totals.credentials += d.credentials;
+                    tr.innerHTML = `
+                        <td style="${tdNameS}">${cleanUser}</td>
+                        <td style="${tdS}">${smVal}</td>
+                        <td style="${tdS}">${webVal}</td>
+                        <td style="${tdS}">${appVal}</td>
+                        <td style="${tdS}font-weight:700;">${d.total}</td>
+                        <td style="${tdS}">${scVal}</td>
+                        <td style="${tdS}">${qcVal}</td>
+                        <td style="${tdS}">${wsVal}</td>
+                        <td style="${tdS}">${crVal}</td>
+                        <td style="${tdS}">${d.remark || 'NA'}</td>
+                    `;
+                }
                 tbody.appendChild(tr);
             });
+
             const totalRow = document.createElement('tr');
             totalRow.style.backgroundColor = '#c5cae9';
             totalRow.innerHTML = `

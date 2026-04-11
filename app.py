@@ -976,6 +976,9 @@ def index():
                 query = query.lte("inserted_date", date_to)
             if date_filter and not date_from and not date_to:
                 query = query.eq("inserted_date", date_filter)
+            share_status_filter = request.args.get("share_status", "").strip()
+            if share_status_filter:
+                query = query.eq("share_status", share_status_filter)
             query = query.order("id", desc=True)
             offset = (page - 1) * PER_PAGE
             query = query.range(offset, offset + PER_PAGE - 1)
@@ -1181,6 +1184,23 @@ def investment_tracker_stats():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/investment-last-date", methods=["GET"])
+@login_required
+def investment_last_date():
+    try:
+        resp = supabase.table("BS_Investment_Scam") \
+            .select("Inserted_date") \
+            .order("Inserted_date", desc=True) \
+            .limit(1) \
+            .execute()
+        if resp.data:
+            raw = resp.data[0].get("Inserted_date") or ""
+            # Normalise to YYYY-MM-DD
+            date_str = str(raw).split("T")[0].strip()
+            return jsonify({"success": True, "last_date": date_str})
+        return jsonify({"success": True, "last_date": None})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 # ============================================================
 # BS Investment Scam Export
@@ -1704,6 +1724,7 @@ def export():
         date_filter = request.args.get("date_filter", "").strip()
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
+        share_status_filter = request.args.get("share_status", "").strip()
         CHUNK = 1000
         all_rows = []
         offset = 0
@@ -1718,6 +1739,7 @@ def export():
                 if date_from: q = q.gte("inserted_date", date_from)
                 if date_to: q = q.lte("inserted_date", date_to)
                 if date_filter and not date_from and not date_to: q = q.eq("inserted_date", date_filter)
+                if share_status_filter: q = q.eq("share_status", share_status_filter)
                 return q
             chunk_resp = _build_query().order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             rows = chunk_resp.data or []
