@@ -2103,6 +2103,165 @@ def insert_social_record():
         return jsonify({"success": False, "error": "Insert failed"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# ============================================================
+# ADD THIS ROUTE TO app.py  (paste before the if __name__ == "__main__": block)
+# ============================================================
+
+@app.route("/insert-scraping-record", methods=["POST"])
+@login_required
+def insert_scraping_record():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+
+        rows = data.get("rows", [])
+        if not rows:
+            return jsonify({"success": False, "error": "No rows provided"})
+
+        ALLOWED_FIELDS = [
+            "name", "platform", "post_url", "chat_number", "group_name",
+            "scam_type", "share_status", "screenshot",
+            "chat_status", "assigned_to", "assigned_at_datetime",
+            "inserted_datetime", "priority", "inserted_date",
+            "extra_field_1", "extra_field_2", "extra_field_3",
+            "extra_field_4", "extra_field_5"
+        ]
+
+        records = []
+        today = datetime.now().strftime("%Y-%m-%d")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        for row in rows:
+            record = {}
+            for field in ALLOWED_FIELDS:
+                val = str(row.get(field, "")).strip()
+                record[field] = val if val else "NA"
+
+            # defaults
+            if record.get("inserted_date") in ("", "NA"):
+                record["inserted_date"] = today
+            if record.get("inserted_datetime") in ("", "NA"):
+                record["inserted_datetime"] = now_str
+            if record.get("screenshot") in ("", "NA"):
+                record["screenshot"] = "NA"
+            if record.get("share_status") in ("", "NA"):
+                record["share_status"] = "Pending"
+            if record.get("chat_status") in ("", "NA"):
+                record["chat_status"] = "NA"
+            if record.get("priority") in ("", "NA"):
+                record["priority"] = "NA"
+            for ef in ["extra_field_1","extra_field_2","extra_field_3","extra_field_4","extra_field_5"]:
+                if record.get(ef) in ("", "NA"):
+                    record[ef] = "NA"
+
+            records.append(record)
+
+        resp = supabase.table("scrapping_data").insert(records).execute()
+
+        if resp.data:
+            log_activity(
+                action_type="import",
+                target_table="scrapping_data",
+                extra_info={"file_name": "manual_insert", "records_count": len(records)}
+            )
+            return jsonify({"success": True, "records": resp.data, "count": len(resp.data)})
+
+        return jsonify({"success": False, "error": "Insert returned no data"})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/check-scraping-duplicates", methods=["POST"])
+@login_required
+def check_scraping_duplicates():
+    try:
+        data = request.get_json()
+        entries = data.get("entries", [])
+        if not entries:
+            return jsonify({"success": True, "results": []})
+
+        results = []
+        for entry in entries:
+            gn = str(entry.get("group_name", "")).strip()
+            cn = str(entry.get("chat_number", "")).strip()
+
+            # Dono NA hain toh skip
+            gn_empty = not gn or gn.upper() in ("NA", "N/A", "")
+            cn_empty = not cn or cn.upper() in ("NA", "N/A", "")
+
+            if gn_empty and cn_empty:
+                results.append({"status": "NEW", "count": 0})
+                continue
+
+            try:
+                found = []
+
+                if not gn_empty and not cn_empty:
+                    # Dono available — AND match
+                    res = supabase.table("scrapping_data") \
+                        .select("id, group_name, chat_number, inserted_date") \
+                        .ilike("group_name", gn) \
+                        .ilike("chat_number", cn) \
+                        .limit(10).execute()
+                    found = res.data or []
+
+                elif not gn_empty:
+                    # Sirf group_name
+                    res = supabase.table("scrapping_data") \
+                        .select("id, group_name, chat_number, inserted_date") \
+                        .ilike("group_name", gn) \
+                        .limit(10).execute()
+                    found = res.data or []
+
+                elif not cn_empty:
+                    # Sirf chat_number
+                    res = supabase.table("scrapping_data") \
+                        .select("id, group_name, chat_number, inserted_date") \
+                        .ilike("chat_number", cn) \
+                        .limit(10).execute()
+                    found = res.data or []
+
+                results.append({
+                    "status": "DUPLICATE" if found else "NEW",
+                    "count": len(found),
+                    "earliest_date": found[0].get("inserted_date") if found else None,
+                })
+
+            except Exception as e:
+                results.append({"status": "ERROR", "count": 0, "error": str(e)})
+
+        return jsonify({"success": True, "results": results})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/check-chat-number", methods=["POST"])
+@login_required
+def check_chat_number():
+    try:
+        data = request.get_json()
+        chat_number = str(data.get("chat_number", "")).strip()
+
+        if not chat_number or chat_number.upper() in ("NA", "N/A", ""):
+            return jsonify({"exists": False})
+
+        res = supabase.table("scrapping_data") \
+            .select("id, inserted_date, name") \
+            .ilike("chat_number", chat_number) \
+            .limit(5).execute()
+
+        found = res.data or []
+        return jsonify({
+            "exists": len(found) > 0,
+            "count": len(found),
+            "first_seen": found[0].get("inserted_date") if found else None,
+            "inserted_by": found[0].get("name") if found else None,
+        })
+
+    except Exception as e:
+        return jsonify({"exists": False, "error": str(e)})
     
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

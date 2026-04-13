@@ -825,7 +825,12 @@
             <div class="filters">
                 <div class="filters-header">
                     <h2>Scrapping Data Management & Filtering</h2>
-                    <button type="button" class="clear-filters" onclick="clearFilters()"><i class="fas fa-times"></i> Clear Filters</button>
+                    <div style="display:flex;gap:8px;align-items:center;margin-left:auto;">
+                        <button type="button" class="clear-filters" onclick="clearFilters()"><i class="fas fa-times"></i> Clear Filters</button>
+                        <button type="button" class="btn btn-success" onclick="openScrapInsertModal()" style="height:30px;font-size:12px;padding:5px 12px;">
+                            <i class="fas fa-plus"></i> Insert Data
+                        </button>
+                    </div>
                 </div>
                 <form method="GET" action="/" class="filters-grid" id="filterForm">
                     <input type="hidden" name="page" value="scraping">
@@ -3984,6 +3989,575 @@
                     <button class="edit-drawer-save" id="editDrawerSaveBtn" onclick="saveEditDrawer()">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
+                </div>
+            </div>
+        </div>
+        <style>
+        @keyframes scrapDrawerUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        .scrap-row-grid {
+            display: grid;
+            grid-template-columns: 32px 1.4fr 0.9fr 2.2fr 1.2fr 1.8fr 1.5fr 1fr 32px;
+            gap: 6px;
+            width: 100%;
+            min-width: 1152px;
+            align-items: center;
+            padding: 7px 18px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.15s;
+            box-sizing: border-box;
+        }
+        .scrap-row-grid:hover { background: #f8faff; }
+        .scrap-row-grid.row-dup { background: #fff5f5 !important; }
+        .scrap-row-grid.row-new { background: #f0fff4 !important; }
+        .scrap-inp {
+            width: 100%; padding: 6px 8px; border: 1.5px solid #e2e8f0;
+            border-radius: 5px; font-size: 11px; color: #2c3e50;
+            background: white; outline: none; height: 30px;
+            transition: border-color 0.15s, box-shadow 0.15s;
+            box-sizing: border-box;
+        }
+        .scrap-inp:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.12); }
+        .scrap-inp.dup-field { border-color: #e74c3c; background: #fff5f5; }
+        .scrap-sel {
+            width: 100%; padding: 5px 6px; border: 1.5px solid #e2e8f0;
+            border-radius: 5px; font-size: 11px; color: #2c3e50;
+            background: white; outline: none; height: 30px; cursor: pointer;
+            box-sizing: border-box;
+        }
+        .scrap-sel:focus { border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.12); }
+        .scrap-row-num { font-size: 11px; font-weight: 700; color: #95a5a6; text-align: center; }
+        .scrap-del-btn {
+            background: none; border: none; color: #e74c3c; cursor: pointer;
+            padding: 4px; border-radius: 4px; font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; transition: background 0.15s;
+        }
+        .scrap-del-btn:hover { background: #fff0f0; }
+        .scrap-dup-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 1px 8px; border-radius: 20px; font-size: 10px;
+            font-weight: 700; white-space: nowrap;
+        }
+        .scrap-dup-badge.dup  { background: #fde8e8; color: #c0392b; border: 1px solid #fbc7c7; }
+        .scrap-dup-badge.new  { background: #e8f8f0; color: #1e8449; border: 1px solid #a9dfbf; }
+        .scrap-dup-badge.pend { background: #f0f0f0; color: #7f8c8d; border: 1px solid #ddd; }
+        </style>
+        <script>
+        let _scrapRows = [];
+        let _scrapRowIdSeq = 0;
+        let _autoDupTimer = null;
+        const SCRAP_SCAM_TYPES = [
+            "Investment Scam","Job Scam","Government Scheme Scam","Loan Scam",
+            "Subscription Scam","Fake Account Selling Scam","Fake Website Scam",
+            "Shopping Scam","Carding Scam","LPG Booking Scam"
+        ];
+        const SCRAP_PLATFORMS = ["Telegram","WhatsApp","Facebook","Instagram","Threads","YouTube","X"];
+        function _detectPlatformFromUrl(url) {
+            if (!url) return '';
+            const u = url.toLowerCase();
+            const map = [
+                ['t.me','Telegram'],['telegram.org','Telegram'],['web.telegram.org','Telegram'],
+                ['wa.me','WhatsApp'],['chat.whatsapp.com','WhatsApp'],
+                ['facebook.com','Facebook'],['fb.com','Facebook'],
+                ['instagram.com','Instagram'],
+                ['threads.com','Threads'],['threads.net','Threads'],
+                ['youtube.com','YouTube'],['youtu.be','YouTube'],
+                ['x.com','X'],['twitter.com','X'],
+            ];
+            for (const [d,p] of map) { if (u.includes(d)) return p; }
+            return '';
+        }
+        function _extractGroupName(url) {
+            if (!url) return '';
+            try {
+                const u = url.trim();
+                const parsed = new URL(u.startsWith('http') ? u : 'https://' + u);
+                const parts = parsed.pathname.split('/').filter(p => p.length > 0);
+                if (parsed.hostname === 't.me' || parsed.hostname.includes('telegram')) {
+                    if (parts.length >= 1) {
+                        return parsed.origin + '/' + parts[0];
+                    }
+                    return parsed.origin;
+                }
+                if (parsed.hostname.includes('facebook.com') && parsed.search) {
+                    return parsed.origin + parsed.pathname + parsed.search;
+                }
+                if (!parts.length) return parsed.origin;
+                return parsed.origin + '/' + parts[0];
+            } catch(e) {
+                const m = url.match(/^(https?:\/\/[^\/]+\/[^\/]+)/i);
+                return m ? m[1] : url;
+            }
+        }
+
+        function _scrapGetUserName() {
+            const raw = "{{ display_name }}";
+            return raw.replace(/\s*\(.*?\)\s*/g, '').trim() || raw;
+        }
+        function _scrapEsc(str) {
+            return (str || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+        function openScrapInsertModal() {
+            _scrapRows = [];
+            _scrapRowIdSeq = 0;
+            document.getElementById('scrapInsertModal').style.display = 'flex';
+            document.getElementById('scrapInsertUserName').textContent = _scrapGetUserName();
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('scrapInsertDate').value = today;
+            scrapAddRow();
+            _renderScrapRows();
+        }
+        function closeScrapInsertModal() {
+            document.getElementById('scrapInsertModal').style.display = 'none';
+        }
+        function scrapAddRow() {
+            _scrapRowIdSeq++;
+            _scrapRows.push({
+                _id: _scrapRowIdSeq,
+                _dupStatus: 'pending',
+                name: _scrapGetUserName(),
+                platform: '',
+                post_url: '',
+                chat_number: '',
+                group_name: '',
+                scam_type: '',
+                share_status: 'Pending',
+            });
+            _renderScrapRows();
+        }
+        function scrapDeleteRow(id) {
+            _scrapRows = _scrapRows.filter(r => r._id !== id);
+            if (_scrapRows.length === 0) scrapAddRow();
+            else _renderScrapRows();
+        }
+        function scrapClearAll() {
+            _scrapRows = [];
+            _scrapRowIdSeq = 0;
+            scrapAddRow();
+        }
+        function _updateRowField(id, field, value) {
+            const row = _scrapRows.find(r => r._id === id);
+            if (!row) return;
+            row[field] = value;
+            if (field === 'post_url') {
+                const urlInp = document.querySelector(`[data-rowid="${id}"][data-field="post_url"]`);
+                const urlWarn = document.getElementById(`url-warn-${id}`);
+                const isValid = value.trim().toLowerCase().startsWith('https://');
+                if (!isValid && value.trim() !== '') {
+                    if (urlInp) urlInp.style.borderColor = '#e74c3c';
+                    if (urlWarn) {
+                        urlWarn.textContent = 'Invalid URL — must start with https://';
+                        urlWarn.style.display = 'block';
+                    }
+                    row._urlValid = false;
+                } else {
+                    if (urlInp) urlInp.style.borderColor = '';
+                    if (urlWarn) urlWarn.style.display = 'none';
+                    row._urlValid = true;
+                }
+                const plat = _detectPlatformFromUrl(value);
+                if (plat) {
+                    row.platform = plat;
+                    const sel = document.querySelector(`[data-rowid="${id}"][data-field="platform"]`);
+                    if (sel) sel.value = plat;
+                }
+                if (value.trim().toLowerCase().startsWith('https://')) {
+                    const gn = _extractGroupName(value);
+                    if (gn) {
+                        row.group_name = gn;
+                        const gnInp = document.querySelector(`[data-rowid="${id}"][data-field="group_name"]`);
+                        if (gnInp) gnInp.value = gn;
+                    }
+                }
+                row._dupStatus = 'pending';
+                _refreshRowDupBadge(id);
+            }
+            if (field === 'chat_number') {
+                _checkChatNumberLive(id, value);
+            }
+            if (field === 'post_url' || field === 'chat_number' || field === 'group_name') {
+                if (_autoDupTimer) clearTimeout(_autoDupTimer);
+                _autoDupTimer = setTimeout(() => scrapCheckDuplicates(), 800);
+            }
+        }
+        const _chatCheckTimers = {};
+        function _checkChatNumberLive(rowId, chatNumber) {
+            const warnEl = document.getElementById(`cn-warn-${rowId}`);
+            const inp = document.querySelector(`[data-rowid="${rowId}"][data-field="chat_number"]`);
+            if (_chatCheckTimers[rowId]) clearTimeout(_chatCheckTimers[rowId]);
+            const cn = (chatNumber || '').trim();
+           if (!cn || cn.toUpperCase() === 'NA' || cn.toUpperCase() === 'N/A') {
+                if (warnEl) { warnEl.style.display = 'none'; }
+                if (inp) inp.style.borderColor = '';
+                const row = _scrapRows.find(r => r._id === rowId);
+                if (row) row._cnExists = false;
+                return;
+           }
+           if (warnEl) {
+               warnEl.textContent = 'Checking...';
+               warnEl.style.display = 'block';
+               warnEl.style.color = '#7f8c8d';
+               warnEl.style.background = '#f8f9fa';
+               warnEl.style.borderColor = '#dee2e6';
+           }
+           _chatCheckTimers[rowId] = setTimeout(async () => {
+                try {
+                    const resp = await fetch('/check-chat-number', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ chat_number: cn })
+                    });
+                    const data = await resp.json();
+                    const row = _scrapRows.find(r => r._id === rowId);
+                    if (data.exists) {
+                        if (row) row._cnExists = true;
+                        if (inp) inp.style.borderColor = '#e74c3c';
+                        if (warnEl) {
+                            warnEl.textContent = `Number Exists (${data.count} time${data.count > 1 ? 's' : ''} — First: ${data.first_seen || 'N/A'})`;
+                            warnEl.style.display = 'block';
+                            warnEl.style.color = '#c0392b';
+                            warnEl.style.background = '#fde8e8';
+                            warnEl.style.borderColor = '#fbc7c7';
+                        }
+                    } else {
+                        if (row) row._cnExists = false;
+                        if (inp) inp.style.borderColor = '#2ecc71';
+                        if (warnEl) {
+                            warnEl.textContent = 'Number not in DB';
+                            warnEl.style.display = 'block';
+                            warnEl.style.color = '#1e8449';
+                            warnEl.style.background = '#e8f8f0';
+                            warnEl.style.borderColor = '#a9dfbf';
+                        }
+                        setTimeout(() => {
+                            if (warnEl) warnEl.style.display = 'none';
+                            if (inp) inp.style.borderColor = '';
+                        }, 2000);
+                    }
+                } catch(e) {
+                    if (warnEl) warnEl.style.display = 'none';
+                }
+              }, 600);
+        }
+        function _refreshRowDupBadge(id) {
+            const row = _scrapRows.find(r => r._id === id);
+            const badge = document.querySelector(`.scrap-dup-badge[data-rowid="${id}"]`);
+            const grid  = document.querySelector(`.scrap-row-grid[data-rowid="${id}"]`);
+            if (!row) return;
+            if (badge) {
+                if (row._dupStatus === 'DUPLICATE') {
+                    badge.className = 'scrap-dup-badge dup';
+                    badge.innerHTML = '<i class="fas fa-ban"></i> DUP';
+                } else if (row._dupStatus === 'NEW') {
+                    badge.className = 'scrap-dup-badge new';
+                    badge.innerHTML = '<i class="fas fa-check"></i> NEW';
+                } else {
+                    badge.className = 'scrap-dup-badge pend';
+                    badge.innerHTML = '<i class="fas fa-question"></i> ?';
+                }
+                if (grid) {
+                    grid.classList.remove('row-dup','row-new');
+                    if (row._dupStatus === 'DUPLICATE') grid.classList.add('row-dup');
+                    else if (row._dupStatus === 'NEW') grid.classList.add('row-new');
+                }
+                ['post_url','chat_number','group_name'].forEach(f => {
+                    const inp = document.querySelector(`[data-rowid="${id}"][data-field="${f}"]`);
+                    if (!inp) return;
+                    if (row._dupStatus === 'DUPLICATE') inp.classList.add('dup-field');
+                    else inp.classList.remove('dup-field');
+                });
+            }
+        }
+        function _scrapUpdateBadgeCount() {
+                const b = document.getElementById('scrapInsertRowCountBadge');
+                if (b) b.textContent = `${_scrapRows.length} row${_scrapRows.length !== 1 ? 's' : ''}`;
+            }
+            function _renderScrapRows() {
+                const area = document.getElementById('scrapInsertRowsArea');
+                if (!area) return;
+                area.innerHTML = '';
+                _scrapRows.forEach((row, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'scrap-row-grid' + (row._dupStatus === 'DUPLICATE' ? ' row-dup' : row._dupStatus === 'NEW' ? ' row-new' : '');
+                    div.dataset.rowid = row._id;
+                    let dupBadge = `<span class="scrap-dup-badge pend" data-rowid="${row._id}"><i class="fas fa-question"></i> ?</span>`;
+                    if (row._dupStatus === 'DUPLICATE') dupBadge = `<span class="scrap-dup-badge dup" data-rowid="${row._id}"><i class="fas fa-ban"></i> DUP</span>`;
+                    else if (row._dupStatus === 'NEW')  dupBadge = `<span class="scrap-dup-badge new" data-rowid="${row._id}"><i class="fas fa-check"></i> NEW</span>`;
+                    const platOpts  = SCRAP_PLATFORMS.map(p => `<option value="${p}" ${row.platform===p?'selected':''}>${p}</option>`).join('');
+                    const scamOpts  = `<option value="">-- Select --</option>` + SCRAP_SCAM_TYPES.map(s => `<option value="${s}" ${row.scam_type===s?'selected':''}>${s}</option>`).join('');
+                    const shareOpts = ['Pending','Shared'].map(s => `<option value="${s}" ${row.share_status===s?'selected':''}>${s}</option>`).join('');
+                    div.innerHTML = `
+                        <div class="scrap-row-num">${idx + 1}</div>
+                        <div style="display:flex;flex-direction:column;gap:3px;">
+                            <input class="scrap-inp" type="text" value="${_scrapEsc(row.name)}" placeholder="Name..."
+                                data-rowid="${row._id}" data-field="name"
+                                oninput="_updateRowField(${row._id},'name',this.value)">
+                        </div>
+                        <select class="scrap-sel" data-rowid="${row._id}" data-field="platform"
+                            onchange="_updateRowField(${row._id},'platform',this.value)">
+                            <option value="">Auto</option>${platOpts}
+                        </select>
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                            <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
+                                value="${_scrapEsc(row.post_url)}" placeholder="https://... paste URL here"
+                                data-rowid="${row._id}" data-field="post_url"
+                                oninput="_updateRowField(${row._id},'post_url',this.value)"
+                                style="${row._urlValid===false?'border-color:#e74c3c;':''}" >
+                            <span id="url-warn-${row._id}" style="display:${row._urlValid===false?'block':'none'};font-size:10px;color:#c0392b;font-weight:600;">
+                                Invalid URL — must start with https://
+                            </span>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                            <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
+                                value="${_scrapEsc(row.chat_number)}" placeholder="Chat number / NA"
+                                data-rowid="${row._id}" data-field="chat_number"
+                                oninput="_updateRowField(${row._id},'chat_number',this.value)">
+                            <span id="cn-warn-${row._id}" style="display:none;font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid;"></span>
+                        </div>
+                        <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
+                            value="${_scrapEsc(row.group_name)}" placeholder="Auto from URL..."
+                            data-rowid="${row._id}" data-field="group_name"
+                            oninput="_updateRowField(${row._id},'group_name',this.value)">
+                        <select class="scrap-sel" data-rowid="${row._id}" data-field="scam_type"
+                            onchange="_updateRowField(${row._id},'scam_type',this.value)">
+                            ${scamOpts}
+                        </select>
+                        <select class="scrap-sel" data-rowid="${row._id}" data-field="share_status"
+                            onchange="_updateRowField(${row._id},'share_status',this.value)">
+                            ${shareOpts}
+                        </select>
+                        <button class="scrap-del-btn" onclick="scrapDeleteRow(${row._id})" title="Remove row">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+
+                    area.appendChild(div);
+                });
+                _scrapUpdateBadgeCount();
+            }
+            async function scrapCheckDuplicates() {
+                const btn = document.getElementById('scrapDupCheckBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+                try {
+                    const resp = await fetch('/check-scraping-duplicates', {
+                        method: 'POST',
+                        headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({ entries: _scrapRows.map(r => ({group_name: r.group_name||'', chat_number: r.chat_number||''})) })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        data.results.forEach((res, idx) => {
+                            if (_scrapRows[idx]) {
+                                _scrapRows[idx]._dupStatus = res.status === 'ERROR' ? 'pending' : res.status;
+                                _refreshRowDupBadge(_scrapRows[idx]._id);
+                            }
+                        });
+                        const dups = _scrapRows.filter(r => r._dupStatus === 'DUPLICATE').length;
+                        const news = _scrapRows.filter(r => r._dupStatus === 'NEW').length;
+                        const msg = document.getElementById('scrapInsertStatusMsg');
+                        if (msg) msg.innerHTML = `<i class="fas fa-check-circle" style="color:#2ecc71;"></i> Check done — <strong style="color:#c0392b;">${dups} Duplicate${dups!==1?'s':''}</strong> &nbsp;|&nbsp; <strong style="color:#1e8449;">${news} New</strong>`;
+                    } else {
+                        showToast('Check failed: ' + data.error, true);
+                    }
+                } catch(e) {
+                    showToast('Network error: ' + e.message, true);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-search"></i> Check Duplicates';
+                }
+            }
+            async function scrapSubmitInsert() {
+                const missing = _scrapRows.filter(r => !r.name.trim() || !r.scam_type);
+                if (missing.length) {
+                    showToast(`${missing.length} row(s) mein Name ya Scam Type missing hai!`, true);
+                    return;
+                }
+                const invalidUrls = _scrapRows.filter(r => {
+                    const url = (r.post_url || '').trim();
+                    return !url.toLowerCase().startsWith('https://');
+                });
+                if (invalidUrls.length) {
+                    showToast(`${invalidUrls.length} row(s) mein valid https:// URL nahi hai!`, true);
+                    return;
+                }
+                const dups = _scrapRows.filter(r => r._dupStatus === 'DUPLICATE');
+                if (dups.length) {
+                    showToast(`${dups.length} DUPLICATE row(s)`, true);
+                    return;
+                }
+                const btn = document.getElementById('scrapInsertSubmitBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
+                try {
+                    const resp = await fetch('/insert-scraping-record', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            rows: _scrapRows.map(r => ({
+                                name:         r.name || 'NA',
+                                platform:     r.platform || 'NA',
+                                post_url:     r.post_url || 'NA',
+                                chat_number:  r.chat_number || 'NA',
+                                group_name:   r.group_name || 'NA',
+                                scam_type:    r.scam_type || 'NA',
+                                share_status: r.share_status || 'Pending',
+                                screenshot:   'NA',
+                                inserted_date: document.getElementById('scrapInsertDate').value || new Date().toISOString().split('T')[0],
+                            }))
+                        })
+                    });
+                    const data = await resp.json();
+                    if (data.success) {
+                        showToast(`${data.count} record${data.count !== 1 ? 's' : ''} Data Inserted!`, false, true);
+                        closeScrapInsertModal();
+                        if (data.records) data.records.reverse().forEach(rec => _scrapPrependRow(rec));
+                    } else {
+                        showToast('Insert failed: ' + data.error, true);
+                    }
+                } catch(e) {
+                    showToast('Network error: ' + e.message, true);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-save"></i> Insert Records';
+                }
+            }
+            function _scrapPrependRow(item) {
+                const tbody = document.querySelector('.scraping-page tbody');
+                if (!tbody) return;
+                const empty = tbody.querySelector('tr td[colspan]');
+                if (empty) empty.closest('tr').remove();
+                const v = val => val && !['NA', 'N/A', '', null].includes(String(val));
+                const esc = str => (str || '').replace(/'/g, "\\'");
+                const today = new Date().toISOString().split('T')[0];
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong style="color:#2c3e50;">#${item.id}</strong></td>
+                    <td>
+                        ${v(item.share_status)
+                            ? `<span style="background:#f3e5f5;color:#6a1a9a;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">${item.share_status}</span>`
+                            : '<span style="color:#95a5a6;">N/A</span>'}
+                        </td>
+                        <td>
+                            ${v(item.name)
+                                ? `<span class="text-content" title="${item.name}">${String(item.name).substring(0,30)}${String(item.name).length > 30 ? '...' : ''}</span>`
+                                : '<span style="color:#95a5a6;">N/A</span>'}
+                        </td>
+                        <td>
+                            ${v(item.platform)
+                                ? `<span class="platform-badge">${item.platform}</span>`
+                                : '<span style="color:#95a5a6;">N/A</span>'}
+                        </td>
+                        <td>
+                            <div class="field-container">
+                                ${v(item.post_url)
+                                    ? `<a href="${item.post_url}" target="_blank" class="url-link">${String(item.post_url).substring(0,35)}${String(item.post_url).length > 35 ? '...' : ''}</a>
+                                       <button class="copy-btn" onclick="copyToClipboard('${esc(item.post_url)}','Post URL')"><i class="fas fa-copy"></i></button>`
+                                    : '<span style="color:#95a5a6;">N/A</span>'}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field-container">
+                                ${v(item.chat_number)
+                                    ? `<span>${item.chat_number}</span>
+                                        <button class="copy-btn" onclick="copyToClipboard('${esc(item.chat_number)}','Chat Number')"><i class="fas fa-copy"></i></button>`
+                                    : '<span style="color:#95a5a6;">N/A</span>'}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field-container">
+                                ${v(item.group_name)
+                                    ? `<span class="text-content">${String(item.group_name).substring(0,35)}${String(item.group_name).length > 35 ? '...' : ''}</span>
+                                       <button class="copy-btn" onclick="copyToClipboard('${esc(item.group_name)}','Group Name')"><i class="fas fa-copy"></i></button>`
+                                    : '<span style="color:#95a5a6;">N/A</span>'}
+                            </div>
+                        </td>
+                        <td>
+                            ${v(item.scam_type)
+                                ? `<span class="scam-type">${item.scam_type}</span>`
+                                : '<span style="color:#95a5a6;">N/A</span>'}
+                        </td>
+                        <td>
+                            <span style="font-size:11px;color:#2c3e50;font-weight:600;">
+                                ${item.inserted_date || today}
+                            </span>
+                        </td>
+                        <td><span style="color:#95a5a6;">N/A</span></td>
+                `;
+
+                tbody.insertBefore(tr, tbody.firstChild);
+            }
+                </script>
+        <div id="scrapInsertModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:2000;justify-content:center;align-items:flex-end;padding:0;">
+            <div id="scrapInsertDrawer" style="background:white;width:100%;max-height:95vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -12px 48px rgba(0,0,0,0.28);animation:scrapDrawerUp 0.32s cubic-bezier(0.34,1.4,0.64,1);">
+                <div style="width:44px;height:4px;background:#dee2e6;border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
+                <div style="background:linear-gradient(135deg,#3498db,#2980b9);color:white;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <i class="fas fa-plus-circle" style="font-size:16px;"></i>
+                        <span style="font-size:15px;font-weight:700;">Insert Scraping Data</span>
+                        <span id="scrapInsertRowCountBadge" style="background:rgba(255,255,255,0.25);padding:2px 10px;border-radius:20px;font-size:12px;font-weight:600;">1 row</span>
+                    </div>
+                    <button onclick="closeScrapInsertModal()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div style="background:#ebf5fb;border-bottom:1px solid #d6eaf8;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0;">
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1a5276;">
+                            <i class="fas fa-user-circle" style="color:#3498db;"></i>
+                            <strong id="scrapInsertUserName">Loading...</strong>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1a5276;">
+                            <i class="fas fa-calendar-alt" style="color:#3498db;"></i>
+                            <label style="font-size:11px;font-weight:700;color:#1a5276;white-space:nowrap;">Insert Date:</label>
+                            <input type="date" id="scrapInsertDate"
+                                style="padding:4px 8px;border:1.5px solid #3498db;border-radius:5px;font-size:12px;height:28px;outline:none;color:#2c3e50;background:white;cursor:pointer;">
+                            <button onclick="document.getElementById('scrapInsertDate').value=''"
+                                style="padding:3px 8px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;height:24px;">
+                                Today
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                        <button onclick="scrapAddRow()" style="padding:6px 14px;background:#3498db;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-plus"></i> Add Row
+                        </button>
+                        <button onclick="scrapCheckDuplicates()" id="scrapDupCheckBtn" style="padding:6px 14px;background:#9b59b6;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-search"></i> Check Duplicates
+                        </button>
+                        <button onclick="scrapClearAll()" style="padding:6px 14px;background:#e74c3c;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-trash"></i> Clear All
+                        </button>
+                    </div>
+                </div>
+                <div style="background:#f8f9fa;border-bottom:2px solid #dee2e6;padding:0 20px;flex-shrink:0;overflow-x:auto;">
+                    <div style="display:grid;grid-template-columns:32px 1.4fr 0.9fr 2.2fr 1.2fr 1.8fr 1.5fr 1fr 32px;gap:6px;width:100%;box-sizing:border-box;padding:8px 0;align-items:center;">
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;text-align:center;">#</div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Name <span style="color:#e74c3c;">*</span></div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Platform</div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Post URL</div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Chat Number</div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Group Name</div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Scam Type <span style="color:#e74c3c;">*</span></div>
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Share Status</div>
+                    </div>
+                </div>
+                <div id="scrapInsertRowsArea" style="overflow-y:auto;flex-grow:1;padding:10px 20px 6px;"></div>
+                <div style="padding:12px 20px;background:#f8f9fa;border-top:1px solid #eee;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                    <div id="scrapInsertStatusMsg" style="font-size:12px;color:#7f8c8d;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-info-circle"></i> Fill in the rows above and click Insert
+                    </div>
+                    <div style="display:flex;gap:10px;">
+                        <button onclick="closeScrapInsertModal()" style="padding:9px 18px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+                            Cancel
+                        </button>
+                        <button onclick="scrapSubmitInsert()" id="scrapInsertSubmitBtn" style="padding:9px 22px;background:#2ecc71;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-save"></i> Insert Records
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
