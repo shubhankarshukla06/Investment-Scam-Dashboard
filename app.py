@@ -2263,6 +2263,39 @@ def check_chat_number():
     except Exception as e:
         return jsonify({"exists": False, "error": str(e)})
     
+@app.route("/scrapping-summary-data", methods=["GET"])
+@login_required
+def scrapping_summary_data():
+    """Fetch scrapping data for summary generation (filtered by date)"""
+    try:
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to",   "").strip()
+        date_on   = request.args.get("date_on",   "").strip()   # single date shortcut
+
+        CHUNK = 1000
+        all_rows = []
+        offset = 0
+        while True:
+            q = supabase.table("scrapping_data") \
+                .select("name,platform,chat_number,group_name,scam_type,inserted_date")
+            if date_on:
+                q = q.eq("inserted_date", date_on)
+            else:
+                if date_from:
+                    q = q.gte("inserted_date", date_from)
+                if date_to:
+                    q = q.lte("inserted_date", date_to)
+            resp = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        return jsonify({"success": True, "rows": all_rows, "total": len(all_rows)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
     load_config()

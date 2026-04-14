@@ -500,23 +500,23 @@
         .edit-drawer-overlay {
             display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.55); z-index: 3000;
-            justify-content: flex-end; align-items: flex-end;
+            justify-content: center; align-items: center;
+            padding: 20px;
         }
         .edit-drawer-overlay.active { display: flex; }
         .edit-drawer {
-            background: white; width: 100%; max-height: 85vh;
-            border-radius: 16px 16px 0 0;
-            box-shadow: 0 -8px 40px rgba(0,0,0,0.25);
+            background: white; width: 100%; max-width: 860px; max-height: 88vh;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
             display: flex; flex-direction: column; overflow: hidden;
-            animation: drawerSlideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            animation: drawerSlideUp 0.28s cubic-bezier(0.34,1.2,0.64,1);
         }
         @keyframes drawerSlideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to   { transform: translateY(0);    opacity: 1; }
+            from { transform: scale(0.95) translateY(-10px); opacity: 0; }
+            to   { transform: scale(1)    translateY(0);     opacity: 1; }
         }
         .edit-drawer-handle {
-            width: 44px; height: 4px; background: #dee2e6;
-            border-radius: 2px; margin: 10px auto 0; flex-shrink: 0;
+            display: none;
         }
         .edit-drawer-header {
             background: linear-gradient(135deg, #3498db, #2980b9);
@@ -875,7 +875,6 @@
                             <input type="date" name="date_to" value="{{ date_to }}" onchange="this.form.submit()" class="{% if date_to %}active-filter{% endif %}" title="To date">
                         </div>
                     </div>
-                        </select>
                 </form>
             </div>
             <div class="table-container">
@@ -984,6 +983,7 @@
                         <option value="sheet">📊 Sheet Maker</option>
                         <option value="summary">📋 Summary Maker</option>
                         <option value="duplicates">🔍 UPI/Bank Duplicate Checker</option>
+                        <option value="scrapping_summary">📊 Scrapping Summary</option>
                     </select>
                 </div>
 
@@ -1231,6 +1231,87 @@
                 </div>
             </div>
         </div>    
+    </div>
+    <!-- SCRAPPING SUMMARY SECTION -->
+    <div id="scrappingSummarySection" style="display:none;">
+        <div class="sheet-maker-row">
+            <div class="sheet-maker-group">
+                <label><i class="fas fa-list-alt"></i> Summary Type</label>
+                <select class="sheet-maker-select" id="scrapSummaryType" onchange="onScrapSummaryTypeChange()">
+                    <option value="">-- Select Type --</option>
+                    <option value="user_wise">👤 User Wise Scrapping Summary</option>
+                    <option value="category_platform">📂 Categories / Platform Wise Summary</option>
+                </select>
+            </div>
+            <div class="sheet-maker-group">
+                <label><i class="fas fa-calendar-alt"></i> Date Filter</label>
+                <div style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-wrap:nowrap;">
+                    <button onclick="setScrapSummaryDateToday()" style="padding:4px 8px;background:#3498db;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:28px;white-space:nowrap;flex-shrink:0;">
+                        <i class="fas fa-calendar-day"></i> Today
+                    </button>
+                    <input type="date" id="scrapSummaryDateFrom"
+                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;height:28px;outline:none;"
+                        onchange="onScrapDateChange()">
+                    <span style="font-size:10px;color:#7f8c8d;flex-shrink:0;">to</span>
+                    <input type="date" id="scrapSummaryDateTo"
+                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;height:28px;outline:none;"
+                        onchange="onScrapDateChange()">
+                    <button onclick="clearScrapSummaryDates()" title="Clear"
+                        style="padding:4px 6px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:28px;flex-shrink:0;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <span id="scrapSummaryDateLabel" style="font-size:10px;color:#7f8c8d;display:none;margin-top:2px;">
+                    <i class="fas fa-filter"></i> <span id="scrapDateLabelText"></span>
+                </span>
+            </div>
+            <div class="sheet-maker-group" id="scrapWsUploadGroup" style="display:none;">
+                <label><i class="fas fa-upload"></i> Website Searching File <span style="font-size:10px;color:#95a5a6;">(optional)</span></label>
+                <div class="file-upload-compact" onclick="document.getElementById('scrapWsFileInput').click()" id="scrapWsUploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <div id="scrapWsFileName" class="file-name">No file chosen</div>
+                    <div class="file-info">Excel / CSV for WS counts</div>
+                    <input type="file" id="scrapWsFileInput" style="display:none;"
+                        accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods"
+                        onchange="onScrapWsFileSelected(this)">
+                </div>
+            </div>
+            <div class="sheet-maker-group">
+                <label><i class="fas fa-info-circle"></i> Status</label>
+                <div id="scrapSummaryStatus" class="sheet-status-box waiting">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span>Select type and date to begin</span>
+                </div>
+                <button class="generate-summary-btn" id="scrapSummaryGenBtn"
+                    onclick="generateScrapSummary()" disabled style="margin-top:6px;">
+                    <i class="fas fa-chart-bar"></i> Generate Summary
+                </button>
+            </div>
+        </div>
+    </div>
+    <div id="scrapSummaryResultArea" style="display:none;margin-top:4px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee;">
+            <h4 style="font-size:13px;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-table" style="color:#3498db;"></i>
+                <span id="scrapSummaryResultTitle" style="color:#3498db;"></span>
+            </h4>
+            <div style="display:flex;gap:8px;">
+                <button onclick="copyScrapSummaryAsImage()"
+                    style="padding:5px 12px;background:#2ecc71;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;height:30px;">
+                    <i class="fas fa-copy"></i> Copy Image
+                </button>
+                <button onclick="exportScrapSummaryCSV()"
+                   style="padding:5px 12px;background:#5c6bc0;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;height:30px;">
+                   <i class="fas fa-file-export"></i> Export CSV
+                </button>
+            </div>
+        </div>
+        <div id="scrapSummaryTableWrapper" style="overflow-x:auto;border-radius:6px;border:1px solid #e9ecef;">
+            <table id="scrapSummaryTable" style="border-collapse:collapse;font-size:12px;min-width:100%;">
+                <thead id="scrapSummaryThead"></thead>
+                <tbody id="scrapSummaryTbody"></tbody>
+            </table>
+        </div>
     </div>
     {% endif %}
 
@@ -1680,32 +1761,32 @@
 
         // ─── Mode Switcher ───────────────────────────────────────
         function switchMode(mode) {
-            const sheetSection = document.getElementById('sheetMakerSection');
-            const summarySection = document.getElementById('summaryMakerSection');
+            const sheetSection     = document.getElementById('sheetMakerSection');
+            const summarySection   = document.getElementById('summaryMakerSection');
             const duplicateSection = document.getElementById('duplicateCheckerSection');
-            const templateBtn = document.getElementById('templateBtn');
-            const templateStats = document.getElementById('templateStats');
-
+            const scrapSummSection = document.getElementById('scrappingSummarySection'); // NEW
+            const templateBtn      = document.getElementById('templateBtn');
+            const templateStats    = document.getElementById('templateStats');
+            [sheetSection, summarySection, duplicateSection, scrapSummSection].forEach(s => { if(s) s.style.display = 'none'; });
             if (mode === 'sheet') {
                 sheetSection.style.display = '';
-                summarySection.style.display = 'none';
-                duplicateSection.style.display = 'none';
-                templateBtn.style.display = '';
-                document.getElementById('summaryPreviewSection').classList.remove('show');
-                document.getElementById('dupResultArea').style.display = 'none';
+                templateBtn.style.display  = '';
             } else if (mode === 'summary') {
-                sheetSection.style.display = 'none';
                 summarySection.style.display = '';
-                duplicateSection.style.display = 'none';
-                templateBtn.style.display = 'none';
-                templateStats.style.display = 'none';
+                templateBtn.style.display    = 'none';
+                templateStats.style.display  = 'none';
                 closePreview();
                 document.getElementById('dupResultArea').style.display = 'none';
             } else if (mode === 'duplicates') {
-                sheetSection.style.display = 'none';
-                summarySection.style.display = 'none';
                 duplicateSection.style.display = '';
-                templateBtn.style.display = 'none';
+                templateBtn.style.display      = 'none';
+                templateStats.style.display    = 'none';
+                closePreview();
+                document.getElementById('summaryPreviewSection').classList.remove('show');
+                document.getElementById('dupResultArea').style.display = 'none';
+            } else if (mode === 'scrapping_summary') {
+                if (scrapSummSection) scrapSummSection.style.display = '';
+                templateBtn.style.display   = 'none';
                 templateStats.style.display = 'none';
                 closePreview();
                 document.getElementById('summaryPreviewSection').classList.remove('show');
@@ -3900,7 +3981,9 @@
         document.getElementById('insertSocialModal')?.addEventListener('click', e => {
             if (e.target === document.getElementById('insertSocialModal')) closeInsertModal();
         });
-
+        document.getElementById('scrapInsertModal')?.addEventListener('click', e => {
+            if (e.target === document.getElementById('scrapInsertModal')) closeScrapInsertModal();
+        });
         function adjustContainerPadding() {
             const header = document.querySelector('.fixed-header');
             const container = document.querySelector('.container');
@@ -3917,9 +4000,380 @@
         if (window.ResizeObserver) {
             new ResizeObserver(adjustContainerPadding).observe(
                 document.querySelector('.fixed-header')
-            );  
+            );
         }
-</script>
+            let _scrapSummaryData   = [];
+            let _scrapWsParsedData  = [];   // rows from WS file
+            let _scrapWsHeaders     = [];
+            let _lastScrapSummary   = null;
+            const SCRAP_SM_PLATFORMS = ['Telegram','WhatsApp','Facebook','Instagram','Threads','YouTube','X'];
+            function onScrapSummaryTypeChange() {
+                const type = document.getElementById('scrapSummaryType').value;
+                const wsGroup = document.getElementById('scrapWsUploadGroup');
+                wsGroup.style.display = (type === 'category_platform') ? '' : 'none';
+                _updateScrapSummaryStatus();
+            }
+            function setScrapSummaryDateToday() {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('scrapSummaryDateFrom').value = today;
+                document.getElementById('scrapSummaryDateTo').value   = today;
+                onScrapDateChange();
+            }
+            function clearScrapSummaryDates() {
+                document.getElementById('scrapSummaryDateFrom').value = '';
+                document.getElementById('scrapSummaryDateTo').value   = '';
+                _scrapSummaryData = [];
+                document.getElementById('scrapSummaryDateLabel').style.display = 'none';
+                _updateScrapSummaryStatus();
+            }
+            function onScrapDateChange() {
+                const from = document.getElementById('scrapSummaryDateFrom').value;
+                const to   = document.getElementById('scrapSummaryDateTo').value;
+                const label = document.getElementById('scrapSummaryDateLabel');
+                const labelTxt = document.getElementById('scrapDateLabelText');
+                if (from || to) {
+                    const f = from ? _fmtDateDMY(from) : '...';
+                    const t = to   ? _fmtDateDMY(to)   : '...';
+                    labelTxt.textContent = from === to && from ? `Date: ${f}` : `${f} → ${t}`;
+                    label.style.display = 'block';
+                } else {
+                    label.style.display = 'none';
+                }
+                _scrapSummaryData = [];
+                _updateScrapSummaryStatus();
+            }
+            function _fmtDateDMY(ymd) {
+                if (!ymd) return '';
+                const p = ymd.split('-');
+                return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : ymd;
+            }
+            function _updateScrapSummaryStatus() {
+                const type = document.getElementById('scrapSummaryType').value;
+                const from = document.getElementById('scrapSummaryDateFrom').value;
+                const to   = document.getElementById('scrapSummaryDateTo').value;
+                const box  = document.getElementById('scrapSummaryStatus');
+                const btn  = document.getElementById('scrapSummaryGenBtn');
+                let ready  = false;
+                let msg    = 'Select type and date to begin';
+                if (!type) {
+                    msg = 'Select a summary type first';
+                } else if (!from && !to) {
+                    msg = 'Select a date or date range';
+                } else {
+                    ready = true;
+                    const f = _fmtDateDMY(from);
+                    const t = _fmtDateDMY(to);
+                    msg = from === to && from ? `Ready for ${f}` : `Ready: ${f||'start'} → ${t||'end'}`;
+                }
+                box.className = `sheet-status-box ${ready ? 'ready' : 'waiting'}`;
+                box.innerHTML = `<i class="fas fa-${ready ? 'check-circle' : 'hourglass-half'}"></i><span>${msg}</span>`;
+                btn.disabled  = !ready;
+            }
+            function onScrapWsFileSelected(input) {
+                const file = input.files[0];
+                if (!file) return;
+                document.getElementById('scrapWsFileName').textContent = file.name;
+                _scrapWsParsedData = []; _scrapWsHeaders = [];
+                const formData = new FormData();
+                formData.append('file', file);
+                fetch('/parse-raw-file', { method: 'POST', body: formData })
+                     .then(r => r.json())
+                     .then(data => {
+                        if (data.success) {
+                            _scrapWsHeaders    = data.headers;
+                            _scrapWsParsedData = data.rows;
+                            showToast(`WS file loaded: ${data.total_rows} rows`, false, true);
+                        } else {
+                            showToast('WS file error: ' + data.error, true);
+                        }
+                    })
+                    .catch(e => showToast('WS file parse error: ' + e.message, true));
+            }
+            async function generateScrapSummary() {
+                const type = document.getElementById('scrapSummaryType').value;
+                const from = document.getElementById('scrapSummaryDateFrom').value;
+                const to   = document.getElementById('scrapSummaryDateTo').value;
+                if (!type || (!from && !to)) return;
+                const btn = document.getElementById('scrapSummaryGenBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                try {
+                    if (!_scrapSummaryData.length) {
+                        const params = [];
+                        if (from === to && from) params.push(`date_on=${from}`);
+                        else {
+                            if (from) params.push(`date_from=${from}`);
+                            if (to)   params.push(`date_to=${to}`);
+                        }
+                        const resp = await fetch('/scrapping-summary-data?' + params.join('&'));
+                        const data = await resp.json();
+                        if (!data.success) { showToast('Error: ' + data.error, true); return; }
+                        _scrapSummaryData = data.rows;
+                    }
+                    if (type === 'user_wise') _buildUserWiseScrapSummary();
+                    else                      _buildCategoryPlatformSummary();
+                } catch(e) {
+                    showToast('Error: ' + e.message, true);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-chart-bar"></i> Generate Summary';
+                }
+            }
+            function _buildUserWiseScrapSummary() {
+                const from = document.getElementById('scrapSummaryDateFrom').value;
+                const to   = document.getElementById('scrapSummaryDateTo').value;
+                const dateStr = from === to && from ? _fmtDateDMY(from) : `${_fmtDateDMY(from)||'start'} to ${_fmtDateDMY(to)||'end'}`;
+                const rows = _scrapSummaryData;
+                const userData = {};
+                rows.forEach(row => {
+                    const user   = (row.name     || 'Unknown').trim();
+                    const plat   = (row.platform || 'Unknown').trim();
+                    const cn     = (row.chat_number || '').trim();
+                    if (!userData[user]) userData[user] = { platforms: {}, numbers: new Set(), total: 0 };
+                    userData[user].platforms[plat] = (userData[user].platforms[plat] || 0) + 1;
+                    userData[user].total++;
+                    if (cn && cn.toUpperCase() !== 'NA' && cn !== '') userData[user].numbers.add(cn);
+                });
+                const allPlatforms = [...new Set(rows.map(r => (r.platform || 'Unknown').trim()))].sort();
+                const users = Object.keys(userData).sort((a, b) => userData[b].total - userData[a].total);
+                const thS = `font-weight:700;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:7px 12px;font-size:12px;white-space:nowrap;background:#e8eaf6;`;
+                const tdS = `text-align:center;border:1px solid #9fa8da;padding:5px 10px;font-size:12px;`;
+                const tdNameS = `font-weight:600;color:#1a237e;text-align:left;border:1px solid #3949ab;padding:5px 10px;font-size:12px;background:#f3f4ff;white-space:nowrap;`;
+                const thead = document.getElementById('scrapSummaryThead');
+                const tbody = document.getElementById('scrapSummaryTbody');
+                thead.innerHTML = ''; tbody.innerHTML = '';
+                const titleCols = allPlatforms.length + 4; // name + platforms + total + unique + pct
+                thead.innerHTML = `
+                    <tr><th colspan="${titleCols}" style="${thS}font-size:14px;background:#c5cae9;">
+                        Scam++ User Wise Scrapping Summary - ${dateStr}
+                    </th></tr>
+                    <tr>
+                        <th style="${thS}">User Name</th>
+                        ${allPlatforms.map(p => `<th style="${thS}">${p}</th>`).join('')}
+                        <th style="${thS}">Total Scrapping</th>
+                        <th style="${thS}">Unique Numbers</th>
+                        <th style="${thS}">Unique %</th>
+                    </tr>`;
+                    let totPlatforms = {};
+                    let totTotal = 0, totUnique = 0;
+                    allPlatforms.forEach(p => { totPlatforms[p] = 0; });
+                    users.forEach(user => {
+                        const d = userData[user];
+                        const uniqueCount = d.numbers.size;
+                        const pct = d.total > 0 ? ((uniqueCount / d.total) * 100).toFixed(1) + '%' : 'NA';
+                        allPlatforms.forEach(p => { totPlatforms[p] = (totPlatforms[p] || 0) + (d.platforms[p] || 0); });
+                        totTotal  += d.total;
+                        totUnique += uniqueCount;
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td style="${tdNameS}">${user}</td>
+                            ${allPlatforms.map(p => `<td style="${tdS}">${d.platforms[p] || 'NA'}</td>`).join('')}
+                            <td style="${tdS}font-weight:700;">${d.total}</td>
+                            <td style="${tdS}">${uniqueCount || 'NA'}</td>
+                            <td style="${tdS}">${pct}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                    const totPct = totTotal > 0 ? ((totUnique / totTotal) * 100).toFixed(1) + '%' : 'NA';
+                    const totalTr = document.createElement('tr');
+                    totalTr.style.background = '#c5cae9';
+                    totalTr.innerHTML = `
+                        <td style="${thS}text-align:left;">Total</td>
+                        ${allPlatforms.map(p => `<td style="${thS}">${totPlatforms[p] || 'NA'}</td>`).join('')}
+                        <td style="${thS}">${totTotal}</td>
+                        <td style="${thS}">${totUnique || 'NA'}</td>
+                        <td style="${thS}">${totPct}</td>
+                    `;
+                    tbody.appendChild(totalTr);
+                    _lastScrapSummary = { type: 'user_wise', userData, users, allPlatforms, dateStr };
+                    document.getElementById('scrapSummaryResultTitle').textContent = `User Wise Scrapping Summary — ${dateStr}`;
+                    document.getElementById('scrapSummaryResultArea').style.display = '';
+                    document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            function _buildCategoryPlatformSummary() {
+                const from = document.getElementById('scrapSummaryDateFrom').value;
+                const to   = document.getElementById('scrapSummaryDateTo').value;
+                const dateStr = from === to && from ? _fmtDateDMY(from) : `${_fmtDateDMY(from)||'start'} to ${_fmtDateDMY(to)||'end'}`;
+                const rows = _scrapSummaryData;
+                const scrapMap = {};
+                const allPlatforms = new Set();
+                const allScamTypes = new Set();
+                rows.forEach(row => {
+                    const st   = (row.scam_type || 'Unknown').trim() || 'Unknown';
+                    const plat = (row.platform  || 'Unknown').trim() || 'Unknown';
+                    if (!scrapMap[st]) scrapMap[st] = {};
+                    scrapMap[st][plat] = (scrapMap[st][plat] || 0) + 1;
+                    allPlatforms.add(plat);
+                    allScamTypes.add(st);
+                });
+                const wsMap = {};
+                const wsAllPlatforms = new Set();
+                if (_scrapWsParsedData.length) {
+                    const stCol   = _scrapWsHeaders.find(h => /scam.?type/i.test(h)) || _scrapWsHeaders[0];
+                    const platCol = _scrapWsHeaders.find(h => /platform|search.?for/i.test(h)) || _scrapWsHeaders[1];
+                    _scrapWsParsedData.forEach(row => {
+                        const st   = (row[stCol]   || 'Unknown').trim() || 'Unknown';
+                        const plat = (row[platCol] || 'Unknown').trim() || 'Unknown';
+                        if (!wsMap[st]) wsMap[st] = {};
+                        wsMap[st][plat] = (wsMap[st][plat] || 0) + 1;
+                        wsAllPlatforms.add(plat);
+                        allScamTypes.add(st);
+                    });
+                }
+                const scrapPlatforms = [...allPlatforms].sort();
+                const wsPlatforms    = [...wsAllPlatforms].sort();
+                const SCAM_ORDER = [
+                    "Investment Scam","LPG Booking Scam","Government Scheme Scam",
+                    "Fake Account Selling Scam","Job Scam","Currency Exchange Scam",
+                    "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam"
+                ];
+                const sortedScamTypes = [...allScamTypes].sort((a,b) => {
+                    const ia = SCAM_ORDER.indexOf(a), ib = SCAM_ORDER.indexOf(b);
+                    if (ia === -1 && ib === -1) return a.localeCompare(b);
+                    if (ia === -1) return 1; if (ib === -1) return -1;
+                    return ia - ib;
+                });
+                const thS = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:7px 10px;font-size:12px;white-space:nowrap;background:#f3e5f5;`;
+                const tdS = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;`;
+                const tdLabelS = `font-weight:600;color:#6a1b9a;text-align:left;border:1px solid #9c27b0;padding:5px 8px;font-size:12px;background:#f8f0fc;white-space:nowrap;`;
+                const headerS = `font-weight:700;color:white;text-align:center;border:1px solid #7b1fa2;padding:6px 10px;font-size:12px;white-space:nowrap;`;
+                const thead = document.getElementById('scrapSummaryThead');
+                const tbody = document.getElementById('scrapSummaryTbody');
+                thead.innerHTML = ''; tbody.innerHTML = '';
+                const hasWS = wsPlatforms.length > 0;
+                const scrapCols = scrapPlatforms.length + 1; // platforms + subtotal
+                const wsCols    = hasWS ? wsPlatforms.length + 1 : 0;
+                const totalCols = 1 + scrapCols + (hasWS ? wsCols : 0) + 1; // category + scrapping + ws + grand
+                const titleLabel = hasWS ? `Scam++ SM & Website Searching Summary - ${dateStr}` : `Scrapping Category & Platform Summary - ${dateStr}`;
+                thead.innerHTML = `
+                   <tr><th colspan="${totalCols}" style="${thS}font-size:14px;background:#d7bde2;">${titleLabel}</th></tr>
+                   <tr>
+                       <th rowspan="2" style="${thS}">Category</th>
+                       <th colspan="${scrapCols}" style="${headerS}background:#9c27b0;">Scrapping</th>
+                       ${hasWS ? `<th colspan="${wsCols}" style="${headerS}background:#0288d1;">Website Searching</th>` : ''}
+                       <th rowspan="2" style="${thS}background:#4a148c;color:white;">Grand Total</th>
+                    </tr>
+                    <tr>
+                        ${scrapPlatforms.map(p => `<th style="${thS}">${p}</th>`).join('')}
+                        <th style="${thS}">Sub Total</th>
+                        ${hasWS ? wsPlatforms.map(p => `<th style="${thS}background:#e1f5fe;color:#01579b;">${p}</th>`).join('') : ''}
+                        ${hasWS ? `<th style="${thS}background:#e1f5fe;color:#01579b;">Sub Total</th>` : ''}
+                    </tr>`;
+                let totScrapPlat = {}, totWsPlat = {}, totScrapAll = 0, totWsAll = 0, totGrand = 0;
+                scrapPlatforms.forEach(p => { totScrapPlat[p] = 0; });
+                wsPlatforms.forEach(p => { totWsPlat[p] = 0; });
+                sortedScamTypes.forEach(st => {
+                    const scrapRow = scrapMap[st] || {};
+                    const wsRow    = wsMap[st]    || {};
+                    let scrapSubTotal = 0;
+                    scrapPlatforms.forEach(p => { scrapSubTotal += scrapRow[p] || 0; totScrapPlat[p] += scrapRow[p] || 0; });
+                    let wsSubTotal = 0;
+                    wsPlatforms.forEach(p => { wsSubTotal += wsRow[p] || 0; totWsPlat[p] += wsRow[p] || 0; });
+                    totScrapAll += scrapSubTotal;
+                    totWsAll    += wsSubTotal;
+                    const grand = scrapSubTotal + wsSubTotal;
+                    totGrand    += grand;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td style="${tdLabelS}">${st}</td>
+                        ${scrapPlatforms.map(p => `<td style="${tdS}">${scrapRow[p] || 'NA'}</td>`).join('')}
+                        <td style="${tdS}font-weight:700;">${scrapSubTotal || 'NA'}</td>
+                        ${hasWS ? wsPlatforms.map(p => `<td style="${tdS}">${wsRow[p] || 'NA'}</td>`).join('') : ''}
+                        ${hasWS ? `<td style="${tdS}font-weight:700;">${wsSubTotal || 'NA'}</td>` : ''}
+                        <td style="${tdS}font-weight:700;background:#f3e5f5;">${grand || 'NA'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                const totalTr = document.createElement('tr');
+                totalTr.style.background = '#e1bee7';
+                totalTr.innerHTML = `
+                    <td style="${thS}text-align:left;">Total</td>
+                    ${scrapPlatforms.map(p => `<td style="${thS}">${totScrapPlat[p] || 'NA'}</td>`).join('')}
+                    <td style="${thS}">${totScrapAll || 'NA'}</td>
+                    ${hasWS ? wsPlatforms.map(p => `<td style="${thS}">${totWsPlat[p] || 'NA'}</td>`).join('') : ''}
+                    ${hasWS ? `<td style="${thS}">${totWsAll || 'NA'}</td>` : ''}
+                    <td style="${thS}background:#ce93d8;">${totGrand || 'NA'}</td>
+                `;
+                tbody.appendChild(totalTr);
+                _lastScrapSummary = { type: 'category_platform', sortedScamTypes, scrapMap, wsMap, scrapPlatforms, wsPlatforms, hasWS, dateStr, titleLabel };
+                document.getElementById('scrapSummaryResultTitle').textContent = titleLabel;
+                document.getElementById('scrapSummaryResultArea').style.display = '';
+                document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            async function copyScrapSummaryAsImage() {
+                const wrapper = document.getElementById('scrapSummaryTableWrapper');
+                if (!wrapper) { showToast('No summary to copy', true); return; }
+                try {
+                    if (!window.html2canvas) {
+                        await new Promise((resolve, reject) => {
+                            const s = document.createElement('script');
+                            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                            s.onload = resolve; s.onerror = reject;
+                            document.head.appendChild(s);
+                        });
+                    }
+                    showToast('Generating image...', false, false);
+                    const canvas = await html2canvas(wrapper, { backgroundColor: '#fff', scale: 2, useCORS: true, logging: false });
+                    const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+                    if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
+                        try {
+                            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                            showToast('Summary copied as image!', false, true); return;
+                        } catch(e) {}
+                    }
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = 'scrapping_summary.png';
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                    showToast('Image downloaded!', false, true);
+                } catch(e) { showToast('Error: ' + e.message, true); }
+            }
+            function exportScrapSummaryCSV() {
+                if (!_lastScrapSummary) { showToast('No summary to export', true); return; }
+                const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
+                const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+                let lines = [];
+                let filename = `scrapping_summary_${ts}.csv`;
+                const d = _lastScrapSummary;
+                if (d.type === 'user_wise') {
+                    filename = `Scam_Plus_User_Wise_Scrapping_Summary_${ts}.csv`;
+                    const cols = ['User Name', ...d.allPlatforms, 'Total Scrapping', 'Unique Numbers', 'Unique %'];
+                    lines.push(cols.join(','));
+                    d.users.forEach(user => {
+                        const ud = d.userData[user];
+                        const uniq = ud.numbers.size;
+                        const pct  = ud.total > 0 ? ((uniq / ud.total) * 100).toFixed(1) + '%' : 'NA';
+                        lines.push([
+                            esc(user),
+                            ...d.allPlatforms.map(p => ud.platforms[p] || 'NA'),
+                            ud.total, uniq || 'NA', pct
+                        ].join(','));
+                    });
+                } else {
+                    filename = `Scam_Plus_Category_Platform_Summary_${ts}.csv`;
+                    const scrapCols = [...d.scrapPlatforms, 'Sub Total'];
+                    const wsCols    = d.hasWS ? [...d.wsPlatforms, 'WS Sub Total'] : [];
+                    lines.push(['Category', ...scrapCols, ...wsCols, 'Grand Total'].join(','));
+                    d.sortedScamTypes.forEach(st => {
+                        const sr = d.scrapMap[st] || {};
+                        const wr = d.wsMap[st]    || {};
+                        const ss = d.scrapPlatforms.reduce((a,p) => a + (sr[p]||0), 0);
+                        const ws = d.wsPlatforms.reduce((a,p) => a + (wr[p]||0), 0);
+                        lines.push([
+                            esc(st),
+                            ...d.scrapPlatforms.map(p => sr[p] || 'NA'), ss || 'NA',
+                            ...(d.hasWS ? [...d.wsPlatforms.map(p => wr[p] || 'NA'), ws || 'NA'] : []),
+                            (ss + ws) || 'NA'
+                        ].join(','));
+                    });
+                }
+                const csv = '\uFEFF' + lines.join('\n');
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                showToast('Summary exported!', false, true);
+            }
+    </script>
         <div id="insertSocialModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:2000;justify-content:center;align-items:center;padding:20px;">
             <div style="background:white;border-radius:12px;width:100%;max-width:860px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.25);">
                 <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
@@ -3997,14 +4451,17 @@
             from { transform: translateY(100%); opacity: 0; }
             to   { transform: translateY(0);    opacity: 1; }
         }
+        @keyframes scrapModalIn {
+            from { transform: scale(0.95) translateY(-8px); opacity: 0; }
+            to   { transform: scale(1)    translateY(0);    opacity: 1; }
+        }
         .scrap-row-grid {
             display: grid;
-            grid-template-columns: 32px 1.4fr 0.9fr 2.2fr 1.2fr 1.8fr 1.5fr 1fr 32px;
-            gap: 6px;
+            grid-template-columns: 28px 1.3fr 0.8fr 1.8fr 1fr 1.5fr 1.2fr 0.8fr 28px;
+            gap: 4px;
             width: 100%;
-            min-width: 1152px;
             align-items: center;
-            padding: 7px 18px;
+            padding: 6px 18px;
             border-bottom: 1px solid #f0f0f0;
             transition: background 0.15s;
             box-sizing: border-box;
@@ -4075,24 +4532,19 @@
             try {
                 const u = url.trim();
                 const parsed = new URL(u.startsWith('http') ? u : 'https://' + u);
-                const parts = parsed.pathname.split('/').filter(p => p.length > 0);
-                if (parsed.hostname === 't.me' || parsed.hostname.includes('telegram')) {
+                const isTelegram = parsed.hostname === 't.me' || parsed.hostname.includes('telegram');
+                if (isTelegram) {
+                    const parts = parsed.pathname.split('/').filter(p => p.length > 0);
                     if (parts.length >= 1) {
                         return parsed.origin + '/' + parts[0];
                     }
                     return parsed.origin;
                 }
-                if (parsed.hostname.includes('facebook.com') && parsed.search) {
-                    return parsed.origin + parsed.pathname + parsed.search;
-                }
-                if (!parts.length) return parsed.origin;
-                return parsed.origin + '/' + parts[0];
+                return u.startsWith('http') ? u : 'https://' + u;
             } catch(e) {
-                const m = url.match(/^(https?:\/\/[^\/]+\/[^\/]+)/i);
-                return m ? m[1] : url;
+                return url;
             }
         }
-
         function _scrapGetUserName() {
             const raw = "{{ display_name }}";
             return raw.replace(/\s*\(.*?\)\s*/g, '').trim() || raw;
@@ -4491,9 +4943,9 @@
                 tbody.insertBefore(tr, tbody.firstChild);
             }
                 </script>
-        <div id="scrapInsertModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:2000;justify-content:center;align-items:flex-end;padding:0;">
-            <div id="scrapInsertDrawer" style="background:white;width:100%;max-height:95vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -12px 48px rgba(0,0,0,0.28);animation:scrapDrawerUp 0.32s cubic-bezier(0.34,1.4,0.64,1);">
-                <div style="width:44px;height:4px;background:#dee2e6;border-radius:2px;margin:10px auto 0;flex-shrink:0;"></div>
+        <div id="scrapInsertModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:2000;justify-content:center;align-items:center;padding:20px;">
+            <div id="scrapInsertDrawer" style="background:white;width:100%;max-width:1100px;height:92vh;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,0.28);animation:scrapModalIn 0.28s cubic-bezier(0.34,1.2,0.64,1);overflow:hidden;">
+                <div style="display:none;"></div>
                 <div style="background:linear-gradient(135deg,#3498db,#2980b9);color:white;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
                     <div style="display:flex;align-items:center;gap:10px;">
                         <i class="fas fa-plus-circle" style="font-size:16px;"></i>
@@ -4534,7 +4986,7 @@
                     </div>
                 </div>
                 <div style="background:#f8f9fa;border-bottom:2px solid #dee2e6;padding:0 20px;flex-shrink:0;overflow-x:auto;">
-                    <div style="display:grid;grid-template-columns:32px 1.4fr 0.9fr 2.2fr 1.2fr 1.8fr 1.5fr 1fr 32px;gap:6px;width:100%;box-sizing:border-box;padding:8px 0;align-items:center;">
+                    <div style="display:grid;grid-template-columns:28px 1.1fr 0.8fr 1.8fr 1fr 1.4fr 1.2fr 0.8fr 28px;gap:4px;width:100%;box-sizing:border-box;padding:8px 0;align-items:center;">
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;text-align:center;">#</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Name <span style="color:#e74c3c;">*</span></div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Platform</div>
