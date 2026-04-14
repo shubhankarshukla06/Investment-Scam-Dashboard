@@ -2296,6 +2296,58 @@ def scrapping_summary_data():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
+@app.route("/update-share-status", methods=["POST"])
+@login_required
+def update_share_status():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"})
+        
+        raw_ids = data.get("ids", [])
+        new_status = data.get("status", "").strip()
+        
+        if not raw_ids:
+            return jsonify({"success": False, "error": "No IDs provided"})
+        if new_status not in ["Pending", "Shared"]:
+            return jsonify({"success": False, "error": "Invalid status"})
+        
+        # Clean & parse IDs — accept int or string
+        clean_ids = []
+        for item in raw_ids:
+            try:
+                clean_ids.append(int(str(item).strip()))
+            except (ValueError, TypeError):
+                continue
+        
+        if not clean_ids:
+            return jsonify({"success": False, "error": "No valid numeric IDs found"})
+        
+        # Bulk update in Supabase
+        resp = supabase.table("scrapping_data") \
+            .update({"share_status": new_status}) \
+            .in_("id", clean_ids) \
+            .execute()
+        
+        updated_count = len(resp.data) if resp.data else 0
+        
+        log_activity(
+            action_type="field_update",
+            target_table="scrapping_data",
+            field_name="share_status",
+            old_value="(bulk)",
+            new_value=new_status,
+            extra_info={"ids": clean_ids, "count": updated_count}
+        )
+        
+        return jsonify({
+            "success": True,
+            "updated": updated_count,
+            "ids_submitted": len(clean_ids)
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
     load_config()

@@ -827,6 +827,7 @@
                     <h2>Scrapping Data Management & Filtering</h2>
                     <div style="display:flex;gap:8px;align-items:center;margin-left:auto;">
                         <button type="button" class="clear-filters" onclick="clearFilters()"><i class="fas fa-times"></i> Clear Filters</button>
+                        <button type="button" onclick="openShareStatusModal()" style="background:#8e44ad;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;font-weight:600;white-space:nowrap;"><i class="fas fa-edit"></i> Update Share Status</button>
                         <button type="button" class="btn btn-success" onclick="openScrapInsertModal()" style="height:30px;font-size:12px;padding:5px 12px;">
                             <i class="fas fa-plus"></i> Insert Data
                         </button>
@@ -1234,30 +1235,30 @@
     </div>
     <!-- SCRAPPING SUMMARY SECTION -->
     <div id="scrappingSummarySection" style="display:none;">
-        <div class="sheet-maker-row">
-            <div class="sheet-maker-group">
-                <label><i class="fas fa-list-alt"></i> Summary Type</label>
-                <select class="sheet-maker-select" id="scrapSummaryType" onchange="onScrapSummaryTypeChange()">
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;">
+                <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-list-alt"></i> Summary Type</label>
+                <select class="sheet-maker-select" id="scrapSummaryType" onchange="onScrapSummaryTypeChange()" style="height:34px;">
                     <option value="">-- Select Type --</option>
                     <option value="user_wise">👤 User Wise Scrapping Summary</option>
                     <option value="category_platform">📂 Categories / Platform Wise Summary</option>
                 </select>
             </div>
-            <div class="sheet-maker-group">
-                <label><i class="fas fa-calendar-alt"></i> Date Filter</label>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1.5;min-width:280px;">
+                <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-calendar-alt"></i> Date Filter</label>
                 <div style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-wrap:nowrap;">
-                    <button onclick="setScrapSummaryDateToday()" style="padding:4px 8px;background:#3498db;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:28px;white-space:nowrap;flex-shrink:0;">
+                    <button onclick="setScrapSummaryDateToday()" style="padding:4px 8px;background:#3498db;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;white-space:nowrap;flex-shrink:0;">
                         <i class="fas fa-calendar-day"></i> Today
                     </button>
                     <input type="date" id="scrapSummaryDateFrom"
-                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;height:28px;outline:none;"
+                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
                         onchange="onScrapDateChange()">
                     <span style="font-size:10px;color:#7f8c8d;flex-shrink:0;">to</span>
                     <input type="date" id="scrapSummaryDateTo"
-                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:10px;height:28px;outline:none;"
+                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
                         onchange="onScrapDateChange()">
                     <button onclick="clearScrapSummaryDates()" title="Clear"
-                        style="padding:4px 6px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:28px;flex-shrink:0;">
+                        style="padding:4px 8px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;flex-shrink:0;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1265,25 +1266,17 @@
                     <i class="fas fa-filter"></i> <span id="scrapDateLabelText"></span>
                 </span>
             </div>
-            <div class="sheet-maker-group" id="scrapWsUploadGroup" style="display:none;">
-                <label><i class="fas fa-upload"></i> Website Searching File <span style="font-size:10px;color:#95a5a6;">(optional)</span></label>
-                <div class="file-upload-compact" onclick="document.getElementById('scrapWsFileInput').click()" id="scrapWsUploadArea">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <div id="scrapWsFileName" class="file-name">No file chosen</div>
-                    <div class="file-info">Excel / CSV for WS counts</div>
-                    <input type="file" id="scrapWsFileInput" style="display:none;"
-                        accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods"
-                        onchange="onScrapWsFileSelected(this)">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;">
+                <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-info-circle"></i> Status</label>
+                <div id="scrapSummaryStatus" class="sheet-status-box waiting" style="min-height:34px;padding:5px 10px;font-size:11px;">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span>Select type and date</span>
                 </div>
             </div>
-            <div class="sheet-maker-group">
-                <label><i class="fas fa-info-circle"></i> Status</label>
-                <div id="scrapSummaryStatus" class="sheet-status-box waiting">
-                    <i class="fas fa-hourglass-half"></i>
-                    <span>Select type and date to begin</span>
-                </div>
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:155px;">
+                <label style="font-size:12px;font-weight:600;color:transparent;">_</label>
                 <button class="generate-summary-btn" id="scrapSummaryGenBtn"
-                    onclick="generateScrapSummary()" disabled style="margin-top:6px;">
+                    onclick="generateScrapSummary()" disabled style="height:34px;">
                     <i class="fas fa-chart-bar"></i> Generate Summary
                 </button>
             </div>
@@ -1758,6 +1751,103 @@
             const styleAttr = extraStyle ? ` style="${extraStyle}"` : '';
             return `<i class="${prefix} fa-${iconName}"${styleAttr}></i>`;
         }
+        function openShareStatusModal() {
+            document.getElementById('shareStatusModal').style.display = 'flex';
+            document.getElementById('shareStatusIdInput').value = '';
+            document.getElementById('shareStatusIdCount').textContent = '0 IDs entered';
+            document.getElementById('shareStatusResult').style.display = 'none';
+            document.getElementById('shareStatusSubmitBtn').disabled = true;
+            setTimeout(() => document.getElementById('shareStatusIdInput').focus(), 100);
+        }
+        function closeShareStatusModal() {
+            document.getElementById('shareStatusModal').style.display = 'none';
+        }
+        function onShareStatusIdInput() {
+            const raw = document.getElementById('shareStatusIdInput').value;
+            const ids = _parseShareIds(raw);
+            const countEl = document.getElementById('shareStatusIdCount');
+            const btn = document.getElementById('shareStatusSubmitBtn');
+            countEl.textContent = `${ids.length} ID${ids.length !== 1 ? 's' : ''} entered`;
+            countEl.style.color = ids.length > 0 ? '#1e8449' : '#7f8c8d';
+            btn.disabled = ids.length === 0;
+            document.getElementById('shareStatusResult').style.display = 'none';
+        }
+        function _parseShareIds(raw) {
+            return raw
+                .replace(/,/g, '\n')
+                .split('\n')
+                .map(s => s.trim().replace(/^#/, ''))  // #101 → 101 handle
+                .filter(s => s !== '' && /^\d+$/.test(s))
+                .map(Number)
+                .filter((v, i, a) => a.indexOf(v) === i);
+        }
+        async function submitShareStatusUpdate() {
+            const raw    = document.getElementById('shareStatusIdInput').value;
+            const status = document.getElementById('shareStatusSelect').value;
+            const ids    = _parseShareIds(raw);
+            if (!ids.length) { showToast('Not Valid ID', true); return;}
+            const btn = document.getElementById('shareStatusSubmitBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            const resultEl = document.getElementById('shareStatusResult');
+            resultEl.style.display = 'none';
+            try {
+                const resp = await fetch('/update-share-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, status })
+                });
+                const text = await resp.text();
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    resultEl.style.display = 'block';
+                    resultEl.style.background = '#fde8e8';
+                    resultEl.style.color = '#c0392b';
+                    resultEl.style.border = '1px solid #fbc7c7';
+                    resultEl.innerHTML = '<i class="fas fa-exclamation-circle"></i> Session expired — please <a href="/login" style="color:#c0392b;font-weight:700;">login again</a>.';
+                    return;
+                }
+                if (data.success) {
+                    resultEl.style.display = 'block';
+                    resultEl.style.background = '#e8f8f0';
+                    resultEl.style.color = '#1e8449';
+                    resultEl.style.border = '1px solid #a9dfbf';
+                    resultEl.innerHTML = `<i class="fas fa-check-circle"></i> ${data.updated} record${data.updated !== 1 ? 's' : ''} updated to <strong>${status}</strong>!`;
+                    showToast(`${data.updated} records updated!`, false, true);
+                    ids.forEach(id => {
+                        document.querySelectorAll('.scraping-page tbody tr').forEach(tr => {
+                            const firstTd = tr.querySelector('td:first-child strong');
+                            if (firstTd && firstTd.textContent.trim() === `#${id}`) {
+                                const tds = tr.querySelectorAll('td');
+                                if (tds[1]) {
+                                    tds[1].innerHTML = `<span style="background:#f3e5f5;color:#6a1a9a;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">${status}</span>`
+                                }
+                            }
+                        });
+                    });
+                } else {
+                    resultEl.style.display = 'block';
+                    resultEl.style.background = '#fde8e8';
+                    resultEl.style.color = '#c0392b';
+                    resultEl.style.border = '1px solid #fbc7c7';
+                    resultEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Error: ${data.error}`;
+                }
+            } catch(e) {
+                resultEl.style.display = 'block';
+                resultEl.style.background = '#fde8e8';
+                resultEl.style.color = '#c0392b';
+                resultEl.style.border = '1px solid #fbc7c7';
+                resultEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> Network error: ${e.message}`;
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Update Status';
+            }
+        }
+        document.getElementById('shareStatusModal')?.addEventListener('click', e => {
+            if (e.target === document.getElementById('shareStatusModal')) closeShareStatusModal();
+        });
 
         // ─── Mode Switcher ───────────────────────────────────────
         function switchMode(mode) {
@@ -1959,7 +2049,7 @@
         async function saveEditDrawer() {
             if (!_editDrawerCurrentId) return;
             const fields = Object.keys(_editDrawerChanges);
-            if (!fields.length) { showToast('Koi change nahi kiya!', true); return; }
+            if (!fields.length) { showToast('No changes were made.', true); return; }
 
             const saveBtn = document.getElementById('editDrawerSaveBtn');
             saveBtn.disabled = true;
@@ -3679,7 +3769,7 @@
         });
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') { closeTracker(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); }
+            if (e.key === 'Escape') { closeTracker(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); closeShareStatusModal(); }
         });
 
         // Auto-dismiss flash messages
@@ -4206,99 +4296,126 @@
                     allPlatforms.add(plat);
                     allScamTypes.add(st);
                 });
-                const wsMap = {};
-                const wsAllPlatforms = new Set();
-                if (_scrapWsParsedData.length) {
-                    const stCol   = _scrapWsHeaders.find(h => /scam.?type/i.test(h)) || _scrapWsHeaders[0];
-                    const platCol = _scrapWsHeaders.find(h => /platform|search.?for/i.test(h)) || _scrapWsHeaders[1];
-                    _scrapWsParsedData.forEach(row => {
-                        const st   = (row[stCol]   || 'Unknown').trim() || 'Unknown';
-                        const plat = (row[platCol] || 'Unknown').trim() || 'Unknown';
-                        if (!wsMap[st]) wsMap[st] = {};
-                        wsMap[st][plat] = (wsMap[st][plat] || 0) + 1;
-                        wsAllPlatforms.add(plat);
-                        allScamTypes.add(st);
-                    });
-                }
-                const scrapPlatforms = [...allPlatforms].sort();
-                const wsPlatforms    = [...wsAllPlatforms].sort();
-                const SCAM_ORDER = [
+                const SCAM_ORDER =[
                     "Investment Scam","LPG Booking Scam","Government Scheme Scam",
                     "Fake Account Selling Scam","Job Scam","Currency Exchange Scam",
                     "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam"
                 ];
+                const WS_COLS = ["Investment", "Fake Websites", "LPG Booking Scam", "Government Scheme Scam"];
+                const scrapPlatforms = [...allPlatforms].sort();
                 const sortedScamTypes = [...allScamTypes].sort((a,b) => {
-                    const ia = SCAM_ORDER.indexOf(a), ib = SCAM_ORDER.indexOf(b);
-                    if (ia === -1 && ib === -1) return a.localeCompare(b);
-                    if (ia === -1) return 1; if (ib === -1) return -1;
-                    return ia - ib;
+                    const idxA = SCAM_ORDER.indexOf(a), idxB = SCAM_ORDER.indexOf(b);
+                    if (idxA === -1 && idxB === -1) return a.localeCompare(b);
+                    if (idxA === -1) return 1; if (idxB === -1) return -1;
+                    return idxA - idxB;
                 });
-                const thS = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:7px 10px;font-size:12px;white-space:nowrap;background:#f3e5f5;`;
-                const tdS = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;`;
+                const thS  = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:7px 10px;font-size:12px;white-space:nowrap;background:#f3e5f5;`;
+                const tdS  = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;`;
                 const tdLabelS = `font-weight:600;color:#6a1b9a;text-align:left;border:1px solid #9c27b0;padding:5px 8px;font-size:12px;background:#f8f0fc;white-space:nowrap;`;
-                const headerS = `font-weight:700;color:white;text-align:center;border:1px solid #7b1fa2;padding:6px 10px;font-size:12px;white-space:nowrap;`;
+                const wsThS = `font-weight:700;color:#0d47a1;text-align:center;border:1px solid #1976d2;padding:7px 10px;font-size:12px;white-space:nowrap;background:#e3f2fd;`;
+                const wsTdS = `text-align:center;border:1px solid #90caf9;padding:4px 6px;font-size:12px;background:#f5faff;`;
+                const scrapCols = scrapPlatforms.length ;
+                const wsCols    = WS_COLS.length ;
+                const totalCols = 1 + scrapCols + wsCols + 1;
+                const titleLabel = `Scam++ SM & Website Searching Summary - ${dateStr}`;
                 const thead = document.getElementById('scrapSummaryThead');
                 const tbody = document.getElementById('scrapSummaryTbody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
-                const hasWS = wsPlatforms.length > 0;
-                const scrapCols = scrapPlatforms.length + 1; // platforms + subtotal
-                const wsCols    = hasWS ? wsPlatforms.length + 1 : 0;
-                const totalCols = 1 + scrapCols + (hasWS ? wsCols : 0) + 1; // category + scrapping + ws + grand
-                const titleLabel = hasWS ? `Scam++ SM & Website Searching Summary - ${dateStr}` : `Scrapping Category & Platform Summary - ${dateStr}`;
+                const scrapHeaderBg = `background:#e3f3ff;color:#042c53;border:1px solid #7ab8e8;`;
+                const scrapGroupBg  = `background:#29b6f6;color:#042c53;border:1px solid #0288d1;`;
+                const wsGroupBg     = `background:#bbe1fa;color:#0c447c;border:1px solid #7ab8e8;`;
+                const wsColBg       = `background:#ddeefa;color:#0c447c;border:1px solid #90caf9;`;
                 thead.innerHTML = `
-                   <tr><th colspan="${totalCols}" style="${thS}font-size:14px;background:#d7bde2;">${titleLabel}</th></tr>
+                   <tr><th colspan="${totalCols}" style="${thS}font-size:14px;background:#c8e6fb;color:#042c53;">${titleLabel}</th></tr>
                    <tr>
-                       <th rowspan="2" style="${thS}">Category</th>
-                       <th colspan="${scrapCols}" style="${headerS}background:#9c27b0;">Scrapping</th>
-                       ${hasWS ? `<th colspan="${wsCols}" style="${headerS}background:#0288d1;">Website Searching</th>` : ''}
-                       <th rowspan="2" style="${thS}background:#4a148c;color:white;">Grand Total</th>
+                       <th rowspan="2" style="${thS}${scrapHeaderBg}">Category</th>
+                       <th colspan="${scrapCols}" style="${thS}${scrapGroupBg}">Scrapping</th>
+                       <th colspan="${wsCols}" style="${thS}${wsGroupBg}">Website Searching</th>
+                       <th rowspan="2" style="${thS}${scrapHeaderBg}font-weight:600;">Total</th>
                     </tr>
                     <tr>
-                        ${scrapPlatforms.map(p => `<th style="${thS}">${p}</th>`).join('')}
-                        <th style="${thS}">Sub Total</th>
-                        ${hasWS ? wsPlatforms.map(p => `<th style="${thS}background:#e1f5fe;color:#01579b;">${p}</th>`).join('') : ''}
-                        ${hasWS ? `<th style="${thS}background:#e1f5fe;color:#01579b;">Sub Total</th>` : ''}
+                        ${scrapPlatforms.map(p => `<th style="${thS}${scrapHeaderBg}">${p}</th>`).join('')}
+                        ${WS_COLS.map(c => `<th style="${thS}${wsColBg}">${c}</th>`).join('')}
                     </tr>`;
-                let totScrapPlat = {}, totWsPlat = {}, totScrapAll = 0, totWsAll = 0, totGrand = 0;
-                scrapPlatforms.forEach(p => { totScrapPlat[p] = 0; });
-                wsPlatforms.forEach(p => { totWsPlat[p] = 0; });
-                sortedScamTypes.forEach(st => {
-                    const scrapRow = scrapMap[st] || {};
-                    const wsRow    = wsMap[st]    || {};
-                    let scrapSubTotal = 0;
-                    scrapPlatforms.forEach(p => { scrapSubTotal += scrapRow[p] || 0; totScrapPlat[p] += scrapRow[p] || 0; });
-                    let wsSubTotal = 0;
-                    wsPlatforms.forEach(p => { wsSubTotal += wsRow[p] || 0; totWsPlat[p] += wsRow[p] || 0; });
-                    totScrapAll += scrapSubTotal;
-                    totWsAll    += wsSubTotal;
-                    const grand = scrapSubTotal + wsSubTotal;
-                    totGrand    += grand;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td style="${tdLabelS}">${st}</td>
-                        ${scrapPlatforms.map(p => `<td style="${tdS}">${scrapRow[p] || 'NA'}</td>`).join('')}
-                        <td style="${tdS}font-weight:700;">${scrapSubTotal || 'NA'}</td>
-                        ${hasWS ? wsPlatforms.map(p => `<td style="${tdS}">${wsRow[p] || 'NA'}</td>`).join('') : ''}
-                        ${hasWS ? `<td style="${tdS}font-weight:700;">${wsSubTotal || 'NA'}</td>` : ''}
-                        <td style="${tdS}font-weight:700;background:#f3e5f5;">${grand || 'NA'}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-                const totalTr = document.createElement('tr');
-                totalTr.style.background = '#e1bee7';
-                totalTr.innerHTML = `
-                    <td style="${thS}text-align:left;">Total</td>
-                    ${scrapPlatforms.map(p => `<td style="${thS}">${totScrapPlat[p] || 'NA'}</td>`).join('')}
-                    <td style="${thS}">${totScrapAll || 'NA'}</td>
-                    ${hasWS ? wsPlatforms.map(p => `<td style="${thS}">${totWsPlat[p] || 'NA'}</td>`).join('') : ''}
-                    ${hasWS ? `<td style="${thS}">${totWsAll || 'NA'}</td>` : ''}
-                    <td style="${thS}background:#ce93d8;">${totGrand || 'NA'}</td>
-                `;
-                tbody.appendChild(totalTr);
-                _lastScrapSummary = { type: 'category_platform', sortedScamTypes, scrapMap, wsMap, scrapPlatforms, wsPlatforms, hasWS, dateStr, titleLabel };
-                document.getElementById('scrapSummaryResultTitle').textContent = titleLabel;
-                document.getElementById('scrapSummaryResultArea').style.display = '';
-                document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const _wsData = {};
+                    sortedScamTypes.forEach(st => { _wsData[st] = {}; WS_COLS.forEach(c => { _wsData[st][c] = ''; }); });
+                    function _recalcTotals() {
+                        let totScrapPlat = {}, totWsCol = {}, totGrand = 0;
+                        scrapPlatforms.forEach(p => { totScrapPlat[p] = 0; });
+                        WS_COLS.forEach(c => { totWsCol[c] = 0; });
+                        sortedScamTypes.forEach(st => {
+                            const scrapRow = scrapMap[st] || {};
+                            let scrapSub = 0;
+                            scrapPlatforms.forEach(p => { scrapSub += scrapRow[p] || 0; totScrapPlat[p] += scrapRow[p] || 0; });
+                            let wsSub = 0;
+                            WS_COLS.forEach(c => {
+                                const v = parseInt(_wsData[st][c]) || 0;
+                                wsSub += v; totWsCol[c] += v;
+                            });
+                            const grand = scrapSub + wsSub; totGrand += grand;
+                            const sid = st.replace(/[^a-zA-Z0-9]/g,'_');
+                            const grandEl = document.getElementById(`grand_${sid}`);
+                            if (grandEl) grandEl.textContent  = grand || 'NA';
+                        });
+                        scrapPlatforms.forEach(p => {
+                            const el = document.getElementById(`totPlat_${p.replace(/\s+/g,'_')}`);
+                            if (el) el.textContent = totScrapPlat[p] || 'NA';
+                        });
+                        WS_COLS.forEach(c => {
+                            const el = document.getElementById(`totWs_${c.replace(/\s+/g,'_')}`);
+                            if (el) el.textContent = totWsCol[c] || 'NA';
+                        });
+                        const totGrandEl = document.getElementById('totGrand');
+                        if (totGrandEl) totGrandEl.textContent = totGrand || 'NA';
+                        _lastScrapSummary.wsData = JSON.parse(JSON.stringify(_wsData));
+                        _lastScrapSummary.totWsCol = totWsCol;
+                        _lastScrapSummary.totScrapPlat = totScrapPlat;
+                        _lastScrapSummary.totGrand = totGrand;
+                    }
+                    function _stId(st) { return st.replace(/[^a-zA-Z0-9]/g,'_'); }
+                    sortedScamTypes.forEach(st => {
+                        const scrapRow = scrapMap[st] || {};
+                        const sid = _stId(st);
+                        const tr = document.createElement('tr');
+                        const scrapTdS = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:12px;background:#f7fbff;`;
+                        const wsTdSNew = `text-align:center;border:1px solid #90caf9;padding:4px 5px;font-size:12px;background:#eef7ff;`;
+                        tr.innerHTML = `
+                            <td style="${tdLabelS}background:#f0faff;color:#0c447c;border:1px solid #b3d9f7;">${st}</td>
+                            ${scrapPlatforms.map(p => `<td style="${scrapTdS}">${scrapRow[p] || 'NA'}</td>`).join('')}
+                            ${WS_COLS.map(c => `
+                               <td style="${wsTdSNew}">
+                                   <input
+                                         type="number" min="0"
+                                      placeholder="NA"
+                                      data-st="${st}" data-col="${c}"
+                                      style="width:52px;padding:3px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;text-align:center;outline:none;background:white;color:#0d47a1;font-weight:500;"
+                                      oninput="_wsData['${st}']['${c}']=this.value;_recalcTotals();"
+                                    >
+                                </td>`).join('')}
+                            <td id="grand_${sid}" style="${scrapTdS}font-weight:600;background:#e3f3ff;color:#042c53;">NA</td>`;
+                        tbody.appendChild(tr);
+                    });
+                    const totalTr = document.createElement('tr');
+                    totalTr.style.background = '#c8e6fb';
+                    totalTr.innerHTML = `
+                        <td style="font-weight:600;text-align:left;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;white-space:nowrap;">Total</td>
+                        ${scrapPlatforms.map(p => `<td id="totPlat_${p.replace(/\s+/g,'_')}" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;">—</td>`).join('')}
+                        ${WS_COLS.map(c => `<td id="totWs_${c.replace(/\s+/g,'_')}" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#ddeefa;color:#0c447c;border:1px solid #90caf9;">—</td>`).join('')}
+                        <td id="totGrand" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;">—</td>`;
+                    tbody.appendChild(totalTr);
+                    _lastScrapSummary = {
+                        type: 'category_platform',
+                        sortedScamTypes, scrapMap, scrapPlatforms,
+                        wsCols: WS_COLS, wsData: _wsData,
+                        hasWS: true, dateStr, titleLabel,
+                        _recalcTotals, _wsData
+                    };
+                    window._wsData = _wsData;
+                    window._recalcTotals = _recalcTotals;
+                    _recalcTotals();
+                    document.getElementById('scrapSummaryResultTitle').textContent = titleLabel;
+                    document.getElementById('scrapSummaryResultArea').style.display = '';
+                    document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
             async function copyScrapSummaryAsImage() {
                 const wrapper = document.getElementById('scrapSummaryTableWrapper');
@@ -4342,29 +4459,35 @@
                         const ud = d.userData[user];
                         const uniq = ud.numbers.size;
                         const pct  = ud.total > 0 ? ((uniq / ud.total) * 100).toFixed(1) + '%' : 'NA';
-                        lines.push([
-                            esc(user),
-                            ...d.allPlatforms.map(p => ud.platforms[p] || 'NA'),
-                            ud.total, uniq || 'NA', pct
-                        ].join(','));
+                        lines.push([esc(user), ...d.allPlatforms.map(p => ud.platforms[p] || 'NA'), ud.total, uniq || 'NA', pct].join(','));
                     });
                 } else {
                     filename = `Scam_Plus_Category_Platform_Summary_${ts}.csv`;
-                    const scrapCols = [...d.scrapPlatforms, 'Sub Total'];
-                    const wsCols    = d.hasWS ? [...d.wsPlatforms, 'WS Sub Total'] : [];
-                    lines.push(['Category', ...scrapCols, ...wsCols, 'Grand Total'].join(','));
+                    const WS_COLS = d.wsCols || ["Investment", "Fake Websites", "LPG Booking Scam", "Government Scheme Scam"];
+                    const wsData  = d.wsData || {};
+                    lines.push(['Category', ...d.scrapPlatforms, ...WS_COLS, 'Grand Total'].join(','));
                     d.sortedScamTypes.forEach(st => {
                         const sr = d.scrapMap[st] || {};
-                        const wr = d.wsMap[st]    || {};
                         const ss = d.scrapPlatforms.reduce((a,p) => a + (sr[p]||0), 0);
-                        const ws = d.wsPlatforms.reduce((a,p) => a + (wr[p]||0), 0);
+                        const wsRow = (wsData[st] || {});
+                        const ws = WS_COLS.reduce((a,c) => a + (parseInt(wsRow[c])||0), 0);
                         lines.push([
                             esc(st),
-                            ...d.scrapPlatforms.map(p => sr[p] || 'NA'), ss || 'NA',
-                            ...(d.hasWS ? [...d.wsPlatforms.map(p => wr[p] || 'NA'), ws || 'NA'] : []),
+                            ...d.scrapPlatforms.map(p => sr[p] || 'NA'),
+                            ...WS_COLS.map(c => parseInt(wsRow[c]) || 'NA'),
                             (ss + ws) || 'NA'
                         ].join(','));
                     });
+                    const totScrP = d.totScrapPlat || {};
+                    const totWsC  = d.totWsCol || {};
+                    lines.push([
+                        'Total',
+                        ...d.scrapPlatforms.map(p => totScrP[p] || 'NA'),
+                        ...WS_COLS.map(c => totWsC[c] || 'NA'),
+                        d.totGrand || 'NA'
+                    ].join(','));
+                    lines.push(['Scrapping Total', ...Array(d.scrapPlatforms.length + d.wsCols.length).fill(''), d.totScrapAll || 'NA'].join(','));
+                    lines.push(['Website Searching Total', ...Array(d.scrapPlatforms.length + d.wsCols.length).fill(''), d.totWsAll || 'NA'].join(','));
                 }
                 const csv = '\uFEFF' + lines.join('\n');
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -4825,7 +4948,7 @@
             async function scrapSubmitInsert() {
                 const missing = _scrapRows.filter(r => !r.name.trim() || !r.scam_type);
                 if (missing.length) {
-                    showToast(`${missing.length} row(s) mein Name ya Scam Type missing hai!`, true);
+                    showToast(`${missing.length} row(s) where Name or Scam Type is missing!`, true);
                     return;
                 }
                 const invalidUrls = _scrapRows.filter(r => {
@@ -4833,7 +4956,7 @@
                     return !url.toLowerCase().startsWith('https://');
                 });
                 if (invalidUrls.length) {
-                    showToast(`${invalidUrls.length} row(s) mein valid https:// URL nahi hai!`, true);
+                    showToast(`${invalidUrls.length} row(s) do not contain a valid https:// URL!`, true);
                     return;
                 }
                 const dups = _scrapRows.filter(r => r._dupStatus === 'DUPLICATE');
@@ -5008,6 +5131,58 @@
                         </button>
                         <button onclick="scrapSubmitInsert()" id="scrapInsertSubmitBtn" style="padding:9px 22px;background:#2ecc71;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;">
                             <i class="fas fa-save"></i> Insert Records
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="shareStatusModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.72);z-index:2000;justify-content:center;align-items:center;padding:20px;">
+            <div style="background:white;border-radius:12px;width:100%;max-width:520px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.25);animation:scrapModalIn 0.25s cubic-bezier(0.34,1.2,0.64,1);">
+                <div style="background:linear-gradient(135deg,#8e44ad,#6c3483);color:white;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;">
+                    <h2 style="font-size:15px;margin:0;display:flex;align-items:center;gap:8px;">
+                        <i class="fas fa-edit"></i> Update Share Status
+                    </h2>
+                    <button onclick="closeShareStatusModal()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:4px;line-height:1;">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+                    <div style="background:#f5eef8;border-radius:6px;padding:10px 14px;font-size:12px;color:#6c3483;border-left:3px solid #8e44ad;line-height:1.6;">
+                        <i class="fas fa-info-circle"></i>
+                        Paste the Record IDs — either one per line or separated by commas.
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;justify-content:space-between;align-items:center;">
+                            <span><i class="fas fa-list-ol" style="color:#8e44ad;margin-right:4px;"></i> Record IDs</span>
+                            <span id="shareStatusIdCount" style="font-size:11px;color:#7f8c8d;font-weight:400;">0 IDs entered</span>
+                        </label>
+                        <textarea id="shareStatusIdInput"
+                            placeholder="101&#10;102&#10;103&#10;&#10;Or in a single line: 101, 102, 103.”
+
+                            oninput="onShareStatusIdInput()"
+                            style="width:100%;height:120px;padding:10px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;background:white;color:#2c3e50;line-height:1.6;box-sizing:border-box;transition:border-color 0.2s;">
+                        </textarea>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <label style="font-size:12px;font-weight:600;color:#2c3e50;">
+                            <i class="fas fa-share-alt" style="color:#8e44ad;margin-right:4px;"></i> New Status
+                        </label>
+                        <select id="shareStatusSelect"
+                            style="width:100%;padding:8px 12px;border:1.5px solid #ddd;border-radius:6px;font-size:13px;background:white;color:#2c3e50;cursor:pointer;outline:none;height:36px;">
+                            <option value="Pending">⏳ Pending</option>
+                            <option value="Shared">✅ Shared</option>
+                        </select>
+                    </div>
+                    <div id="shareStatusResult" style="display:none;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:600;"></div>
+                    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;border-top:1px solid #eee;">
+                        <button onclick="closeShareStatusModal()"
+                            style="padding:8px 18px;background:#f8f9fa;color:#374151;border:1px solid #d1d5db;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;">
+                            Cancel
+                        </button>
+                        <button onclick="submitShareStatusUpdate()" id="shareStatusSubmitBtn"
+                            style="padding:8px 22px;background:#8e44ad;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background 0.2s;"
+                            disabled>
+                            <i class="fas fa-save"></i> Update Status
                         </button>
                     </div>
                 </div>
