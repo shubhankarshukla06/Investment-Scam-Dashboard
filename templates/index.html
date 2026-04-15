@@ -4632,7 +4632,7 @@
         const SCRAP_SCAM_TYPES = [
             "Investment Scam","Job Scam","Government Scheme Scam","Loan Scam",
             "Subscription Scam","Fake Account Selling Scam","Fake Website Scam",
-            "Shopping Scam","Carding Scam","LPG Booking Scam"
+            "Shopping Scam","Carding Scam","Currency Exchange Scam","LPG Booking Scam"
         ];
         const SCRAP_PLATFORMS = ["Telegram","WhatsApp","Facebook","Instagram","Threads","YouTube","X"];
         function _detectPlatformFromUrl(url) {
@@ -4682,11 +4682,83 @@
             document.getElementById('scrapInsertUserName').textContent = _scrapGetUserName();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('scrapInsertDate').value = today;
+            const msg = document.getElementById('scrapInsertStatusMsg');
+            if (msg) msg.innerHTML = '<i class="fas fa-info-circle"></i> <strong style="color:#c0392b;">0 Duplicates</strong> &nbsp;|&nbsp; <strong style="color:#1e8449;">0 New</strong>';
             scrapAddRow();
             _renderScrapRows();
         }
         function closeScrapInsertModal() {
             document.getElementById('scrapInsertModal').style.display = 'none';
+        }
+        function onScrapBulkInput() {
+            const lines = document.getElementById('scrapBulkUrlInput').value
+                .trim().split('\n').filter(l => l.trim());
+            const el = document.getElementById('scrapBulkStatus');
+            el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
+        }
+        function parseScrapBulkUrls() {
+            const raw = document.getElementById('scrapBulkUrlInput').value.trim();
+            const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+            if (!lines.length) { showToast('Paste valid URLs to parse', true); return; }
+            const userName = _scrapGetUserName();
+            const globalScam = document.getElementById('scrapGlobalScamType').value;
+            let added = 0;
+            lines.forEach(line => {
+                const parts = line.split(/[\s,\t]+/);
+                const urlPart = parts.find(p => p.toLowerCase().startsWith('https://')) || '';
+                const numPart = parts.find(p => p !== urlPart && /^[+\d]{7,15}$/.test(p)) || 'NA';
+                if (!urlPart.toLowerCase().startsWith('https://')) return;
+                _scrapRowIdSeq++;
+                const plat = _detectPlatformFromUrl(urlPart);
+                const gn   = _extractGroupName(urlPart);
+                const cn = numPart !== 'NA' ? numPart : _extractChatNumberFromUrl(urlPart);
+                const urlLower = urlPart.toLowerCase();
+                const localDup = _scrapRows.some(r => (r.post_url || '').toLowerCase() === urlLower);
+                _scrapRows.push({
+                    _id: _scrapRowIdSeq,
+                    _dupStatus: localDup ? 'DUPLICATE' : 'pending',
+                    name: userName,
+                    platform: plat,
+                    post_url: urlPart,
+                    chat_number: cn,
+                    group_name: gn,
+                    scam_type: globalScam,
+                    share_status: 'Pending',
+                });
+                added++;
+            });
+            document.getElementById('scrapBulkUrlInput').value = '';
+            document.getElementById('scrapBulkStatus').textContent = '';
+            _renderScrapRows();
+            if (added) showToast(`${added} rows added!`, false, true);
+            else showToast('No valid https:// URLs found', true);
+            _updateScrapDupCounter();
+            setTimeout(() => scrapCheckDuplicates(), 400);
+        }
+        function _extractChatNumberFromUrl(url) {
+            try {
+                const parsed = new URL(url);
+                if (parsed.hostname === 'wa.me') {
+                    return parsed.pathname.replace('/', '').replace(/\D/g, '').slice(0, 13);
+                }
+            } catch(e) {}
+            return 'NA';
+        }
+        function applyGlobalScamType() {
+            const val = document.getElementById('scrapGlobalScamType').value;
+            if (!val) { showToast('Pehle scam type select karo', true); return; }
+            _scrapRows.forEach(r => { r.scam_type = val; });
+            document.querySelectorAll('select[data-field="scam_type"][data-rowid]')
+                    .forEach(sel => { sel.value = val; });
+            showToast(`All rows scam type set to "${val}"`, false, true);
+        }
+        function scrapRemoveDuplicates() {
+            const before = _scrapRows.length;
+            _scrapRows = _scrapRows.filter(r => r._dupStatus !== 'DUPLICATE');
+            const removed = before - _scrapRows.length;
+            if (removed === 0) { showToast('Duplicate rows not found', false, false); return; }
+            _renderScrapRows();
+            showToast(`${removed} duplicate row${removed > 1 ? 's' : ''} removed!`, false, true);
         }
         function scrapAddRow() {
             _scrapRowIdSeq++;
@@ -4747,8 +4819,19 @@
                         if (gnInp) gnInp.value = gn;
                     }
                 }
-                row._dupStatus = 'pending';
+                const urlTrimmed = value.trim().toLowerCase();
+                if (urlTrimmed && urlTrimmed.startsWith('https://')) {
+                    const sameUrlRows = _scrapRows.filter(r => r._id !== id && (r.post_url || '').trim().toLowerCase() === urlTrimmed);
+                    if (sameUrlRows.length > 0) {
+                        row._dupStatus = 'DUPLICATE';
+                    } else {
+                        row._dupStatus = 'pending';
+                    }
+                } else {
+                    row._dupStatus = 'pending';
+                }
                 _refreshRowDupBadge(id);
+                _updateScrapDupCounter();
             }
             if (field === 'chat_number') {
                 _checkChatNumberLive(id, value);
@@ -4846,6 +4929,12 @@
                 });
             }
         }
+        function _updateScrapDupCounter() {
+            const dups = _scrapRows.filter(r => r._dupStatus === 'DUPLICATE').length;
+            const news = _scrapRows.filter(r => r._dupStatus === 'NEW').length;
+            const msg = document.getElementById('scrapInsertStatusMsg');
+            if (msg) msg.innerHTML = `<i class="fas fa-${dups > 0 ? 'exclamation-triangle' : 'check-circle'}" style="color:${dups > 0 ? '#e74c3c' : '#2ecc71'};"></i> <strong style="color:#c0392b;">${dups} Duplicate${dups !== 1 ? 's' : ''}</strong> &nbsp;|&nbsp; <strong style="color:#1e8449;">${news} New</strong>`;
+        }
         function _scrapUpdateBadgeCount() {
                 const b = document.getElementById('scrapInsertRowCountBadge');
                 if (b) b.textContent = `${_scrapRows.length} row${_scrapRows.length !== 1 ? 's' : ''}`;
@@ -4933,8 +5022,7 @@
                         });
                         const dups = _scrapRows.filter(r => r._dupStatus === 'DUPLICATE').length;
                         const news = _scrapRows.filter(r => r._dupStatus === 'NEW').length;
-                        const msg = document.getElementById('scrapInsertStatusMsg');
-                        if (msg) msg.innerHTML = `<i class="fas fa-check-circle" style="color:#2ecc71;"></i> Check done — <strong style="color:#c0392b;">${dups} Duplicate${dups!==1?'s':''}</strong> &nbsp;|&nbsp; <strong style="color:#1e8449;">${news} New</strong>`;
+                        _updateScrapDupCounter();
                     } else {
                         showToast('Check failed: ' + data.error, true);
                     }
@@ -5106,6 +5194,11 @@
                         <button onclick="scrapClearAll()" style="padding:6px 14px;background:#e74c3c;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
                             <i class="fas fa-trash"></i> Clear All
                         </button>
+                        <button onclick="scrapRemoveDuplicates()"
+                            style="padding:6px 14px;background:#e74c3c;color:white;border:none;border-radius:6px;
+                                   font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-trash-alt"></i> Remove Dups
+                        </button>
                     </div>
                 </div>
                 <div style="background:#f8f9fa;border-bottom:2px solid #dee2e6;padding:0 20px;flex-shrink:0;overflow-x:auto;">
@@ -5118,6 +5211,52 @@
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Group Name</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Scam Type <span style="color:#e74c3c;">*</span></div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Share Status</div>
+                    </div>
+                </div>
+                <div id="scrapBulkPasteArea" style="background:#ebf5fb;border-bottom:2px solid #d6eaf8;padding:10px 20px;flex-shrink:0;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:260px;">
+                            <label style="font-size:11px;font-weight:700;color:#1a5276;display:block;margin-bottom:4px;">
+                                <i class="fas fa-link"></i> Bulk URL Paste
+                            </label>
+                            <textarea id="scrapBulkUrlInput"
+                            placeholder="https://t.me/group1&#10;https://wa.me/919876543210&#10;https://facebook.com/groups/scam"
+                            oninput="onScrapBulkInput()"
+                            style="width:100%;height:70px;padding:8px 10px;border:1.5px solid #aed6f1;border-radius:6px;
+                                   font-size:11px;font-family:monospace;resize:none;outline:none;background:white;
+                                   color:#2c3e50;line-height:1.5;box-sizing:border-box;"></textarea>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
+                            <button onclick="parseScrapBulkUrls()"
+                                style="padding:7px 14px;background:#3498db;color:white;border:none;border-radius:6px;
+                                    font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                                <i class="fas fa-magic"></i> Parse & Add Rows
+                            </button>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <label style="font-size:11px;font-weight:700;color:#1a5276;white-space:nowrap;">
+                                    <i class="fas fa-exclamation-triangle"></i> Bulk Scam Type:
+                                </label>
+                                <select id="scrapGlobalScamType" style="flex:1;padding:5px 6px;border:1px solid #aed6f1;
+                                    border-radius:5px;font-size:11px;background:white;height:28px;cursor:pointer;">
+                                    <option value="">-- Select --</option>
+                                    <option>Investment Scam</option>
+                                    <option>Job Scam</option>
+                                    <option>Fake Website Scam</option>
+                                    <option>Loan Scam</option>
+                                    <option>Shopping Scam</option>
+                                    <option>Carding Scam</option>
+                                    <option>Currency Exchange Scam</option>
+                                    <option>Subscription Scam</option>
+                                    <option>Fake Account Selling Scam</option>
+                                </select>
+                                <button onclick="applyGlobalScamType()"
+                                    style="padding:5px 10px;background:#8e44ad;color:white;border:none;border-radius:5px;
+                                           font-size:11px;font-weight:600;cursor:pointer;height:28px;white-space:nowrap;">
+                                    Apply All
+                                </button>
+                            </div>
+                            <span id="scrapBulkStatus" style="font-size:10px;color:#1a5276;font-weight:600;min-height:14px;"></span>
+                        </div>
                     </div>
                 </div>
                 <div id="scrapInsertRowsArea" style="overflow-y:auto;flex-grow:1;padding:10px 20px 6px;"></div>
