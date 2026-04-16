@@ -4580,7 +4580,7 @@
         }
         .scrap-row-grid {
             display: grid;
-            grid-template-columns: 28px 1.3fr 0.8fr 1.8fr 1fr 1.5fr 1.2fr 0.8fr 28px;
+            grid-template-columns: 56px 1.1fr 2.2fr 1fr 2.4fr 1.2fr 28px;
             gap: 4px;
             width: 100%;
             align-items: center;
@@ -4639,7 +4639,7 @@
             if (!url) return '';
             const u = url.toLowerCase();
             const map = [
-                ['t.me','Telegram'],['telegram.org','Telegram'],['web.telegram.org','Telegram'],
+                ['t.me','Telegram'],['telegram.org','Telegram'],['web.telegram.org','Telegram'],['telegram.me', 'Telegram',],
                 ['wa.me','WhatsApp'],['chat.whatsapp.com','WhatsApp'],
                 ['facebook.com','Facebook'],['fb.com','Facebook'],
                 ['instagram.com','Instagram'],
@@ -4679,12 +4679,10 @@
             _scrapRows = [];
             _scrapRowIdSeq = 0;
             document.getElementById('scrapInsertModal').style.display = 'flex';
-            document.getElementById('scrapInsertUserName').textContent = _scrapGetUserName();
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('scrapInsertDate').value = today;
             const msg = document.getElementById('scrapInsertStatusMsg');
             if (msg) msg.innerHTML = '<i class="fas fa-info-circle"></i> <strong style="color:#c0392b;">0 Duplicates</strong> &nbsp;|&nbsp; <strong style="color:#1e8449;">0 New</strong>';
-            scrapAddRow();
             _renderScrapRows();
         }
         function closeScrapInsertModal() {
@@ -4717,7 +4715,6 @@
                 _scrapRows.push({
                     _id: _scrapRowIdSeq,
                     _dupStatus: localDup ? 'DUPLICATE' : 'pending',
-                    name: userName,
                     platform: plat,
                     post_url: urlPart,
                     chat_number: cn,
@@ -4765,7 +4762,6 @@
             _scrapRows.push({
                 _id: _scrapRowIdSeq,
                 _dupStatus: 'pending',
-                name: _scrapGetUserName(),
                 platform: '',
                 post_url: '',
                 chat_number: '',
@@ -4777,13 +4773,12 @@
         }
         function scrapDeleteRow(id) {
             _scrapRows = _scrapRows.filter(r => r._id !== id);
-            if (_scrapRows.length === 0) scrapAddRow();
-            else _renderScrapRows();
+            _renderScrapRows();
         }
         function scrapClearAll() {
             _scrapRows = [];
             _scrapRowIdSeq = 0;
-            scrapAddRow();
+            _renderScrapRows();
         }
         function _updateRowField(id, field, value) {
             const row = _scrapRows.find(r => r._id === id);
@@ -4832,6 +4827,15 @@
                 }
                 _refreshRowDupBadge(id);
                 _updateScrapDupCounter();
+                const isDup = _scrapRows.find(r => r._id === id)?._dupStatus === 'DUPLICATE';
+                ['post_url','chat_number','group_name'].forEach(f => {
+                    const inp = document.querySelector(`[data-rowid="${id}"][data-field="${f}"]`);
+                    if (!inp) return;
+                    inp.style.borderColor = isDup ? '#e74c3c' : '';
+                    inp.style.background  = isDup ? '#fff5f5' : '';
+                });
+                const scamSel = document.querySelector(`select[data-rowid="${id}"][data-field="scam_type"]`);
+                if (scamSel) { scamSel.style.borderColor = isDup ? '#e74c3c' : ''; scamSel.style.background = isDup ? '#fff5f5' : ''; }
             }
             if (field === 'chat_number') {
                 _checkChatNumberLive(id, value);
@@ -4940,68 +4944,73 @@
                 if (b) b.textContent = `${_scrapRows.length} row${_scrapRows.length !== 1 ? 's' : ''}`;
             }
             function _renderScrapRows() {
-                const area = document.getElementById('scrapInsertRowsArea');
-                if (!area) return;
-                area.innerHTML = '';
-                _scrapRows.forEach((row, idx) => {
-                    const div = document.createElement('div');
-                    div.className = 'scrap-row-grid' + (row._dupStatus === 'DUPLICATE' ? ' row-dup' : row._dupStatus === 'NEW' ? ' row-new' : '');
-                    div.dataset.rowid = row._id;
-                    let dupBadge = `<span class="scrap-dup-badge pend" data-rowid="${row._id}"><i class="fas fa-question"></i> ?</span>`;
-                    if (row._dupStatus === 'DUPLICATE') dupBadge = `<span class="scrap-dup-badge dup" data-rowid="${row._id}"><i class="fas fa-ban"></i> DUP</span>`;
-                    else if (row._dupStatus === 'NEW')  dupBadge = `<span class="scrap-dup-badge new" data-rowid="${row._id}"><i class="fas fa-check"></i> NEW</span>`;
-                    const platOpts  = SCRAP_PLATFORMS.map(p => `<option value="${p}" ${row.platform===p?'selected':''}>${p}</option>`).join('');
-                    const scamOpts  = `<option value="">-- Select --</option>` + SCRAP_SCAM_TYPES.map(s => `<option value="${s}" ${row.scam_type===s?'selected':''}>${s}</option>`).join('');
-                    const shareOpts = ['Pending','Shared'].map(s => `<option value="${s}" ${row.share_status===s?'selected':''}>${s}</option>`).join('');
-                    div.innerHTML = `
-                        <div class="scrap-row-num">${idx + 1}</div>
-                        <div style="display:flex;flex-direction:column;gap:3px;">
-                            <input class="scrap-inp" type="text" value="${_scrapEsc(row.name)}" placeholder="Name..."
-                                data-rowid="${row._id}" data-field="name"
-                                oninput="_updateRowField(${row._id},'name',this.value)">
-                        </div>
-                        <select class="scrap-sel" data-rowid="${row._id}" data-field="platform"
-                            onchange="_updateRowField(${row._id},'platform',this.value)">
-                            <option value="">Auto</option>${platOpts}
-                        </select>
-                        <div style="display:flex;flex-direction:column;gap:2px;">
-                            <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
-                                value="${_scrapEsc(row.post_url)}" placeholder="https://... paste URL here"
-                                data-rowid="${row._id}" data-field="post_url"
-                                oninput="_updateRowField(${row._id},'post_url',this.value)"
-                                style="${row._urlValid===false?'border-color:#e74c3c;':''}" >
-                            <span id="url-warn-${row._id}" style="display:${row._urlValid===false?'block':'none'};font-size:10px;color:#c0392b;font-weight:600;">
-                                Invalid URL — must start with https://
-                            </span>
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:2px;">
-                            <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
-                                value="${_scrapEsc(row.chat_number)}" placeholder="Chat number / NA"
-                                data-rowid="${row._id}" data-field="chat_number"
-                                oninput="_updateRowField(${row._id},'chat_number',this.value)">
-                            <span id="cn-warn-${row._id}" style="display:none;font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid;"></span>
-                        </div>
-                        <input class="scrap-inp ${row._dupStatus==='DUPLICATE'?'dup-field':''}" type="text"
-                            value="${_scrapEsc(row.group_name)}" placeholder="Auto from URL..."
-                            data-rowid="${row._id}" data-field="group_name"
-                            oninput="_updateRowField(${row._id},'group_name',this.value)">
-                        <select class="scrap-sel" data-rowid="${row._id}" data-field="scam_type"
-                            onchange="_updateRowField(${row._id},'scam_type',this.value)">
-                            ${scamOpts}
-                        </select>
-                        <select class="scrap-sel" data-rowid="${row._id}" data-field="share_status"
-                            onchange="_updateRowField(${row._id},'share_status',this.value)">
-                            ${shareOpts}
-                        </select>
-                        <button class="scrap-del-btn" onclick="scrapDeleteRow(${row._id})" title="Remove row">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    `;
-
-                    area.appendChild(div);
-                });
-                _scrapUpdateBadgeCount();
-            }
+                            const area = document.getElementById('scrapInsertRowsArea')
+                            if (!area) return;
+                            area.innerHTML = '';
+                            if (_scrapRows.length === 0) {
+                                area.innerHTML = `<div style="text-align:center;padding:48px 20px;color:#95a5a6;">
+                                    <i class="fas fa-plus-circle" style="font-size:36px;display:block;margin-bottom:12px;color:#dde3ed;"></i>
+                                    <p style="font-size:13px;font-weight:600;">No rows yet</p>
+                                    <p style="font-size:12px;margin-top:4px;">Click <strong>Add Row</strong> or paste URLs above to begin</p>
+                                </div>`;
+                                _scrapUpdateBadgeCount();
+                                return;
+                            }
+                            _scrapRows.forEach((row, idx) => {
+                                const div = document.createElement('div');
+                                div.className = 'scrap-row-grid' + (row._dupStatus === 'DUPLICATE' ? ' row-dup' : row._dupStatus === 'NEW' ? ' row-new' : '');
+                                div.dataset.rowid = row._id;
+                                let dupBadge = `<span class="scrap-dup-badge pend" data-rowid="${row._id}"><i class="fas fa-question"></i> ?</span>`;
+                                if (row._dupStatus === 'DUPLICATE') dupBadge = `<span class="scrap-dup-badge dup" data-rowid="${row._id}"><i class="fas fa-ban"></i> DUP</span>`;
+                                else if (row._dupStatus === 'NEW')  dupBadge = `<span class="scrap-dup-badge new" data-rowid="${row._id}"><i class="fas fa-check"></i> NEW</span>`;
+                                const platOpts = SCRAP_PLATFORMS.map(p => `<option value="${p}" ${row.platform===p?'selected':''}>${p}</option>`).join('');
+                                const scamOpts = `<option value="">-- Select --</option>` + SCRAP_SCAM_TYPES.map(s => `<option value="${s}" ${row.scam_type===s?'selected':''}>${s}</option>`).join('');
+                                const dupRowStyle = row._dupStatus === 'DUPLICATE' ? 'border-color:#e74c3c;background:#fff5f5;' : '';
+                                div.innerHTML = `
+                                    <div class="scrap-row-num" style="display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:center;">${dupBadge}</div>
+                                    <select class="scrap-sel" data-rowid="${row._id}" data-field="platform"
+                                        onchange="_updateRowField(${row._id},'platform',this.value)">
+                                        <option value="">Auto</option>${platOpts}
+                                    </select>
+                                    <div style="display:flex;flex-direction:column;gap:2px;">
+                                        <input class="scrap-inp" type="text"
+                                            value="${_scrapEsc(row.post_url)}"
+                                            placeholder="https://t.me/group — paste full post URL"
+                                            data-rowid="${row._id}" data-field="post_url"
+                                            oninput="_updateRowField(${row._id},'post_url',this.value)"
+                                            style="font-size:11px;${dupRowStyle}${row._urlValid===false?'border-color:#e74c3c;':''}">
+                                        <span id="url-warn-${row._id}" style="display:${row._urlValid===false?'block':'none'};font-size:10px;color:#c0392b;font-weight:600;">
+                                            Invalid URL — must start with https://
+                                        </span>
+                                    </div>
+                                    <div style="display:flex;flex-direction:column;gap:2px;">
+                                        <input class="scrap-inp" type="text"
+                                            value="${_scrapEsc(row.chat_number)}"
+                                            placeholder="Chat number / NA"
+                                            data-rowid="${row._id}" data-field="chat_number"
+                                            oninput="_updateRowField(${row._id},'chat_number',this.value)"
+                                            style="${dupRowStyle}">
+                                        <span id="cn-warn-${row._id}" style="display:none;font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;border:1px solid;"></span>
+                                    </div>
+                                    <input class="scrap-inp" type="text"
+                                        value="${_scrapEsc(row.group_name)}"
+                                        placeholder="Auto-filled from URL or enter manually"
+                                        data-rowid="${row._id}" data-field="group_name"
+                                        oninput="_updateRowField(${row._id},'group_name',this.value)"
+                                        style="font-size:11px;${dupRowStyle}">
+                                    <select class="scrap-sel" data-rowid="${row._id}" data-field="scam_type"
+                                        onchange="_updateRowField(${row._id},'scam_type',this.value)"
+                                        style="${row._dupStatus==='DUPLICATE'?'border-color:#e74c3c;background:#fff5f5;':''}">
+                                        ${scamOpts}
+                                    </select>
+                                    <button class="scrap-del-btn" onclick="scrapDeleteRow(${row._id})" title="Remove row">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                `;
+                                area.appendChild(div);
+                            });
+                            _scrapUpdateBadgeCount();
+                        }
             async function scrapCheckDuplicates() {
                 const btn = document.getElementById('scrapDupCheckBtn');
                 btn.disabled = true;
@@ -5034,9 +5043,13 @@
                 }
             }
             async function scrapSubmitInsert() {
-                const missing = _scrapRows.filter(r => !r.name.trim() || !r.scam_type);
+                if (_scrapRows.length === 0) {
+                    showToast('Add at least one row before inserting!', true);
+                    return;
+                }
+                const missing = _scrapRows.filter(r => !r.scam_type);
                 if (missing.length) {
-                    showToast(`${missing.length} row(s) where Name or Scam Type is missing!`, true);
+                    showToast(`${missing.length} row(s) missing Scam Type!`, true);
                     return;
                 }
                 const invalidUrls = _scrapRows.filter(r => {
@@ -5061,13 +5074,13 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             rows: _scrapRows.map(r => ({
-                                name:         r.name || 'NA',
+                                name:         _scrapGetUserName() || 'NA',
                                 platform:     r.platform || 'NA',
                                 post_url:     r.post_url || 'NA',
                                 chat_number:  r.chat_number || 'NA',
                                 group_name:   r.group_name || 'NA',
                                 scam_type:    r.scam_type || 'NA',
-                                share_status: r.share_status || 'Pending',
+                                share_status: 'Pending',
                                 screenshot:   'NA',
                                 inserted_date: document.getElementById('scrapInsertDate').value || new Date().toISOString().split('T')[0],
                             }))
@@ -5170,10 +5183,9 @@
                 <div style="background:#ebf5fb;border-bottom:1px solid #d6eaf8;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0;">
                     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
                         <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1a5276;">
-                            <i class="fas fa-user-circle" style="color:#3498db;"></i>
-                            <strong id="scrapInsertUserName">Loading...</strong>
-                        </div>
-                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#1a5276;">
+                            <i class="fas fa-user-circle" style="color:#3498db;font-size:14px;"></i>
+                            <span style="font-size:12px;font-weight:700;color:#1a5276;white-space:nowrap;">{{ clean_display_name }}</span>
+                            <span style="color:#aed6f1;font-size:16px;line-height:1;">|</span>
                             <i class="fas fa-calendar-alt" style="color:#3498db;"></i>
                             <label style="font-size:11px;font-weight:700;color:#1a5276;white-space:nowrap;">Insert Date:</label>
                             <input type="date" id="scrapInsertDate"
@@ -5202,25 +5214,24 @@
                     </div>
                 </div>
                 <div style="background:#f8f9fa;border-bottom:2px solid #dee2e6;padding:0 20px;flex-shrink:0;overflow-x:auto;">
-                    <div style="display:grid;grid-template-columns:28px 1.1fr 0.8fr 1.8fr 1fr 1.4fr 1.2fr 0.8fr 28px;gap:4px;width:100%;box-sizing:border-box;padding:8px 0;align-items:center;">
-                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;text-align:center;">#</div>
-                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Name <span style="color:#e74c3c;">*</span></div>
+                    <div style="display:grid;grid-template-columns:56px 1.1fr 2.2fr 1fr 2.4fr 1.2fr 28px;gap:4px;width:100%;box-sizing:border-box;padding:8px 0;align-items:center;">
+                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;text-align:center;">Status</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Platform</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Post URL</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Chat Number</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Group Name</div>
                         <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Scam Type <span style="color:#e74c3c;">*</span></div>
-                        <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Share Status</div>
+                        <div></div>
                     </div>
                 </div>
                 <div id="scrapBulkPasteArea" style="background:#ebf5fb;border-bottom:2px solid #d6eaf8;padding:10px 20px;flex-shrink:0;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                         <div style="flex:1;min-width:260px;">
                             <label style="font-size:11px;font-weight:700;color:#1a5276;display:block;margin-bottom:4px;">
-                                <i class="fas fa-link"></i> Bulk URL Paste
+                                <i class="fas fa-link"></i> Bulk URL Paste with Chat Number
                             </label>
                             <textarea id="scrapBulkUrlInput"
-                            placeholder="https://t.me/group1&#10;https://wa.me/919876543210&#10;https://facebook.com/groups/scam"
+                            placeholder="https://t.me/group1 123456&#10;https://wa.me/919876543210&#10;https://facebook.com/groups/scam - 123456"
                             oninput="onScrapBulkInput()"
                             style="width:100%;height:70px;padding:8px 10px;border:1.5px solid #aed6f1;border-radius:6px;
                                    font-size:11px;font-family:monospace;resize:none;outline:none;background:white;

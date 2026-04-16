@@ -504,7 +504,7 @@ def extract_search_for_from_url(url):
         platform_domains = {
             't.me': 'Telegram', 'wa.me': 'WhatsApp',
             'chat.whatsapp.com': 'WhatsApp', 'facebook.com': 'Facebook',
-            'instagram.com': 'Instagram', 'telegram.org': 'Telegram','web.telegram.org': 'Telegram',
+            'instagram.com': 'Instagram', 'telegram.org': 'Telegram','web.telegram.org': 'Telegram','telegram.me': 'Telegram',
             'threads.com': 'Thread', 'youtube.com': 'YouTube', 'x.com': 'X'
         }
         if domain in platform_domains:
