@@ -1245,8 +1245,8 @@
     </div>
     <!-- SCRAPPING SUMMARY SECTION -->
     <div id="scrappingSummarySection" style="display:none;">
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;">
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;">
                 <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-list-alt"></i> Summary Type</label>
                 <select class="sheet-maker-select" id="scrapSummaryType" onchange="onScrapSummaryTypeChange()" style="height:34px;">
                     <option value="">-- Select Type --</option>
@@ -1254,39 +1254,48 @@
                     <option value="category_platform">📂 Categories / Platform Wise Summary</option>
                 </select>
             </div>
-            <div style="display:flex;flex-direction:column;gap:4px;flex:1.5;min-width:280px;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:0 0 auto;">
                 <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-calendar-alt"></i> Date Filter</label>
-                <div style="display:flex;flex-direction:row;align-items:center;gap:4px;flex-wrap:nowrap;">
-                    <button onclick="setScrapSummaryDateToday()" style="padding:4px 8px;background:#3498db;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;white-space:nowrap;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:3px;flex-wrap:nowrap;">
+                    <button onclick="setScrapSummaryDateToday()" style="padding:0 8px;background:#3498db;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;white-space:nowrap;flex-shrink:0;font-weight:600;">
                         <i class="fas fa-calendar-day"></i> Today
                     </button>
                     <input type="date" id="scrapSummaryDateFrom"
-                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
-                        onchange="onScrapDateChange()">
-                    <span style="font-size:10px;color:#7f8c8d;flex-shrink:0;">to</span>
+                       style="width:118px;padding:4px 5px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
+                       onchange="onScrapDateChange()">
+                    <span style="font-size:10px;color:#7f8c8d;flex-shrink:0;">→</span>
                     <input type="date" id="scrapSummaryDateTo"
-                        style="flex:1;min-width:0;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
-                        onchange="onScrapDateChange()">
+                       style="width:118px;padding:4px 5px;border:1px solid #ddd;border-radius:4px;font-size:11px;height:34px;outline:none;"
+                       onchange="onScrapDateChange()">
                     <button onclick="clearScrapSummaryDates()" title="Clear"
-                        style="padding:4px 8px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;flex-shrink:0;">
-                        <i class="fas fa-times"></i>
+                       style="padding:0 8px;background:#95a5a6;color:white;border:none;border-radius:4px;font-size:10px;cursor:pointer;height:34px;flex-shrink:0;">
+                       <i class="fas fa-times"></i>
                     </button>
                 </div>
-                <span id="scrapSummaryDateLabel" style="font-size:10px;color:#7f8c8d;display:none;margin-top:2px;">
+                <span id="scrapSummaryDateLabel" style="font-size:10px;color:#7f8c8d;display:none;margin-top:1px;">
                     <i class="fas fa-filter"></i> <span id="scrapDateLabelText"></span>
                 </span>
             </div>
-            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px;">
+            <div id="scrapWsCategoryGroup" style="display:none;flex-direction:column;gap:4px;flex:0 0 auto;">
+                <label style="font-size:12px;font-weight:600;color:#0d47a1;"><i class="fas fa-globe"></i> Website Searching Cols</label>
+                <div style="background:#e3f2fd;border:1.5px solid #90caf9;border-radius:6px;padding:5px 10px;display:flex;flex-direction:column;gap:2px;min-width:195px;">
+                    <label style="font-size:11px;color:#0d47a1;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;"><input type="checkbox" id="wsChk_investment" value="Investment" checked onchange="onWsCategoryChange()"> Investment</label>
+                    <label style="font-size:11px;color:#0d47a1;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;"><input type="checkbox" id="wsChk_fakewebsites" value="Fake Websites" checked onchange="onWsCategoryChange()"> Fake Websites</label>
+                    <label style="font-size:11px;color:#0d47a1;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;"><input type="checkbox" id="wsChk_lpg" value="LPG Booking Scam" onchange="onWsCategoryChange()"> LPG Booking Scam</label>
+                    <label style="font-size:11px;color:#0d47a1;display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:500;"><input type="checkbox" id="wsChk_gov" value="Government Scheme Scam" onchange="onWsCategoryChange()"> Govt. Scheme Scam</label>
+                </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:0 0 auto;min-width:140px;">
                 <label style="font-size:12px;font-weight:600;color:#2c3e50;"><i class="fas fa-info-circle"></i> Status</label>
-                <div id="scrapSummaryStatus" class="sheet-status-box waiting" style="min-height:34px;padding:5px 10px;font-size:11px;">
+                <div id="scrapSummaryStatus" class="sheet-status-box waiting" style="min-height:34px;padding:5px 8px;font-size:11px;white-space:nowrap;">
                     <i class="fas fa-hourglass-half"></i>
                     <span>Select type and date</span>
                 </div>
             </div>
-            <div style="display:flex;flex-direction:column;gap:4px;min-width:155px;">
+            <div style="display:flex;flex-direction:column;gap:4px;flex:0 0 auto;">
                 <label style="font-size:12px;font-weight:600;color:transparent;">_</label>
                 <button class="generate-summary-btn" id="scrapSummaryGenBtn"
-                    onclick="generateScrapSummary()" disabled style="height:34px;">
+                    onclick="generateScrapSummary()" disabled style="height:34px;padding:0 16px;font-size:12px;">
                     <i class="fas fa-chart-bar"></i> Generate Summary
                 </button>
             </div>
@@ -4141,9 +4150,27 @@
             const SCRAP_SM_PLATFORMS = ['Telegram','WhatsApp','Facebook','Instagram','Threads','YouTube','X'];
             function onScrapSummaryTypeChange() {
                 const type = document.getElementById('scrapSummaryType').value;
-                const wsGroup = document.getElementById('scrapWsUploadGroup');
-                wsGroup.style.display = (type === 'category_platform') ? '' : 'none';
+                const wsGroup = document.getElementById('scrapWsCategoryGroup');
+                if (wsGroup) wsGroup.style.display = (type === 'category_platform') ? 'flex' : 'none';
                 _updateScrapSummaryStatus();
+            }
+            function onWsCategoryChange() {
+                if (_lastScrapSummary && _lastScrapSummary.type === 'category_platform') {
+                    _buildCategoryPlatformSummary();
+                }
+            }
+            function _getSelectedWsCols() {
+                const allCols = ['Investment', 'Fake Websites', 'LPG Booking Scam', 'Government Scheme Scam'];
+                const idMap = {
+                    'Investment': 'wsChk_investment',
+                    'Fake Websites': 'wsChk_fakewebsites',
+                    'LPG Booking Scam': 'wsChk_lpg',
+                    'Government Scheme Scam': 'wsChk_gov'
+                };
+                return allCols.filter(c => {
+                    const el = document.getElementById(idMap[c]);
+                    return el && el.checked;
+                });
             }
             function setScrapSummaryDateToday() {
                 const today = new Date().toISOString().split('T')[0];
@@ -4327,138 +4354,205 @@
                 const to   = document.getElementById('scrapSummaryDateTo').value;
                 const dateStr = from === to && from ? _fmtDateDMY(from) : `${_fmtDateDMY(from)||'start'} to ${_fmtDateDMY(to)||'end'}`;
                 const rows = _scrapSummaryData;
-                const scrapMap = {};
-                const allPlatforms = new Set();
-                const allScamTypes = new Set();
+                const platMap = {};
+                const allScamTypesSet = new Set();
+                const allPlatformsSet = new Set();
                 rows.forEach(row => {
                     const st   = (row.scam_type || 'Unknown').trim() || 'Unknown';
                     const plat = (row.platform  || 'Unknown').trim() || 'Unknown';
-                    if (!scrapMap[st]) scrapMap[st] = {};
-                    scrapMap[st][plat] = (scrapMap[st][plat] || 0) + 1;
-                    allPlatforms.add(plat);
-                    allScamTypes.add(st);
+                    if (!platMap[plat]) platMap[plat] = {};
+                    platMap[plat][st] = (platMap[plat][st] || 0) + 1;
+                    allScamTypesSet.add(st);
+                    allPlatformsSet.add(plat);
                 });
-                const SCAM_ORDER =[
+                const SCAM_ORDER = [
                     "Investment Scam","LPG Booking Scam","Government Scheme Scam",
                     "Fake Account Selling Scam","Job Scam","Currency Exchange Scam",
                     "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam"
                 ];
-                const WS_COLS = ["Investment", "Fake Websites", "LPG Booking Scam", "Government Scheme Scam"];
-                const scrapPlatforms = [...allPlatforms].sort();
-                const sortedScamTypes = [...allScamTypes].sort((a,b) => {
-                    const idxA = SCAM_ORDER.indexOf(a), idxB = SCAM_ORDER.indexOf(b);
-                    if (idxA === -1 && idxB === -1) return a.localeCompare(b);
-                    if (idxA === -1) return 1; if (idxB === -1) return -1;
-                    return idxA - idxB;
+                const PLATFORM_ORDER = ['Telegram','Thread','Facebook','Instagram','YouTube','X'];
+                const sortedScamTypes = [...allScamTypesSet].sort((a, b) => {
+                    const ia = SCAM_ORDER.indexOf(a), ib = SCAM_ORDER.indexOf(b);
+                    if (ia === -1 && ib === -1) return a.localeCompare(b);
+                    if (ia === -1) return 1; if (ib === -1) return -1;
+                    return ia - ib;
                 });
-                const thS  = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:7px 10px;font-size:12px;white-space:nowrap;background:#f3e5f5;`;
-                const tdS  = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;`;
-                const tdLabelS = `font-weight:600;color:#6a1b9a;text-align:left;border:1px solid #9c27b0;padding:5px 8px;font-size:12px;background:#f8f0fc;white-space:nowrap;`;
-                const wsThS = `font-weight:700;color:#0d47a1;text-align:center;border:1px solid #1976d2;padding:7px 10px;font-size:12px;white-space:nowrap;background:#e3f2fd;`;
-                const wsTdS = `text-align:center;border:1px solid #90caf9;padding:4px 6px;font-size:12px;background:#f5faff;`;
-                const scrapCols = scrapPlatforms.length ;
-                const wsCols    = WS_COLS.length ;
-                const totalCols = 1 + scrapCols + wsCols + 1;
+                const activePlatforms = PLATFORM_ORDER.filter(p => allPlatformsSet.has(p));
+                [...allPlatformsSet].forEach(p => {
+                    if (!PLATFORM_ORDER.includes(p) && p !== 'FB Ad Library') activePlatforms.push(p);
+                });
+                if (!activePlatforms.includes('FB Ad Library')) activePlatforms.push('FB Ad Library');
+                const WS_COLS = _getSelectedWsCols();
+                const BG_HEAD   = '#c8e6fb';
+                const BG_COL    = '#e3f3ff';
+                const BG_WS_GRP = '#bbe1fa';
+                const BG_WS_COL = '#ddeefa';
+                const BG_TOTAL  = '#c8e6fb';
+                const CLR_TXT   = '#042c53';
+                const thB   = `font-weight:600;color:${CLR_TXT};text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:11px;white-space:nowrap;`;
+                const tdS   = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f7fbff;`;
+                const tdWsS = `text-align:center;border:1px solid #90caf9;padding:5px 8px;font-size:11px;background:#eef7ff;cursor:pointer;`;
+                const tdLbl = `font-weight:600;color:${CLR_TXT};text-align:left;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f0faff;white-space:nowrap;`;
+                const totalCols = 1 + sortedScamTypes.length + WS_COLS.length;
                 const titleLabel = `Scam++ SM & Website Searching Summary - ${dateStr}`;
                 const thead = document.getElementById('scrapSummaryThead');
                 const tbody = document.getElementById('scrapSummaryTbody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
-                const scrapHeaderBg = `background:#e3f3ff;color:#042c53;border:1px solid #7ab8e8;`;
-                const scrapGroupBg  = `background:#29b6f6;color:#042c53;border:1px solid #0288d1;`;
-                const wsGroupBg     = `background:#bbe1fa;color:#0c447c;border:1px solid #7ab8e8;`;
-                const wsColBg       = `background:#ddeefa;color:#0c447c;border:1px solid #90caf9;`;
-                thead.innerHTML = `
-                   <tr><th colspan="${totalCols}" style="${thS}font-size:14px;background:#c8e6fb;color:#042c53;">${titleLabel}</th></tr>
-                   <tr>
-                       <th rowspan="2" style="${thS}${scrapHeaderBg}">Category</th>
-                       <th colspan="${scrapCols}" style="${thS}${scrapGroupBg}">Scrapping</th>
-                       <th colspan="${wsCols}" style="${thS}${wsGroupBg}">Website Searching</th>
-                       <th rowspan="2" style="${thS}${scrapHeaderBg}font-weight:600;">Total</th>
-                    </tr>
-                    <tr>
-                        ${scrapPlatforms.map(p => `<th style="${thS}${scrapHeaderBg}">${p}</th>`).join('')}
-                        ${WS_COLS.map(c => `<th style="${thS}${wsColBg}">${c}</th>`).join('')}
-                    </tr>`;
-                    const _wsData = {};
-                    sortedScamTypes.forEach(st => { _wsData[st] = {}; WS_COLS.forEach(c => { _wsData[st][c] = ''; }); });
-                    function _recalcTotals() {
-                        let totScrapPlat = {}, totWsCol = {}, totGrand = 0;
-                        scrapPlatforms.forEach(p => { totScrapPlat[p] = 0; });
-                        WS_COLS.forEach(c => { totWsCol[c] = 0; });
-                        sortedScamTypes.forEach(st => {
-                            const scrapRow = scrapMap[st] || {};
-                            let scrapSub = 0;
-                            scrapPlatforms.forEach(p => { scrapSub += scrapRow[p] || 0; totScrapPlat[p] += scrapRow[p] || 0; });
-                            let wsSub = 0;
-                            WS_COLS.forEach(c => {
-                                const v = parseInt(_wsData[st][c]) || 0;
-                                wsSub += v; totWsCol[c] += v;
-                            });
-                            const grand = scrapSub + wsSub; totGrand += grand;
-                            const sid = st.replace(/[^a-zA-Z0-9]/g,'_');
-                            const grandEl = document.getElementById(`grand_${sid}`);
-                            if (grandEl) grandEl.textContent  = grand || 'NA';
-                        });
-                        scrapPlatforms.forEach(p => {
-                            const el = document.getElementById(`totPlat_${p.replace(/\s+/g,'_')}`);
-                            if (el) el.textContent = totScrapPlat[p] || 'NA';
-                        });
-                        WS_COLS.forEach(c => {
-                            const el = document.getElementById(`totWs_${c.replace(/\s+/g,'_')}`);
-                            if (el) el.textContent = totWsCol[c] || 'NA';
-                        });
-                        const totGrandEl = document.getElementById('totGrand');
-                        if (totGrandEl) totGrandEl.textContent = totGrand || 'NA';
-                        _lastScrapSummary.wsData = JSON.parse(JSON.stringify(_wsData));
-                        _lastScrapSummary.totWsCol = totWsCol;
-                        _lastScrapSummary.totScrapPlat = totScrapPlat;
-                        _lastScrapSummary.totGrand = totGrand;
-                    }
-                    function _stId(st) { return st.replace(/[^a-zA-Z0-9]/g,'_'); }
-                    sortedScamTypes.forEach(st => {
-                        const scrapRow = scrapMap[st] || {};
-                        const sid = _stId(st);
-                        const tr = document.createElement('tr');
-                        const scrapTdS = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:12px;background:#f7fbff;`;
-                        const wsTdSNew = `text-align:center;border:1px solid #90caf9;padding:4px 5px;font-size:12px;background:#eef7ff;`;
-                        tr.innerHTML = `
-                            <td style="${tdLabelS}background:#f0faff;color:#0c447c;border:1px solid #b3d9f7;">${st}</td>
-                            ${scrapPlatforms.map(p => `<td style="${scrapTdS}">${scrapRow[p] || 'NA'}</td>`).join('')}
-                            ${WS_COLS.map(c => `
-                               <td style="${wsTdSNew}">
-                                   <input
-                                         type="number" min="0"
-                                      placeholder="NA"
-                                      data-st="${st}" data-col="${c}"
-                                      style="width:52px;padding:3px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;text-align:center;outline:none;background:white;color:#0d47a1;font-weight:500;"
-                                      oninput="_wsData['${st}']['${c}']=this.value;_recalcTotals();"
-                                    >
-                                </td>`).join('')}
-                            <td id="grand_${sid}" style="${scrapTdS}font-weight:600;background:#e3f3ff;color:#042c53;">NA</td>`;
-                        tbody.appendChild(tr);
+                let headHtml = `<tr><th colspan="${totalCols}" style="${thB}font-size:13px;background:${BG_HEAD};">${titleLabel}</th></tr>`;
+                headHtml += `<tr>
+                    <th style="${thB}background:${BG_COL};text-align:left;">Platform</th>
+                    ${sortedScamTypes.map(st => `<th style="${thB}background:${BG_COL};">${st}</th>`).join('')}
+                    ${WS_COLS.map(c => `<th style="${thB}background:${BG_WS_COL};">${c}</th>`).join('')}
+                </tr>`;
+                thead.innerHTML = headHtml;
+                const prevWsData = (_lastScrapSummary && _lastScrapSummary._wsData) ? _lastScrapSummary._wsData : {};
+                const _wsData = {};
+                activePlatforms.forEach(plat => {
+                    _wsData[plat] = {};
+                    WS_COLS.forEach(c => {
+                        _wsData[plat][c] = (prevWsData[plat] && prevWsData[plat][c] !== undefined) ? prevWsData[plat][c] : '';
                     });
-                    const totalTr = document.createElement('tr');
-                    totalTr.style.background = '#c8e6fb';
-                    totalTr.innerHTML = `
-                        <td style="font-weight:600;text-align:left;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;white-space:nowrap;">Total</td>
-                        ${scrapPlatforms.map(p => `<td id="totPlat_${p.replace(/\s+/g,'_')}" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;">—</td>`).join('')}
-                        ${WS_COLS.map(c => `<td id="totWs_${c.replace(/\s+/g,'_')}" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#ddeefa;color:#0c447c;border:1px solid #90caf9;">—</td>`).join('')}
-                        <td id="totGrand" style="font-weight:600;text-align:center;padding:7px 10px;font-size:12px;background:#c8e6fb;color:#042c53;border:1px solid #7ab8e8;">—</td>`;
-                    tbody.appendChild(totalTr);
-                    _lastScrapSummary = {
-                        type: 'category_platform',
-                        sortedScamTypes, scrapMap, scrapPlatforms,
-                        wsCols: WS_COLS, wsData: _wsData,
-                        hasWS: true, dateStr, titleLabel,
-                        _recalcTotals, _wsData
-                    };
-                    window._wsData = _wsData;
-                    window._recalcTotals = _recalcTotals;
-                    _recalcTotals();
-                    document.getElementById('scrapSummaryResultTitle').textContent = titleLabel;
-                    document.getElementById('scrapSummaryResultArea').style.display = '';
-                    document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+                function _platId(plat) { return plat.replace(/[^a-zA-Z0-9]/g,'_'); }
+                function _recalcAll() {
+                    sortedScamTypes.forEach(st => {
+                        const el = document.getElementById(`scrapColTot_${_platId(st)}`);
+                        if (!el) return;
+                        const sum = activePlatforms.reduce((s, plat) => s + ((platMap[plat] && platMap[plat][st]) ? platMap[plat][st] : 0), 0);
+                        el.textContent = sum || 'NA';
+                    });
+                    WS_COLS.forEach(c => {
+                        const el = document.getElementById(`scrapWsTot_${c.replace(/\s+/g,'_')}`);
+                        if (!el) return;
+                        const sum = activePlatforms.reduce((s, plat) => s + (parseInt((_wsData[plat]||{})[c])||0), 0);
+                        el.textContent = sum || 'NA';
+                    });
+                    if (_lastScrapSummary) {
+                        _lastScrapSummary._wsData = JSON.parse(JSON.stringify(_wsData));
+                    }
+                }
+                activePlatforms.forEach(plat => {
+                    const pid = _platId(plat);
+                    const tr  = document.createElement('tr');
+                    let html  = `<td style="${tdLbl}">${plat}</td>`;
+                    sortedScamTypes.forEach(st => {
+                        const cnt = platMap[plat] && platMap[plat][st] ? platMap[plat][st] : 0;
+                        html += `<td style="${tdS}">${cnt || 'NA'}</td>`;
+                    });
+                    WS_COLS.forEach(c => {
+                        const cellId = `wsCell_${pid}_${c.replace(/\s+/g,'_')}`;
+                        const val    = _wsData[plat][c];
+                        html += `<td style="${tdWsS}" id="${cellId}"
+                            onclick="activateWsCellNew('${plat}','${c}','${cellId}')"
+                            title="Click to edit">
+                            <span id="${cellId}_val" style="display:inline-block;min-width:28px;min-height:14px;">${val || 'NA'}</span>
+                        </td>`;
+                    });
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                });
+                const totalTr = document.createElement('tr');
+                totalTr.style.background = BG_TOTAL;
+                let totHtml = `<td style="${thB}background:${BG_TOTAL};text-align:left;">Total</td>`;
+                sortedScamTypes.forEach(st => {
+                    const sum = activePlatforms.reduce((s, plat) => s + ((platMap[plat] && platMap[plat][st]) ? platMap[plat][st] : 0), 0);
+                    totHtml += `<td id="scrapColTot_${_platId(st)}" style="${thB}background:${BG_TOTAL};">${sum || 'NA'}</td>`;
+                });
+                WS_COLS.forEach(c => {
+                    const sum = activePlatforms.reduce((s, plat) => s + (parseInt((_wsData[plat]||{})[c])||0), 0);
+                    totHtml += `<td id="scrapWsTot_${c.replace(/\s+/g,'_')}" style="${thB}background:${BG_WS_COL};">${sum || 'NA'}</td>`;
+                });
+                totalTr.innerHTML = totHtml;
+                tbody.appendChild(totalTr);
+                _lastScrapSummary = {
+                    type: 'category_platform',
+                    sortedScamTypes,
+                    platMap,
+                    activePlatforms,
+                    wsCols: WS_COLS,
+                    _wsData,
+                    dateStr, titleLabel,
+                    _recalcAll,
+                    _platId
+                };
+                window._scrapWsData    = _wsData;
+                window._scrapRecalcAll = _recalcAll;
+                window._scrapWsCols    = WS_COLS;
+                document.getElementById('scrapSummaryResultTitle').textContent = titleLabel;
+                document.getElementById('scrapSummaryResultArea').style.display = '';
+                document.getElementById('scrapSummaryResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+            function activateWsCell(st, colName, cellId) {
+                const cell   = document.getElementById(cellId);
+                const valEl  = document.getElementById(cellId + '_val');
+                if (!cell || !valEl) return;
+                if (cell.querySelector('input')) return;
+                const currentVal = (window._scrapWsData[st] && window._scrapWsData[st][colName] !== undefined)
+                    ? window._scrapWsData[st][colName]
+                    : '';
+                const inp = document.createElement('input');
+                inp.type  = 'number';
+                inp.min   = '0';
+                inp.value = currentVal === 'NA' || !currentVal ? '' : currentVal;
+                inp.style.cssText = 'width:52px;padding:3px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;text-align:center;outline:none;background:white;color:#0d47a1;font-weight:500;';
+                inp.placeholder = '0';
+                valEl.style.display = 'none';
+                cell.appendChild(inp);
+                inp.focus();
+                inp.select();
+                function commit() {
+                    const newVal = inp.value.trim();
+                    if (window._scrapWsData[st]) {
+                        window._scrapWsData[st][colName] = newVal;
+                    }
+                    cell.removeChild(inp);
+                    valEl.style.display = '';
+                    valEl.textContent   = newVal || 'NA';
+                    if (window._scrapRecalcAll) window._scrapRecalcAll();
+                }
+                inp.addEventListener('blur',    commit);
+                inp.addEventListener('keydown', e => {
+                    if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+                    if (e.key === 'Escape') {
+                        inp.value = currentVal;
+                        inp.blur();
+                    }
+                });
+            }
+             function activateWsCellNew(plat, colName, cellId) {
+                const cell  = document.getElementById(cellId);
+                const valEl = document.getElementById(cellId + '_val');
+                if (!cell || !valEl) return;
+                if (cell.querySelector('input')) return;
+                const currentVal = (window._scrapWsData[plat] && window._scrapWsData[plat][colName] !== undefined)
+                   ? window._scrapWsData[plat][colName]
+                   : '';
+                const inp = document.createElement('input');
+                inp.type  = 'number';
+                inp.min   = '0';
+                inp.value = currentVal === 'NA' || !currentVal ? '' : currentVal;
+                inp.style.cssText = 'width:52px;padding:3px 4px;border:1px solid #90caf9;border-radius:4px;font-size:11px;text-align:center;outline:none;background:white;color:#0d47a1;font-weight:500;';
+                inp.placeholder = '0';
+                valEl.style.display = 'none';
+                cell.appendChild(inp);
+                inp.focus();
+                inp.select();
+                function commit() {
+                    const newVal = inp.value.trim();
+                    if (window._scrapWsData[plat]) {
+                        window._scrapWsData[plat][colName] = newVal;
+                    }
+                    cell.removeChild(inp);
+                    valEl.style.display = '';
+                    valEl.textContent   = newVal || 'NA';
+                    if (window._scrapRecalcAll) window._scrapRecalcAll();
+                }
+                inp.addEventListener('blur',    commit);
+                inp.addEventListener('keydown', e => {
+                    if (e.key === 'Enter')  { e.preventDefault(); inp.blur(); }
+                    if (e.key === 'Escape') { inp.value = currentVal; inp.blur(); }
+                });
+             }
             async function copyScrapSummaryAsImage() {
                 const wrapper = document.getElementById('scrapSummaryTableWrapper');
                 if (!wrapper) { showToast('No summary to copy', true); return; }
@@ -4489,53 +4583,52 @@
             function exportScrapSummaryCSV() {
                 if (!_lastScrapSummary) { showToast('No summary to export', true); return; }
                 const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
-                const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+                const ts   = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
                 let lines = [];
-                let filename = `scrapping_summary_${ts}.csv`;
-                const d = _lastScrapSummary;
+                let fname  = `scrapping_summary_${ts}.csv`;
+                const d    = _lastScrapSummary;
                 if (d.type === 'user_wise') {
-                    filename = `Scam_Plus_User_Wise_Scrapping_Summary_${ts}.csv`;
-                    const cols = ['User Name', ...d.allPlatforms, 'Total Scrapping', 'Unique Numbers', 'Unique %'];
+                    fname = `Scam_Plus_User_Wise_Scrapping_Summary_${ts}.csv`;
+                    const cols = ['User Name', ...(d.allPlatforms || []), 'Total Scrapping', 'Unique Numbers', 'Unique %'];
                     lines.push(cols.join(','));
-                    d.users.forEach(user => {
-                        const ud = d.userData[user];
-                        const uniq = ud.numbers.size;
-                        const pct  = ud.total > 0 ? ((uniq / ud.total) * 100).toFixed(1) + '%' : 'NA';
-                        lines.push([esc(user), ...d.allPlatforms.map(p => ud.platforms[p] || 'NA'), ud.total, uniq || 'NA', pct].join(','));
+                    (d.users || []).forEach(user => {
+                        const ud   = d.userData[user];
+                        const uniq = ud.numbers ? ud.numbers.size : 0;
+                        const pct  = ud.total > 0 ? ((uniq / ud.total)*100).toFixed(1)+'%' : 'NA';
+                        lines.push([esc(user), ...(d.allPlatforms || []).map(p => ud.platforms[p] || 'NA'), ud.total, uniq||'NA', pct].join(','));
                     });
                 } else {
-                    filename = `Scam_Plus_Category_Platform_Summary_${ts}.csv`;
-                    const WS_COLS = d.wsCols || ["Investment", "Fake Websites", "LPG Booking Scam", "Government Scheme Scam"];
-                    const wsData  = d.wsData || {};
-                    lines.push(['Category', ...d.scrapPlatforms, ...WS_COLS, 'Grand Total'].join(','));
-                    d.sortedScamTypes.forEach(st => {
-                        const sr = d.scrapMap[st] || {};
-                        const ss = d.scrapPlatforms.reduce((a,p) => a + (sr[p]||0), 0);
-                        const wsRow = (wsData[st] || {});
-                        const ws = WS_COLS.reduce((a,c) => a + (parseInt(wsRow[c])||0), 0);
-                        lines.push([
-                            esc(st),
-                            ...d.scrapPlatforms.map(p => sr[p] || 'NA'),
-                            ...WS_COLS.map(c => parseInt(wsRow[c]) || 'NA'),
-                            (ss + ws) || 'NA'
-                        ].join(','));
+                    fname = `Scam_Plus_Category_Platform_Summary_${ts}.csv`;
+                    const PLATS = d.activePlatforms || [];
+                    const CATS  = d.sortedScamTypes || [];
+                    const WS    = d.wsCols || [];
+                    const ws    = d._wsData || {};
+                    const pm    = d.platMap || {};
+                    lines.push(['Platform', ...CATS.map(esc), ...WS.map(esc)].join(','));
+                    PLATS.forEach(plat => {
+                        const row = [esc(plat)];
+                        CATS.forEach(st => row.push((pm[plat] && pm[plat][st]) ? pm[plat][st] : 'NA'));
+                        WS.forEach(c => row.push(parseInt((ws[plat]||{})[c])||'NA'));
+                        lines.push(row.join(','));
                     });
-                    const totScrP = d.totScrapPlat || {};
-                    const totWsC  = d.totWsCol || {};
-                    lines.push([
-                        'Total',
-                        ...d.scrapPlatforms.map(p => totScrP[p] || 'NA'),
-                        ...WS_COLS.map(c => totWsC[c] || 'NA'),
-                        d.totGrand || 'NA'
-                    ].join(','));
-                    lines.push(['Scrapping Total', ...Array(d.scrapPlatforms.length + d.wsCols.length).fill(''), d.totScrapAll || 'NA'].join(','));
-                    lines.push(['Website Searching Total', ...Array(d.scrapPlatforms.length + d.wsCols.length).fill(''), d.totWsAll || 'NA'].join(','));
+                    const totRow = ['Total'];
+                    CATS.forEach(st => {
+                        const s = PLATS.reduce((acc,plat) => acc+((pm[plat]&&pm[plat][st])||0), 0);
+                        totRow.push(s||'NA');
+                    });
+                    WS.forEach(c => {
+                        const s = PLATS.reduce((acc,plat) => acc+(parseInt((ws[plat]||{})[c])||0), 0);
+                        totRow.push(s||'NA');
+                    });
+                    lines.push(totRow.join(','));
                 }
-                const csv = '\uFEFF' + lines.join('\n');
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = filename;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                const csv  = '\uFEFF' + lines.join('\n');
+                const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement('a');
+                a.href = url; a.download = fname;
+                document.body.appendChild(a); a.click();
+                document.body.removeChild(a); URL.revokeObjectURL(url);
                 showToast('Summary exported!', false, true);
             }
     </script>
