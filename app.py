@@ -140,7 +140,7 @@ social_supabase: Client = create_client(
 
 PLATFORM_OPTIONS = [
     "Telegram", "WhatsApp", "Facebook", "Instagram",
-    "Threads", "YouTube", "X"
+    "Thread", "YouTube", "X"
 ]
 
 SCAM_TYPE_OPTIONS = [
@@ -1264,6 +1264,7 @@ def tracker_stats():
         perm_block_counts = {}
         perm_block_total = 0
         platform_dept_counts = {}
+        platform_number_type_counts = {}
         CHUNK = 1000
         for platform in platforms:
             try:
@@ -1272,7 +1273,7 @@ def tracker_stats():
                 total_count = 0
                 while True:
                     _q = social_supabase.table("social_media_accounts") \
-                        .select("account_status,department", count='exact') \
+                        .select("account_status,department,number_type", count='exact') \
                         .eq("platform", platform)
                     allowed_depts = session.get("allowed_departments")
                     if allowed_depts:
@@ -1290,21 +1291,27 @@ def tracker_stats():
                 status_map = {}
                 pb_count = 0
                 dept_map = {}
+                num_type_map = {}
                 for item in all_rows:
                     status = (item.get('account_status') or 'Active').strip()
                     dept = (item.get('department') or 'Unknown').strip()
+                    num_type = (item.get('number_type') or 'Unknown').strip()
                     if not dept or dept in ('NA', 'N/A', 'nan', ''):
                         dept = 'Unknown'
+                    if not num_type or num_type in ('NA', 'N/A', 'nan', ''):
+                        num_type = 'Unknown'
                     if status == 'Permanent Block':
                         pb_count += 1
                     else:
                         status_map[status] = status_map.get(status, 0) + 1
                     if status != 'Permanent Block':
                         dept_map[dept] = dept_map.get(dept, 0) + 1
+                        num_type_map[num_type] = num_type_map.get(num_type, 0) + 1
                 platform_status_counts[platform] = status_map
                 perm_block_counts[platform] = pb_count
                 perm_block_total += pb_count
                 platform_dept_counts[platform] = dept_map
+                platform_number_type_counts[platform] = num_type_map
             except Exception as e:
                 print(f"[tracker_stats] error for {platform}: {e}")
                 platform_counts[platform] = 0
@@ -1324,6 +1331,7 @@ def tracker_stats():
                 "perm_block_counts": perm_block_counts,
                 "perm_block_total": perm_block_total,
                 "platform_dept_counts": platform_dept_counts,
+                "platform_number_type_counts": platform_number_type_counts,
             }
         })
     except Exception as e:
@@ -2347,6 +2355,112 @@ def update_share_status():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/delete-social-record", methods=["POST"])
+@login_required
+def delete_social_record():
+    try:
+        data = request.get_json()
+        record_id = data.get("id")
+        if not record_id:
+            return jsonify({"success": False, "error": "No ID provided"})
+        # Fetch info before deleting for logging
+        try:
+            old_resp = social_supabase.table("social_media_accounts") \
+                .select("platform,login_user,number").eq("id", record_id).limit(1).execute()
+            old_info = old_resp.data[0] if old_resp.data else {}
+        except Exception:
+            old_info = {}
+        social_supabase.table("social_media_accounts") \
+            .delete().eq("id", record_id).execute()
+        log_activity(
+            action_type="field_update",
+            target_table="social_media_accounts",
+            target_record_id=record_id,
+            field_name="DELETE",
+            old_value=f"platform={old_info.get('platform','?')}, number={old_info.get('number','?')}",
+            new_value="DELETED",
+            extra_info={"platform": old_info.get("platform")}
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+@app.route("/get-scraping-record/<int:record_id>", methods=["GET"])
+@login_required
+def get_scraping_record(record_id):
+    try:
+        resp = supabase.table("scrapping_data") \
+            .select("id,name,platform,post_url,chat_number,group_name,scam_type,share_status,inserted_date,screenshot") \
+            .eq("id", record_id).limit(1).execute()
+        if resp.data:
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Record not found"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+@app.route("/update-scraping-record", methods=["POST"])
+@login_required
+def update_scraping_record():
+    try:
+        data = request.get_json()
+        record_id = data.get("id")
+        if not record_id:
+            return jsonify({"success": False, "error": "No ID"})
+        ALLOWED = ["platform", "post_url", "chat_number", "group_name", "scam_type", "share_status"]
+        updates = {k: v for k, v in data.items() if k in ALLOWED}
+        if not updates:
+            return jsonify({"success": False, "error": "No valid fields to update"})
+        resp = supabase.table("scrapping_data").update(updates).eq("id", record_id).execute()
+        log_activity(
+            action_type="field_update",
+            target_table="scrapping_data",
+            target_record_id=record_id,
+            field_name=",".join(updates.keys()),
+            new_value=str(updates),
+        )
+        return jsonify({"success": True, "record": resp.data[0] if resp.data else {}})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+@app.route("/delete-scraping-record", methods=["POST"])
+@login_required
+def delete_scraping_record():
+    try:
+        data = request.get_json()
+        record_id = data.get("id")
+        if not record_id:
+            return jsonify({"success": False, "error": "No ID"})
+        supabase.table("scrapping_data").delete().eq("id", record_id).execute()
+        log_activity(
+            action_type="field_update",
+            target_table="scrapping_data",
+            target_record_id=record_id,
+            field_name="DELETE",
+            old_value="EXISTS",
+            new_value="DELETED"
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+@app.route("/my-scraping-count", methods=["GET"])
+@login_required
+def my_scraping_count():
+    try:
+        display_name = session.get("display_name", "")
+        clean_name = re.sub(r'\s*\(.*?\)\s*', '', display_name).strip()
+        if not clean_name:
+            return jsonify({"success": True, "count": 0})
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to",   "").strip()
+        q = supabase.table("scrapping_data") \
+            .select("id", count='exact') \
+            .ilike("name", f"%{clean_name}%")
+        if date_from:
+            q = q.gte("inserted_date", date_from)
+        if date_to:
+            q = q.lte("inserted_date", date_to)
+        resp = q.execute()
+        return jsonify({"success": True, "count": resp.count or 0})
+    except Exception as e:
+        return jsonify({"success": False, "count": 0, "error": str(e)})
     
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
