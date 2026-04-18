@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scam Intelligence Dashboard</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
@@ -4384,25 +4385,36 @@
                 if (!activePlatforms.includes('FB Ad Library')) activePlatforms.push('FB Ad Library');
                 const WS_COLS = _getSelectedWsCols();
                 const BG_HEAD   = '#c8e6fb';
-                const BG_COL    = '#e3f3ff';
-                const BG_WS_GRP = '#bbe1fa';
-                const BG_WS_COL = '#ddeefa';
+                const BG_SCRAP  = '#e3f3ff';
+                const BG_WS     = '#ddeefa';
                 const BG_TOTAL  = '#c8e6fb';
+                const BG_GRAND  = '#b3d4f5';
                 const CLR_TXT   = '#042c53';
                 const thB   = `font-weight:600;color:${CLR_TXT};text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:11px;white-space:nowrap;`;
                 const tdS   = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f7fbff;`;
                 const tdWsS = `text-align:center;border:1px solid #90caf9;padding:5px 8px;font-size:11px;background:#eef7ff;cursor:pointer;`;
                 const tdLbl = `font-weight:600;color:${CLR_TXT};text-align:left;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f0faff;white-space:nowrap;`;
+                // total cols = 1 (Platform) + scrapping cols + WS cols
                 const totalCols = 1 + sortedScamTypes.length + WS_COLS.length;
                 const titleLabel = `Scam++ SM & Website Searching Summary - ${dateStr}`;
                 const thead = document.getElementById('scrapSummaryThead');
                 const tbody = document.getElementById('scrapSummaryTbody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
-                let headHtml = `<tr><th colspan="${totalCols}" style="${thB}font-size:13px;background:${BG_HEAD};">${titleLabel}</th></tr>`;
+                let headHtml = `<tr>
+                    <th colspan="${totalCols}" style="${thB}font-size:13px;background:${BG_HEAD};">${titleLabel}</th>
+                </tr>`;
                 headHtml += `<tr>
-                    <th style="${thB}background:${BG_COL};text-align:left;">Platform</th>
-                    ${sortedScamTypes.map(st => `<th style="${thB}background:${BG_COL};">${st}</th>`).join('')}
-                    ${WS_COLS.map(c => `<th style="${thB}background:${BG_WS_COL};">${c}</th>`).join('')}
+                    <th rowspan="2" style="${thB}background:${BG_HEAD};text-align:left;vertical-align:middle;">Platform</th>
+                    ${sortedScamTypes.length > 0
+                        ? `<th colspan="${sortedScamTypes.length}" style="${thB}background:${BG_SCRAP};font-size:12px;letter-spacing:0.5px;">📊 Scrapping</th>`
+                        : ''}
+                    ${WS_COLS.length > 0
+                        ? `<th colspan="${WS_COLS.length}" style="${thB}background:${BG_WS};font-size:12px;letter-spacing:0.5px;">🌐 Website Searching</th>`
+                        : ''}
+                </tr>`;
+                headHtml += `<tr>
+                    ${sortedScamTypes.map(st => `<th style="${thB}background:${BG_SCRAP};">${st}</th>`).join('')}
+                    ${WS_COLS.map(c  => `<th style="${thB}background:${BG_WS};">${c}</th>`).join('')}
                 </tr>`;
                 thead.innerHTML = headHtml;
                 const prevWsData = (_lastScrapSummary && _lastScrapSummary._wsData) ? _lastScrapSummary._wsData : {};
@@ -4427,6 +4439,16 @@
                         const sum = activePlatforms.reduce((s, plat) => s + (parseInt((_wsData[plat]||{})[c])||0), 0);
                         el.textContent = sum || 'NA';
                     });
+                    const scrapGrand = sortedScamTypes.reduce((s, st) => {
+                        return s + activePlatforms.reduce((ss, plat) => ss + ((platMap[plat] && platMap[plat][st]) ? platMap[plat][st] : 0), 0);
+                    }, 0);
+                    const wsGrand = WS_COLS.reduce((s, c) => {
+                        return s + activePlatforms.reduce((ss, plat) => ss + (parseInt((_wsData[plat]||{})[c])||0), 0);
+                    }, 0);
+                    const elGS = document.getElementById('scrapGrandTotalScrap');
+                    const elGW = document.getElementById('scrapGrandTotalWs');
+                    if (elGS) elGS.textContent = scrapGrand || 'NA';
+                    if (elGW) elGW.textContent = wsGrand || 'NA';
                     if (_lastScrapSummary) {
                         _lastScrapSummary._wsData = JSON.parse(JSON.stringify(_wsData));
                     }
@@ -4460,10 +4482,29 @@
                 });
                 WS_COLS.forEach(c => {
                     const sum = activePlatforms.reduce((s, plat) => s + (parseInt((_wsData[plat]||{})[c])||0), 0);
-                    totHtml += `<td id="scrapWsTot_${c.replace(/\s+/g,'_')}" style="${thB}background:${BG_WS_COL};">${sum || 'NA'}</td>`;
+                    totHtml += `<td id="scrapWsTot_${c.replace(/\s+/g,'_')}" style="${thB}background:${BG_WS};">${sum || 'NA'}</td>`;
                 });
                 totalTr.innerHTML = totHtml;
                 tbody.appendChild(totalTr);
+                const scrapGrand = sortedScamTypes.reduce((s, st) => {
+                    return s + activePlatforms.reduce((ss, plat) => ss + ((platMap[plat] && platMap[plat][st]) ? platMap[plat][st] : 0), 0);
+                }, 0);
+                const wsGrand = WS_COLS.reduce((s, c) => {
+                    return s + activePlatforms.reduce((ss, plat) => ss + (parseInt((_wsData[plat]||{})[c])||0), 0);
+                }, 0);
+                const grandTr = document.createElement('tr');
+                grandTr.style.background = BG_GRAND;
+                let grandHtml = `<td style="${thB}background:${BG_GRAND};text-align:left;font-size:12px;">Grand Total</td>`;
+                if (sortedScamTypes.length > 0) {
+                    grandHtml += `<td colspan="${sortedScamTypes.length}" id="scrapGrandTotalScrap"
+                        style="${thB}background:${BG_GRAND};font-size:13px;color:#0d3c6e;">${scrapGrand || 'NA'}</td>`;
+                }
+                if (WS_COLS.length > 0) {
+                    grandHtml += `<td colspan="${WS_COLS.length}" id="scrapGrandTotalWs"
+                       style="${thB}background:#b3d4e8;font-size:13px;color:#0d3c6e;">${wsGrand || 'NA'}</td>`;
+                }
+                grandTr.innerHTML = grandHtml;
+                tbody.appendChild(grandTr);
                 _lastScrapSummary = {
                     type: 'category_platform',
                     sortedScamTypes,
