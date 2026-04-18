@@ -806,16 +806,69 @@ def get_user_activity_log():
         return jsonify({"success": False, "error": "Access denied."})
     try:
         client = get_auth_supabase()
+        is_admin = session.get("is_admin", False)
+        allowed_depts = session.get("allowed_departments")  # None = see all, list = restricted
+ 
         resp = client.table("activity_logs") \
             .select("*") \
             .order("created_at", desc=True) \
             .limit(500) \
             .execute()
-        logs = resp.data or []
+        all_logs = resp.data or []
+ 
+        # Admins OR users with no dept restriction see everything
+        if is_admin or not allowed_depts:
+            logs = all_logs
+        else:
+            current_email = session.get("email", "")
+ 
+            def _log_allowed(log):
+                # Always show the current user's own activity
+                if log.get("user_email") == current_email:
+                    return True
+ 
+                target_table = log.get("target_table", "")
+                action_type  = log.get("action_type", "")
+ 
+                # ── social_media_accounts logs ──────────────────────────
+                if target_table == "social_media_accounts":
+ 
+                    # Other users' import logs → always hide
+                    if action_type == "import":
+                        return False
+ 
+                    if action_type == "field_update":
+                        extra = log.get("extra_info") or {}
+                        # supabase-py returns JSONB as dict, guard against raw string
+                        if isinstance(extra, str):
+                            try:
+                                import json as _j
+                                extra = _j.loads(extra)
+                            except Exception:
+                                extra = {}
+ 
+                        dept = extra.get("department", "")
+ 
+                        # KEY FIX: if no department stored, HIDE the log
+                        # (old logs before department tracking was added)
+                        # Previously this returned True which caused the leak
+                        if not dept:
+                            return False
+ 
+                        return dept in allowed_depts
+ 
+                    # Any other action type on social table → hide from restricted users
+                    return False
+ 
+                # ── scrapping_data and BS_Investment_Scam ───────────────
+                # These are not department-restricted, show all
+                return False
+ 
+            logs = [l for l in all_logs if _log_allowed(l)]
+ 
         return jsonify({"success": True, "logs": logs})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 
 @app.route("/export-user-activity-log", methods=["GET"])
 @login_required
@@ -1912,6 +1965,14 @@ def save_social_field():
                 extra_info = {}
                 if platform:
                     extra_info['platform'] = platform
+                # Also store department so activity log can be filtered
+                try:
+                    dept_resp = social_supabase.table("social_media_accounts") \
+                        .select("department").eq("id", account_id).limit(1).execute()
+                    if dept_resp.data and dept_resp.data[0].get("department"):
+                        extra_info['department'] = dept_resp.data[0]['department']
+                except Exception:
+                    pass
                 log_activity(
                     action_type="field_update",
                     target_table="social_media_accounts",
@@ -1935,39 +1996,74 @@ def save_social_field():
 @login_required
 def get_permanent_block_accounts():
     try:
-        search = request.args.get("search", "").strip()
+        search   = request.args.get("search",   "").strip()
         platform = request.args.get("platform", "").strip()
+ 
         query = social_supabase.table("social_media_accounts") \
-            .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform") \
+            .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform,department") \
             .eq("account_status", "Permanent Block")
-        if platform: query = query.eq("platform", platform)
+ 
+        # ── Department filter ───────────────────────────────────────────
+        # Always enforce for non-admins; admins see all
+        is_admin     = session.get("is_admin", False)
+        allowed_depts = session.get("allowed_departments")  # None = unrestricted
+ 
+        if not is_admin and allowed_depts:
+            if len(allowed_depts) == 1:
+                query = query.eq("department", allowed_depts[0])
+            else:
+                query = query.in_("department", allowed_depts)
+        # If is_admin OR allowed_depts is None → no department filter applied
+ 
+        # ── Platform filter ────────────────────────────────────────────
+        if platform:
+            query = query.eq("platform", platform)
+ 
+        # ── Search filter ──────────────────────────────────────────────
         if search:
             like_term = f"%{search}%"
-            query = query.or_(f"owned_by.ilike.{like_term},number.ilike.{like_term},login_device.ilike.{like_term},platform.ilike.{like_term}")
+            query = query.or_(
+                f"owned_by.ilike.{like_term},"
+                f"number.ilike.{like_term},"
+                f"login_device.ilike.{like_term},"
+                f"platform.ilike.{like_term}"
+            )
+ 
         query = query.order("id", desc=False)
         response = query.execute()
+ 
         accounts = []
         for item in (response.data or []):
-            b_date_str = item.get('blocked_date') or ''
-            create_date_str = item.get('account_create_date') or ''
-            active_duration = 'N/A'
+            b_date_str      = item.get("blocked_date")        or ""
+            create_date_str = item.get("account_create_date") or ""
+            active_duration = "N/A"
+ 
             if b_date_str and create_date_str:
                 try:
-                    for fmt in ('%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d'):
+                    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
                         try:
-                            days = (datetime.strptime(b_date_str[:10], fmt) - datetime.strptime(create_date_str[:10], fmt)).days
-                            active_duration = f"{days} days" if days >= 0 else 'N/A'
+                            days = (
+                                datetime.strptime(b_date_str[:10], fmt) -
+                                datetime.strptime(create_date_str[:10], fmt)
+                            ).days
+                            active_duration = f"{days} days" if days >= 0 else "N/A"
                             break
                         except ValueError:
                             continue
                 except Exception:
                     pass
+ 
             accounts.append({
-                'id': item.get('id'), 'owned_by': item.get('owned_by') or 'N/A',
-                'number': item.get('number') or 'N/A', 'login_device': item.get('login_device') or 'N/A',
-                'platform': item.get('platform') or 'N/A', 'blocked_date': b_date_str or 'N/A',
-                'active_duration': active_duration
+                "id":              item.get("id"),
+                "owned_by":        item.get("owned_by")    or "N/A",
+                "number":          item.get("number")      or "N/A",
+                "login_device":    item.get("login_device") or "N/A",
+                "platform":        item.get("platform")    or "N/A",
+                "department":      item.get("department")  or "N/A",
+                "blocked_date":    b_date_str              or "N/A",
+                "active_duration": active_duration,
             })
+ 
         return jsonify({"success": True, "accounts": accounts, "count": len(accounts)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

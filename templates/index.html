@@ -1723,6 +1723,8 @@
         })();
 
         const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
+        const _IS_ADMIN = {{ 'true' if current_user and current_user.is_admin else 'false' }};
+        const _ALLOWED_DEPTS = {{ (current_user.allowed_departments | tojson) if current_user and current_user.allowed_departments else 'null' }};
         const PLATFORM_ACCOUNT_STATUS = {
             "Facebook":["Active","Block","Restricted","Permanent Block"],
             "Instagram":["Active","Block","Permanent Block"],
@@ -2619,7 +2621,10 @@
         function displayPermanentAccounts(accounts, count, searchVal, platformVal) {
             const body = document.getElementById('permanentBody');
             const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i><input id="permSearchInput" type="text" value="${searchVal||''}" placeholder="Search by number, device, platform..." style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter') searchPermanentAccounts()"></div><button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button></div>`;
-            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts${platformVal?' — '+platformVal:''}</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
+            const deptLabel = (!_IS_ADMIN && _ALLOWED_DEPTS && _ALLOWED_DEPTS.length > 0)
+               ? ` <span style="font-size:11px;font-weight:400;color:rgba(255,255,255,0.75);margin-left:6px;">(Dept: ${_ALLOWED_DEPTS.join(', ')})</span>`
+                : '';
+            let html = `<div class="permanent-stats"><h3><i class="fas fa-ban"></i> Permanently Blocked Accounts${platformVal?' — '+platformVal:''}${deptLabel}</h3><div class="permanent-count">${count} Accounts</div></div>${searchBox}`;
             if (count > 0) {
                 html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
                 accounts.forEach((a,i) => {
