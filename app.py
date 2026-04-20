@@ -313,11 +313,7 @@ def load_excel_data():
         MASTER_URL_DATA = {}
         BANK_NAME_MAPPING = {}
         IFSC_MAPPING = {}
-
-
 load_excel_data()
-
-
 def load_config():
     try:
         if CONFIG_PATH.exists():
@@ -327,7 +323,6 @@ def load_config():
     except Exception as e:
         print(f"Error loading config: {e}")
         return create_default_config()
-
 
 def create_default_config():
     default_config = {
@@ -789,7 +784,6 @@ def login():
             else:
                 error = "Invalid email or password. Please try again."
     return render_template("login.html", error=error, prefill_email=prefill_email)
-
 
 @app.route("/logout")
 def logout():

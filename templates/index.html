@@ -1124,9 +1124,12 @@
                     </div>
                 </div>
             </div>
-
             <!-- DUPLICATE CHECKER SECTION -->
             <div id="duplicateCheckerSection" style="display:none;">
+                <span style="display:inline-flex;align-items:center;gap:4px;background:#ebf5fb;border:1px solid #aed6f1;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#1a5276;">
+                    <i class="fas fa-calendar-check" style="color:#3498db;font-size:9px;"></i>
+                    Last Updated: <span id="dupCheckerLastDate" style="color:#e67e22;">Loading...</span>
+                </span>
                 <div class="sheet-maker-row" style="margin-bottom:12px;">
                     <div class="sheet-maker-group">
                         <label><i class="fas fa-toggle-on"></i> Check Type</label>
@@ -1896,6 +1899,7 @@
                 closePreview();
                 document.getElementById('summaryPreviewSection').classList.remove('show');
                 document.getElementById('dupResultArea').style.display = 'none';
+                fetchDupCheckerLastDate();
             } else if (mode === 'scrapping_summary') {
                 if (scrapSummSection) scrapSummSection.style.display = '';
                 templateBtn.style.display   = 'none';
@@ -2927,26 +2931,17 @@
         }
     
         async function generateUsersSummary() {
-            const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name',];
+            const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name'];
             let userCol = null;
             for (const c of userColCandidates) {
                 if (summaryHeaders.includes(c)) { userCol = c; break; }
             }
             if (!userCol && summaryHeaders.length > 0) userCol = summaryHeaders[0];
             if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
-
             const dateColCandidates = ['Inserted_date','inserted_date','Date','date'];
             let dateCol = null;
             for (const c of dateColCandidates) {
                 if (summaryHeaders.includes(c)) { dateCol = c; break; }
-            }
-            let excelDates = [];
-            if (dateCol) {
-                excelDates = [...new Set(
-                    summaryParsedData
-                    .map(row => (row[dateCol] || '').trim())
-                    .filter(d => d && d.toUpperCase() !== 'NA')
-                )];
             }
             let apiData = [];
             try {
@@ -2954,26 +2949,26 @@
                 const resp = await fetch('/getDepartmentData?user_mail=tl_shubhankar.shukla%40pixeltruth.com&department=Anti_Money_Laundering&role=Team_Lead');
                 apiData = await resp.json();
             } catch(e) {
-                showToast('API fetch failed — missing columns will be empty', true);
+                showToast('API fetch failed — Scrapping/QC columns will be empty', true);
             }
             const apiLookup = {};
-            const numericFields = ['investment_scam_scrap','Total_Qc','Website_Searching','Credential_Making'];
             apiData.forEach(row => {
                 const apiName = (row.user_name || '').trim();
-                const apiDate = (row.date || '').split('T')[0]; // "2026-03-30T00:00:00.000Z" → "2026-03-30"
+                const apiDate = (row.date || '').split('T')[0];
                 const key = `${apiName}__${apiDate}`;
                 if (!apiLookup[key]) {
                     apiLookup[key] = {
                         investment_scam_scrap: 0,
-                        Total_Qc: 0,
-                        Website_Searching: 0,
-                        Credential_Making: 0,
+                        total_qc: 0,
+                        website_searching: 0,
+                        credential_making: 0,
                         remark: row.remark || ''
                     };
                 }
-                numericFields.forEach(f => {
-                    apiLookup[key][f] += parseInt(row[f] || 0) || 0;
-                });
+                apiLookup[key].investment_scam_scrap += parseInt(row.investment_scam_scrap || 0) || 0;
+                apiLookup[key].total_qc             += parseInt(row.total_qc              || 0) || 0;
+                apiLookup[key].website_searching    += parseInt(row.website_searching     || 0) || 0;
+                apiLookup[key].credential_making    += parseInt(row.credential_making     || 0) || 0;
                 if (row.remark && row.remark !== 'NA') {
                     apiLookup[key].remark = row.remark;
                 }
@@ -2988,8 +2983,8 @@
             ];
             const sheetUsersRaw = [...new Set(
                 summaryParsedData
-                .map(row => (row[userCol] || '').trim())
-                .filter(u => u)
+                    .map(row => (row[userCol] || '').trim())
+                    .filter(u => u)
             )];
             const absentNames = NAME_ORDER.filter(orderedName => {
                 return !sheetUsersRaw.some(excelUser => {
@@ -3012,7 +3007,6 @@
                 if (idxB === -1) return -1;
                 return idxA - idxB;
             });
-
             const userData = {};
             users.forEach(u => {
                 const isAbsent = u.startsWith('__absent__');
@@ -3025,77 +3019,77 @@
                     displayName: isAbsent ? u.replace('__absent__', '') : u
                 };
             });
-                const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
-                let searchCol = null;
-                for (const c of searchColCandidates) {
-                    if (summaryHeaders.includes(c)) { searchCol = c; break; }
+            const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
+            let searchCol = null;
+            for (const c of searchColCandidates) {
+                if (summaryHeaders.includes(c)) { searchCol = c; break; }
+            }
+            const socialPlatforms = ['telegram','whatsapp','facebook','instagram','threads','thread','youtube','x','twitter','snapchat','tiktok','linkedin','pinterest','reddit'];
+            summaryParsedData.forEach(row => {
+                const user = (row[userCol] || '').trim();
+                if (!userData[user]) return;
+                const sf = searchCol ? (row[searchCol] || '').trim().toLowerCase() : '';
+                if (sf === 'app' || sf === 'application') {
+                    userData[user].app++;
+                } else if (sf === 'web' || sf === 'website') {
+                    userData[user].web++;
+                } else if (sf && sf !== 'na' && sf !== 'unknown') {
+                    const isSM = socialPlatforms.some(sm => sf.includes(sm) || sm.includes(sf));
+                    if (isSM) userData[user].sm++;
+                    else userData[user].web++;
                 }
-                const socialPlatforms = ['telegram','whatsapp','facebook','instagram','threads','thread','youtube','x','twitter','snapchat','tiktok','linkedin','pinterest','reddit'];
-                summaryParsedData.forEach(row => {
-                    const user = (row[userCol] || '').trim();
-                    if (!userData[user]) return;
-                    const sf = searchCol ? (row[searchCol] || '').trim().toLowerCase() : '';
-                    if (sf === 'app' || sf === 'application') {
-                        userData[user].app++;
-                    } else if (sf === 'web' || sf === 'website') {
-                        userData[user].web++;
-                    } else if (sf && sf !== 'na' && sf !== 'unknown') {
-                        const isSM = socialPlatforms.some(sm => sf.includes(sm) || sm.includes(sf));
-                        if (isSM) userData[user].sm++;
-                        else userData[user].web++;
-                    }
-                    userData[user].total++;
-                });
-                users.forEach(excelUser => {
-                    if (excelUser.startsWith('__absent__')) return;
-                    const apiName = excelNameToApiName(excelUser);
-                    const userDates = dateCol
-                        ? [...new Set(
-                            summaryParsedData
-                                 .filter(row => (row[userCol] || '').trim() === excelUser)
-                                 .map(row => (row[dateCol] || '').trim())
-                                 .filter(d => d && d.toUpperCase() !== 'NA')
-                          )]
-                        : [''];
-                        let totalScrapping = 0, totalQC = 0, totalWS = 0, totalCred = 0;
-                        let lastRemark = '';
-                        if (userDates.length > 0) {
-                            userDates.forEach(excelDate => {
-                                let normalizedDate = excelDate;
-                                const dmyMatch = excelDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-                                if (dmyMatch) {
-                                    normalizedDate = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
-                                }
-                                const key = `${apiName}__${normalizedDate}`;
-                                if (apiLookup[key]) {
-                                    totalScrapping += apiLookup[key].investment_scam_scrap;
-                                    totalQC        += apiLookup[key].Total_Qc;
-                                    totalWS        += apiLookup[key].Website_Searching;
-                                    totalCred      += apiLookup[key].Credential_Making;
-                                    if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
-                                        lastRemark = apiLookup[key].remark;
-                                    }
-                                }
-                            });
-                        } else {
-                            const matchingKeys = Object.keys(apiLookup).filter(k => k.startsWith(`${apiName}__`));
-                            matchingKeys.forEach(key => {
-                                totalScrapping += apiLookup[key].investment_scam_scrap;
-                                totalQC        += apiLookup[key].Total_Qc;
-                                totalWS        += apiLookup[key].Website_Searching;
-                                totalCred      += apiLookup[key].Credential_Making;
-                                if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
-                                    lastRemark = apiLookup[key].remark;
-                                }
-                            });
+                userData[user].total++;
+            });
+            users.forEach(excelUser => {
+                if (excelUser.startsWith('__absent__')) return;
+                const apiName = excelNameToApiName(excelUser);
+                const userDates = dateCol
+                   ? [...new Set(
+                        summaryParsedData
+                           .filter(row => (row[userCol] || '').trim() === excelUser)
+                           .map(row => (row[dateCol] || '').trim())
+                           .filter(d => d && d.toUpperCase() !== 'NA')
+                        )]
+                    : [];
+                let totalScrapping = 0, totalQC = 0, totalWS = 0, totalCred = 0;
+                let lastRemark = '';
+                if (userDates.length > 0) {
+                    userDates.forEach(excelDate => {
+                        let normalizedDate = excelDate;
+                        const dmyMatch = excelDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+                        if (dmyMatch) {
+                            normalizedDate = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
                         }
+                        const key = `${apiName}__${normalizedDate}`;
+                        console.log(`[API Match] Excel user: "${excelUser}" → apiName: "${apiName}", date: "${normalizedDate}", key: "${key}", found: ${!!apiLookup[key]}`);
+                        if (apiLookup[key]) {
+                            totalScrapping += apiLookup[key].investment_scam_scrap;
+                            totalQC        += apiLookup[key].total_qc;
+                            totalWS        += apiLookup[key].website_searching;
+                            totalCred      += apiLookup[key].credential_making;
+                            if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
+                                lastRemark = apiLookup[key].remark;
+                            }
+                        }
+                    });
+                } else {
+                    const matchingKeys = Object.keys(apiLookup).filter(k => k.startsWith(`${apiName}__`));
+                    matchingKeys.forEach(key => {
+                        totalScrapping += apiLookup[key].investment_scam_scrap;
+                        totalQC        += apiLookup[key].total_qc;
+                        totalWS        += apiLookup[key].website_searching;
+                        totalCred      += apiLookup[key].credential_making;
+                        if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
+                            lastRemark = apiLookup[key].remark;
+                        }
+                    });
+                }
                 userData[excelUser].scrapping    = totalScrapping;
                 userData[excelUser].qualityCheck = totalQC;
                 userData[excelUser].webSearching = totalWS;
                 userData[excelUser].credentials  = totalCred;
                 userData[excelUser].remark       = lastRemark;
             });
-
             let maxDate = null;
             if (dateCol) {
                 summaryParsedData.forEach(row => {
@@ -3117,7 +3111,6 @@
             lastSummaryResult = { type: 'users_detailed', userData, users, dateStr };
             renderUsersSummaryTable(userData, users, dateStr);
         }
-
         function generateCategorySummary() {
             let scamTypeCol = null;
             let searchForCol = null;
@@ -3236,22 +3229,21 @@
             const thead = document.getElementById('summaryResultHead');
             const tbody = document.getElementById('summaryResultBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
-
-            const thStyle = `font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:6px 10px;font-size:13px;white-space:nowrap;background:#f3e5f5;width:20%;`;
-            const tdStyle = `text-align:center;border:1px solid #ba68c8;padding:5px 8px;font-size:12px;width:20%;`;
-            const tdLabelStyle = `font-weight:600;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f8f0fc;width:20%;`;
+            const thStyle = `font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:13px;white-space:nowrap;background:#c8e6fb;`;
+            const tdStyle = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:12px;background:#f7fbff;width:20%;`;
+            const tdLabelStyle = `font-weight:600;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f0faff;width:20%;`;
 
             // Header row with title spanning all columns
             const hr = document.createElement('tr');
             hr.style.backgroundColor = '#e1bee7';
             hr.innerHTML = `
-                <th colspan="5" style="font-weight:700;color:#6a1b9a;text-align:center;border:1px solid #9c27b0;padding:8px 10px;font-size:14px;white-space:nowrap;background:#d7bde2;">IS Category Wise Summary - ${dateStr}</th>
+                <th colspan="5" style="font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:8px 10px;font-size:14px;white-space:nowrap;background:#b3d4f5;">IS Category Wise Summary - ${dateStr}</th>
             `;
             thead.appendChild(hr);
 
             // Column headers
             const colRow = document.createElement('tr');
-            colRow.style.backgroundColor = '#e1bee7';
+            colRow.style.backgroundColor = '#c8e6fb';
             colRow.innerHTML = `
                 <th style="${thStyle}">Category</th>
                 <th style="${thStyle}">Web</th>
@@ -3277,7 +3269,7 @@
             });
 
             const totalRow = document.createElement('tr');
-            totalRow.style.backgroundColor = '#e1bee7';
+            totalRow.style.backgroundColor = '#b3d4f5';
             totalRow.innerHTML = `
                 <td style="${thStyle}">Total</td>
                 <td style="${thStyle}">${totalWeb}</td>
@@ -3301,15 +3293,12 @@
             const thead = document.getElementById('summaryResultHead');
             const tbody = document.getElementById('summaryResultBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
-
-            const thS = `font-weight:700;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:6px 10px;font-size:12px;white-space:nowrap;background:#e8eaf6;`;
-            const tdS = `text-align:center;border:1px solid #9fa8da;padding:5px 8px;font-size:12px;`;
-            const tdNameS = `font-weight:600;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f3f4ff;`;
-
+            const thS = `font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:12px;white-space:nowrap;background:#c8e6fb;`;
+            const tdS = `text-align:center;border:1px solid #b3d9f7;padding:5px 10px;font-size:12px;background:#f7fbff;`;
+            const tdNameS = `font-weight:600;color:#042c53;text-align:left;border:1px solid #7ab8e8;padding:5px 10px;font-size:12px;background:#f0faff;white-space:nowrap;`;
             const titleRow = document.createElement('tr');
-            titleRow.innerHTML = `<th colspan="10" style="${thS}font-size:14px;background:#c5cae9;">Scam++ Summary - ${dateStr}</th>`;
+            titleRow.innerHTML = `<th colspan="10" style="${thS}font-size:14px;background:#b3d4f5;">Scam++ Summary - ${dateStr}</th>`;
             thead.appendChild(titleRow);
-
             const hr1 = document.createElement('tr');
             hr1.innerHTML = `
                 <th rowspan="2" style="${thS}">Name</th>
@@ -3384,7 +3373,7 @@
             });
 
             const totalRow = document.createElement('tr');
-            totalRow.style.backgroundColor = '#c5cae9';
+            totalRow.style.backgroundColor = '#b3d4f5';
             totalRow.innerHTML = `
                      <td style="${thS}">Total</td>
                      <td style="${thS}">${totals.sm || 'NA'}</td>
@@ -3467,54 +3456,51 @@
         }
         // ─── Copy Summary as Image ───────────────────────────────────
         async function copySummaryAsImage() {
-           const wrapper = document.getElementById('summaryTableWrapper');
-           if (!wrapper) { showToast('No summary to copy', true); return; }
-
-           try {
-               if (!window.html2canvas) {
-                   await new Promise((resolve, reject) => {
+            const wrapper = document.getElementById('summaryTableWrapper');
+            if (!wrapper) { showToast('No summary to copy', true); return; }
+            try {
+                if (!window.html2canvas) {
+                    await new Promise((resolve, reject) => {
                         const script = document.createElement('script');
                         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
                         script.onload = resolve; script.onerror = reject;
                         document.head.appendChild(script);
                     });
                 }
-
                 showToast('Generating image...', false, false);
-
-                const originalStyle = wrapper.style.cssText;
-                wrapper.style.display = 'inline-block';
-                wrapper.style.width = 'auto';
-                wrapper.style.minWidth = 'unset';
+                const actualWidth  = wrapper.scrollWidth;
+                const actualHeight = wrapper.scrollHeight;
                 const canvas = await html2canvas(wrapper, {
-                     backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false
+                    backgroundColor: '#ffffff',
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    width: actualWidth,       // ← yeh add karo
+                    height: actualHeight,     // ← yeh add karo
+                    windowWidth: actualWidth, // ← yeh add karo
+                    scrollX: 0,
+                    scrollY: 0,
                 });
-                wrapper.style.cssText = originalStyle;
-
                 const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-
                 if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
                     try {
-                         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                         showToast('Summary copied as image!', false, true);
+                        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                        showToast('Summary copied as image!', false, true);
                         return;
-                    }       catch(e) {
-                              console.warn('Clipboard write failed, downloading instead:', e);
+                    } catch(e) {
+                        console.warn('Clipboard write failed:', e);
                     }
                 }
-
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url; a.download = 'summary.png';
                 document.body.appendChild(a); a.click();
                 document.body.removeChild(a); URL.revokeObjectURL(url);
-                showToast('Copied to clipboard not supported — image downloaded!', false, true);
-  
+                showToast('Downloaded as image!', false, true);
             } catch(e) {
-               showToast('Error: ' + e.message, true);
+                showToast('Error: ' + e.message, true);
             }
         }
-
         // ─── DUPLICATE CHECKER ───────────────────────────────────────
         function toggleDupInputMode(mode) {
             document.getElementById('dupManualArea').style.display = mode === 'manual' ? '' : 'none';
@@ -4626,6 +4612,26 @@
                     showToast('Image downloaded!', false, true);
                 } catch(e) { showToast('Error: ' + e.message, true); }
             }
+            function fetchDupCheckerLastDate() {
+                const el = document.getElementById('dupCheckerLastDate');
+                if (!el) return;
+                el.textContent = 'Loading...';
+                fetch('/investment-last-date')
+                   .then(r => r.json())
+                   .then(data => {
+                      if (data.success && data.last_date) {
+                          const parts = data.last_date.split('-');
+                          const formatted = parts.length === 3
+                            ? `${parts[2]}-${parts[1]}-${parts[0]}`
+                            : data.last_date;
+                          el.textContent = formatted;
+                        } else {
+                            el.textContent = 'N/A';
+                        }
+                    })
+                    .catch(() => { el.textContent = 'N/A'; });
+            }
+
             function exportScrapSummaryCSV() {
                 if (!_lastScrapSummary) { showToast('No summary to export', true); return; }
                 const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
