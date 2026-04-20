@@ -984,6 +984,7 @@
                             <div class="stat-badge"><i class="fas fa-id-card"></i><span>Unique UPI:</span><span class="stat-value upi" id="statUPI">0</span></div>
                             <div class="stat-badge"><i class="fas fa-university"></i><span>Unique Bank:</span><span class="stat-value bank" id="statBank">0</span></div>
                             <div class="stat-badge"><i class="fas fa-globe"></i><span>Unique Website:</span><span class="stat-value" style="color:#8e44ad;" id="statWebsite">0</span></div>
+                            <div class="stat-badge" id="statNewUpiBadge" style="display:none;"><i class="fas fa-check-circle" style="color:#27ae60;"></i><span>New UPI:</span><span class="stat-value" style="color:#27ae60;" id="statNewUPI">...</span></div>
                         </div>
                         <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled style="display:none;"><i class="fas fa-file-download"></i> Download Template</button>
                     </div>
@@ -1164,7 +1165,7 @@
                 <div id="dupManualArea" style="margin-bottom:12px;">
                     <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;margin-bottom:5px;">
                         <i class="fas fa-list" style="color:#3498db;font-size:13px;"></i>
-                        Enter values — one per line (max 200)
+                        Enter values — one per line (max 800)
                     </label>
                     <textarea id="dupManualInput"
                         placeholder="Example: 9876543210@ybl | 1234567890123456 | test@okaxis"
@@ -2747,8 +2748,14 @@
             document.getElementById('statUPI').textContent = data.unique_upi_ids || 0;
             document.getElementById('statBank').textContent = data.unique_bank_accounts || 0;
             document.getElementById('statWebsite').textContent = data.unique_websites || 0;
+            const newUpiBadge = document.getElementById('statNewUpiBadge');
+                const newUpiEl    = document.getElementById('statNewUPI');
+                const totalUniqueUPI = data.unique_upi_ids || 0;
+                newUpiBadge.style.display = totalUniqueUPI > 0 ? 'flex' : 'none';
+                newUpiEl.textContent = totalUniqueUPI;
+                newUpiEl.style.color = totalUniqueUPI > 0 ? '#27ae60' : '#e74c3c';
+                newUpiBadge.title = `${totalUniqueUPI} unique UPI IDs in this file`;
         }
-
         function displayPreviewData(data) {
             document.getElementById('previewSection').classList.add('show');
             document.getElementById('previewSheetName').textContent = data.sheet_name;
@@ -2965,10 +2972,20 @@
                         remark: row.remark || ''
                     };
                 }
-                apiLookup[key].investment_scam_scrap += parseInt(row.investment_scam_scrap || 0) || 0;
-                apiLookup[key].total_qc             += parseInt(row.total_qc              || 0) || 0;
-                apiLookup[key].website_searching    += parseInt(row.website_searching     || 0) || 0;
-                apiLookup[key].credential_making    += parseInt(row.credential_making     || 0) || 0;
+                const getField = (obj, ...keys) => {
+                    for (const k of keys) {
+                        if (obj[k] !== undefined && obj[k] !== null) return obj[k];
+                        const kl = k.toLowerCase();
+                        const ku = k.toUpperCase();
+                        if (obj[kl] !== undefined) return obj[kl];
+                        if (obj[ku] !== undefined) return obj[ku];
+                    }
+                    return 0;
+                };
+                apiLookup[key].investment_scam_scrap += parseInt(getField(row, 'investment_scam_scrap', 'Investment_Scam_Scrap', 'INVESTMENT_SCAM_SCRAP')) || 0;
+                apiLookup[key].total_qc             += parseInt(getField(row, 'total_qc', 'Total_QC', 'TOTAL_QC', 'Total_Qc')) || 0;
+                apiLookup[key].website_searching    += parseInt(getField(row, 'website_searching', 'Website_Searching', 'WEBSITE_SEARCHING')) || 0;
+                apiLookup[key].credential_making    += parseInt(getField(row, 'credential_making', 'Credential_Making', 'CREDENTIAL_MAKING')) || 0;
                 if (row.remark && row.remark !== 'NA') {
                     apiLookup[key].remark = row.remark;
                 }
@@ -3475,9 +3492,9 @@
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    width: actualWidth,       // ← yeh add karo
-                    height: actualHeight,     // ← yeh add karo
-                    windowWidth: actualWidth, // ← yeh add karo
+                    width: actualWidth,
+                    height: actualHeight,
+                    windowWidth: actualWidth,
                     scrollX: 0,
                     scrollY: 0,
                 });
@@ -3597,7 +3614,7 @@
 
             if (mode === 'manual') {
                 const lines = document.getElementById('dupManualInput').value
-                    .split('\n').map(l => l.trim()).filter(l => l).slice(0, 200);
+                    .split('\n').map(l => l.trim()).filter(l => l).slice(0, 800);
                 entries = lines.map(v => ({ value: v, type: checkType }));
             } else {
                 const col = document.getElementById('dupColumnSelect').value;
