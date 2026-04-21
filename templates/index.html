@@ -2684,11 +2684,14 @@
                             data.headers.forEach(h => { const el = document.createElement('div'); el.className = 'header-item'; el.textContent = h; el.title = h; list.appendChild(el); });
                             document.getElementById('headersCount').textContent = `${data.headers.length} headers`;
                             document.getElementById('formSheetType').value = sheetType;
-                            document.getElementById('templateBtn').disabled = false;
-                            document.getElementById('templateStats').style.display = 'flex';
+                            const templateBtn = document.getElementById('templateBtn');
+                            templateBtn.disabled = false;
+                            templateBtn.style.display = '';
                             if (document.getElementById('fileUpload').files.length > 0) {
                                 document.getElementById('generateBtn').disabled = false;
                                 previewData();
+                            } else {
+                                document.getElementById('templateStats').style.display = 'none';
                             }
                             showSheetReadyMessage();
                         }
@@ -2696,13 +2699,14 @@
             } else {
                 headersDisplay.style.display = 'none';
                 document.getElementById('generateBtn').disabled = true;
-                document.getElementById('templateBtn').disabled = true;
+                const templateBtn = document.getElementById('templateBtn');
+                templateBtn.disabled = true;
+                templateBtn.style.display = 'none';
                 document.getElementById('templateStats').style.display = 'none';
                 showSheetReadyMessage();
             }
             closePreview(); previewDataCache = null;
         }
-
         function updateFileName(input) {
             document.getElementById('fileName').textContent = input.files[0] ? input.files[0].name : 'No file chosen';
             const dt = new DataTransfer();
@@ -2712,11 +2716,24 @@
             const hasFile = input.files.length > 0;
             document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
             closePreview(); previewDataCache = null;
-            document.getElementById('templateStats').style.display = 'none';
-            if (sheetType && hasFile) previewData();
+            if (sheetType && hasFile) {
+                const newUpiBadge = document.getElementById('statNewUpiBadge');
+                const newUpiEl    = document.getElementById('statNewUPI');
+                document.getElementById('templateStats').style.display = 'flex';
+                document.getElementById('statTotal').textContent = '...';
+                document.getElementById('statUPI').textContent = '...';
+                document.getElementById('statBank').textContent = '...';
+                document.getElementById('statWebsite').textContent = '...';
+                newUpiBadge.style.display = 'flex';
+                newUpiEl.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px;"></i>';
+                newUpiEl.style.color = '#7f8c8d';
+                newUpiBadge.title = 'Processing...';
+                previewData();
+            } else {
+                document.getElementById('templateStats').style.display = 'none';
+            }
             showSheetReadyMessage();
         }
-
         function downloadTemplate() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
@@ -2749,12 +2766,46 @@
             document.getElementById('statBank').textContent = data.unique_bank_accounts || 0;
             document.getElementById('statWebsite').textContent = data.unique_websites || 0;
             const newUpiBadge = document.getElementById('statNewUpiBadge');
-                const newUpiEl    = document.getElementById('statNewUPI');
-                const totalUniqueUPI = data.unique_upi_ids || 0;
-                newUpiBadge.style.display = totalUniqueUPI > 0 ? 'flex' : 'none';
-                newUpiEl.textContent = totalUniqueUPI;
-                newUpiEl.style.color = totalUniqueUPI > 0 ? '#27ae60' : '#e74c3c';
-                newUpiBadge.title = `${totalUniqueUPI} unique UPI IDs in this file`;
+            const newUpiEl    = document.getElementById('statNewUPI');
+            const totalUniqueUPI = data.unique_upi_ids || 0;
+            if (totalUniqueUPI > 0 && data.preview_rows) {
+                newUpiBadge.style.display = 'flex';
+                newUpiEl.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px;"></i>';
+                newUpiEl.style.color = '#7f8c8d';
+                newUpiBadge.title = 'Checking DB for new UPIs...';
+                const upiSet = new Set();
+                (data.preview_rows || []).forEach(row => {
+                    const upi = (row['upi_vpa'] || '').trim();
+                    if (upi && upi.toUpperCase() !== 'NA' && upi !== '') upiSet.add(upi);
+                });
+                const upiEntries = [...upiSet].map(v => ({ value: v, type: 'upi' }));
+                const CHUNK = 50;
+                const chunks = [];
+                for (let i = 0; i < upiEntries.length; i += CHUNK) {
+                    chunks.push(upiEntries.slice(i, i + CHUNK));
+                }
+                Promise.all(
+                    chunks.map(chunk =>
+                       fetch('/check-duplicates', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ entries: chunk })
+                       })
+                       .then(r => r.json())
+                       .then(res => res.success ? res.results : [])
+                       .catch(() => [])
+                    )
+                ).then(allChunkResults => {
+                    const allResults = allChunkResults.flat();
+                    const newCount = allResults.filter(r => r.status === 'NEW').length;
+                    const dupCount = allResults.filter(r => r.status === 'DUPLICATE').length;
+                    newUpiEl.textContent = newCount;
+                    newUpiEl.style.color = newCount > 0 ? '#27ae60' : '#e74c3c';
+                    newUpiBadge.title = `${newCount} new UPIs (not in DB) | ${dupCount} already exist`;
+                });
+            } else {
+                newUpiBadge.style.display = 'none';
+            }
         }
         function displayPreviewData(data) {
             document.getElementById('previewSection').classList.add('show');
@@ -3485,16 +3536,15 @@
                     });
                 }
                 showToast('Generating image...', false, false);
-                const actualWidth  = wrapper.scrollWidth;
-                const actualHeight = wrapper.scrollHeight;
-                const canvas = await html2canvas(wrapper, {
+                const tableEl = wrapper.querySelector('table') || wrapper;
+                const rect = tableEl.getBoundingClientRect();
+                const canvas = await html2canvas(tableEl, {
                     backgroundColor: '#ffffff',
                     scale: 2,
                     useCORS: true,
                     logging: false,
-                    width: actualWidth,
-                    height: actualHeight,
-                    windowWidth: actualWidth,
+                    width: Math.ceil(rect.width),
+                    height: Math.ceil(rect.height),
                     scrollX: 0,
                     scrollY: 0,
                 });
@@ -4615,7 +4665,14 @@
                         });
                     }
                     showToast('Generating image...', false, false);
-                    const canvas = await html2canvas(wrapper, { backgroundColor: '#fff', scale: 2, useCORS: true, logging: false });
+                    const tableEl = wrapper.querySelector('table') || wrapper;
+                    const rect = tableEl.getBoundingClientRect();
+                    const canvas = await html2canvas(tableEl, {
+                        backgroundColor: '#fff', scale: 2, useCORS: true, logging: false,
+                        width: Math.ceil(rect.width),
+                        height: Math.ceil(rect.height),
+                        scrollX: 0, scrollY: 0,
+                    });
                     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
                     if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
                         try {
