@@ -977,7 +977,7 @@ def index():
     allowed_pages = session.get("allowed_pages", [])
 
     page_type = request.args.get("page", "").strip()
-    if not page_type or page_type not in allowed_pages:
+    if not page_type or (page_type not in allowed_pages and page_type != 'insights'):
         page_type = allowed_pages[0] if allowed_pages else "scraping"
 
     search_query = request.args.get("search", "").strip()
@@ -2551,6 +2551,91 @@ def my_scraping_count():
         return jsonify({"success": True, "count": resp.count or 0})
     except Exception as e:
         return jsonify({"success": False, "count": 0, "error": str(e)})
+    
+# ============================================================
+# INSIGHTS — BS Investment Scam Analytics
+# ============================================================
+@app.route("/investment-insights-data", methods=["GET"])
+@login_required
+def investment_insights_data():
+    try:
+        date_from   = request.args.get("date_from",   "").strip()
+        date_to     = request.args.get("date_to",     "").strip()
+        search_for  = request.args.get("search_for",  "").strip()
+        scam_type   = request.args.get("scam_type",   "").strip()
+        wallet      = request.args.get("wallet",      "").strip()
+        input_user  = request.args.get("input_user",  "").strip()
+
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            q = supabase.table("BS_Investment_Scam").select(
+                "Inserted_date,Input_user,Search_for,Scam_type,"
+                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number"
+            )
+            if date_from:  q = q.gte("Inserted_date", date_from)
+            if date_to:    q = q.lte("Inserted_date", date_to)
+            if search_for: q = q.eq("Search_for", search_for)
+            if scam_type:  q = q.eq("Scam_type",  scam_type)
+            if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
+            if input_user: q = q.eq("Input_user", input_user)
+            resp  = q.order("Inserted_date", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
+
+        # ---------- unique UPI per date ----------
+        upi_by_date = {}
+        for r in rows:
+            d      = (r.get("inserted_date") or "")[:10]
+            wallet_val = (r.get("upi_bank_account_wallet") or "").strip()
+            upi    = (r.get("upi_vpa") or "").strip()
+            if not d: continue
+            if d not in upi_by_date:
+                upi_by_date[d] = set()
+            if wallet_val == "UPI" and upi and upi.upper() not in ("NA", "N/A", ""):
+                upi_by_date[d].add(upi)
+        upi_series = {d: len(s) for d, s in sorted(upi_by_date.items())}
+
+        # ---------- user counts per date ----------
+        user_by_date = {}
+        for r in rows:
+            d    = (r.get("inserted_date") or "")[:10]
+            user = (r.get("input_user") or "Unknown").strip()
+            if not d: continue
+            if d not in user_by_date:
+                user_by_date[d] = {}
+            user_by_date[d][user] = user_by_date[d].get(user, 0) + 1
+        all_users = sorted({u for dmap in user_by_date.values() for u in dmap})
+
+        # ---------- scam type counts ----------
+        scam_counts = {}
+        for r in rows:
+            st = (r.get("scam_type") or "Unknown").strip() or "Unknown"
+            scam_counts[st] = scam_counts.get(st, 0) + 1
+
+        # ---------- search_for counts ----------
+        sf_counts = {}
+        for r in rows:
+            sf = (r.get("search_for") or "Unknown").strip() or "Unknown"
+            sf_counts[sf] = sf_counts.get(sf, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "total_rows": len(rows),
+            "upi_series":   upi_series,
+            "user_by_date": {d: user_by_date[d] for d in sorted(user_by_date)},
+            "all_users":    all_users,
+            "scam_counts":  scam_counts,
+            "sf_counts":    sf_counts,
+            "all_input_users": sorted(list({(r.get("input_user") or "Unknown").strip() for r in rows if r.get("input_user")})),
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
     
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

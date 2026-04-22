@@ -6,13 +6,13 @@
     <title>Scam Intelligence Dashboard</title>
     <link rel="icon" type="image/png" href="/static/favicon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
         .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 100px; padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
         .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
         .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-
         .logo { display: flex; flex-direction: column; gap: 2px; }
         .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .logo h1 { font-size: 18px; color: #2c3e50; }
@@ -25,7 +25,6 @@
             white-space: nowrap;
         }
         .logo p { color: #7f8c8d; font-size: 12px; }
-
         .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
         .dev-credit-footer span { color: #3498db; font-weight: 700; }
         .header-controls { display: flex; align-items: center; gap: 10px; }
@@ -45,7 +44,6 @@
         .btn-warning:hover { background: #e67e22; }
         .page-content { display: none; }
         .page-content.active { display: flex; flex-direction: column; }
-
         /* ============================================================
            SCRAPING PAGE
         ============================================================ */
@@ -77,7 +75,6 @@
         .scraping-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #eee; }
         .scraping-page th:last-child { border-right: none; }
         .scraping-page tr:hover { background: #f8fafc; }
-
         /* ============================================================
            BS INVESTMENT SCAM PAGE
         ============================================================ */
@@ -105,7 +102,6 @@
         .investment-page th:last-child { border-right: none; }
         .investment-page tr:hover { background: #fffbf5; }
         .investment-page tr:nth-child(even) { background: #fefefe; }
-
         /* ============================================================
            SOCIAL MEDIA ACCOUNTS PAGE STYLES
         ============================================================ */
@@ -156,7 +152,6 @@
         .social-page .status-permanent-block { background: #f87171 !important; color: #5c0a0a !important; border: 1px solid #ef4444 !important; }
         .social-page .status-restricted { background: #fcd34d !important; color: #713f12 !important; border: 1px solid #f59e0b !important; }
         .social-page .status-frozen { background: #93c5fd !important; color: #1e3a8a !important; border: 1px solid #3b82f6 !important; }
-
         /* ============================================================
            SOCIAL TRACKER MODAL
         ============================================================ */
@@ -215,7 +210,6 @@
         .status-count.count-frozen { color: #1e3a8a; }
         .status-count.count-permanent { color: #5c0a0a; }
         .status-count.count-default { color: #2c3e50; }
-
         /* ============================================================
            SCRAPING TRACKER MODAL
         ============================================================ */
@@ -261,7 +255,6 @@
         .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
         .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
         /* ============================================================
            ACTIVITY & PERMANENT BLOCK MODALS
         ============================================================ */
@@ -292,7 +285,6 @@
         .confirmation-btn.confirm:hover { background: #c0392b; }
         .confirmation-btn.cancel { background: #f8f9fa; color: #2c3e50; border: 1px solid #dee2e6; }
         .confirmation-btn.cancel:hover { background: #e9ecef; }
-
         /* ============================================================
            SHEET MAKER
         ============================================================ */
@@ -308,12 +300,10 @@
         .stat-value { font-weight: bold; color: #2ecc71; }
         .stat-value.upi { color: #3498db; }
         .stat-value.bank { color: #e67e22; }
-
         .mode-selector-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
         .mode-selector-row label { font-size: 12px; font-weight: 700; color: #2c3e50; white-space: nowrap; }
         .mode-select { padding: 7px 12px; border: 1.5px solid #3498db; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; color: #2c3e50; font-weight: 600; height: 34px; min-width: 200px; }
         .mode-select:focus { outline: none; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
-
         .sheet-maker-row { display: grid; grid-template-columns: 1.4fr 1.4fr 1fr 1fr; gap: 8px; align-items: start; width: 100%; }
         .sheet-maker-group { display: flex; flex-direction: column; gap: 4px; }
         .sheet-maker-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; margin-bottom: 0; }
@@ -328,7 +318,6 @@
         .file-upload-compact i { font-size: 16px; color: #3498db; margin-bottom: 3px; }
         .file-name { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
         .file-info { color: #6c757d; font-size: 9px; line-height: 1.2; text-align: center; }
-
         .sheet-status-box { min-height: 54px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; font-size: 12px; font-weight: 500; transition: all 0.3s ease; }
         .sheet-status-box.waiting { background: #f8f9fa; border: 2px dashed #dee2e6; color: #95a5a6; }
         .sheet-status-box.ready { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e8449; font-weight: 600; }
@@ -336,14 +325,12 @@
         .sheet-status-box.waiting i { color: #bdc3c7; font-size: 15px; }
         .sheet-status-box.summary-ready { background: #f0f3ff; border: 1px solid #b0bdf7; color: #3949ab; font-weight: 600; }
         .sheet-status-box.summary-ready i { color: #3f51b5; font-size: 15px; flex-shrink: 0; }
-
         .generate-btn-compact { width: 100%; padding: 7px 9px; background: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
         .generate-btn-compact:hover:not(:disabled) { background: #27ae60; }
         .generate-btn-compact:disabled { background: #95a5a6; cursor: not-allowed; }
         .generate-summary-btn { width: 100%; padding: 7px 9px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
         .generate-summary-btn:hover:not(:disabled) { background: #3949ab; }
         .generate-summary-btn:disabled { background: #95a5a6; cursor: not-allowed; }
-
         .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: 70vh; overflow: hidden; display: none; flex-direction: column; }
         .preview-section.show { display: flex; flex-direction: column; height: 70vh; }
         .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; flex-shrink: 0; }
@@ -354,7 +341,6 @@
         .preview-table td { padding: 4px 10px; border-bottom: 1px solid #eee; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 110px; max-width: 200px; }
         .preview-table .na-cell { color: #95a5a6; font-style: italic; font-size: 10px; }
         .preview-table tr:hover td { background: #f8fafc; }
-
         .summary-preview-section { background: white; border-radius: 8px; padding: 10px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: none; }
         .summary-preview-section.show { display: block; }
         .summary-preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #eee; }
@@ -369,7 +355,6 @@
         .summary-table tr:hover td { background: #eef0ff; }
         .summary-table .total-row td { background: #e8eaf6 !important; font-weight: 700; color: #1a237e; border-top: 2px solid #9fa8da; }
         .summary-count-badge { display: inline-block; background: #5c6bc0; color: white; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-
         .pagination { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 8px; background: white; border-radius: 8px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); width: 100%; flex-shrink: 0; margin-top: 10px; }
         .pagination-btn { padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 12px; display: flex; align-items: center; gap: 3px; height: 30px; }
         .pagination-btn:hover:not(:disabled) { background: #2980b9; }
@@ -384,7 +369,6 @@
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .loading-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
-
         .copy-btn { background: none; border: none; color: #3498db; cursor: pointer; padding: 2px 5px; border-radius: 3px; transition: all 0.2s; font-size: 10px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; vertical-align: middle; }
         .copy-btn:hover { background: #f0f7ff; transform: scale(1.1); }
         .url-link { color: #3498db; text-decoration: none; word-break: break-all; font-size: 12px; display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
@@ -395,7 +379,6 @@
         .scam-type { background: #ffebee; color: #c62828; padding: 2px 5px; border-radius: 3px; font-size: 10px; font-weight: 500; white-space: nowrap; }
         .inv-badge { background: #fff3e0; color: #e65100; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; white-space: nowrap; border: 1px solid #ffcc02; }
         .wallet-badge { background: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; white-space: nowrap; }
-
         /* Investment Tracker Modal */
         .inv-tracker-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
         .inv-tracker-modal.active { display: flex; }
@@ -447,7 +430,6 @@
         .inv-section-title::after { content: ''; flex: 1; height: 1px; background: #eee; }
         .empty-state { text-align: center; padding: 30px 12px; color: #7f8c8d; }
         .empty-state i { font-size: 28px; margin-bottom: 8px; color: #ddd; }
-
         /* ============================================================
            USER ACTIVITY LOG MODAL
         ============================================================ */
@@ -483,7 +465,6 @@
         .ual-arrow { color: #9ca3af; font-size: 10px; }
         .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
         .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
-
         .social-page .edit-col-th { width: 52px; min-width: 52px; }
         .social-page .edit-row-btn {
             background: #3498db; color: white; border: none;
@@ -594,7 +575,6 @@
 </head>
 <body>
     <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
-
     <!-- Social Tracker Modal -->
     <div class="tracker-modal" id="trackerModal">
         <div class="tracker-content">
@@ -612,7 +592,6 @@
             </div>
         </div>
     </div>
-
     <!-- Investment Tracker Modal -->
     <div class="inv-tracker-modal" id="invTrackerModal">
         <div class="inv-tracker-content">
@@ -638,7 +617,6 @@
             </div>
         </div>
     </div>
-
     <!-- Scraping Tracker Modal -->
     <div class="scraping-tracker-modal" id="scrapingTrackerModal">
         <div class="scraping-tracker-content">
@@ -659,7 +637,6 @@
             </div>
         </div>
     </div>
-
     <!-- Permanent Block Accounts Modal -->
     <div class="permanent-modal" id="permanentModal">
         <div class="permanent-content">
@@ -685,7 +662,6 @@
             </div>
         </div>
     </div>
-
     <!-- Confirmation Modal -->
     <div class="confirmation-modal" id="confirmationModal">
         <div class="confirmation-content">
@@ -698,7 +674,6 @@
             </div>
         </div>
     </div>
-
     <!-- User Activity Log Modal -->
     <div class="user-activity-modal" id="userActivityLogModal">
         <div class="ual-content">
@@ -731,7 +706,6 @@
             </div>
         </div>
     </div>
-
     <div class="fixed-header">
         <div class="header">
             <div class="logo">
@@ -744,6 +718,7 @@
                     {% elif page_type == 'sheet' %}Summary &amp; Sheet Generator
                     {% elif page_type == 'social' %}Social Media Accounts Management
                     {% elif page_type == 'investment' %}BS Investment Scam — Data View
+                    {% elif page_type == 'insights' %}BS Investment Scam — Insights &amp; Analytics
                     {% else %}Dashboard{% endif %}
                 </p>
             </div>
@@ -762,6 +737,9 @@
                         {% endif %}
                         {% if 'investment' in allowed_pages %}
                         <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>BS Investment Scam</option>
+                        {% endif %}
+                        {% if 'investment' in allowed_pages %}
+                        <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Scam++ Dashboard</option>
                         {% endif %}
                     </select>
                 </div>
@@ -817,9 +795,7 @@
             </div>
         </div>
     </div>
-
     <div class="container">
-
         <!-- ===== SCRAPING DATA PAGE ===== -->
         {% if 'scraping' in allowed_pages %}
         <div class="page-content scraping-page {% if page_type == 'scraping' %}active{% endif %}">
@@ -971,7 +947,6 @@
             {% endif %}
         </div>
         {% endif %}
-
         <!-- ===== SUMMARY & SHEET GENERATOR PAGE ===== -->
         {% if 'sheet' in allowed_pages %}
         <div class="page-content sheet-page {% if page_type == 'sheet' %}active{% endif %}">
@@ -999,7 +974,6 @@
                         <option value="scrapping_summary">📊 Scrapping Summary</option>
                     </select>
                 </div>
-
                 <!-- SHEET MAKER MODE -->
                 <div id="sheetMakerSection">
                     <div class="sheet-maker-row">
@@ -1058,7 +1032,6 @@
                         <div style="margin-top:8px;text-align:center;font-size:11px;color:#666;padding:5px;border-top:1px solid #eee;flex-shrink:0;"><i class="fas fa-info-circle"></i> <span id="previewRowCount">Showing 0 rows</span></div>
                     </div>
                 </div>
-
                 <!-- SUMMARY MAKER MODE -->
                 <div id="summaryMakerSection" style="display:none;">
                     <div class="sheet-maker-row">
@@ -1099,7 +1072,6 @@
                             </button>
                         </div>
                     </div>
-
                     <div class="summary-preview-section" id="summaryPreviewSection">
                         <div class="summary-preview-header">
                         <h4><i class="fas fa-table" style="color:#5c6bc0;"></i> Summary Result: <span id="summaryPreviewTitle" style="color:#5c6bc0;"></span></h4>
@@ -1160,7 +1132,6 @@
                         </button>
                     </div>
                 </div>
-
                 <!-- Manual Input Area -->
                 <div id="dupManualArea" style="margin-bottom:12px;">
                     <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;margin-bottom:5px;">
@@ -1177,7 +1148,6 @@
                         0 entries
                     </span>
                 </div>
-
                 <!-- File Upload Area -->
                 <div id="dupFileArea" style="display:none;margin-bottom:12px;">
                     <div class="sheet-maker-row" style="grid-template-columns:1fr 1fr;gap:8px;">
@@ -1201,12 +1171,10 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- Results Area -->
                 <div id="dupResultArea" style="display:none;">
                     <!-- Summary Cards -->
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;" id="dupSummaryCards"></div>
-
                     <!-- Result Table -->
                     <div style="background:white;border-radius:8px;border:1px solid #eee;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
                         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #eee;background:#f8f9fa;">
@@ -1331,7 +1299,6 @@
         </div>
     </div>
     {% endif %}
-
         <!-- ===== BS INVESTMENT SCAM PAGE ===== -->
         {% if 'investment' in allowed_pages %}
         <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
@@ -1490,7 +1457,6 @@
             {% endif %}
         </div>
         {% endif %}
-
         <!-- ===== SOCIAL MEDIA ACCOUNTS PAGE ===== -->
         {% if 'social' in allowed_pages %}
         <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
@@ -1543,7 +1509,6 @@
                     </div>
                 </form>
             </div>
-
             <div class="table-container">
                 <table id="socialMediaTable">
                     <thead>
@@ -1678,8 +1643,131 @@
             {% endif %}
         </div>
         {% endif %}
+    {% if 'investment' in allowed_pages %}
+    <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;">
+        <div style="background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h2 style="font-size:14px;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                    <i class="fas fa-chart-area" style="color:#3498db;"></i> BS Investment Scam — Insights
+                </h2>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <span id="insightsTotalBadge" style="display:none;background:#ebf5fb;border:1px solid #aed6f1;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#1a5276;">
+                        <i class="fas fa-database" style="color:#3498db;"></i> <span id="insightsTotalVal">0</span> records
+                    </span>
+                    <button onclick="clearInsightsFilters()" style="background:#e74c3c;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;height:30px;font-weight:600;">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-calendar-alt" style="color:#3498db;"></i> Date From</label>
+                    <input type="date" id="insightsDateFrom" onchange="loadInsightsData()"
+                       style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-calendar-alt" style="color:#3498db;"></i> Date To</label>
+                    <input type="date" id="insightsDateTo" onchange="loadInsightsData()"
+                       style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-globe" style="color:#3498db;"></i> Search For</label>
+                    <select id="insightsSearchFor" onchange="loadInsightsData()"
+                        style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;cursor:pointer;">
+                        <option value="">All</option>
+                        {% for sf in bs_investment_search_for_options %}
+                        <option value="{{ sf }}">{{ sf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> Scam Type</label>
+                    <select id="insightsScamType" onchange="loadInsightsData()"
+                       style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;cursor:pointer;">
+                       <option value="">All Scam Types</option>
+                       {% for st in bs_investment_scam_type_options %}
+                       <option value="{{ st }}">{{ st }}</option>
+                       {% endfor %}
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-wallet" style="color:#27ae60;"></i> UPI / Bank / Wallet</label>
+                    <select id="insightsWallet" onchange="loadInsightsData()"
+                       style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;cursor:pointer;">
+                       <option value="">All</option>
+                       {% for w in bs_investment_wallet_options %}
+                       <option value="{{ w }}">{{ w }}</option>
+                       {% endfor %}
+                    </select>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <label style="font-size:11px;font-weight:700;color:#2c3e50;"><i class="fas fa-user" style="color:#9b59b6;"></i> Input User</label>
+                    <select id="insightsInputUser" onchange="loadInsightsData()"
+                        style="padding:7px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:34px;outline:none;background:white;cursor:pointer;">
+                        <option value="">All Users</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div id="insightsLoading" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+            <div style="border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;width:36px;height:36px;animation:spin 1s linear infinite;margin:0 auto 14px;"></div>
+            <p style="color:#7f8c8d;font-size:13px;font-weight:500;">Loading insights data...</p>
+        </div>
+        <div id="insightsEmpty" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+            <i class="fas fa-chart-bar" style="font-size:48px;color:#dde3ed;display:block;margin-bottom:14px;"></i>
+            <p style="color:#7f8c8d;font-size:14px;font-weight:600;">No data found for the selected filters</p>
+            <p style="color:#bdc3c7;font-size:12px;margin-top:6px;">Try adjusting the date range or clearing filters</p>
+        </div>
+        <div id="insightsChartsArea" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);grid-column:span 2;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-id-card" style="color:#3498db;"></i> Unique UPI Count Over Time
+                        <span id="insightsUpiTotal" style="background:#ebf5fb;color:#1a5276;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;"></span>
+                    </h3>
+                    <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Area Chart</span>
+                </div>
+                <div style="position:relative;height:240px;">
+                    <canvas id="chartUPI"></canvas>
+                </div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-users" style="color:#9b59b6;"></i> Input User Counts
+                    </h3>
+                    <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Bar Chart</span>
+                </div>
+                <div style="position:relative;height:280px;">
+                    <canvas id="chartUsers"></canvas>
+                </div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> Scam Type Counts
+                    </h3>
+                    <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Column Chart</span>
+                </div>
+                <div style="position:relative;height:280px;">
+                    <canvas id="chartScamType"></canvas>
+                </div>
+            </div>
+            <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);grid-column:span 2;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-globe" style="color:#27ae60;"></i> Search For Distribution
+                    </h3>
+                    <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Column Chart</span>
+                </div>
+                <div style="position:relative;height:240px;">
+                    <canvas id="chartSearchFor"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
-
+    {% endif %}
+    </div>
     <div class="flash-container">
         {% with messages = get_flashed_messages() %}
         {% if messages %}{% for message in messages %}
@@ -1687,12 +1775,10 @@
         {% endfor %}{% endif %}
         {% endwith %}
     </div>
-
     <form id="sheetForm" action="/generate-sheet" method="POST" enctype="multipart/form-data" style="display:none;">
         <input type="hidden" id="formSheetType" name="sheet_type">
         <input type="file" id="formFileUpload" name="file">
     </form>
-
     <script>
         // ── Platform-specific column visibility ─────────────
         const PLATFORM_COLUMNS = {
@@ -1704,9 +1790,7 @@
             'Gmail Accounts': ['id','platform','department','account_status','mail_id','password'],
             'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator'],
         };
-
         const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
-
         function filterSocialColumns(platform) {
             const table = document.getElementById('socialMediaTable');
             if (!table) return;
@@ -1720,12 +1804,10 @@
                 });
             });
         }
-
         (function initSocialColumns() {
             const sel = document.getElementById('socialPlatformSelect');
             if (sel) filterSocialColumns(sel.value);
         })();
-
         const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
         const _IS_ADMIN = {{ 'true' if current_user and current_user.is_admin else 'false' }};
         const _ALLOWED_DEPTS = {{ (current_user.allowed_departments | tojson) if current_user and current_user.allowed_departments else 'null' }};
@@ -1741,19 +1823,16 @@
         const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Blocked':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
         const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Blocked':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
         const STATUS_COUNT_CLASS = { 'Active':'count-active','Block':'count-block','Blocked':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
-
         let trackerCurrentView = 'active';
         let cachedTrackerStats = null;
         let scrapingCurrentView = 'scam';
         let cachedScrapingStats = null;
         let pendingAction = null;
         let previewDataCache = null;
-
         // ── Summary Maker state ──────────────────────────────
         let summaryParsedData = [];
         let summaryHeaders = [];
         let lastSummaryResult = null;
-
         // ─── DUPLICATE CHECKER STATE ─────────────────────────
         function excelNameToApiName(raw) {
             let s = (raw || '').trim();
@@ -1766,11 +1845,9 @@
             s = s.replace(/\s+/g, ' ').trim();
             return s;
         }
-        
         let _dupAllResults = [];
         let _dupFileData   = [];
         let _dupFileHeaders = [];
-
         function getPlatformIconHtml(iconName, extraStyle) {
             const fasIcons = ['envelope', 'sim-card', 'globe', 'question'];
             const prefix = fasIcons.includes(iconName) ? 'fas' : 'fab';
@@ -1874,7 +1951,6 @@
         document.getElementById('shareStatusModal')?.addEventListener('click', e => {
             if (e.target === document.getElementById('shareStatusModal')) closeShareStatusModal();
         });
-
         // ─── Mode Switcher ───────────────────────────────────────
         function switchMode(mode) {
             const sheetSection     = document.getElementById('sheetMakerSection');
@@ -1910,7 +1986,6 @@
                 document.getElementById('dupResultArea').style.display = 'none';
             }
         }
-
         // ─── Page / Navigation ──────────────────────────────────────
         function changePage(pageType) {
             const url = new URL(window.location.href);
@@ -1918,7 +1993,6 @@
             url.searchParams.delete('page_num');
             window.location.href = url.toString();
         }
-
         function submitSocialSearch() { document.getElementById('socialFilterForm').submit(); }
         function filterSocialRows(query) {
             const q = query.trim().toLowerCase();
@@ -1973,7 +2047,6 @@
                 if (emptyRow) emptyRow.remove();
             }
         }
-
         let _editModeActive = false;
         let _editDrawerCurrentId = null;
         let _editDrawerChanges = {};
@@ -2081,10 +2154,8 @@
             const saveBtn = document.getElementById('editDrawerSaveBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
             let successCount = 0;
             let errorMsg = '';
-
             for (const field of fields) {
                 const value = _editDrawerChanges[field];
                 try {
@@ -2127,7 +2198,6 @@
             }
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-
             if (errorMsg) {
                 showToast(`Error: ${errorMsg}`, true);
             } else {
@@ -2197,11 +2267,9 @@
                 .catch(() => {});
         })();
         function clearInvestmentFilters() { window.location.href = "/?page=investment"; }
-
         // ─── Investment Tracker ──────────────────────────────────────
         let cachedInvStats = null;
         let invCurrentView = 'users';
-
         function showInvestmentTracker() {
             document.getElementById('invTrackerModal').classList.add('active');
             invCurrentView = 'users';
@@ -2211,9 +2279,7 @@
             if (!cachedInvStats) loadInvTrackerData();
             else displayInvTrackerData(cachedInvStats);
         }
-
         function closeInvestmentTracker() { document.getElementById('invTrackerModal').classList.remove('active'); }
-
         function setInvView(view) {
             invCurrentView = view;
             document.getElementById('invBtn1').classList.toggle('active', view === 'users');
@@ -2221,14 +2287,12 @@
             document.getElementById('invBtn3').classList.toggle('active', view === 'total');
             if (cachedInvStats) displayInvTrackerData(cachedInvStats);
         }
-
         function clearInvTrackerDates() {
             document.getElementById('invTrackerFrom').value = '';
             document.getElementById('invTrackerTo').value = '';
             cachedInvStats = null;
             loadInvTrackerData();
         }
-
         async function loadInvTrackerData() {
             document.getElementById('invTrackerBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>';
             try {
@@ -2247,12 +2311,10 @@
                 document.getElementById('invTrackerBody').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Network error: ${e.message}</p></div>`;
             }
         }
-
         function getInvPillClass(sf) {
             const m = {'web':'web','telegram':'telegram','whatsapp':'whatsapp','facebook':'facebook','instagram':'instagram','youtube':'youtube','x':'x','thread':'thread'};
             return 'inv-pill-' + (m[(sf||'').toLowerCase()] || 'default');
         }
-
         function displayInvTrackerData(data) {
             const body = document.getElementById('invTrackerBody');
             let html = `<div class="inv-total-banner">
@@ -2313,7 +2375,6 @@
             }
             body.innerHTML = html;
         }
-
         // ─── Scraping Tracker ────────────────────────────────────────
         function showScrapingTracker() {
             document.getElementById('scrapingTrackerModal').classList.add('active');
@@ -2323,16 +2384,13 @@
             if (!cachedScrapingStats) loadScrapingTrackerData();
             else displayScrapingTrackerData(cachedScrapingStats);
         }
-
         function closeScrapingTracker() { document.getElementById('scrapingTrackerModal').classList.remove('active'); }
-
         function setScrapingView(view) {
             scrapingCurrentView = view;
             document.getElementById('scrapToggleScam').classList.toggle('active', view === 'scam');
             document.getElementById('scrapTogglePlatform').classList.toggle('active', view === 'platform');
             if (cachedScrapingStats) displayScrapingTrackerData(cachedScrapingStats);
         }
-
         function loadScrapingTrackerData() {
             const body = document.getElementById('scrapingTrackerBody');
             body.innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading statistics...</p></div>';
@@ -2344,12 +2402,10 @@
                 })
                 .catch(() => { body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>'; });
         }
-
         function getPillClass(platform) {
             const map = {'Telegram':'pill-telegram','WhatsApp':'pill-whatsapp','Facebook':'pill-facebook','Instagram':'pill-instagram','YouTube':'pill-youtube','Threads':'pill-threads','X':'pill-x','Unknown':'pill-unknown'};
             return map[platform] || 'pill-default';
         }
-
         function getPlatformIcon(platform) {
             const map = {'Telegram':'paper-plane','WhatsApp':'whatsapp','Facebook':'facebook-f','Instagram':'instagram','YouTube':'youtube','Threads':'at','X':'times','Unknown':'question-circle'};
             const fab = ['paper-plane','whatsapp','facebook-f','instagram','youtube','at'];
@@ -2357,7 +2413,6 @@
             const prefix = fab.includes(icon) ? 'fab' : 'fas';
             return `<i class="${prefix} fa-${icon}"></i>`;
         }
-
         function displayScrapingTrackerData(stats) {
             const body = document.getElementById('scrapingTrackerBody');
             let html = `<div class="scraping-total-banner"><span class="banner-label"><i class="fas fa-database"></i> Total Data Records</span><span class="banner-num">${stats.total.toLocaleString()}</span></div>`;
@@ -2389,7 +2444,6 @@
             }
             body.innerHTML = html;
         }
-
         // ─── Social Tracker ──────────────────────────────────────────
         function showTracker() {
             document.getElementById('trackerModal').classList.add('active');
@@ -2399,9 +2453,7 @@
             document.getElementById('togglePermBtn').classList.remove('active');
             loadTrackerData();
         }
-
         function closeTracker() { document.getElementById('trackerModal').classList.remove('active'); }
-
         function setTrackerView(view) {
             trackerCurrentView = view;
             document.getElementById('toggleActiveBtn').classList.toggle('active', view === 'active');
@@ -2409,7 +2461,6 @@
             document.getElementById('togglePermBtn').classList.toggle('active', view === 'perm');
             if (cachedTrackerStats) displayTrackerData(cachedTrackerStats);
         }
-
         function loadTrackerData() {
             document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading tracker statistics...</p></div>';
             fetch('/tracker-stats')
@@ -2420,16 +2471,13 @@
                 })
                 .catch(() => { document.getElementById('trackerBody').innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading tracker.</p></div>'; });
         }
-
         function getStatusColorClasses(status) {
             return { bg: STATUS_BG_CLASS[status] || 'status-bg-default', nameClass: STATUS_NAME_CLASS[status] || 'color-default', countClass: STATUS_COUNT_CLASS[status] || 'count-default' };
         }
-
         // ─── REPLACED FUNCTION (new version) ─────────────────────────────
         function displayTrackerData(stats) {
             const body = document.getElementById('trackerBody');
             const platforms = ['Facebook','Telegram','WhatsApp','Instagram','Amazon','Gmail Accounts','Total Numbers'];
-
             if (trackerCurrentView === 'perm') {
                 const permCounts = stats.perm_block_counts || {};
                 const permTotal = stats.perm_block_total || 0;
@@ -2451,9 +2499,7 @@
                 body.innerHTML = html;
                 return;
             }
-
             const isActiveView = trackerCurrentView === 'active';
-
             // ── SUMMARY CARDS (same for both active & total views) ─────────────────────
             const summaryTitle = isActiveView
                 ? '<i class="fas fa-check-circle" style="color:#16a34a;"></i> Active Accounts by Platform'
@@ -2461,7 +2507,6 @@
 
             let html = `<div class="tracker-summary"><h3>${summaryTitle}</h3><div class="summary-grid">`;
             let grandTotal = 0;
-
             platforms.forEach(p => {
                 const statusData = stats.platform_status_counts[p] || {};
                 const iconName = PLATFORM_ICONS[p] || 'globe';
@@ -2478,17 +2523,13 @@
                 grandTotal += displayCount;
                 html += `<div class="summary-item"><div class="platform">${getPlatformIconHtml(iconName)}${p}</div><div class="count ${countClass}">${displayCount}</div></div>`;
             });
-
             const totalLabel = isActiveView
                 ? 'Total Active Accounts:'
                 : 'Total Accounts (excl. Perm. Block):';
-
             html += `</div><div class="total-accounts">${totalLabel} <span class="total-count" style="color:${isActiveView ? '#16a34a' : '#5d9cec'};">${grandTotal}</span></div></div>`;
-
             // ── ACTIVE VIEW: Department breakdown per platform ─────────────────────────
             if (isActiveView) {
                 html += '<div class="tracker-details"><h3><i class="fas a-building"></i> Active Accounts by Platform &amp; Department</h3>';
-
                 const DEPT_COLORS = {
                     'AML':             'background:#e8f5e9;color:#1b5e20;border-color:#81c784;',
                     'Investment Scam': 'background:#fff3e0;color:#e65100;border-color:#ffb74d;',
@@ -2497,27 +2538,21 @@
                     'Chargeback':      'background:#fce4ec;color:#880e4f;border-color:#f48fb1;',
                     'Unknown':         'background:#f5f5f5;color:#616161;border-color:#bdbdbd;',
                 };
-
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const deptMap = (stats.platform_dept_counts || {})[p] || {};
                     const iconName = PLATFORM_ICONS[p] || 'globe';
-
                     // Total non-perm accounts for this platform
                     const total = Object.entries(statusData)
                         .filter(([s]) => s !== 'Permanent Block')
                         .reduce((sum, [, n]) => sum + n, 0);
-
                     if (total === 0) return;
-
                     const deptEntries = Object.entries(deptMap).sort((a, b) => b[1] - a[1]);
                     const activeCount = statusData['Active'] || 0;
-
                     // Status breakdown pills (all statuses except Perm Block)
                     const statusEntries = Object.entries(statusData)
                         .filter(([s, c]) => s !== 'Permanent Block' && c > 0)
                         .sort((a, b) => { if (a[0] === 'Active') return -1; if (b[0] === 'Active') return 1; return b[1] - a[1]; });
-
                     const statusPills = statusEntries.map(([status, count]) => {
                         const { bg, nameClass, countClass } = getStatusColorClasses(status);
                         return `<span class="status-item ${bg}" style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;margin:0;border:1px solid transparent;">
@@ -2525,7 +2560,6 @@
                     <span class="status-count ${countClass}" style="font-size:11px;font-weight:700;background:rgba(0,0,0,0.08);padding:0 5px;border-radius:8px;">${count}</span>
                 </span>`;
                     }).join('');
-
                     // Department pills
                     const deptPills = deptEntries.map(([dept, cnt]) => {
                         const style = DEPT_COLORS[dept] || DEPT_COLORS['Unknown'];
@@ -2548,29 +2582,23 @@
                                 </div>` : '<span style="font-size:11px;color:#95a5a6;">No department data</span>'}
                             </div>`;
                 });
-
                 html += '</div>';
             }
-
             // ── TOTAL VIEW: Status breakdown only, NO department section ──────────────
             if (!isActiveView) {
                 html += '<div class="tracker-details"><h3><i class="fas fa-list-alt"></i> Account Status by Platform</h3>';
-
                 platforms.forEach(p => {
                     const statusData = stats.platform_status_counts[p] || {};
                     const iconName = PLATFORM_ICONS[p] || 'globe';
                     const actualStatuses = Object.entries(statusData).filter(([s]) => s !== 'Permanent Block');
                     const total = actualStatuses.reduce((sum, [, n]) => sum + n, 0);
-
                     if (total === 0) return;
-
                     html += `<div class="platform-section">
                 <div class="platform-header">
                     <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
                     <span class="platform-total">Total: ${total}</span>
                 </div>
                 <div class="status-grid">`;
-
                     actualStatuses
                         .sort((a, b) => { if (a[0] === 'Active') return -1; if (b[0] === 'Active') return 1; return b[1] - a[1]; })
                         .forEach(([status, count]) => {
@@ -2585,13 +2613,10 @@
 
                     html += `</div></div>`;
                 });
-
                 html += '</div>';
             }
-
             body.innerHTML = html;
         }
-
         // ─── Permanent Block Modal ───────────────────────────────────
         function showPermanentAccounts() {
             document.getElementById('permanentModal').classList.add('active');
@@ -2600,7 +2625,6 @@
             loadPermanentAccounts('', '');
         }
         function closePermanentAccounts() { document.getElementById('permanentModal').classList.remove('active'); }
-
         function loadPermanentAccounts(search, platform) {
             const body = document.getElementById('permanentBody');
             body.innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading...</p></div>';
@@ -2616,13 +2640,11 @@
                 })
                 .catch(() => { body.innerHTML = '<div class="tracker-loading" style="color:#e74c3c;"><p>Error loading data.</p></div>'; });
         }
-
         function searchPermanentAccounts() {
             const search = document.getElementById('permSearchInput').value;
             const platform = document.getElementById('permPlatformFilter')?.value || '';
             loadPermanentAccounts(search, platform);
         }
-
         function displayPermanentAccounts(accounts, count, searchVal, platformVal) {
             const body = document.getElementById('permanentBody');
             const searchBox = `<div style="margin-bottom:14px;display:flex;gap:8px;align-items:center;"><div style="position:relative;flex:1;"><i class="fas fa-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#aaa;font-size:13px;"></i><input id="permSearchInput" type="text" value="${searchVal||''}" placeholder="Search by number, device, platform..." style="width:100%;padding:8px 12px 8px 32px;border:1px solid #ddd;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter') searchPermanentAccounts()"></div><button onclick="searchPermanentAccounts()" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;"><i class="fas fa-search"></i> Search</button></div>`;
@@ -2642,24 +2664,20 @@
             }
             body.innerHTML = html;
         }
-
         function cancelAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
         function confirmAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
-
         // ─── Sheet Maker ─────────────────────────────────────────────
         function getFirstName() {
             const raw = "{{ display_name }}";
             const cleaned = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
             return cleaned.split(' ')[0] || cleaned;
         }
-
         function showSheetReadyMessage() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const fileInput = document.getElementById('fileUpload');
             const readyEl   = document.getElementById('sheetReadyMsg');
             const waitEl    = document.getElementById('sheetNotReadyMsg');
             const textEl    = document.getElementById('sheetReadyText');
-
             if (sheetType && fileInput.files.length > 0) {
                 textEl.textContent = `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
                 readyEl.style.display = 'flex';
@@ -2669,7 +2687,6 @@
                 waitEl.style.display  = 'flex';
             }
         }
-
         function updateSelectedSheet() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const headersDisplay = document.getElementById('headersDisplay');
@@ -2740,7 +2757,6 @@
             showLoading(); window.location.href = `/download-template/${sheetType}`;
             setTimeout(hideLoading, 1000);
         }
-
         function previewData() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const fileInput = document.getElementById('fileUpload');
@@ -2758,7 +2774,6 @@
                 })
                 .catch(e => { hideLoading(); showToast('Error: ' + e.message, true); });
         }
-
         function updateTemplateStats(data) {
             document.getElementById('templateStats').style.display = 'flex';
             document.getElementById('statTotal').textContent = data.total_values;
@@ -2830,9 +2845,7 @@
             document.getElementById('previewRowCount').textContent = `Showing ${(data.preview_rows||[]).length} rows (${data.columns.length} columns)`;
             document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-
         function closePreview() { document.getElementById('previewSection').classList.remove('show'); }
-
         function generateSheet() {
             const sheetType = document.getElementById('sheetTypeSelect').value;
             const fileInput = document.getElementById('fileUpload');
@@ -2846,7 +2859,6 @@
         function onSummaryTypeChange() {
             checkSummaryReady();
         }
-
         function updateSummaryFileName(input) {
             const file = input.files[0];
             document.getElementById('summaryFileName').textContent = file ? file.name : 'No file chosen';
@@ -2858,7 +2870,6 @@
                 checkSummaryReady();
             }
         }
-
         // ── FIX: Clean, correct parseSummaryFile ────────────────────
         function parseSummaryFile(file) {
             // Show processing status
@@ -2867,9 +2878,7 @@
             readyEl.style.display = 'none';
             waitEl.style.display = 'flex';
             waitEl.querySelector('span').textContent = 'Parsing file...';
-
             const fileName = file.name.toLowerCase();
-
             if (fileName.endsWith('.csv') || fileName.endsWith('.tsv') || fileName.endsWith('.txt')) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -2877,7 +2886,6 @@
                         const sep = fileName.endsWith('.tsv') ? '\t' : ',';
                         const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
                         if (!lines.length) { showToast('File appears empty', true); return; }
-
                         function parseCSVLine(line, delimiter) {
                             const result = [];
                             let current = '';
@@ -2896,7 +2904,6 @@
                             result.push(current.trim()); // push last field
                             return result;
                         }
-
                         summaryHeaders = parseCSVLine(lines[0], sep);
                         summaryParsedData = [];
                         for (let i = 1; i < lines.length; i++) {
@@ -2915,7 +2922,6 @@
                 parseSummaryFileViaServer(file);
             }
         }
-
         function parseSummaryFileViaServer(file) {
             const formData = new FormData();
             formData.append('file', file);
@@ -2944,7 +2950,6 @@
                 checkSummaryReady();
             });
         }
-
         function checkSummaryReady() {
             const summaryType = document.getElementById('summaryTypeSelect').value;
             const hasData = summaryParsedData.length > 0;
@@ -2952,7 +2957,6 @@
             const waitEl  = document.getElementById('summaryNotReadyMsg');
             const textEl  = document.getElementById('summaryReadyText');
             const btn     = document.getElementById('generateSummaryBtn');
-
             if (summaryType && hasData) {
                 textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Click 'Generate Summary'.`;
                 readyEl.style.display = 'flex';
@@ -2975,19 +2979,16 @@
                 btn.disabled = true;
             }
         }
-
         function generateSummary() {
             const summaryType = document.getElementById('summaryTypeSelect').value;
             if (!summaryType) { showToast('Please select a summary type first!', true); return; }
             if (!summaryParsedData.length) { showToast('Please upload a file first!', true); return; }
-
             if (summaryType === 'users') {
                 generateUsersSummary();
             } else if (summaryType === 'category') {
                 generateCategorySummary();
             }
         }
-    
         async function generateUsersSummary() {
             const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name'];
             let userCol = null;
@@ -3182,35 +3183,26 @@
         function generateCategorySummary() {
             let scamTypeCol = null;
             let searchForCol = null;
-
             const scamColCandidates = ['scam_type','Scam_type','Scam_Type','SCAM_TYPE','scamtype','ScamType','scam type','Scam Type','Scam type','SCAM TYPE'];
             for (const c of scamColCandidates) {
                 if (summaryHeaders.includes(c)) { scamTypeCol = c; break; }
             }
-
             const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR','platform','Platform'];
             for (const c of searchColCandidates) {
                 if (summaryHeaders.includes(c)) { searchForCol = c; break; }
             }
-
             if (!scamTypeCol) { showToast('Could not find "Scam_type" column in the file.', true); return; }
             if (!searchForCol) { showToast('Could not find "Search_for" column in the file.', true); return; }
-
             const socialMediaPlatforms = ['telegram', 'whatsapp', 'facebook', 'instagram', 'threads', 'thread', 'youtube', 'x', 'twitter', 'snapchat', 'tiktok', 'linkedin', 'pinterest', 'reddit'];
-
             const scamTypeData = {};
             let totalWeb = 0, totalApp = 0, totalSM = 0;
-
             summaryParsedData.forEach(row => {
                 const scamType = (row[scamTypeCol] || 'Unknown').trim();
                 const searchFor = (row[searchForCol] || 'Unknown').trim().toLowerCase();
-
                 if (!scamType || scamType.toUpperCase() === 'NA' || scamType === '') return;
-
                 if (!scamTypeData[scamType]) {
                     scamTypeData[scamType] = { web: 0, app: 0, sm: 0, total: 0 };
                 }
-
                 if (searchFor === 'app' || searchFor === 'application') {
                     scamTypeData[scamType].app++;
                     totalApp++;
@@ -3271,10 +3263,8 @@
                 scamTypeData: sortedScamTypes,
                 totals: { web: totalWeb, app: totalApp, sm: totalSM, grandTotal }
             };
-
             renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal, maxDate);
         }
-
         function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal, dataDate) {
             const section = document.getElementById('summaryPreviewSection');
             let dateStr;
@@ -3293,14 +3283,12 @@
                  dateStr = `${dd}-${mm}-${yyyy}`;
             }
             document.getElementById('summaryPreviewTitle').textContent = `IS Category Wise Summary - ${dateStr}`;
-
             const thead = document.getElementById('summaryResultHead');
             const tbody = document.getElementById('summaryResultBody');
             thead.innerHTML = ''; tbody.innerHTML = '';
             const thStyle = `font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:13px;white-space:nowrap;background:#c8e6fb;`;
             const tdStyle = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:12px;background:#f7fbff;width:20%;`;
             const tdLabelStyle = `font-weight:600;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:5px 8px;font-size:12px;white-space:nowrap;background:#f0faff;width:20%;`;
-
             // Header row with title spanning all columns
             const hr = document.createElement('tr');
             hr.style.backgroundColor = '#e1bee7';
@@ -3308,7 +3296,6 @@
                 <th colspan="5" style="font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:8px 10px;font-size:14px;white-space:nowrap;background:#b3d4f5;">IS Category Wise Summary - ${dateStr}</th>
             `;
             thead.appendChild(hr);
-
             // Column headers
             const colRow = document.createElement('tr');
             colRow.style.backgroundColor = '#c8e6fb';
@@ -3320,7 +3307,6 @@
                 <th style="${thStyle}">Total</th>
             `;
             thead.appendChild(colRow);
-
             sortedScamTypes.forEach(([scamType, data]) => {
                 const tr = document.createElement('tr');
                 const webVal = data.web > 0 ? data.web : 'NA';
@@ -3335,7 +3321,6 @@
                 `;
                 tbody.appendChild(tr);
             });
-
             const totalRow = document.createElement('tr');
             totalRow.style.backgroundColor = '#b3d4f5';
             totalRow.innerHTML = `
@@ -3346,15 +3331,12 @@
                 <td style="${thStyle}">${grandTotal}</td>
             `;
             tbody.appendChild(totalRow);
-
             // Hide the old external header
             const headerEl = document.getElementById('summaryTableHeader');
             if (headerEl) { headerEl.style.display = 'none'; }
-
             section.classList.add('show');
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-
         function renderUsersSummaryTable(userData, users, dateStr) {
             const section = document.getElementById('summaryPreviewSection');
             document.getElementById('summaryPreviewTitle').textContent = `Scam++ Summary - ${dateStr}`;
@@ -3377,7 +3359,6 @@
                 <th rowspan="2" style="${thS}">Remark</th>
             `;
             thead.appendChild(hr1);
-
             const hr2 = document.createElement('tr');
             hr2.innerHTML = `
                 <th style="${thS}">SM Cases</th>
@@ -3439,7 +3420,6 @@
                 }
                 tbody.appendChild(tr);
             });
-
             const totalRow = document.createElement('tr');
             totalRow.style.backgroundColor = '#b3d4f5';
             totalRow.innerHTML = `
@@ -3460,15 +3440,12 @@
             section.classList.add('show');
             section.scrollIntoView({ behavior: 'smooth', block: 'start' });
            }
-
         function exportSummaryCSV() {
             if (!lastSummaryResult) { showToast('No summary to export', true); return; }
             const escCSV = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
-
             let lines = [];
             const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
             let filename = `summary_${lastSummaryResult.type}_${ts}.csv`;
-
             if (lastSummaryResult.type === 'users_detailed') {
                 filename = `Scam_Plus_Summary_${ts}.csv`;
                 lines = ['Name,SM Cases,Web Cases,App Cases,Total Cases,Scrapping,Quality Check,Web Searching,Credentials,Remark'];
@@ -3491,7 +3468,6 @@
                 }, { sm:0, web:0, app:0, total:0, scrapping:0, qualityCheck:0, webSearching:0, credentials:0 });
                 lines.push(`Total,${t.sm||'NA'},${t.web||'NA'},${t.app||'NA'},${t.total},${t.scrapping||'NA'},${t.qualityCheck||'NA'},${t.webSearching||'NA'},${t.credentials||'NA'},NA`);
             } else
-
             if (lastSummaryResult.type === 'category_detailed') {
                 filename = `IS_Category_Wise_Summary_${ts}.csv`;
                 lines = ['Category,Web,SM,App,Total'];
@@ -3511,7 +3487,6 @@
                     totalRow.map(escCSV).join(',')
                 ];
             }
-
             const csv = '\uFEFF' + lines.join('\n');
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -3575,14 +3550,12 @@
             _resetDupResults();
             _updateDupStatus();
         }
-
         function onDupManualInput() {
             const lines = document.getElementById('dupManualInput').value
                 .split('\n').map(l => l.trim()).filter(l => l);
             document.getElementById('dupManualCount').textContent = `${lines.length} entr${lines.length === 1 ? 'y' : 'ies'}`;
             _updateDupStatus();
         }
-
         function onDupFileSelected(input) {
             const file = input.files[0];
             if (!file) return;
@@ -3591,7 +3564,6 @@
             document.getElementById('dupColumnSelect').innerHTML = '<option value="">-- Parsing... --</option>';
             document.getElementById('dupFileRowCount').textContent = '';
             _updateDupStatus();
-
             const formData = new FormData();
             formData.append('file', file);
             fetch('/parse-raw-file', { method: 'POST', body: formData })
@@ -3619,15 +3591,12 @@
                 })
                 .catch(() => showToast('Network error parsing file', true));
         }
-
         function onDupColumnSelected() { _updateDupStatus(); }
-
         function _updateDupStatus() {
             const mode      = document.getElementById('dupInputMode').value;
             const statusBox = document.getElementById('dupStatusBox');
             const btn       = document.getElementById('dupCheckBtn');
             let ready = false; let msg = 'Waiting for input...';
-
             if (mode === 'manual') {
                 const lines = document.getElementById('dupManualInput').value
                     .split('\n').map(l => l.trim()).filter(l => l);
@@ -3644,24 +3613,20 @@
                     msg = 'Select a column to check.';
                 } else { msg = 'Upload a file first.'; }
             }
-
             statusBox.className = `sheet-status-box ${ready ? 'ready' : 'waiting'}`;
             statusBox.innerHTML = `<i class="fas fa-${ready ? 'check-circle' : 'hourglass-half'}"></i><span>${msg}</span>`;
             btn.disabled = !ready;
         }
-
         function _resetDupResults() {
             _dupAllResults = [];
             document.getElementById('dupResultArea').style.display = 'none';
             document.getElementById('dupResultTableBody').innerHTML = '';
             document.getElementById('dupSummaryCards').innerHTML = '';
         }
-
         async function runDuplicateCheck() {
             const mode     = document.getElementById('dupInputMode').value;
             const checkType = document.getElementById('dupCheckType').value;
             let entries = [];
-
             if (mode === 'manual') {
                 const lines = document.getElementById('dupManualInput').value
                     .split('\n').map(l => l.trim()).filter(l => l).slice(0, 800);
@@ -3674,15 +3639,12 @@
                     .filter(e => e.value && !['na','n/a','','none'].includes(e.value.toLowerCase()))
                     .slice(0, 2000);
             }
-
             if (!entries.length) { showToast('No valid entries to check', true); return; }
-
             // Show loading in button
             const btn = document.getElementById('dupCheckBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
             _resetDupResults();
-
             // Batch in chunks of 50 to avoid timeout
             const CHUNK = 50;
             let allResults = [];
@@ -3703,21 +3665,17 @@
                 // Update button progress
                 btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${Math.min(i+CHUNK, entries.length)}/${entries.length}`;
             }
-
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-search"></i> Check Duplicates';
             _dupAllResults = allResults;
             _renderDupResults(allResults);
         }
-
         function _renderDupResults(results) {
             if (!results.length) { showToast('No results to display', true); return; }
-
             const total      = results.length;
             const duplicates = results.filter(r => r.status === 'DUPLICATE').length;
             const newOnes    = results.filter(r => r.status === 'NEW').length;
             const errors     = results.filter(r => r.status === 'ERROR').length;
-
             // Summary cards
             document.getElementById('dupSummaryCards').innerHTML = `
                 <div style="background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:12px;text-align:center;">
@@ -3737,12 +3695,10 @@
                     <div style="font-size:22px;font-weight:700;color:#b7950b;">${errors}</div>
                 </div>
             `;
-
             _renderDupTable(results);
             document.getElementById('dupResultArea').style.display = '';
             document.getElementById('dupResultArea').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-
         function _renderDupTable(results) {
             const tbody = document.getElementById('dupResultTableBody');
             if (!results.length) {
@@ -3778,13 +3734,11 @@
                 </tr>`;
             }).join('');
         }
-
         function filterDupResults() {
             const filter = document.getElementById('dupFilterSelect').value;
             const filtered = filter === 'all' ? _dupAllResults : _dupAllResults.filter(r => r.status === filter);
             _renderDupTable(filtered);
         }
-
         function exportDupResults() {
             if (!_dupAllResults.length) { showToast('No results to export', true); return; }
             const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
@@ -3805,7 +3759,6 @@
             document.body.removeChild(a); URL.revokeObjectURL(url);
             showToast(`Exported ${_dupAllResults.length} records`, false, true);
         }
-
         // ─── Helpers ─────────────────────────────────────────────────
         function copyToClipboard(text, fieldName) {
             if (!text || ['NA','null','N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
@@ -3820,7 +3773,6 @@
                 if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => showToast(`${fieldName} copied!`)).catch(() => showToast('Failed to copy', true));
             } finally { document.body.removeChild(ta); }
         }
-
         function showToast(message, isError=false, isSuccess=false) {
             const ex = document.querySelector('.toast'); if (ex) ex.remove();
             const t = document.createElement('div');
@@ -3829,7 +3781,6 @@
             document.body.appendChild(t);
             setTimeout(() => { if (t.parentNode) t.remove(); }, 3000);
         }
-
         function clearFilters() { window.location.href = "/?page=scraping"; }
 
         function goToPage(page) {
@@ -3837,10 +3788,8 @@
             url.searchParams.set('page_num', page);
             showLoading(); window.location.href = url.toString();
         }
-
         function showLoading() { document.getElementById('loadingOverlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loadingOverlay').style.display = 'none'; }
-
         // Drag-drop for file uploads
         document.querySelectorAll('.file-upload-compact').forEach(area => {
             area.addEventListener('dragover', e => { e.preventDefault(); area.style.borderColor = '#3498db'; area.style.background = '#e8f4fc'; });
@@ -3859,7 +3808,6 @@
                 }
             });
         });
-
         // Close modals on backdrop click
         ['trackerModal','permanentModal','confirmationModal','scrapingTrackerModal','invTrackerModal','userActivityLogModal'].forEach(id => {
             const modal = document.getElementById(id);
@@ -3877,11 +3825,9 @@
                 });
             }
         });
-
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') { closeTracker(); closePermanentAccounts(); cancelAction(); closeScrapingTracker(); closeInvestmentTracker(); closeUserActivityLog(); closeShareStatusModal(); }
         });
-
         // Auto-dismiss flash messages
         setTimeout(() => {
             document.querySelectorAll('.flash-message').forEach(msg => {
@@ -3889,7 +3835,6 @@
                 setTimeout(() => { if (msg.parentNode) msg.remove(); }, 300);
             });
         }, 5000);
-
         // File input triggers
         document.getElementById('fileInput')?.addEventListener('change', function() {
             if (this.files.length) { showLoading(); document.getElementById('importForm').submit(); }
@@ -3899,14 +3844,11 @@
         });
         // USER ACTIVITY LOG JS
         let _ualAllLogs = [];
-
         function showUserActivityLog() {
             document.getElementById('userActivityLogModal').classList.add('active');
             _loadUAL();
         }
-
         function closeUserActivityLog() { document.getElementById('userActivityLogModal').classList.remove('active'); }
-
         async function _loadUAL() {
             document.getElementById('ualBody').innerHTML = '<div class="tracker-loading"><div class="spinner"></div><p>Loading activity log...</p></div>';
             document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
@@ -3919,7 +3861,6 @@
                 document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Network error</p></div>`;
             }
         }
-
         function filterUAL() {
             const search = document.getElementById('ualSearch').value.toLowerCase();
             const page   = document.getElementById('ualPageFilter').value;
@@ -3932,28 +3873,23 @@
             });
             _renderUAL(filtered);
         }
-
         function clearUAL() {
             document.getElementById('ualSearch').value = '';
             document.getElementById('ualPageFilter').value = '';
             document.getElementById('ualActionFilter').value = '';
             _renderUAL(_ualAllLogs);
         }
-
         const _UAL_PAGE_LABEL = { 'social_media_accounts':'Social Media Accounts','scrapping_data':'Scrapping Data','BS_Investment_Scam':'BS Investment Scam' };
-
         function _getPlatformFromLog(log) {
             if (log.target_table !== 'social_media_accounts' || log.action_type !== 'field_update') return '—';
             if (log.extra_info && log.extra_info.platform) return log.extra_info.platform;
             return '—';
         }
-
         function _fmtTimestamp(created_at) {
             if (!created_at) return { date: '—', time: '—' };
             const d = new Date(created_at);
             return { date: d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}), time: d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}) };
         }
-
         function _renderUAL(logs) {
             document.getElementById('ualStats').innerHTML = `<i class="fas fa-list"></i> Showing <strong>${logs.length}</strong> records`;
             if (!logs.length) { document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-history"></i><p>No activity found</p></div>`; return; }
@@ -3984,7 +3920,6 @@
             });
             document.getElementById('ualBody').innerHTML = `<table class="ual-table"><thead><tr><th>ID</th><th>Login User</th><th>Previous Value</th><th>Updated Value</th><th>Platform</th><th>Time Stamp</th><th>Action</th><th>Page</th><th>Field</th><th>Record ID</th></tr></thead><tbody>${rows}</tbody></table>`;
         }
-
         function exportUAL() {
             const search = document.getElementById('ualSearch').value.toLowerCase();
             const page   = document.getElementById('ualPageFilter').value;
@@ -4015,7 +3950,6 @@
             document.body.removeChild(a); URL.revokeObjectURL(url);
             showToast(`Exported ${filtered.length} records`,false,true);
         }
-
         document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
             if (e.target===document.getElementById('userActivityLogModal')) closeUserActivityLog();
         });
@@ -4705,7 +4639,6 @@
                     })
                     .catch(() => { el.textContent = 'N/A'; });
             }
-
             function exportScrapSummaryCSV() {
                 if (!_lastScrapSummary) { showToast('No summary to export', true); return; }
                 const esc = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
@@ -5658,6 +5591,362 @@
             document.getElementById('scrapEditDeleteConfirmModal')?.addEventListener('click', e => {
                 if (e.target === document.getElementById('scrapEditDeleteConfirmModal')) cancelScrapDeleteConfirm();
             });
+            const INSIGHT_PALETTE = [
+                '#3498db','#e67e22','#2ecc71','#9b59b6','#e74c3c',
+                '#1abc9c','#f39c12','#2980b9','#8e44ad','#16a085',
+                '#d35400','#27ae60','#c0392b','#7f8c8d','#2c3e50',
+            ];
+            let _insCharts = {};
+            function _insDestroyAll() {
+                Object.values(_insCharts).forEach(c => { if (c) c.destroy(); });
+                _insCharts = {};
+            }
+            function clearInsightsFilters() {
+                document.getElementById('insightsDateFrom').value  = '';
+                document.getElementById('insightsDateTo').value    = '';
+                document.getElementById('insightsSearchFor').value = '';
+                document.getElementById('insightsScamType').value  = '';
+                document.getElementById('insightsWallet').value    = '';
+                document.getElementById('insightsInputUser').value   = '';
+                loadInsightsData();
+            }
+            async function loadInsightsData() {
+                const loading   = document.getElementById('insightsLoading');
+                const chartsDiv = document.getElementById('insightsChartsArea');
+                const emptyDiv  = document.getElementById('insightsEmpty');
+                const badge     = document.getElementById('insightsTotalBadge');
+                loading.style.display   = 'block';
+                chartsDiv.style.display = 'none';
+                emptyDiv.style.display  = 'none';
+                const params = new URLSearchParams();
+                const from  = document.getElementById('insightsDateFrom').value;
+                const to    = document.getElementById('insightsDateTo').value;
+                const sf    = document.getElementById('insightsSearchFor').value;
+                const st    = document.getElementById('insightsScamType').value;
+                const wall  = document.getElementById('insightsWallet').value;
+                const user  = document.getElementById('insightsInputUser').value;
+                if (from) params.set('date_from',  from);
+                if (to)   params.set('date_to',    to);
+                if (sf)   params.set('search_for', sf);
+                if (st)   params.set('scam_type',  st);
+                if (wall) params.set('wallet',     wall);
+                if (user) params.set('input_user', user);
+                try {
+                    const resp = await fetch('/investment-insights-data?' + params.toString());
+                    const data = await resp.json();
+                    loading.style.display = 'none';
+                    if (!data.success || data.total_rows === 0) {
+                        emptyDiv.style.display = 'block';
+                        badge.style.display    = 'none';
+                        _insDestroyAll();
+                        return;
+                    }
+                    chartsDiv.style.display = 'grid';
+                    badge.style.display     = 'inline-flex';
+                    document.getElementById('insightsTotalVal').textContent = data.total_rows.toLocaleString();
+                    const userSel = document.getElementById('insightsInputUser');
+                    const currentUser = userSel.value;
+                    if (data.all_input_users && data.all_input_users.length) {
+                        userSel.innerHTML = '<option value="">All Users</option>' +
+                            data.all_input_users.map(u =>
+                                `<option value="${u}" ${u === currentUser ? 'selected' : ''}>${u}</option>`
+                            ).join('');
+                    }
+                    _insDestroyAll();
+                    _buildUPIChart(data);
+                    _buildUsersChart(data);
+                    _buildScamTypeChart(data);
+                    _buildSearchForChart(data);
+                } catch(e) {
+                    loading.style.display = 'none';
+                    emptyDiv.style.display = 'block';
+                    showToast('Insights load error: ' + e.message, true);
+                }
+            }
+            function _buildUPIChart(data) {
+                const dates  = Object.keys(data.upi_series);
+                const values = Object.values(data.upi_series);
+                const total  = values.reduce((a, b) => a + b, 0);
+                document.getElementById('insightsUpiTotal').textContent = total.toLocaleString() + ' unique UPIs';
+                const ctx = document.getElementById('chartUPI').getContext('2d');
+                const grad = ctx.createLinearGradient(0, 0, 0, 240);
+                grad.addColorStop(0,   'rgba(52,152,219,0.45)');
+                grad.addColorStop(1,   'rgba(52,152,219,0.02)');
+                _insCharts.upi = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [{
+                            label: 'Unique UPI Count',
+                            data: values,
+                            fill: true,
+                            backgroundColor: grad,
+                            borderColor: '#3498db',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#3498db',
+                            pointRadius: dates.length > 30 ? 0 : 4,
+                            pointHoverRadius: 6,
+                            tension: 0.35,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    title: tt => 'Date: ' + tt[0].label,
+                                    label: tt => ' Unique UPIs: ' + tt.raw.toLocaleString(),
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    display: false
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+            }
+            function _buildUsersChart(data) {
+                const dateMap = data.user_by_date;
+                const dates = Object.keys(dateMap);
+                const userTotals = {};
+                (data.all_users || []).forEach(u => { userTotals[u] = 0; });
+                dates.forEach(d => {
+                    Object.entries(dateMap[d]).forEach(([u, cnt]) => {
+                        userTotals[u] = (userTotals[u] || 0) + cnt;
+                    });
+                });
+                const sortedUsers = Object.entries(userTotals)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([u]) => u);
+                const values = sortedUsers.map(u => userTotals[u]);
+                const cleanLabel = u => u.replace(/^(Emp|INT|icuser|\s)+/gi, '').replace(/icuser$/gi, '').trim() || u;
+                const ctx = document.getElementById('chartUsers').getContext('2d');
+                _insCharts.users = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedUsers.map(cleanLabel),
+                        datasets: [{
+                            label: 'Count',
+                            data: values,
+                            backgroundColor: sortedUsers.map((_, i) => INSIGHT_PALETTE[i % INSIGHT_PALETTE.length]),
+                            borderWidth: 0,
+                            borderRadius: 3,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: { label: tt => ' ' + tt.raw.toLocaleString() }
+                            },
+                            datalabels: false
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.04)' },
+                                ticks: { display: false }
+                            },
+                            y: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11 }, maxRotation: 0 }
+                            }
+                        },
+                        animation: {
+                            onComplete: function() {
+                                const chart = this;
+                                const ctx2 = chart.ctx;
+                                ctx2.save();
+                                ctx2.font = 'bold 11px sans-serif';
+                                ctx2.textBaseline = 'middle';
+                                const chartArea = chart.chartArea;
+                                chart.data.datasets[0].data.forEach((val, i) => {
+                                    const meta = chart.getDatasetMeta(0);
+                                    const bar = meta.data[i];
+                                    if (!bar) return;
+                                    const barRight = bar.x;
+                                    const spaceRight = chartArea.right - barRight;
+                                    const labelWidth = val.toLocaleString().length * 7;
+                                    if (spaceRight < labelWidth + 6) {
+                                        ctx2.fillStyle = '#ffffff';
+                                        ctx2.textAlign = 'right';
+                                        ctx2.fillText(val.toLocaleString(), barRight - 6, bar.y);
+                                    } else {
+                                        ctx2.fillStyle = '#2c3e50';
+                                        ctx2.textAlign = 'left';
+                                        ctx2.fillText(val.toLocaleString(), barRight + 6, bar.y);
+                                    }
+                                });
+                                ctx2.restore();
+                            }
+                        }
+                    }
+                });
+            }
+            function _buildScamTypeChart(data) {
+                const entries = Object.entries(data.scam_counts).sort((a, b) => b[1] - a[1]);
+                const labels = entries.map(e => e[0]);
+                const values = entries.map(e => e[1]);
+                const ctx = document.getElementById('chartScamType').getContext('2d');
+                _insCharts.scamType = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Count',
+                            data: values,
+                            backgroundColor: labels.map((_, i) => INSIGHT_PALETTE[i % INSIGHT_PALETTE.length]),
+                            borderWidth: 0,
+                            borderRadius: 3,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: tt => ' ' + tt.raw.toLocaleString() } }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    font: { size: 9 },
+                                    maxRotation: 35,
+                                    callback: function(val, idx) {
+                                        const lbl = this.getLabelForValue(val);
+                                        return lbl.length > 16 ? lbl.substring(0, 14) + '…' : lbl;
+                                    }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: { display: false }
+                            }
+                        },
+                        animation: {
+                            onComplete: function() {
+                                const chart = this;
+                                const ctx2 = chart.ctx;
+                                ctx2.save();
+                                ctx2.font = 'bold 11px sans-serif';
+                                ctx2.textAlign = 'center';
+                                const chartArea = chart.chartArea;
+                                chart.data.datasets[0].data.forEach((val, i) => {
+                                    const meta = chart.getDatasetMeta(0);
+                                    const bar = meta.data[i];
+                                    if (!bar) return;
+                                    const barTop = bar.y;
+                                    const barBottom = chartArea.bottom;
+                                    const barHeight = barBottom - barTop;
+                                    const spaceAbove = barTop - chartArea.top;
+                                    if (spaceAbove < 18) {
+                                        ctx2.fillStyle = '#ffffff';
+                                        ctx2.textBaseline = 'top';
+                                        ctx2.fillText(val.toLocaleString(), bar.x, barTop + 5);
+                                    } else {
+                                        ctx2.fillStyle = '#2c3e50';
+                                        ctx2.textBaseline = 'bottom';
+                                        ctx2.fillText(val.toLocaleString(), bar.x, barTop - 3);
+                                    }
+                                });
+                                ctx2.restore();
+                            }
+                        }
+                    }
+                });
+            }
+            function _buildSearchForChart(data) {
+                const entries = Object.entries(data.sf_counts).sort((a, b) => b[1] - a[1]);
+                const labels = entries.map(e => e[0]);
+                const values = entries.map(e => e[1]);
+                const SF_COLORS = {
+                    'Web': '#3498db', 'Telegram': '#0088cc', 'WhatsApp': '#25d366',
+                    'Facebook': '#1877f2', 'Instagram': '#e1306c', 'YouTube': '#ff0000',
+                    'X': '#14171a', 'Thread': '#000000',
+                };
+                const ctx = document.getElementById('chartSearchFor').getContext('2d');
+                _insCharts.searchFor = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Count',
+                            data: values,
+                            backgroundColor: labels.map((lbl, i) => SF_COLORS[lbl] || INSIGHT_PALETTE[i % INSIGHT_PALETTE.length]),
+                            borderWidth: 0,
+                            borderRadius: 4,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: tt => ' ' + tt.raw.toLocaleString() } }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 11 }, maxRotation: 0 }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: { display: false }
+                            }
+                        },
+                        animation: {
+                            onComplete: function() {
+                                const chart = this;
+                                const ctx2 = chart.ctx;
+                                ctx2.save();
+                                ctx2.font = 'bold 11px sans-serif';
+                                ctx2.textAlign = 'center';
+                                const chartArea = chart.chartArea;
+                                chart.data.datasets[0].data.forEach((val, i) => {
+                                    const meta = chart.getDatasetMeta(0);
+                                    const bar = meta.data[i];
+                                    if (!bar) return;
+                                    const spaceAbove = bar.y - chartArea.top;
+                                    if (spaceAbove < 18) {
+                                        ctx2.fillStyle = '#ffffff';
+                                        ctx2.textBaseline = 'top';
+                                        ctx2.fillText(val.toLocaleString(), bar.x, bar.y + 5);
+                                    } else {
+                                        ctx2.fillStyle = '#2c3e50';
+                                        ctx2.textBaseline = 'bottom';
+                                        ctx2.fillText(val.toLocaleString(), bar.x, bar.y - 3);
+                                    }
+                                });
+                                ctx2.restore();
+                            }
+                        }
+                    }
+                });
+            }
+            (function initInsights() {
+                if ('{{ page_type }}' === 'insights') {
+                    loadInsightsData();
+                }
+            })();
             </script>
         <div id="scrapInsertModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:2000;justify-content:center;align-items:center;padding:20px;">
             <div id="scrapInsertDrawer" style="background:white;width:100%;max-width:1100px;height:92vh;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,0.28);animation:scrapModalIn 0.28s cubic-bezier(0.34,1.2,0.64,1);overflow:hidden;">
