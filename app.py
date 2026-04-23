@@ -916,7 +916,6 @@ def export_user_activity_log():
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/")
 
-
 # ============================================================
 # SCRAPING TRACKER STATS
 # ============================================================
@@ -2590,15 +2589,19 @@ def investment_insights_data():
 
         # ---------- unique UPI per date ----------
         upi_by_date = {}
+        bank_set = set()
         for r in rows:
             d      = (r.get("inserted_date") or "")[:10]
             wallet_val = (r.get("upi_bank_account_wallet") or "").strip()
             upi    = (r.get("upi_vpa") or "").strip()
+            bank_acc = (r.get("bank_account_number") or "").strip()
             if not d: continue
             if d not in upi_by_date:
                 upi_by_date[d] = set()
             if wallet_val == "UPI" and upi and upi.upper() not in ("NA", "N/A", ""):
                 upi_by_date[d].add(upi)
+            if wallet_val == "Bank Account" and bank_acc and bank_acc.upper() not in ("NA", "N/A", ""):
+                bank_set.add(bank_acc)
         upi_series = {d: len(s) for d, s in sorted(upi_by_date.items())}
 
         # ---------- user counts per date ----------
@@ -2627,6 +2630,7 @@ def investment_insights_data():
         return jsonify({
             "success": True,
             "total_rows": len(rows),
+            "unique_bank_count": len(bank_set),
             "upi_series":   upi_series,
             "user_by_date": {d: user_by_date[d] for d in sorted(user_by_date)},
             "all_users":    all_users,

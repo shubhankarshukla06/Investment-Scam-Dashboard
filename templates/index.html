@@ -959,7 +959,6 @@
                             <div class="stat-badge"><i class="fas fa-id-card"></i><span>Unique UPI:</span><span class="stat-value upi" id="statUPI">0</span></div>
                             <div class="stat-badge"><i class="fas fa-university"></i><span>Unique Bank:</span><span class="stat-value bank" id="statBank">0</span></div>
                             <div class="stat-badge"><i class="fas fa-globe"></i><span>Unique Website:</span><span class="stat-value" style="color:#8e44ad;" id="statWebsite">0</span></div>
-                            <div class="stat-badge" id="statNewUpiBadge" style="display:none;"><i class="fas fa-check-circle" style="color:#27ae60;"></i><span>New UPI:</span><span class="stat-value" style="color:#27ae60;" id="statNewUPI">...</span></div>
                         </div>
                         <button class="template-btn" onclick="downloadTemplate()" id="templateBtn" disabled style="display:none;"><i class="fas fa-file-download"></i> Download Template</button>
                     </div>
@@ -1101,7 +1100,7 @@
             <div id="duplicateCheckerSection" style="display:none;">
                 <span style="display:inline-flex;align-items:center;gap:4px;background:#ebf5fb;border:1px solid #aed6f1;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#1a5276;">
                     <i class="fas fa-calendar-check" style="color:#3498db;font-size:9px;"></i>
-                    Last Updated: <span id="dupCheckerLastDate" style="color:#e67e22;">Loading...</span>
+                    Updated To: <span id="dupCheckerLastDate" style="color:#e67e22;">Loading...</span>
                 </span>
                 <div class="sheet-maker-row" style="margin-bottom:12px;">
                     <div class="sheet-maker-group">
@@ -1308,7 +1307,7 @@
                         <h2 style="font-size:12px;">Scam++ — Filter Data</h2>
                         <span id="invLastDateBadge" style="display:none;font-size:11px;color:#7f8c8d;font-weight:500;">
                             <i class="fas fa-calendar-check" style="color:#e67e22;"></i>
-                            Last Updated: <strong id="invLastDateValue" style="color:#e67e22;"></strong>
+                            Updated To: <strong id="invLastDateValue" style="color:#e67e22;"></strong>
                         </span>
                     </div>
                     <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
@@ -1644,19 +1643,45 @@
         </div>
         {% endif %}
     {% if 'investment' in allowed_pages %}
-    <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;">
-        <div style="background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
+    <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(100vh - 110px);">
+        <div style="background:white;border-radius:8px;padding:12px 16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:100;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                <h2 style="font-size:14px;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
-                    <i class="fas fa-chart-area" style="color:#3498db;"></i> BS Investment Scam — Insights
-                </h2>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <span id="insightsTotalBadge" style="display:none;background:#ebf5fb;border:1px solid #aed6f1;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#1a5276;">
-                        <i class="fas fa-database" style="color:#3498db;"></i> <span id="insightsTotalVal">0</span> records
+                <div style="display:flex;flex-direction:column;gap:4px;">
+                    <h2 style="font-size:14px;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                        Scam++ Dashboard Management - Filter Data
+                    </h2>
+                    <span id="insightsLastDateBadge" style="display:none;background:#fff3e0;border:1px solid #ffcc80;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#e65100;width:fit-content;">
+                        Updated To : <span id="insightsLastDateVal">—</span>
                     </span>
-                    <button onclick="clearInsightsFilters()" style="background:#e74c3c;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;height:30px;font-weight:600;">
-                        <i class="fas fa-times"></i> Clear
-                    </button>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                    <span id="insightsTotalBadge" style="display:none;background:#ebf5fb;border:1px solid #aed6f1;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#1a5276;">
+                        <span id="insightsTotalVal"> 0 </span> Total Records
+                    </span>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h2 style="font-size:14px;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                            <span id="insightsLastDateBadge" style="display:none;background:#fff3e0;border:1px solid #ffcc80;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#e65100;margin-left:6px;">
+                                Updated To: <span id="insightsLastDateVal">—</span>
+                            </span>
+                        </h2>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                            <span id="insightsTotalBadge" style="display:none;background:#ebf5fb;border:1px solid #aed6f1;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#1a5276;">
+                                <span id="insightsTotalVal">0</span> Total Records
+                            </span>
+                            <span id="insightsNewUpiBadge" style="display:none;background:#e8f8f0;border:1px solid #a9dfbf;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#1e8449;">
+                                Unique UPI: <span id="insightsNewUpiVal">0</span>
+                            </span>
+                            <span id="insightsBankBadge" style="display:none;background:#fef9e7;border:1px solid #f9e79f;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#b7950b;">
+                                Unique Bank: <span id="insightsBankVal">0</span>
+                            </span>
+                            <span id="insightsAvgBadge" style="display:none;background:#f3e5f5;border:1px solid #ce93d8;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600;color:#6a1b9a;">
+                                Average Cases: <span id="insightsAvgVal">0</span>
+                            </span>
+                            <button onclick="clearInsightsFilters()" style="background:#e74c3c;color:white;border:none;padding:5px 10px;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:4px;height:30px;font-weight:600;">
+                                <i class="fas fa-times"></i> Clear Filter
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
@@ -1722,7 +1747,7 @@
             <div style="background:white;border-radius:8px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);grid-column:span 2;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
                     <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
-                        <i class="fas fa-id-card" style="color:#3498db;"></i> Unique UPI Count Over Time
+                        <i class="fas fa-id-card" style="color:#3498db;"></i> Unique UPI Count
                         <span id="insightsUpiTotal" style="background:#ebf5fb;color:#1a5276;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-left:6px;"></span>
                     </h3>
                     <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Area Chart</span>
@@ -2741,10 +2766,6 @@
                 document.getElementById('statUPI').textContent = '...';
                 document.getElementById('statBank').textContent = '...';
                 document.getElementById('statWebsite').textContent = '...';
-                newUpiBadge.style.display = 'flex';
-                newUpiEl.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px;"></i>';
-                newUpiEl.style.color = '#7f8c8d';
-                newUpiBadge.title = 'Processing...';
                 previewData();
             } else {
                 document.getElementById('templateStats').style.display = 'none';
@@ -2780,47 +2801,6 @@
             document.getElementById('statUPI').textContent = data.unique_upi_ids || 0;
             document.getElementById('statBank').textContent = data.unique_bank_accounts || 0;
             document.getElementById('statWebsite').textContent = data.unique_websites || 0;
-            const newUpiBadge = document.getElementById('statNewUpiBadge');
-            const newUpiEl    = document.getElementById('statNewUPI');
-            const totalUniqueUPI = data.unique_upi_ids || 0;
-            if (totalUniqueUPI > 0 && data.preview_rows) {
-                newUpiBadge.style.display = 'flex';
-                newUpiEl.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px;"></i>';
-                newUpiEl.style.color = '#7f8c8d';
-                newUpiBadge.title = 'Checking DB for new UPIs...';
-                const upiSet = new Set();
-                (data.preview_rows || []).forEach(row => {
-                    const upi = (row['upi_vpa'] || '').trim();
-                    if (upi && upi.toUpperCase() !== 'NA' && upi !== '') upiSet.add(upi);
-                });
-                const upiEntries = [...upiSet].map(v => ({ value: v, type: 'upi' }));
-                const CHUNK = 50;
-                const chunks = [];
-                for (let i = 0; i < upiEntries.length; i += CHUNK) {
-                    chunks.push(upiEntries.slice(i, i + CHUNK));
-                }
-                Promise.all(
-                    chunks.map(chunk =>
-                       fetch('/check-duplicates', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ entries: chunk })
-                       })
-                       .then(r => r.json())
-                       .then(res => res.success ? res.results : [])
-                       .catch(() => [])
-                    )
-                ).then(allChunkResults => {
-                    const allResults = allChunkResults.flat();
-                    const newCount = allResults.filter(r => r.status === 'NEW').length;
-                    const dupCount = allResults.filter(r => r.status === 'DUPLICATE').length;
-                    newUpiEl.textContent = newCount;
-                    newUpiEl.style.color = newCount > 0 ? '#27ae60' : '#e74c3c';
-                    newUpiBadge.title = `${newCount} new UPIs (not in DB) | ${dupCount} already exist`;
-                });
-            } else {
-                newUpiBadge.style.display = 'none';
-            }
         }
         function displayPreviewData(data) {
             document.getElementById('previewSection').classList.add('show');
@@ -5608,6 +5588,11 @@
                 document.getElementById('insightsScamType').value  = '';
                 document.getElementById('insightsWallet').value    = '';
                 document.getElementById('insightsInputUser').value   = '';
+                document.getElementById('insightsNewUpiBadge').style.display = 'none';
+                document.getElementById('insightsBankBadge').style.display   = 'none';
+                document.getElementById('insightsAvgBadge').style.display    = 'none';
+                const lb = document.getElementById('insightsLastDateBadge');
+                if (lb) lb.style.display = 'none';
                 loadInsightsData();
             }
             async function loadInsightsData() {
@@ -5638,18 +5623,52 @@
                     if (!data.success || data.total_rows === 0) {
                         emptyDiv.style.display = 'block';
                         badge.style.display    = 'none';
+                        document.getElementById('insightsNewUpiBadge').style.display = 'none';
+                        document.getElementById('insightsBankBadge').style.display   = 'none';
+                        document.getElementById('insightsAvgBadge').style.display    = 'none';
                         _insDestroyAll();
                         return;
                     }
                     chartsDiv.style.display = 'grid';
                     badge.style.display     = 'inline-flex';
                     document.getElementById('insightsTotalVal').textContent = data.total_rows.toLocaleString();
+                    const newUpiCount = Object.values(data.upi_series || {}).reduce((a, b) => a + b, 0);
+                    const newUpiBadge = document.getElementById('insightsNewUpiBadge');
+                    document.getElementById('insightsNewUpiVal').textContent = newUpiCount.toLocaleString();
+                    newUpiBadge.style.display = 'inline-flex';
+                    const bankBadge = document.getElementById('insightsBankBadge');
+                    document.getElementById('insightsBankVal').textContent = (data.unique_bank_count || 0).toLocaleString();
+                    bankBadge.style.display = 'inline-flex';
+                    const avgBadge = document.getElementById('insightsAvgBadge');
+                    const avgEl    = document.getElementById('insightsAvgVal');
+                    const dates    = Object.keys(data.upi_series || {});
+                    let avgVal     = 0;
+                    if (user && dates.length > 0) {
+                        const userByDate = data.user_by_date || {};
+                        let totalForUser = 0, activeDays = 0;
+                        Object.values(userByDate).forEach(dayMap => {
+                            if (dayMap[user]) { totalForUser += dayMap[user]; activeDays++; }
+                        });
+                        avgVal = activeDays > 0 ? (totalForUser / activeDays).toFixed(1) : 0;
+                    } else if (dates.length > 0) {
+                        avgVal = (data.total_rows / dates.length).toFixed(1);
+                    }
+                    avgEl.textContent = avgVal;
+                    avgBadge.style.display = 'inline-flex';
+                    if (dates.length > 0) {
+                        const lastDate = dates[dates.length - 1];
+                        const parts    = lastDate.split('-');
+                        const formatted = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : lastDate;
+                        const lb = document.getElementById('insightsLastDateBadge');
+                        document.getElementById('insightsLastDateVal').textContent = formatted;
+                        if (lb) lb.style.display = 'inline-flex';
+                    }
                     const userSel = document.getElementById('insightsInputUser');
                     const currentUser = userSel.value;
                     if (data.all_input_users && data.all_input_users.length) {
                         userSel.innerHTML = '<option value="">All Users</option>' +
                             data.all_input_users.map(u =>
-                                `<option value="${u}" ${u === currentUser ? 'selected' : ''}>${u}</option>`
+                               `<option value="${u}" ${u === currentUser ? 'selected' : ''}>${u}</option>`
                             ).join('');
                     }
                     _insDestroyAll();
@@ -5711,7 +5730,7 @@
                             },
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                grid: { display: false },
                                 ticks: { font: { size: 10 } }
                             }
                         }
@@ -5760,7 +5779,7 @@
                         scales: {
                             x: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.04)' },
+                                grid: { display: false },
                                 ticks: { display: false }
                             },
                             y: {
@@ -5837,7 +5856,7 @@
                             },
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                grid: { display: false },
                                 ticks: { display: false }
                             }
                         },
@@ -5909,7 +5928,7 @@
                             },
                             y: {
                                 beginAtZero: true,
-                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                grid: { display: false },
                                 ticks: { display: false }
                             }
                         },
