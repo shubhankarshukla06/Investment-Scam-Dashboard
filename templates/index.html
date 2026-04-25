@@ -1460,53 +1460,81 @@
         {% if 'social' in allowed_pages %}
         <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
             <div class="filters">
-                <div class="filters-header">
-                    <h2 style="font-size:12px;">Social Media Accounts Management - Filter Data</h2>
-                </div>
-                <form method="GET" action="/" class="filters-grid" id="socialFilterForm">
-                    <input type="hidden" name="page" value="social">
-                    <div class="filter-group">
-                        <label><i class="fas fa-search"></i> Search</label>
-                        <div class="search-box">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search... (Enter to search all pages)" id="socialSearchInput" oninput="filterSocialRows(this.value)" onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <h2 style="font-size:12px;color:#2c3e50;font-weight:600;">Social Media Accounts Management - Filter Data</h2>
+                    <form method="GET" action="/" id="socialFilterForm" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:nowrap;width:100%;">
+                        <input type="hidden" name="page" value="social">
+                        <div style="display:flex;flex-direction:column;gap:3px;flex:1.4;min-width:160px;">
+                            <label style="font-size:11px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:4px;"><i class="fas fa-search"></i> Search</label>
+                            <div style="position:relative;">
+                                <i class="fas fa-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#7f8c8d;font-size:12px;"></i>
+                                <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search..." id="socialSearchInput"
+                                    oninput="filterSocialRows(this.value)"
+                                    onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}"
+                                    style="width:100%;padding:7px 10px 7px 28px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:32px;box-sizing:border-box;outline:none;">
+                            </div>
                         </div>
-                        <span class="search-hint"><i class="fas fa-info-circle"></i> Type to filter this page · <strong>Enter</strong> = search all pages</span>
-                    </div>
-                    <div class="filter-group">
-                        <label><i class="fas fa-mobile-alt"></i> Platform</label>
-                        <select name="social_platform" id="socialPlatformSelect" onchange="filterSocialColumns(this.value); this.form.submit();">
-                            <option value="">All Platforms</option>
-                            {% for platform in social_platform_options %}
-                            <option value="{{ platform }}" {% if social_platform == platform %}selected{% endif %}>{{ platform }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label><i class="fas fa-shield-alt"></i> Account Status</label>
-                        <select name="social_status" id="socialStatusSelect" onchange="this.form.submit()" class="{% if social_status_filter %}active-filter{% endif %}">
-                            <option value="">All Status (excl. Perm. Block)</option>
-                            <option value="Active" {% if social_status_filter == 'Active' %}selected{% endif %}>🟢 Active</option>
-                            <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Block</option>
-                            <option value="Restricted" {% if social_status_filter == 'Restricted' %}selected{% endif %}>🟡 Restricted</option>
-                            <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label><i class="fas fa-building"></i> Department</label>
-                        <select name="social_department" id="socialDepartmentSelect" onchange="this.form.submit()" class="{% if social_department_filter %}active-filter{% endif %}">
-                            <option value="">All Departments</option>
-                            {% for dept in department_options %}
-                            <option value="{{ dept }}" {% if social_department_filter == dept %}selected{% endif %}>{{ dept }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="action-buttons">
-                        <button type="button" class="action-btn update" onclick="goToUpdatePage()"><i class="fas fa-edit"></i> Update Data</button>
-                        <button type="button" class="action-btn" style="background:#10b981;" onclick="openInsertModal()"><i class="fas fa-plus"></i> Insert Data</button>
-                        <button type="button" class="action-btn permanent" onclick="showPermanentAccounts()"><i class="fas fa-ban"></i> Permanent Block Accounts</button>
-                    </div>
-                </form>
+                        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px;">
+                            <label style="font-size:11px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:4px;"><i class="fas fa-mobile-alt"></i> Platform</label>
+                            <select name="social_platform" id="socialPlatformSelect"
+                                onchange="filterSocialColumns(this.value); this.form.submit();"
+                                style="width:100%;padding:7px 8px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:32px;background:white;cursor:pointer;outline:none;">
+                                <option value="">All Platforms</option>
+                                {% for platform in social_platform_options %}
+                                <option value="{{ platform }}" {% if social_platform == platform %}selected{% endif %}>{{ platform }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:150px;">
+                            <label style="font-size:11px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:4px;"><i class="fas fa-shield-alt"></i> Account Status</label>
+                            <select name="social_status" id="socialStatusSelect" onchange="this.form.submit()"
+                                style="width:100%;padding:7px 8px;border:1px solid {% if social_status_filter %}#3498db{% else %}#ddd{% endif %};border-radius:5px;font-size:12px;height:32px;background:{% if social_status_filter %}#ebf5fb{% else %}white{% endif %};cursor:pointer;outline:none;">
+                                <option value="">All Status (excl. Perm. Block)</option>
+                                <option value="Active" {% if social_status_filter == 'Active' %}selected{% endif %}>🟢 Active</option>
+                                <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Block</option>
+                                <option value="Restricted" {% if social_status_filter == 'Restricted' %}selected{% endif %}>🟡 Restricted</option>
+                                <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
+                            </select>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:130px;">
+                            <label style="font-size:11px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:4px;"><i class="fas fa-building"></i> Department</label>
+                            <select name="social_department" id="socialDepartmentSelect" onchange="this.form.submit()"
+                                style="width:100%;padding:7px 8px;border:1px solid {% if social_department_filter %}#3498db{% else %}#ddd{% endif %};border-radius:5px;font-size:12px;height:32px;background:{% if social_department_filter %}#ebf5fb{% else %}white{% endif %};cursor:pointer;outline:none;">
+                                <option value="">All Departments</option>
+                                {% for dept in department_options %}
+                                <option value="{{ dept }}" {% if social_department_filter == dept %}selected{% endif %}>{{ dept }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;">
+                                <div id="numberTypeCountBadge" style="display:flex;gap:5px;align-items:center;flex-wrap:nowrap;"></div>
+                                <button type="button" onclick="clearSocialFilters()"
+                                    style="background:#e74c3c;color:white;border:none;padding:0 8px;border-radius:4px;
+                                        font-size:11px;font-weight:600;cursor:pointer;height:26px;display:flex;
+                                        align-items:center;gap:4px;white-space:nowrap;transition:background 0.2s;"
+                                    onmouseover="this.style.background='#c0392b'" 
+                                    onmouseout="this.style.background='#e74c3c'">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </button>
+                            </div> 
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <button type="button" onclick="goToUpdatePage()"
+                                    style="background:#3498db;color:white;border:none;padding:0 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:32px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background 0.2s;">
+                                    <i class="fas fa-edit"></i> Update Data
+                                </button>
+                                <button type="button" onclick="openInsertModal()"
+                                    style="background:#10b981;color:white;border:none;padding:0 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:32px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background 0.2s;">
+                                    <i class="fas fa-plus"></i> Insert Data
+                                </button>
+                                <button type="button" onclick="showPermanentAccounts()"
+                                    style="background:#ef4444;color:white;border:none;padding:0 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:32px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background 0.2s;">
+                                    <i class="fas fa-ban"></i> Permanent Block Accounts
+                                </button>
+                            </div>
+                        </div>
+                    </form>      
+                </div>
             </div>
             <div class="table-container">
                 <table id="socialMediaTable">
@@ -1812,7 +1840,7 @@
             'Instagram':      ['id','platform','department','login_user','number','login_device','account_status','mail_id','account_id','password'],
             'Telegram':       ['id','platform','department','login_user','number','login_device','account_status','full_name'],
             'WhatsApp':       ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','account_type'],
-            'Gmail Accounts': ['id','platform','department','account_status','mail_id','password'],
+            'Gmail Accounts': ['id','platform','department','login_user','account_status','mail_id','password'],
             'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator'],
         };
         const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
@@ -1832,6 +1860,11 @@
         (function initSocialColumns() {
             const sel = document.getElementById('socialPlatformSelect');
             if (sel) filterSocialColumns(sel.value);
+        })();
+        (function initNumberTypeCounts() {
+            if (document.querySelector('.social-page.active')) {
+                loadNumberTypeCounts();
+            }
         })();
         const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
         const _IS_ADMIN = {{ 'true' if current_user and current_user.is_admin else 'false' }};
@@ -1899,6 +1932,9 @@
             countEl.style.color = ids.length > 0 ? '#1e8449' : '#7f8c8d';
             btn.disabled = ids.length === 0;
             document.getElementById('shareStatusResult').style.display = 'none';
+        }
+        function clearSocialFilters() {
+            window.location.href = '/?page=social';
         }
         function _parseShareIds(raw) {
             return raw
@@ -2078,22 +2114,27 @@
         function goToUpdatePage() {
             _editModeActive = !_editModeActive;
             const socialPage = document.querySelector('.social-page');
-            const btn = document.querySelector('.action-btn.update');
+            const btn = document.querySelector('[onclick="goToUpdatePage()"]');
             const editTh = document.getElementById('editColTh');
-            const editTds = document.querySelectorAll('.edit-col-td');
             if (_editModeActive) {
-                socialPage.classList.add('edit-mode-active');
-                btn.innerHTML = '<i class="fas fa-times"></i> Exit Edit Mode';
-                btn.style.background = '#e74c3c';
                 if (editTh) editTh.style.display = '';
-                editTds.forEach(td => td.style.display = '');
-                showToast('Click Edit button on any row', false, false);
+                document.querySelectorAll('.edit-col-td').forEach(td => {
+                    td.style.setProperty('display', 'table-cell', 'important');
+                });
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-times"></i> Exit Edit Mode';
+                    btn.style.background = '#e74c3c';
+                }
+                showToast('Edit mode ON — click Edit on any row', false, false);
             } else {
-                socialPage.classList.remove('edit-mode-active');
-                btn.innerHTML = '<i class="fas fa-edit"></i> Update Data';
-                btn.style.background = '';
                 if (editTh) editTh.style.display = 'none';
-                editTds.forEach(td => td.style.display = 'none');
+                document.querySelectorAll('.edit-col-td').forEach(td => {
+                    td.style.setProperty('display', 'none', 'important');
+                });
+                if (btn) {
+                    btn.innerHTML = '<i class="fas fa-edit"></i> Update Data';
+                    btn.style.background = '#3498db';
+                }
                 closeEditDrawer();
                 showToast('Edit mode OFF', false, false);
             }
@@ -4121,6 +4162,31 @@
             let _scrapWsHeaders     = [];
             let _lastScrapSummary   = null;
             const SCRAP_SM_PLATFORMS = ['Telegram','WhatsApp','Facebook','Instagram','Threads','YouTube','X'];
+            async function loadNumberTypeCounts() {
+                const badge = document.getElementById('numberTypeCountBadge');
+                if (!badge) return;
+                badge.innerHTML = '<i class="fas fa-spinner fa-spin" style="color:#3498db;"></i> Loading...';
+                try {
+                    const resp = await fetch('/get-number-type-counts');
+                    const data = await resp.json();
+                    if (!data.success) { badge.innerHTML = ''; return; }
+                    const counts = data.counts;
+                    const total = (counts['Prepaid']||0) + (counts['Postpaid']||0) + (counts['Disposable Number']||0);
+                    badge.innerHTML = `
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:#e8f5e9;border:1px solid #81c784;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#1b5e20;">
+                        <i class="fas fa-sim-card" style="color:#2ecc71;"></i> Prepaid: <strong>${counts['Prepaid']||0}</strong>
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:#e3f2fd;border:1px solid #64b5f6;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#0d47a1;">
+                        <i class="fas fa-sim-card" style="color:#3498db;"></i> Postpaid: <strong>${counts['Postpaid']||0}</strong>
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:5px;background:#fff3e0;border:1px solid #ffb74d;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;color:#e65100;">
+                        <i class="fas fa-sim-card" style="color:#e67e22;"></i> Disposable: <strong>${counts['Disposable Number']||0}</strong>
+                    </span>
+                `;
+            } catch(e) {
+                badge.innerHTML = '';
+            }
+        }
             function onScrapSummaryTypeChange() {
                 const type = document.getElementById('scrapSummaryType').value;
                 const wsGroup = document.getElementById('scrapWsCategoryGroup');

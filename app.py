@@ -20,6 +20,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-change-this")
+app.permanent_session_lifetime = timedelta(hours=8)
 
 # ============================================================
 # AUTH HELPERS
@@ -770,7 +771,7 @@ def login():
         else:
             user = fetch_user_by_email(email)
             if user and user.get("password") == password:
-                session.permanent = False
+                session.permanent = True
                 session["user_id"]               = user["id"]
                 session["email"]                 = user["email"]
                 session["display_name"]          = user["display_name"]
@@ -915,6 +916,7 @@ def export_user_activity_log():
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/")
+
 
 # ============================================================
 # SCRAPING TRACKER STATS
@@ -1383,7 +1385,29 @@ def tracker_stats():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
+@app.route("/get-number-type-counts", methods=["GET"])
+@login_required
+def get_number_type_counts():
+    try:
+        is_admin = session.get("is_admin", False)
+        allowed_depts = session.get("allowed_departments")
+        number_types = ["Prepaid", "Postpaid", "Disposable Number"]
+        counts = {}
+        for nt in number_types:
+            q = social_supabase.table("social_media_accounts") \
+                .select("id", count='exact') \
+                .eq("number_type", nt) \
+                .neq("account_status", "Permanent Block")
+            if not is_admin and allowed_depts:
+                if len(allowed_depts) == 1:
+                    q = q.eq("department", allowed_depts[0])
+                else:
+                    q = q.in_("department", allowed_depts)
+            resp = q.execute()
+            counts[nt] = resp.count or 0
+        return jsonify({"success": True, "counts": counts})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 @app.route("/get-platform-counts", methods=["GET"])
 @login_required
 def get_platform_counts():
@@ -2626,7 +2650,6 @@ def investment_insights_data():
         for r in rows:
             sf = (r.get("search_for") or "Unknown").strip() or "Unknown"
             sf_counts[sf] = sf_counts.get(sf, 0) + 1
-
         return jsonify({
             "success": True,
             "total_rows": len(rows),
