@@ -44,8 +44,6 @@ DEMO_ADMIN = {
     "allowed_departments": ["ITC","AML", "Investment Scam", "Infringement", "Chargeback"],
     "created_at": "2025-01-01"
 }
-
-
 def fetch_user_by_email(email: str):
     if email.lower().strip() == DEMO_ADMIN["email"]:
         return DEMO_ADMIN
@@ -63,8 +61,6 @@ def fetch_user_by_email(email: str):
     except Exception as e:
         print(f"[AUTH] fetch_user_by_email error: {e}")
         return None
-
-
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -73,7 +69,6 @@ def login_required(f):
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
-
 def get_current_user():
     if "user_id" not in session:
         return None
@@ -86,12 +81,9 @@ def get_current_user():
         "can_view_activity_log": session.get("can_view_activity_log", False),
         "allowed_departments": session.get("allowed_departments"),
     }
-
-
 # ============================================================
 # ACTIVITY LOG HELPER
 # ============================================================
-
 def log_activity(action_type, target_table=None, target_record_id=None,
                  field_name=None, old_value=None, new_value=None, extra_info=None):
     try:
@@ -110,8 +102,6 @@ def log_activity(action_type, target_table=None, target_record_id=None,
         }).execute()
     except Exception as e:
         print(f"[ACTIVITY LOG] Failed to log activity: {e}")
-
-
 # ============================================================
 # Configuration
 # ============================================================
@@ -185,6 +175,11 @@ BS_INVESTMENT_SEARCH_FOR_OPTIONS = [
     "Web", "Telegram", "WhatsApp", "Facebook",
     "Instagram", "YouTube", "X", "Thread"
 ]
+BS_INVESTMENT_SM_SEARCH_FOR_VALUES = [
+    "Telegram", "WhatsApp", "Facebook", "Instagram",
+    "YouTube", "X", "Twitter", "Thread", "Threads",
+    "Snapchat", "TikTok", "LinkedIn", "Pinterest", "Reddit"
+]
 
 BS_INVESTMENT_WALLET_OPTIONS = [
     "UPI", "Bank Account", "Wallet"
@@ -218,7 +213,6 @@ ALLOWED_IMPORT_EXTENSIONS = {
     'xls', 'xla', 'xlam',
     'ods', 'ots',
 }
-
 
 def is_allowed_file(filename):
     if not filename:
@@ -991,8 +985,6 @@ def index():
 
     social_search = request.args.get("social_search", "").strip()
     social_platform = request.args.get("social_platform", "").strip()
-    social_update_data = request.args.get("update_data", "").strip()
-    social_activity_log = request.args.get("activity_log", "").strip()
     social_permanent_block = request.args.get("permanent_block", "").strip()
     social_status_filter = request.args.get("social_status", "").strip()
     social_department_filter = request.args.get("social_department", "").strip()
@@ -1140,8 +1132,6 @@ def index():
         date_to=date_to,
         social_search=social_search,
         social_platform=social_platform,
-        social_update_data=social_update_data,
-        social_activity_log=social_activity_log,
         social_permanent_block=social_permanent_block,
         social_status_filter=social_status_filter,
         social_department_filter=social_department_filter,
@@ -1437,32 +1427,6 @@ def get_platform_counts():
         return jsonify({"success": True, "platform_counts": platform_counts, "status_counts": status_counts})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-
-@app.route("/update-social-data", methods=["POST"])
-@login_required
-def update_social_data():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"})
-        account_id = data.get('id')
-        field = data.get('field')
-        value = data.get('value')
-        if not account_id or not field:
-            return jsonify({"success": False, "error": "Missing required fields: id and field"})
-        valid_fields = ['login_user', 'number', 'login_device', 'account_status',
-                        'review_status', 'blocked_date', 'unblock_date', 'recharge_date']
-        if field not in valid_fields:
-            return jsonify({"success": False, "error": f"Invalid field: {field}"})
-        response = social_supabase.table("social_media_accounts").update({field: value}).eq("id", account_id).execute()
-        if hasattr(response, 'data') and response.data:
-            return jsonify({"success": True, "message": "Data updated successfully"})
-        return jsonify({"success": False, "error": "No data was updated"})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-
-
 # ============================================================
 # SOCIAL IMPORT — with activity logging
 # ============================================================
@@ -1877,67 +1841,6 @@ def health_check():
             "ifsc_mapping": len(IFSC_MAPPING)
         }
     })
-
-
-# ============================================================
-# UPDATE SOCIAL ACCOUNTS PAGE
-# ============================================================
-@app.route("/update-social-accounts", methods=["GET"])
-@login_required
-def update_social_accounts():
-    search = request.args.get("search", "").strip()
-    platform = request.args.get("platform", "").strip()
-    account_status_filter = request.args.get("account_status_filter", "").strip()
-    department_filter = request.args.get("department_filter", "").strip()
-    page = int(request.args.get("page_num", 1))
-    query = social_supabase.table("social_media_accounts").select(
-        "id,login_user,number,login_device,account_status,review_status,blocked_date,unblock_date,recharge_date,platform,account_create_date,full_name,department",
-        count='exact'
-    )
-    query = query.neq("account_status", "Permanent Block")
-    allowed_depts = session.get("allowed_departments")
-    if allowed_depts:
-        if len(allowed_depts) == 1:
-            query = query.eq("department", allowed_depts[0])
-        else:
-            query = query.in_("department", allowed_depts)
-    if search:
-        like_term = f"%{search}%"
-        query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},platform.ilike.{like_term},account_status.ilike.{like_term}")
-    if platform: query = query.eq("platform", platform)
-    if department_filter: query = query.eq("department", department_filter)
-    if account_status_filter:
-        if account_status_filter == "Block": query = query.eq("account_status", "Block")
-        else: query = query.eq("account_status", account_status_filter)
-    query = query.order("id", desc=False)
-    offset = (page - 1) * PER_PAGE
-    query = query.range(offset, offset + PER_PAGE - 1)
-    try:
-        response = query.execute()
-        items = response.data or []
-        total_rows = response.count or 0
-        total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
-    except Exception as e:
-        print(f"[DEBUG] update_social_accounts error: {e}")
-        items = []
-        total_rows = 0
-        total_pages = 1
-    return render_template(
-        "update_social.html",
-        items=items,
-        search=search,
-        platform=platform,
-        account_status_filter=account_status_filter,
-        department_filter=department_filter,
-        page_num=page,
-        total_pages=total_pages,
-        total_rows=total_rows,
-        social_platform_options=SOCIAL_PLATFORM_OPTIONS,
-        platform_account_status=PLATFORM_ACCOUNT_STATUS,
-        department_options=DEPARTMENT_OPTIONS
-    )
-
-
 # ============================================================
 # SAVE SOCIAL FIELD — with old value fetch + activity logging
 # ============================================================
@@ -2349,7 +2252,6 @@ def check_scraping_duplicates():
                     "count": len(found),
                     "earliest_date": found[0].get("inserted_date") if found else None,
                 })
-
             except Exception as e:
                 results.append({"status": "ERROR", "count": 0, "error": str(e)})
 
@@ -2588,6 +2490,7 @@ def investment_insights_data():
         scam_type   = request.args.get("scam_type",   "").strip()
         wallet      = request.args.get("wallet",      "").strip()
         input_user  = request.args.get("input_user",  "").strip()
+        is_sm_search = search_for in ("__SM__", "SM Counts")
 
         CHUNK = 1000
         all_rows, offset = [], 0
@@ -2598,7 +2501,10 @@ def investment_insights_data():
             )
             if date_from:  q = q.gte("Inserted_date", date_from)
             if date_to:    q = q.lte("Inserted_date", date_to)
-            if search_for: q = q.eq("Search_for", search_for)
+            if is_sm_search:
+                q = q.in_("Search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
+            elif search_for:
+                q = q.eq("Search_for", search_for)
             if scam_type:  q = q.eq("Scam_type",  scam_type)
             if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
             if input_user: q = q.eq("Input_user", input_user)
@@ -2613,20 +2519,105 @@ def investment_insights_data():
 
         # ---------- unique UPI per date ----------
         upi_by_date = {}
+        upi_set = set()
         bank_set = set()
+        dated_rows = []
         for r in rows:
             d      = (r.get("inserted_date") or "")[:10]
             wallet_val = (r.get("upi_bank_account_wallet") or "").strip()
             upi    = (r.get("upi_vpa") or "").strip()
             bank_acc = (r.get("bank_account_number") or "").strip()
+            try:
+                parsed_date = datetime.strptime(d, "%Y-%m-%d").date() if d else None
+            except ValueError:
+                parsed_date = None
+            if parsed_date:
+                dated_rows.append((r, parsed_date))
             if not d: continue
             if d not in upi_by_date:
                 upi_by_date[d] = set()
             if wallet_val == "UPI" and upi and upi.upper() not in ("NA", "N/A", ""):
                 upi_by_date[d].add(upi)
+                upi_set.add(upi)
             if wallet_val == "Bank Account" and bank_acc and bank_acc.upper() not in ("NA", "N/A", ""):
                 bank_set.add(bank_acc)
         upi_series = {d: len(s) for d, s in sorted(upi_by_date.items())}
+
+        def _trend_bucket(start_date, end_date):
+            case_count = 0
+            upis = set()
+            banks = set()
+            for row, parsed_date in dated_rows:
+                if not (start_date <= parsed_date <= end_date):
+                    continue
+                case_count += 1
+                wallet_val = (row.get("upi_bank_account_wallet") or "").strip()
+                upi_val = (row.get("upi_vpa") or "").strip()
+                bank_val = (row.get("bank_account_number") or "").strip()
+                if wallet_val == "UPI" and upi_val and upi_val.upper() not in ("NA", "N/A", ""):
+                    upis.add(upi_val)
+                if wallet_val == "Bank Account" and bank_val and bank_val.upper() not in ("NA", "N/A", ""):
+                    banks.add(bank_val)
+            return {
+                "cases": case_count,
+                "upi": len(upis),
+                "bank": len(banks),
+            }
+
+        def _trend_series(start_date, end_date):
+            buckets = {}
+            current_date = start_date
+            while current_date <= end_date:
+                buckets[current_date] = {"cases": 0, "upis": set(), "banks": set()}
+                current_date += timedelta(days=1)
+            for row, parsed_date in dated_rows:
+                if parsed_date not in buckets:
+                    continue
+                buckets[parsed_date]["cases"] += 1
+                wallet_val = (row.get("upi_bank_account_wallet") or "").strip()
+                upi_val = (row.get("upi_vpa") or "").strip()
+                bank_val = (row.get("bank_account_number") or "").strip()
+                if wallet_val == "UPI" and upi_val and upi_val.upper() not in ("NA", "N/A", ""):
+                    buckets[parsed_date]["upis"].add(upi_val)
+                if wallet_val == "Bank Account" and bank_val and bank_val.upper() not in ("NA", "N/A", ""):
+                    buckets[parsed_date]["banks"].add(bank_val)
+            ordered_dates = sorted(buckets)
+            return {
+                "labels": [d.isoformat() for d in ordered_dates],
+                "cases": [buckets[d]["cases"] for d in ordered_dates],
+                "upi": [len(buckets[d]["upis"]) for d in ordered_dates],
+                "bank": [len(buckets[d]["banks"]) for d in ordered_dates],
+            }
+
+        def _trend_metric(current_value, previous_value):
+            delta = current_value - previous_value
+            pct = None if previous_value == 0 else round((delta / previous_value) * 100, 1)
+            return {"current": current_value, "previous": previous_value, "delta": delta, "percent": pct}
+
+        if dated_rows:
+            trend_end = max(parsed_date for _, parsed_date in dated_rows)
+            trend_start = trend_end - timedelta(days=29)
+            prev_end = trend_start - timedelta(days=1)
+            prev_start = prev_end - timedelta(days=29)
+            current_trend = _trend_bucket(trend_start, trend_end)
+            previous_trend = _trend_bucket(prev_start, prev_end)
+        else:
+            trend_end = datetime.utcnow().date()
+            trend_start = trend_end - timedelta(days=29)
+            prev_end = trend_start - timedelta(days=1)
+            prev_start = prev_end - timedelta(days=29)
+            current_trend = {"cases": 0, "upi": 0, "bank": 0}
+            previous_trend = {"cases": 0, "upi": 0, "bank": 0}
+        trend_30d = {
+            "period_start": trend_start.isoformat(),
+            "period_end": trend_end.isoformat(),
+            "previous_start": prev_start.isoformat(),
+            "previous_end": prev_end.isoformat(),
+            "cases": _trend_metric(current_trend["cases"], previous_trend["cases"]),
+            "upi": _trend_metric(current_trend["upi"], previous_trend["upi"]),
+            "bank": _trend_metric(current_trend["bank"], previous_trend["bank"]),
+            "series": _trend_series(trend_start, trend_end),
+        }
 
         # ---------- user counts per date ----------
         user_by_date = {}
@@ -2653,7 +2644,9 @@ def investment_insights_data():
         return jsonify({
             "success": True,
             "total_rows": len(rows),
+            "unique_upi_count": len(upi_set),
             "unique_bank_count": len(bank_set),
+            "trend_30d": trend_30d,
             "upi_series":   upi_series,
             "user_by_date": {d: user_by_date[d] for d in sorted(user_by_date)},
             "all_users":    all_users,
@@ -2664,6 +2657,66 @@ def investment_insights_data():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
+@app.route("/investment-bank-data", methods=["GET"])
+@login_required
+def investment_bank_data():
+    try:
+        date_from  = request.args.get("date_from",  "").strip()
+        date_to    = request.args.get("date_to",    "").strip()
+        search_for = request.args.get("search_for", "").strip()
+        scam_type  = request.args.get("scam_type",  "").strip()
+        wallet     = request.args.get("wallet",     "").strip()
+        input_user = request.args.get("input_user", "").strip()
+        is_sm_search = search_for in ("__SM__", "SM Counts")
+
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            q = supabase.table("BS_Investment_Scam").select(
+                "Bank_name,Inserted_date,Search_for,Input_user"
+            )
+            if date_from:  q = q.gte("Inserted_date", date_from)
+            if date_to:    q = q.lte("Inserted_date", date_to)
+            if is_sm_search:
+                q = q.in_("Search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
+            elif search_for:
+                q = q.eq("Search_for", search_for)
+            if scam_type:  q = q.eq("Scam_type", scam_type)
+            if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
+            if input_user: q = q.eq("Input_user", input_user)
+            resp  = q.order("Inserted_date", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
+
+        bank_counts = {}
+        for r in rows:
+            bn = (r.get("bank_name") or "Unknown").strip()
+            if not bn or bn.upper() in ("NA", "N/A", ""):
+                bn = "Unknown"
+            bank_counts[bn] = bank_counts.get(bn, 0) + 1
+
+        sorted_banks = sorted(bank_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+
+        monthly_counts = {}
+        for r in rows:
+            d = (r.get("inserted_date") or "")[:7]
+            if not d:
+                continue
+            monthly_counts[d] = monthly_counts.get(d, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "bank_counts": dict(sorted_banks),
+            "monthly_counts": {k: monthly_counts[k] for k in sorted(monthly_counts)},
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
     load_config()
