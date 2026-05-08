@@ -2758,13 +2758,17 @@ def website_directory():
         if wd_search:
             lt = f"%{wd_search}%"
             query = query.or_(
-                f"url.ilike.{lt},final_url.ilike.{lt},"
-                f"name.ilike.{lt},group_app_name.ilike.{lt},"
-                f"login_id.ilike.{lt},number.ilike.{lt},"
-                f"email.ilike.{lt},invitation_code.ilike.{lt}"
-            )
+                f"url.ilike.%{wd_search}%,"
+                f"final_url.ilike.%{wd_search}%,"
+                f"name.ilike.%{wd_search}%,"
+                f"group_app_name.ilike.%{wd_search}%,"
+                f"login_id.ilike.%{wd_search}%,"
+                f"number.ilike.%{wd_search}%,"
+                f"email.ilike.%{wd_search}%,"
+                f"invitation_code.ilike.%{wd_search}%"
+            )             
         if wd_remark:
-            query = query.ilike("remark", f"%{wd_remark}%")
+            query = query.eq("remark", wd_remark)
         if wd_category:
             query = query.eq("category", wd_category)
         if wd_search_for:
@@ -2903,14 +2907,18 @@ def website_directory_export():
         while True:
             q = supabase.table("website_directory").select("*")
             if wd_search:
-                lt = f"%{wd_search}%"
-                q = q.or_(
-                    f"url.ilike.{lt},final_url.ilike.{lt},"
-                    f"name.ilike.{lt},group_app_name.ilike.{lt},"
-                    f"login_id.ilike.{lt},number.ilike.{lt},"
-                    f"email.ilike.{lt},invitation_code.ilike.{lt}"
-                )
-            if wd_remark:    q = q.ilike("remark",     f"%{wd_remark}%")
+                    lt = f"%{wd_search}%"
+                    query = query.or_(
+                        f"url.ilike.{lt},"
+                        f"final_url.ilike.{lt},"
+                        f"name.ilike.{lt},"
+                        f"group_app_name.ilike.{lt},"
+                        f"login_id.ilike.{lt},"
+                        f"number.ilike.{lt},"
+                        f"email.ilike.{lt},"
+                        f"invitation_code.ilike.{lt}"
+                    )
+            if wd_remark:    q = q.eq("remark", wd_remark)
             if wd_category:  q = q.eq("category",      wd_category)
             if wd_search_for:q = q.eq("search_for",    wd_search_for)
             if wd_date_from: q = q.gte("date",          wd_date_from)
