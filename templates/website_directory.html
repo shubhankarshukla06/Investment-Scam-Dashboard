@@ -1,0 +1,1901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Investment Scam Website Directory — Scam Intelligence Dashboard</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
+.fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#f5f7fa; padding:12px 15px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
+.header { background:white; border-radius:8px; padding:12px 15px; box-shadow:0 1px 8px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+.logo h1 { font-size:18px; color:#2c3e50; }
+.logo-sub { display:flex; align-items:center; gap:10px; }
+.header-username { font-size:12px; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
+.logo p { color:#7f8c8d; font-size:12px; margin-top:2px; }
+.header-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.btn { padding:6px 12px; border:none; border-radius:5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; font-size:12px; transition:all 0.2s; white-space:nowrap; height:34px; }
+.btn-primary  { background:#3498db; color:white; }
+.btn-primary:hover  { background:#2980b9; }
+.btn-success  { background:#2ecc71; color:white; }
+.btn-success:hover  { background:#27ae60; }
+.btn-warning  { background:#f39c12; color:white; }
+.btn-warning:hover  { background:#e67e22; }
+.btn-outline  { background:white; color:#3498db; border:1.5px solid #3498db; }
+.btn-outline:hover  { background:#f0f7ff; }
+.btn-danger   { background:#e74c3c; color:white; }
+.btn-danger:hover   { background:#c0392b; }
+.btn-purple   { background:#8e44ad; color:white; }
+.btn-purple:hover   { background:#6c3483; }
+.container { padding:10px 15px 30px; padding-top:100px; }
+
+/* Page Selector */
+.page-selector { display:flex; align-items:center; gap:6px; }
+.page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
+.page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:160px; height:34px; }
+.page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
+
+/* Filters */
+.filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.08); }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+.filters-header h2 { font-size:14px; color:#2c3e50; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+.filter-group { display:flex; flex-direction:column; gap:4px; }
+.filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
+.filter-group input, .filter-group select { width:100%; padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height:34px; outline:none; }
+.filter-group input:focus, .filter-group select:focus { border-color:#3498db; box-shadow:0 0 0 2px rgba(52,152,219,0.2); }
+.filter-group input.active-filter, .filter-group select.active-filter { border-color:#3498db; background:#ebf5fb; }
+.search-box { position:relative; }
+.search-box input { padding-left:30px !important; }
+.search-icon { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:#7f8c8d; font-size:13px; }
+.date-range-group { display:flex; gap:5px; align-items:center; }
+.date-range-group input { flex:1; height:34px; }
+.date-range-sep { font-size:11px; color:#7f8c8d; white-space:nowrap; }
+.clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
+.clear-btn:hover { background:#c0392b; }
+
+/* Table */
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 300px); }
+table { width:max-content; min-width:100%; border-collapse:collapse; }
+th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
+th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
+th:last-child { border-right:none; }
+tr:hover { background:#f8fffe; }
+
+/* Column width overrides */
+.col-inv-code { max-width:90px; min-width:70px; }
+.col-final-url { min-width:240px; max-width:320px; }
+.col-url { min-width:200px; max-width:280px; }
+
+/* Badges */
+.cat-badge { padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700; white-space:nowrap; }
+.sf-badge  { padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; white-space:nowrap; }
+.url-link  { color:#3498db; text-decoration:none; font-size:11px; display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.url-link:hover { text-decoration:underline; }
+.copy-btn  { background:none; border:none; color:#3498db; cursor:pointer; padding:2px 4px; border-radius:3px; font-size:10px; vertical-align:middle; }
+.copy-btn:hover { background:#f0f7ff; }
+.field-cell { display:flex; align-items:center; gap:4px; }
+.na-cell { color:#95a5a6; font-style:italic; font-size:11px; }
+
+/* Pagination */
+.pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:8px; background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); margin-top:10px; }
+.pag-btn { padding:5px 10px; background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px; height:30px; }
+.pag-btn:hover:not(:disabled) { background:#2980b9; }
+.pag-btn:disabled { background:#bdc3c7; cursor:not-allowed; }
+.pag-info { color:#7f8c8d; font-size:12px; }
+
+/* Modals */
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.72); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:white; border-radius:12px; width:100%; max-width:900px; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.25); animation:modalIn 0.25s ease; }
+.modal-box.sm { max-width:420px; }
+@keyframes modalIn { from{transform:scale(0.95) translateY(-8px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+.modal-hdr { padding:14px 20px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; color:white; }
+.modal-hdr h2 { font-size:15px; margin:0; display:flex; align-items:center; gap:8px; }
+.modal-close { background:none; border:none; color:white; font-size:18px; cursor:pointer; padding:4px 8px; border-radius:4px; line-height:1; }
+.modal-close:hover { background:rgba(255,255,255,0.2); }
+.modal-body { padding:20px; overflow-y:auto; flex-grow:1; }
+.modal-footer { padding:12px 20px; background:#f8f9fa; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-group label { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
+.form-group input, .form-group select, .form-group textarea { padding:8px 10px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:12px; background:white; color:#2c3e50; outline:none; height:34px; }
+.form-group textarea { height:70px; resize:vertical; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.12); }
+
+/* Tracker */
+.tracker-body { padding:20px; overflow-y:auto; flex-grow:1; }
+.tracker-banner { background:linear-gradient(135deg,#27ae60,#1e8449); border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; color:white; }
+.tracker-banner .bl { font-size:13px; font-weight:600; opacity:0.9; display:flex; align-items:center; gap:8px; }
+.tracker-banner .bn { font-size:24px; font-weight:800; }
+.t-section-title { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px; margin:14px 0 10px; display:flex; align-items:center; gap:8px; }
+.t-section-title::after { content:''; flex:1; height:1px; background:#eee; }
+.t-card { background:#f8f9fa; border-radius:8px; padding:12px 14px; margin-bottom:8px; border:1px solid #e9ecef; display:flex; justify-content:space-between; align-items:center; }
+.t-card:hover { background:#f0fff4; }
+.t-card-label { font-size:13px; color:#2c3e50; font-weight:600; display:flex; align-items:center; gap:8px; }
+.t-card-label i { color:#27ae60; font-size:14px; }
+.t-card-count { background:#27ae60; color:white; padding:3px 12px; border-radius:12px; font-size:13px; font-weight:700; min-width:40px; text-align:center; }
+.t-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid; margin:3px 3px 3px 0; }
+.pill-web   { background:#e3f2fd; color:#0d47a1; border-color:#90caf9; }
+.pill-app   { background:#e8f5e9; color:#1b5e20; border-color:#a5d6a7; }
+.pill-webap { background:#fff3e0; color:#e65100; border-color:#ffb74d; }
+.pill-unk   { background:#f5f5f5; color:#616161; border-color:#bdbdbd; }
+.chart-wrap { position:relative; height:200px; margin-top:10px; }
+
+/* Toast & Loading */
+.toast { position:fixed; bottom:20px; right:12px; background:#2c3e50; color:white; padding:8px 16px; border-radius:6px; font-size:12px; animation:fadeUp 0.3s; z-index:3000; box-shadow:0 4px 10px rgba(0,0,0,0.15); }
+.toast.err { background:#e74c3c; }
+.toast.ok  { background:#2ecc71; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.9); display:none; justify-content:center; align-items:center; z-index:2000; }
+.spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:35px; height:35px; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.flash-message { position:fixed; top:12px; right:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-left:4px solid #2ecc71; display:flex; align-items:center; gap:6px; z-index:1001; font-size:13px; animation:slideIn 0.3s ease; max-width:320px; }
+.flash-message.error { border-left-color:#e74c3c; }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+.empty-state { text-align:center; padding:50px 20px; color:#95a5a6; }
+.empty-state i { font-size:40px; display:block; margin-bottom:14px; color:#dde3ed; }
+.tracker-toggle { display:flex; gap:8px; padding:12px 20px 0; border-bottom:1px solid #eee; background:white; flex-wrap:wrap; flex-shrink:0; }
+.t-toggle-btn { padding:6px 16px; border:2px solid #27ae60; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; background:white; color:#27ae60; }
+.t-toggle-btn:hover { background:#f0fff4; }
+.t-toggle-btn.active { background:#27ae60; color:white; box-shadow:0 2px 8px rgba(39,174,96,0.35); }
+.dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; box-shadow:-2px -2px 6px rgba(0,0,0,0.12); }
+.dev-credit-footer span { color:#3498db; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<!-- Tracker Modal -->
+<div class="modal-overlay" id="trackerModal">
+    <div class="modal-box" style="max-width:820px;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
+            <h2><i class="fas fa-chart-bar"></i> Website Directory Tracker</h2>
+            <button class="modal-close" onclick="closeModal('trackerModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="tracker-toggle">
+            <button class="t-toggle-btn active" id="tBtn1" onclick="setTrackerView('category')"><i class="fas fa-list"></i> By Category</button>
+            <button class="t-toggle-btn" id="tBtn2" onclick="setTrackerView('searchfor')"><i class="fas fa-globe"></i> By Search For</button>
+            <button class="t-toggle-btn" id="tBtn3" onclick="setTrackerView('remark')"><i class="fas fa-comment"></i> By Remark</button>
+            <button class="t-toggle-btn" id="tBtn4" onclick="setTrackerView('trend')"><i class="fas fa-chart-line"></i> Daily Trend</button>
+        </div>
+        <div class="tracker-body" id="trackerBody">
+            <div class="empty-state"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:14px;">Loading...</p></div>
+        </div>
+    </div>
+</div>
+
+<!-- Insert Modal -->
+<div class="modal-overlay" id="insertModal">
+    <div class="modal-box">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
+            <h2><i class="fas fa-plus-circle"></i> Insert New Record</h2>
+            <button class="modal-close" onclick="closeModal('insertModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="display:flex;gap:0;border-bottom:2px solid #e9ecef;background:white;flex-shrink:0;">
+            <button id="insTabSingle" onclick="switchInsertTab('single')"
+                style="padding:9px 20px;border:none;background:#27ae60;color:white;font-size:12px;font-weight:700;cursor:pointer;border-radius:0;transition:all 0.2s;">
+                <i class="fas fa-plus"></i> Single Entry
+            </button>
+            <button id="insTabBulk" onclick="switchInsertTab('bulk')"
+                style="padding:9px 20px;border:none;background:white;color:#7f8c8d;font-size:12px;font-weight:700;cursor:pointer;border-radius:0;transition:all 0.2s;border-left:1px solid #e9ecef;">
+                <i class="fas fa-list-ul"></i> Bulk URLs
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="insTabSingleContent">
+            <div class="form-grid" id="insertFormGrid">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="ins_date">
+                </div>
+                <div class="form-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">URL</label><input type="text" id="ins_url" placeholder="https://example.com" oninput="onInsUrlInput(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="ins_final_url" placeholder="https://final.example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                </div>
+                <div class="form-group">
+                    <label>Invitation Code</label>
+                    <input type="text" id="ins_invitation_code" placeholder="e.g. 43DE7D2E or NA">
+                </div>
+                <div class="form-group">
+                    <label>Search For</label>
+                    <select id="ins_search_for">
+                        <option value="">-- Select --</option>
+                        <option value="Web">Web</option>
+                        <option value="App">App</option>
+                        <option value="Web/App">Web/App</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Group / App Name</label>
+                    <input type="text" id="ins_group_app_name" placeholder="Group or App name">
+                </div>
+                <div class="form-group">
+                    <label>Number</label>
+                    <input type="text" id="ins_number" placeholder="+91XXXXXXXXXX or NA">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="text" id="ins_email" placeholder="user@example.com or NA">
+                </div>
+                <div class="form-group">
+                    <label>Login ID (number / email / username)</label>
+                    <input type="text" id="ins_login_id" placeholder="Any login identifier">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="text" id="ins_password" placeholder="Password or NA">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="ins_category">
+                        <option value="">-- Select --</option>
+                        {% for c in wd_category_options %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Origin</label>
+                    <input type="text" id="ins_origin" placeholder="India / Unknown">
+                </div>
+                <div class="form-group">
+                    <label>Automated Website</label>
+                    <input type="text" id="ins_automated_website" placeholder="Yes / No / NA">
+                </div>
+                <div class="form-group" style="grid-column:span 2;">
+                    <label>Payment Gateway</label>
+                    <input type="text" id="ins_payment_gateway" placeholder="Payment gateway URL or name">
+                </div>
+                <div class="form-group" style="grid-column:span 2;">
+                    <label>Remark</label>
+                    <select id="ins_remark">
+                        <option value="">-- Select Remark --</option>
+                        <option value="IPG" selected>IPG</option>
+                        <option value="OTP Issue">OTP Issue</option>
+                        <option value="Signup Issue">Signup Issue</option>
+                        <option value="Website Not Working">Website Not Working</option>
+                        <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                        <option value="IPG">IPG</option>
+                        <option value="UPI Not Available">UPI Not Available</option>
+                        <option value="Login Issue">Login Issue</option>
+                        <option value="Payment Processing Error">Payment Processing Error</option>
+                        <option value="Deposit Section Issues">Deposit Section Issues</option>
+                        <option value="Need New Credentials">Need New Credentials</option>
+                        <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+                    </select>
+                </div>
+            </div>
+            </div>
+
+            <!-- BULK TAB CONTENT -->
+            <div id="insTabBulkContent" style="display:none;">
+                <div style="background:#e8f8f5;border:1px solid #a2d9ce;border-radius:6px;padding:8px 14px;font-size:12px;color:#117a65;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-info-circle" style="flex-shrink:0;"></i>
+                    Paste one URL per line. Select common fields below — they will apply to all rows.
+                </div>
+                <div style="margin-bottom:14px;">
+                    <label style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                        <i class="fas fa-paste"></i> URLs (per line)
+                    </label>
+                    <textarea id="ins_bulk_url_input" rows="5"
+                        placeholder="https://site1.com&#10;https://site2.com&#10;https://site3.com"
+                        oninput="onInsBulkUrlInput()"
+                        style="width:100%;padding:10px 12px;border:1.5px solid #a2d9ce;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:100px;box-sizing:border-box;"></textarea>
+                    <span id="ins_bulk_url_count" style="font-size:11px;color:#7f8c8d;display:block;margin-top:4px;"></span>
+                </div>
+                <div style="background:#f0fdf9;border:1px solid #a2d9ce;border-radius:8px;padding:14px 16px;margin-bottom:14px;">
+                    <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;"><i class="fas fa-sliders-h"></i> Common Fields</div>
+                    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="ins_bulk_date">
+                        </div>
+                        <div class="form-group">
+                            <label>Search For</label>
+                            <select id="ins_bulk_search_for">
+                                <option value="">-- Select --</option>
+                                <option value="Web">Web</option>
+                                <option value="App">App</option>
+                                <option value="Web/App">Web/App</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Group / App Name</label>
+                            <input type="text" id="ins_bulk_group_app_name" placeholder="Common app/group name">
+                        </div>
+                        <div class="form-group">
+                            <label>Remark</label>
+                            <select id="ins_bulk_remark">
+                                <option value="">-- Select --</option>
+                                <option value="IPG" selected>IPG</option>
+                                <option value="OTP Issue">OTP Issue</option>
+                                <option value="Signup Issue">Signup Issue</option>
+                                <option value="Website Not Working">Website Not Working</option>
+                                <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                                <option value="IPG">IPG</option>
+                                <option value="UPI Not Available">UPI Not Available</option>
+                                <option value="Login Issue">Login Issue</option>
+                                <option value="Payment Processing Error">Payment Processing Error</option>
+                                <option value="Deposit Section Issues">Deposit Section Issues</option>
+                                <option value="Need New Credentials">Need New Credentials</option>
+                                <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Origin</label>
+                            <input type="text" id="ins_bulk_origin" placeholder="India / Unknown">
+                        </div>
+                        <div class="form-group" style="grid-column:span 2;">
+                            <label>Category</label>
+                            <select id="ins_bulk_category">
+                                <option value="">-- Select --</option>
+                                {% for c in wd_category_options %}
+                                <option value="{{ c }}">{{ c }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="ins_bulk_preview_area" style="display:none;">
+                    <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;"><i class="fas fa-eye"></i> Preview — <span id="ins_bulk_preview_count"></span> records</div>
+                    <div style="border:1px solid #a2d9ce;border-radius:6px;overflow:hidden;max-height:200px;overflow-y:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                            <thead>
+                            <tr style="background:#e8f8f5;position:sticky;top:0;">
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">#</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">URL</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Search For</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Remark</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Origin</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ins_bulk_preview_tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeModal('insertModal')">Cancel</button>
+            <button class="btn btn-success" onclick="submitInsert()" id="insertSubmitBtn" style="display:inline-flex;"><i class="fas fa-save"></i> Insert Record</button>
+            <button class="btn btn-outline" onclick="parseInsBulkUrls()" id="insBulkPreviewBtn" style="display:none;border-color:#1abc9c;color:#1abc9c;"><i class="fas fa-eye"></i> Preview</button>
+            <button class="btn btn-success" onclick="submitInsBulk()" id="insBulkSubmitBtn" style="display:none;background:#1abc9c;opacity:0.5;" disabled><i class="fas fa-save"></i> Insert All</button>
+        </div>
+    </div>
+</div>
+<!-- Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box" style="max-width:960px;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#8e44ad,#6c3483);">
+            <h2><i class="fas fa-edit"></i> Edit Record <span id="editRecordIdLabel" style="opacity:0.8;font-size:13px;"></span></h2>
+            <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit_id">
+            <div class="form-grid">
+                <div class="form-group"><label>Date</label><input type="date" id="edit_date"></div>
+                <div class="form-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">URL</label><input type="text" id="edit_url" placeholder="https://example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="edit_final_url" placeholder="https://final.example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                </div>
+                <div class="form-group"><label>Invitation Code</label><input type="text" id="edit_invitation_code"></div>
+                <div class="form-group"><label>Search For</label>
+                    <select id="edit_search_for">
+                        <option value="">-- Select --</option>
+                        <option value="Web">Web</option>
+                        <option value="App">App</option>
+                        <option value="Web/App">Web/App</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Group / App Name</label><input type="text" id="edit_group_app_name"></div>
+                <div class="form-group"><label>Number</label><input type="text" id="edit_number"></div>
+                <div class="form-group"><label>Email</label><input type="text" id="edit_email"></div>
+                <div class="form-group"><label>Login ID</label><input type="text" id="edit_login_id"></div>
+                <div class="form-group"><label>Password</label><input type="text" id="edit_password"></div>
+                <div class="form-group"><label>Category</label>
+                    <select id="edit_category">
+                        <option value="">-- Select --</option>
+                        {% for c in wd_category_options %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group"><label>Origin</label><input type="text" id="edit_origin"></div>
+                <div class="form-group"><label>Automated Website</label><input type="text" id="edit_automated_website" placeholder="Yes / No / NA"></div>
+                <div class="form-group" style="grid-column:span 2;"><label>Payment Gateway</label><input type="text" id="edit_payment_gateway"></div>
+                <div class="form-group" style="grid-column:span 2;"><label>Remark</label>
+                    <select id="edit_remark">
+                        <option value="">-- Select Remark --</option>
+                        <option value="OTP Issue">OTP Issue</option>
+                        <option value="Signup Issue">Signup Issue</option>
+                        <option value="Website Not Working">Website Not Working</option>
+                        <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                        <option value="IPG">IPG</option>
+                        <option value="UPI Not Available">UPI Not Available</option>
+                        <option value="Login Issue">Login Issue</option>
+                        <option value="Payment Processing Error">Payment Processing Error</option>
+                        <option value="Deposit Section Issues">Deposit Section Issues</option>
+                        <option value="Need New Credentials">Need New Credentials</option>
+                        <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between;">
+            <button class="btn btn-danger" onclick="askDeleteFromEdit()" id="editDeleteBtn"><i class="fas fa-trash"></i> Delete Record</button>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+                <button class="btn btn-purple" onclick="submitEdit()" id="editSubmitBtn"><i class="fas fa-save"></i> Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+ <!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-box sm">
+        <div class="modal-hdr" style="background:#e74c3c;">
+            <h2><i class="fas fa-trash"></i> Delete Record?</h2>
+            <button class="modal-close" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:28px;">
+            <div style="font-size:44px;color:#e74c3c;margin-bottom:14px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <p style="font-size:14px;color:#2c3e50;margin-bottom:8px;">Delete Record <strong id="deleteRecordId" style="color:#e74c3c;"></strong>?</p>
+            <p style="font-size:12px;color:#7f8c8d;">This is permanent and cannot be undone.</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;gap:14px;">
+            <button class="btn btn-outline" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i> Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()" id="confirmDeleteBtn"><i class="fas fa-trash"></i> Yes, Delete</button>
+        </div>
+    </div>
+</div>
+<!-- Bulk URL Paste Modal -->
+<div class="modal-overlay" id="bulkInsertModal">
+    <div class="modal-box" style="max-width:860px;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#1abc9c,#16a085);">
+            <h2><i class="fas fa-list-ul"></i> Bulk URL Paste — Insert Records</h2>
+            <button class="modal-close" onclick="closeModal('bulkInsertModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding:16px 20px;">
+            <div style="background:#e8f8f5;border:1px solid #a2d9ce;border-radius:6px;padding:8px 14px;font-size:12px;color:#117a65;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-info-circle" style="flex-shrink:0;"></i>
+                Paste one URL per line. Choose the common fields below that will apply to all rows.
+            </div>
+            <!-- URL Paste Area -->
+            <div style="margin-bottom:14px;">
+                <label style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                    <i class="fas fa-paste"></i> URLs (per line)
+                </label>
+                <textarea id="bulkUrlInput" rows="6"
+                    placeholder="https://site1.com&#10;https://site2.com&#10;https://site3.com"
+                    oninput="onBulkUrlInput()"
+                    style="width:100%;padding:10px 12px;border:1.5px solid #a2d9ce;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:110px;box-sizing:border-box;"></textarea>
+                <span id="bulkUrlCount" style="font-size:11px;color:#7f8c8d;display:block;margin-top:4px;"></span>
+            </div>
+            <!-- Common Fields -->
+            <div style="background:#f0fdf9;border:1px solid #a2d9ce;border-radius:8px;padding:14px 16px;margin-bottom:14px;">
+                <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;"><i class="fas fa-sliders-h"></i> Common Fields (sabhi rows pe apply honge)</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+                    <div class="form-group">
+                        <label>Date</label>
+                        <input type="date" id="bulk_date">
+                    </div>
+                    <div class="form-group">
+                        <label>Search For</label>
+                        <select id="bulk_search_for">
+                            <option value="">-- Select --</option>
+                            <option value="Web">Web</option>
+                            <option value="App">App</option>
+                            <option value="Web/App">Web/App</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Group / App Name</label>
+                        <input type="text" id="bulk_group_app_name" placeholder="Common app/group name">
+                    </div>
+                    <div class="form-group">
+                        <label>Remark</label>
+                        <select id="bulk_remark">
+                            <option value="">-- Select --</option>
+                            <option value="IPG" selected>IPG</option>
+                            <option value="OTP Issue">OTP Issue</option>
+                            <option value="Signup Issue">Signup Issue</option>
+                            <option value="Website Not Working">Website Not Working</option>
+                            <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                            <option value="IPG">IPG</option>
+                            <option value="UPI Not Available">UPI Not Available</option>
+                            <option value="Login Issue">Login Issue</option>
+                            <option value="Payment Processing Error">Payment Processing Error</option>
+                            <option value="Deposit Section Issues">Deposit Section Issues</option>
+                            <option value="Need New Credentials">Need New Credentials</option>
+                            <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Origin</label>
+                        <input type="text" id="bulk_origin" placeholder="India / Unknown">
+                    </div>
+                    <div class="form-group" style="grid-column:span 2;">
+                        <label>Category</label>
+                        <select id="bulk_category">
+                    </div>
+                            <option value="">-- Select --</option>
+                            {% for c in wd_category_options %}
+                            <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <!-- Preview Table -->
+            <div id="bulkPreviewArea" style="display:none;">
+                <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;"><i class="fas fa-eye"></i> Preview — <span id="bulkPreviewCount"></span> records</div>
+                <div style="border:1px solid #a2d9ce;border-radius:6px;overflow:hidden;max-height:260px;overflow-y:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                        <thead>
+                            <tr style="background:#e8f8f5;position:sticky;top:0;z-index:1;">
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">#</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">URL</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Search For</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Remark</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Origin</th>
+                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bulkPreviewTbody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer" style="justify-content:space-between;align-items:center;">
+            <button class="btn btn-outline" onclick="parseBulkUrls()" style="border-color:#1abc9c;color:#1abc9c;">
+                <i class="fas fa-eye"></i> Preview
+            </button>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-outline" onclick="closeModal('bulkInsertModal')">Cancel</button>
+                <button class="btn btn-success" onclick="submitBulkInsert()" id="bulkSubmitBtn" disabled style="background:#1abc9c;opacity:0.5;">
+                    <i class="fas fa-save"></i> Insert All
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Helping Modal — 5 columns: Final URL | Login ID | Password | Origin | Category -->
+<div class="modal-overlay" id="helpingModal">
+    <div class="modal-box" style="max-width:1100px;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#8e44ad,#6c3483);">
+            <h2><i class="fas fa-magic"></i> Helping — Website Data Finder</h2>
+            <button class="modal-close" onclick="closeModal('helpingModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding:16px 20px;">
+            <div style="background:#f9f0ff;border:1px solid #d7b8f5;border-radius:6px;padding:8px 14px;font-size:12px;color:#6c3483;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-info-circle" style="color:#8e44ad;flex-shrink:0;"></i>
+                Paste URLs — <strong>Final URL, Login ID, Password, Origin, Category</strong> auto-fill from directory.
+            </div>
+            <div style="margin-bottom:12px;">
+                <label style="font-size:11px;font-weight:700;color:#6c3483;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                    <i class="fas fa-paste"></i> URLs Paste
+                </label>
+                <textarea id="helpingPasteInput" rows="4"
+                    placeholder="https://example.com&#10;https://site2.com&#10;https://site3.com"
+                    oninput="onHelpingPasteInput()"
+                    style="width:100%;padding:10px 12px;border:1.5px solid #d7b8f5;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:85px;box-sizing:border-box;">
+                </textarea>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                    <span id="helpingPasteCount" style="font-size:11px;color:#7f8c8d;"></span>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="parseHelpingUrls()" id="helpingSearchBtn"
+                            style="padding:6px 16px;background:#8e44ad;color:white;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button onclick="clearHelpingAll()"
+                            style="padding:6px 12px;background:#e74c3c;color:white;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:30px;">
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div id="helpingLoadingBar" style="display:none;background:#f3e5f5;border-radius:6px;padding:10px 14px;font-size:12px;color:#6c3483;font-weight:600;align-items:center;gap:8px;margin-bottom:12px;">
+                <i class="fas fa-spinner fa-spin" style="color:#8e44ad;"></i>
+                <span id="helpingLoadingText">Searching...</span>
+            </div>
+            <div id="helpingProgressBar" style="display:none;background:#ede3f7;border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden;">
+                <div id="helpingProgressFill" style="height:100%;background:#8e44ad;transition:width 0.3s;width:0%;border-radius:4px;"></div>
+            </div>
+            <div id="helpingResultsArea" style="display:none;">
+                <div id="helpingSummary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;"></div>
+                <!-- 5-column header: Final URL | Login ID | Password | Origin | Category -->
+                <div style="background:#f3e5f5;border-radius:6px 6px 0 0;padding:7px 10px;display:grid;grid-template-columns:2.2fr 1.5fr 1.5fr 1fr 1.3fr;gap:8px;align-items:center;border-bottom:2px solid #ce93d8;">
+                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Final URL</span>
+                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Login ID</span>
+                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Password</span>
+                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Origin</span>
+                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Category</span>
+                </div>
+                <div id="helpingResultsList" style="border:1px solid #e9d8f5;border-top:none;border-radius:0 0 6px 6px;max-height:420px;overflow-y:auto;"></div>
+                <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
+                    <button onclick="copyHelpingResults()"
+                        style="padding:6px 14px;background:#27ae60;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                        <i class="fas fa-copy"></i> Copy CSV
+                    </button>
+                    <button onclick="exportHelpingCSV()"
+                        style="padding:6px 14px;background:#3498db;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                        <i class="fas fa-file-export"></i> Export CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed Header -->
+<div class="fixed-header">
+    <div class="header">
+        <div class="logo">
+            <div class="logo-sub">
+                <h1><i class="fas fa-globe" style="color:#27ae60;margin-right:6px;"></i>Website Directory</h1>
+                <span class="header-username"><i class="fas fa-user-circle" style="color:#27ae60;font-size:11px;"></i> {{ display_name }}</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- Page Selector Dropdown -->
+            <div class="page-selector">
+                <label><i class="fas fa-columns"></i> Page:</label>
+                <select class="page-select" onchange="changePageFromWD(this.value)">
+                    {% if 'scraping' in allowed_pages %}
+                    <option value="scraping">Scraping Data</option>
+                    {% endif %}
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    {% endif %}
+                    {% if 'social' in allowed_pages %}
+                    <option value="social">Social Media Accounts</option>
+                    {% endif %}
+                    {% if 'investment' in allowed_pages %}
+                    <option value="investment">BS Investment Scam</option>
+                    {% endif %}
+                    {% if 'investment' in allowed_pages %}
+                    <option value="insights">Scam++ Dashboard</option>
+                    {% endif %}
+                    {% if 'scraping' in allowed_pages %}
+                    <option value="website_directory" selected>Website Directory</option>
+                    {% endif %}
+                </select>
+            </div>
+            <!-- Download Template -->
+            <a href="/website-directory-template" class="btn" style="background:#7f8c8d;color:white;" onclick="showLoading()">
+                <i class="fas fa-file-download"></i> Template
+            </a>
+            <!-- Import -->
+            <form id="importForm" action="/website-directory-import" method="POST" enctype="multipart/form-data" style="display:inline;">
+                <input type="file" name="file" id="fileInput" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods" onchange="if(this.files.length){showLoading();document.getElementById('importForm').submit();}">
+                <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-file-import"></i> Import
+                </button>
+            </form>
+            <!-- Export -->
+            <form action="/website-directory-export" method="GET" style="display:inline;" id="exportForm">
+                <input type="hidden" name="wd_search"     value="{{ wd_search }}">
+                <input type="hidden" name="wd_remark"     value="{{ wd_remark }}">
+                <input type="hidden" name="wd_category"   value="{{ wd_category }}">
+                <input type="hidden" name="wd_search_for" value="{{ wd_search_for }}">
+                <input type="hidden" name="wd_date_from"  value="{{ wd_date_from }}">
+                <input type="hidden" name="wd_date_to"    value="{{ wd_date_to }}">
+                <button type="submit" class="btn btn-primary" onclick="showLoading()">
+                    <i class="fas fa-file-export"></i> Export
+                </button>
+            </form>
+            <!-- Tracker -->
+            <button type="button" class="btn btn-warning" onclick="openTracker()">
+                <i class="fas fa-chart-bar"></i> Tracker
+            </button>
+            <!-- Refresh -->
+            <button type="button" class="btn btn-outline" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+            <a href="/?page=scraping" class="btn" style="background:#6366f1;color:white;">
+                <i class="fas fa-history"></i> Activity Log
+            </a>
+            <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+    <div class="flash-message {% if category == 'error' %}error{% endif %}">
+        <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
+        {{ message }}
+    </div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filters-header">
+            <h2><i class="fas fa-filter" style="color:#27ae60;"></i> Filter Website Directory</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#7f8c8d;font-weight:600;background:#f0fff4;border:1px solid #a9dfbf;padding:3px 10px;border-radius:12px;">
+                    <i class="fas fa-database" style="color:#27ae60;"></i> {{ total_rows }} records
+                </span>
+                <div style="display:flex;gap:5px;">
+                    <button type="button" class="btn btn-success" onclick="openInsertModal()" style="background:#1abc9c;height:30px;font-size:12px;padding:5px 12px;">
+                        <i class="fas fa-plus"></i> Insert
+                    </button>
+                </div>
+                <button type="button" class="btn" onclick="openHelpingModal()"
+                    style="background:#8e44ad;color:white;height:30px;font-size:12px;padding:5px 12px;border:none;border-radius:5px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                    <i class="fas fa-magic"></i> Helping
+                </button>
+                <button class="clear-btn" onclick="window.location.href='/website-directory'">
+                    <i class="fas fa-times"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+        <form method="GET" action="/website-directory" id="filterForm">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Search</label>
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="wd_search" value="{{ wd_search }}" placeholder="URL, name, login ID, number..."
+                            onkeyup="if(event.keyCode===13) this.form.submit()">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-comment"></i> Remark</label>
+                    <select name="wd_remark" onchange="this.form.submit()"
+                        class="{{ 'active-filter' if wd_remark else '' }}">
+                        <option value="">All Remarks</option>
+                        <option value="OTP Issue" {{ 'selected' if wd_remark == 'OTP Issue' else '' }}>OTP Issue</option>
+                        <option value="Signup Issue" {{ 'selected' if wd_remark == 'Signup Issue' else '' }}>Signup Issue</option>
+                        <option value="Website Not Working" {{ 'selected' if wd_remark == 'Website Not Working' else '' }}>Website Not Working</option>
+                        <option value="Wrong Invitation Code" {{ 'selected' if wd_remark == 'Wrong Invitation Code' else '' }}>Wrong Invitation Code</option>
+                        <option value="IPG" {{ 'selected' if wd_remark == 'IPG' else '' }}>IPG</option>
+                        <option value="UPI Not Available" {{ 'selected' if wd_remark == 'UPI Not Available' else '' }}>UPI Not Available</option>
+                        <option value="Login Issue" {{ 'selected' if wd_remark == 'Login Issue' else '' }}>Login Issue</option>
+                        <option value="Payment Processing Error" {{ 'selected' if wd_remark == 'Payment Processing Error' else '' }}>Payment Processing Error</option>
+                        <option value="Deposit Section Issues" {{ 'selected' if wd_remark == 'Deposit Section Issues' else '' }}>Deposit Section Issues</option>
+                        <option value="Need New Credentials" {{ 'selected' if wd_remark == 'Need New Credentials' else '' }}>Need New Credentials</option>
+                        <option value="Redirect To New Website/App" {{ 'selected' if wd_remark == 'Redirect To New Website/App' else '' }}>Redirect To New Website/App</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-exclamation-triangle"></i> Category</label>
+                    <select name="wd_category" onchange="this.form.submit()"
+                        class="{{ 'active-filter' if wd_category else '' }}">
+                        <option value="">All Categories</option>
+                        {% for c in wd_category_options %}
+                        <option value="{{ c }}" {{ 'selected' if wd_category == c else '' }}>{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-globe"></i> Search For</label>
+                    <select name="wd_search_for" onchange="this.form.submit()"
+                        class="{{ 'active-filter' if wd_search_for else '' }}">
+                        <option value="">All</option>
+                        {% for sf in wd_search_for_options %}
+                        <option value="{{ sf }}" {{ 'selected' if wd_search_for == sf else '' }}>{{ sf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                    <div class="date-range-group">
+                        <input type="date" name="wd_date_from" value="{{ wd_date_from }}" onchange="this.form.submit()"
+                            class="{{ 'active-filter' if wd_date_from else '' }}">
+                        <span class="date-range-sep">to</span>
+                        <input type="date" name="wd_date_to" value="{{ wd_date_to }}" onchange="this.form.submit()"
+                            class="{{ 'active-filter' if wd_date_to else '' }}">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-container">
+        <table id="wdTable">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Name</th>
+                    <th class="col-url">URL</th>
+                    <th class="col-final-url">Final URL</th>
+                    <th class="col-inv-code">Inv. Code</th>
+                    <th>Search For</th>
+                    <th>Group / App Name</th>
+                    <th>Number</th>
+                    <th>Email</th>
+                    <th>Login ID</th>
+                    <th>Password</th>
+                    <th>Remark</th>
+                    <th>Origin</th>
+                    <th>Category</th>
+                    <th>Automated</th>
+                    <th>Payment Gateway</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                {% for item in items %}
+                <tr id="wd-row-{{ item.id }}">
+                    <td>
+                        <button onclick="openEditModal({{ item.id }})"
+                            style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </td>
+                    <td><strong style="color:#1e8449;">#{{ item.id }}</strong></td>
+                    <td>
+                        {% if item.get('date') and item['date'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;font-weight:600;color:#2c3e50;">{{ item['date'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('name') and item['name'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;">{{ item['name'][:25] }}{% if item['name']|length > 25 %}...{% endif %}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td class="col-url">
+                        {% if item.get('url') and item['url'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <a href="{{ item['url'] }}" target="_blank" class="url-link" title="{{ item['url'] }}">
+                                {{ item['url'][:35] }}{% if item['url']|length > 35 %}...{% endif %}
+                            </a>
+                            <button class="copy-btn" onclick="copyText('{{ item['url']|replace("'","\\'") }}','URL')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td class="col-final-url">
+                        {% if item.get('final_url') and item['final_url'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <a href="{{ item['final_url'] }}" target="_blank" class="url-link" style="max-width:240px;" title="{{ item['final_url'] }}">
+                                {{ item['final_url'][:40] }}{% if item['final_url']|length > 40 %}...{% endif %}
+                            </a>
+                            <button class="copy-btn" onclick="copyText('{{ item['final_url']|replace("'","\\'") }}','Final URL')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td class="col-inv-code">
+                        {% if item.get('invitation_code') and item['invitation_code'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-family:monospace;font-size:10px;color:#8e44ad;overflow:hidden;text-overflow:ellipsis;max-width:60px;display:inline-block;" title="{{ item['invitation_code'] }}">{{ item['invitation_code'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['invitation_code']|replace("'","\\'") }}','Invitation Code')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('search_for') and item['search_for'] not in ['NA','N/A','',None] %}
+                        {% set sf = item['search_for'] %}
+                        <span class="sf-badge {% if sf == 'Web' %}pill-web{% elif sf == 'App' %}pill-app{% else %}pill-webap{% endif %}" style="display:inline-block;">
+                            {{ sf }}
+                        </span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('group_app_name') and item['group_app_name'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-size:11px;">{{ item['group_app_name'][:30] }}{% if item['group_app_name']|length > 30 %}...{% endif %}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['group_app_name']|replace("'","\\'") }}','Group/App Name')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('number') and item['number'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-size:11px;">{{ item['number'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['number']|replace("'","\\'") }}','Number')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('email') and item['email'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-size:11px;color:#2980b9;">{{ item['email'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['email']|replace("'","\\'") }}','Email')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('login_id') and item['login_id'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-family:monospace;font-size:11px;color:#1a5276;">{{ item['login_id'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['login_id']|replace("'","\\'") }}','Login ID')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('password') and item['password'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-family:monospace;font-size:11px;color:#c0392b;">{{ item['password'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['password']|replace("'","\\'") }}','Password')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('remark') and item['remark'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#7f8c8d;font-weight:700;" title="{{ item['remark'] }}">
+                            {{ item['remark'][:30] }}{% if item['remark']|length > 30 %}...{% endif %}
+                        </span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('origin') and item['origin'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;background:#eaf4fd;color:#1a5276;padding:2px 7px;border-radius:4px;font-weight:400;">{{ item['origin'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('category') and item['category'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:20px;font-weight:400;border:1px solid #ffcc80;">
+                            {{ item['category'] }}
+                        </span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('automated_website') and item['automated_website'] not in ['NA','N/A','',None] %}
+                        {% set aw = item['automated_website'] %}
+                        <span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;
+                            background:{% if aw|lower == 'yes' %}#e8f8f0{% elif aw|lower == 'no' %}#fde8e8{% else %}#f5f5f5{% endif %};
+                            color:{% if aw|lower == 'yes' %}#1e8449{% elif aw|lower == 'no' %}#c0392b{% else %}#7f8c8d{% endif %};">
+                            {{ aw }}
+                        </span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('payment_gateway') and item['payment_gateway'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-size:11px;color:#6c3483;">{{ item['payment_gateway'][:25] }}{% if item['payment_gateway']|length > 25 %}...{% endif %}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['payment_gateway']|replace("'","\\'") }}','Payment Gateway')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="18">
+                        <div class="empty-state">
+                            <i class="fas fa-globe"></i>
+                            <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
+                            <p style="font-size:12px;">Try adjusting your filters or import data using the Import button.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        <button class="pag-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
+            <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span class="pag-info">Page {{ page_num }} of {{ total_pages }} ({{ total_rows }} total)</span>
+        <button class="pag-btn" onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+
+<script>
+let _trackerData  = null;
+let _trackerView  = 'category';
+let _trackerChart = null;
+let _deleteId     = null;
+const _wdItems    = {};
+{% if items %}{% for item in items %}_wdItems[{{ item.id }}] = {{ item | tojson | safe }};
+{% endfor %}{% endif %}
+
+// Logged-in user ka clean name (for auto-fill in name field)
+const _loggedInName = "{{ clean_display_name }}";
+
+// URL se final URL (domain only) aur invite code extract karna
+function extractUrlParts(rawUrl) {
+    let url = rawUrl.trim();
+    if (!url) return { finalUrl: '', inviteCode: '' };
+    try {
+        const parsed = new URL(url.startsWith('http') ? url : 'https://' + url);
+        // Invite code extract — query params se
+        const inviteCode = parsed.searchParams.get('inviteCode') ||
+                           parsed.searchParams.get('invite_code') ||
+                           parsed.searchParams.get('code') ||
+                           parsed.searchParams.get('referral') || '';
+        // Hash se bhi check karo e.g. #/pages/reset?inviteCode=xxx
+        let hashInvite = '';
+        if (!inviteCode && parsed.hash) {
+            const hashMatch = parsed.hash.match(/[?&]inviteCode=([^&]+)/i) ||
+                              parsed.hash.match(/[?&]invite_code=([^&]+)/i) ||
+                              parsed.hash.match(/[?&]code=([^&]+)/i);
+            if (hashMatch) hashInvite = hashMatch[1];
+        }
+        const finalInvite = inviteCode || hashInvite;
+        // Final URL = scheme + hostname only (no path, no query, no hash)
+        const finalUrl = parsed.origin; // e.g. https://www.example.com
+        return { finalUrl, inviteCode: finalInvite };
+    } catch(e) {
+        return { finalUrl: '', inviteCode: '' };
+    }
+}
+
+function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
+
+// Single insert — URL type/paste karne pe auto-fill Final URL + Invite Code
+function onInsUrlInput(val) {
+    if (!val || val.length < 8) return;
+    const { finalUrl, inviteCode } = extractUrlParts(val);
+    const fuEl = document.getElementById('ins_final_url');
+    const icEl = document.getElementById('ins_invitation_code');
+    if (fuEl && !fuEl.value) fuEl.value = finalUrl;
+    if (icEl && !icEl.value && inviteCode) icEl.value = inviteCode;
+}
+function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
+
+function changePageFromWD(pageType) {
+    if (pageType === 'website_directory') return;
+    showLoading();
+    window.location.href = '/?page=' + pageType;
+}
+
+function goToPage(p) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_num', p);
+    showLoading();
+    window.location.href = url.toString();
+}
+
+function copyText(text, label) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta);
+    try { ta.select(); ta.setSelectionRange(0,99999); document.execCommand('copy'); showToast(label + ' copied!', 'ok'); }
+    catch(e) { navigator.clipboard && navigator.clipboard.writeText(text).then(()=>showToast(label+' copied!','ok')); }
+    finally { document.body.removeChild(ta); }
+}
+
+function showToast(msg, type='') {
+    const ex = document.querySelector('.toast'); if(ex) ex.remove();
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>{ if(t.parentNode) t.remove(); }, 3000);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if(e.target===m) m.classList.remove('active'); });
+});
+document.addEventListener('keydown', e => {
+    if(e.key==='Escape') document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+});
+
+/* ── TRACKER ──────────────────────────────────────── */
+function openTracker() {
+    document.getElementById('trackerModal').classList.add('active');
+    setTrackerView('category');
+    if (!_trackerData) loadTrackerData();
+}
+
+function setTrackerView(view) {
+    _trackerView = view;
+    ['tBtn1','tBtn2','tBtn3','tBtn4'].forEach((id,i) => {
+        const btn = document.getElementById(id);
+        const views = ['category','searchfor','remark','trend'];
+        btn.classList.toggle('active', views[i] === view);
+    });
+    if (_trackerData) renderTracker(_trackerData);
+}
+
+async function loadTrackerData() {
+    document.getElementById('trackerBody').innerHTML =
+        '<div class="empty-state"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:14px;">Loading statistics...</p></div>';
+    try {
+        const resp = await fetch('/website-directory-tracker-stats');
+        const data = await resp.json();
+        if (data.success) { _trackerData = data; renderTracker(data); }
+        else document.getElementById('trackerBody').innerHTML =
+            `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
+    } catch(e) {
+        document.getElementById('trackerBody').innerHTML =
+            `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Network error</p></div>`;
+    }
+}
+
+const CAT_ICONS = {
+    'Job Scam':'fas fa-briefcase','Subscription Scam':'fas fa-bell',
+    'Fake Website Scam':'fas fa-globe','Loan Scam':'fas fa-hand-holding-usd',
+    'Government Scheme Scam':'fas fa-landmark','Investment Scam':'fas fa-chart-line',
+    'LPG Booking Scam':'fas fa-fire','IPL Tickets Scam':'fas fa-ticket-alt','Unknown':'fas fa-tag'
+};
+const SF_PILL = { 'Web':'pill-web','App':'pill-app','Web/App':'pill-webap' };
+
+function renderTracker(data) {
+    const body = document.getElementById('trackerBody');
+    let html = `<div class="tracker-banner">
+        <span class="bl"><i class="fas fa-database"></i> Total Records</span>
+        <span class="bn">${(data.total||0).toLocaleString()}</span>
+    </div>`;
+    if (_trackerView === 'category') {
+        const entries = Object.entries(data.cat_counts||{}).sort((a,b)=>b[1]-a[1]);
+        html += `<div class="t-section-title"><i class="fas fa-list"></i> By Category</div>`;
+        if (!entries.length) html += '<p style="color:#95a5a6;font-size:12px;padding:8px;">No data</p>';
+        entries.forEach(([cat,cnt]) => {
+            const icon = CAT_ICONS[cat]||CAT_ICONS['Unknown'];
+            html += `<div class="t-card"><div class="t-card-label"><i class="${icon}"></i> ${cat}</div><span class="t-card-count">${cnt}</span></div>`;
+        });
+    } else if (_trackerView === 'searchfor') {
+        const entries = Object.entries(data.sf_counts||{}).sort((a,b)=>b[1]-a[1]);
+        html += `<div class="t-section-title"><i class="fas fa-globe"></i> By Search For</div>`;
+        entries.forEach(([sf,cnt]) => {
+            const pillCls = SF_PILL[sf]||'pill-unk';
+            html += `<div class="t-card">
+                <div class="t-card-label"><span class="t-pill ${pillCls}">${sf}</span></div>
+                <span class="t-card-count">${cnt}</span>
+            </div>`;
+        });
+    } else if (_trackerView === 'remark') {
+        const entries = Object.entries(data.remark_counts||{}).slice(0,20);
+        html += `<div class="t-section-title"><i class="fas fa-comment"></i> Top Remarks</div>`;
+        if (!entries.length) html += '<p style="color:#95a5a6;font-size:12px;padding:8px;">No remark data</p>';
+        entries.forEach(([remark,cnt]) => {
+            html += `<div class="t-card">
+                <div class="t-card-label"><i class="fas fa-comment-dots"></i> ${remark}</div>
+                <span class="t-card-count">${cnt}</span>
+            </div>`;
+        });
+    } else if (_trackerView === 'trend') {
+        const daily = data.daily_counts || {};
+        const dates = Object.keys(daily).sort();
+        html += `<div class="t-section-title"><i class="fas fa-chart-line"></i> Daily Trend</div>`;
+        if (!dates.length) {
+            html += '<p style="color:#95a5a6;font-size:12px;padding:8px;">No date data available</p>';
+        } else {
+            html += `<div class="chart-wrap"><canvas id="trendChart"></canvas></div>`;
+        }
+    }
+    body.innerHTML = html;
+    if (_trackerView === 'trend') {
+        const daily = data.daily_counts || {};
+        const dates = Object.keys(daily).sort();
+        if (dates.length && document.getElementById('trendChart')) {
+            const fmtDate = d => { const p=d.split('-'); return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d; };
+            if (_trackerChart) _trackerChart.destroy();
+            _trackerChart = new Chart(document.getElementById('trendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: dates.map(fmtDate),
+                    datasets: [{
+                        label: 'Records',
+                        data: dates.map(d => daily[d]),
+                        borderColor: '#27ae60',
+                        backgroundColor: 'rgba(39,174,96,0.1)',
+                        borderWidth: 2.5,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#27ae60',
+                        fill: true,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend:{display:false}, tooltip:{callbacks:{label:tt=>' '+tt.raw+' records'}} },
+                    scales: {
+                        x: { grid:{display:false}, ticks:{font:{size:10},maxRotation:40} },
+                        y: { beginAtZero:true, grid:{color:'rgba(0,0,0,0.05)'}, ticks:{font:{size:10}} }
+                    }
+                }
+            });
+        }
+    }
+}
+/* ── EDIT MODAL ──────────────────────────────────── */
+function openEditModal(id) {
+    // _wdItems se dhundo, agar nahi mila toh server se fetch karo
+    const item = _wdItems[id];
+    if (!item) {
+        // Server se fetch karke modal open karo
+        fetch('/website-directory-get-record?id=' + id)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.record) {
+                    _wdItems[id] = data.record;
+                    _fillEditModal(id, data.record);
+                } else {
+                    showToast('Record load failed!', 'err');
+                }
+            })
+            .catch(() => showToast('Network error!', 'err'));
+        return;
+    }
+    _fillEditModal(id, item);
+}
+
+function _fillEditModal(id, item) {
+    document.getElementById('editModal').classList.add('active');
+    document.getElementById('editRecordIdLabel').textContent = '#' + id;
+    document.getElementById('edit_id').value = id;
+
+    // Safely get value — NA/null/undefined sab ko empty string mano
+    const g = (field) => {
+        const v = item[field];
+        if (v === null || v === undefined) return '';
+        const s = String(v).trim();
+        return (s === 'NA' || s === 'N/A' || s === 'nan' || s === '') ? '' : s;
+    };
+
+    const rawDate = g('date');
+    document.getElementById('edit_date').value              = rawDate ? rawDate.split('T')[0] : '';
+    document.getElementById('edit_url').value               = g('url');
+    document.getElementById('edit_final_url').value         = g('final_url');
+    document.getElementById('edit_invitation_code').value   = g('invitation_code');
+    document.getElementById('edit_search_for').value        = g('search_for');
+    document.getElementById('edit_group_app_name').value    = g('group_app_name');
+    document.getElementById('edit_number').value            = g('number');
+    document.getElementById('edit_email').value             = g('email');
+    document.getElementById('edit_login_id').value          = g('login_id');
+    document.getElementById('edit_password').value          = g('password');
+    document.getElementById('edit_remark').value            = g('remark');
+    document.getElementById('edit_origin').value            = g('origin');
+    document.getElementById('edit_category').value          = g('category');
+    document.getElementById('edit_automated_website').value = g('automated_website');
+    document.getElementById('edit_payment_gateway').value   = g('payment_gateway');
+}
+
+async function submitEdit() {
+    const id = document.getElementById('edit_id').value;
+    if (!id) return;
+    const g = i => (document.getElementById(i)||{}).value||'';
+    const payload = {
+        id,
+        date:              g('edit_date'),
+        name:              _loggedInName,
+        url:               g('edit_url'),
+        final_url:         g('edit_final_url'),
+        invitation_code:   g('edit_invitation_code'),
+        search_for:        g('edit_search_for'),
+        group_app_name:    g('edit_group_app_name'),
+        number:            g('edit_number'),
+        email:             g('edit_email'),
+        login_id:          g('edit_login_id'),
+        password:          g('edit_password'),
+        remark:            g('edit_remark'),
+        origin:            g('edit_origin'),
+        category:          g('edit_category'),
+        automated_website: g('edit_automated_website'),
+        payment_gateway:   g('edit_payment_gateway'),
+    };
+    const btn = document.getElementById('editSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    try {
+        const resp = await fetch('/website-directory-update', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Record updated!', 'ok');
+            closeModal('editModal');
+            setTimeout(()=>window.location.reload(), 800);
+        } else {
+            showToast('Error: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+    }
+}
+
+function askDeleteFromEdit() {
+    const id = document.getElementById('edit_id').value;
+    if (!id) return;
+    closeModal('editModal');
+    _deleteId = parseInt(id);
+    document.getElementById('deleteRecordId').textContent = '#' + id;
+    document.getElementById('deleteConfirmModal').classList.add('active');
+}
+/* ── SINGLE INSERT MODAL ─────────────────────────── */
+function openInsertModal() {
+    document.getElementById('insertModal').classList.add('active');
+    switchInsertTab('single');
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('ins_date').value = today;
+    ['ins_url','ins_final_url','ins_invitation_code','ins_group_app_name',
+     'ins_number','ins_email','ins_login_id','ins_password','ins_origin',
+     'ins_automated_website','ins_payment_gateway'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    // Default remark = IPG
+    const remEl = document.getElementById('ins_remark');
+    if (remEl) remEl.value = 'IPG';
+    document.getElementById('ins_search_for').value = '';
+    document.getElementById('ins_category').value = '';
+}
+
+async function submitInsert() {
+    const g = id => (document.getElementById(id)||{}).value||'';
+    const payload = {
+        date:              g('ins_date'),
+        name:              _loggedInName,
+        url:               g('ins_url'),
+        final_url:         g('ins_final_url'),
+        invitation_code:   g('ins_invitation_code'),
+        search_for:        g('ins_search_for'),
+        group_app_name:    g('ins_group_app_name'),
+        number:            g('ins_number'),
+        email:             g('ins_email'),
+        login_id:          g('ins_login_id'),
+        password:          g('ins_password'),
+        remark:            g('ins_remark'),
+        origin:            g('ins_origin'),
+        category:          g('ins_category'),
+        automated_website: g('ins_automated_website'),
+        payment_gateway:   g('ins_payment_gateway'),
+    };
+    const btn = document.getElementById('insertSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
+    try {
+        const resp = await fetch('/website-directory-insert', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Record inserted!', 'ok');
+            closeModal('insertModal');
+            prependRow(data.record);
+            _trackerData = null;
+        } else {
+            showToast('Error: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> Insert Record';
+    }
+}
+
+function prependRow(item) {
+    const tbody = document.querySelector('#wdTable tbody');
+    if (!tbody) return;
+    const emptyRow = tbody.querySelector('td[colspan]');
+    if (emptyRow) emptyRow.closest('tr').remove();
+    const v = val => val && !['NA','N/A','',null].includes(String(val));
+    const esc = s => (s||'').replace(/'/g,"\\'");
+
+    const tr = document.createElement('tr');
+    tr.id = `wd-row-${item.id}`;
+    _wdItems[item.id] = item;
+    tr.innerHTML = `
+        <td>
+            <button onclick="openEditModal(${item.id})"
+                style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+        </td>
+        <td><strong style="color:#1e8449;">#${item.id}</strong></td>
+        <td><span style="font-size:11px;font-weight:600;color:#2c3e50;">${item.date||'N/A'}</span></td>
+        <td><span style="font-size:11px;">${(item.name||'N/A').substring(0,25)}</span></td>
+        <td class="col-url">${v(item.url)?`<div class="field-cell"><a href="${item.url}" target="_blank" class="url-link">${item.url.substring(0,35)}${item.url.length>35?'...':''}</a><button class="copy-btn" onclick="copyText('${esc(item.url)}','URL')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td class="col-final-url">${v(item.final_url)?`<div class="field-cell"><a href="${item.final_url}" target="_blank" class="url-link" style="max-width:240px;">${item.final_url.substring(0,40)}${item.final_url.length>40?'...':''}</a><button class="copy-btn" onclick="copyText('${esc(item.final_url)}','Final URL')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td class="col-inv-code">${v(item.invitation_code)?`<div class="field-cell"><span style="font-family:monospace;font-size:10px;color:#8e44ad;max-width:60px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${item.invitation_code}</span><button class="copy-btn" onclick="copyText('${esc(item.invitation_code)}','Inv Code')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>${v(item.search_for)?('<span class="sf-badge '+({'Web':'pill-web','App':'pill-app','Web/App':'pill-webap'}[item.search_for]||'pill-unk')+'">'+item.search_for+'</span>'):'<span class="na-cell">N/A</span>'}</td>
+        <td><span style="font-size:11px;">${v(item.group_app_name)?item.group_app_name.substring(0,30):'N/A'}</span></td>
+        <td>${v(item.number)?`<div class="field-cell"><span style="font-size:11px;">${item.number}</span><button class="copy-btn" onclick="copyText('${esc(item.number)}','Number')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>${v(item.email)?`<div class="field-cell"><span style="font-size:11px;color:#2980b9;">${item.email}</span><button class="copy-btn" onclick="copyText('${esc(item.email)}','Email')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>${v(item.login_id)?`<div class="field-cell"><span style="font-family:monospace;font-size:11px;color:#1a5276;">${item.login_id}</span><button class="copy-btn" onclick="copyText('${esc(item.login_id)}','Login ID')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>${v(item.password)?`<div class="field-cell"><span style="font-family:monospace;font-size:11px;color:#c0392b;">${item.password}</span><button class="copy-btn" onclick="copyText('${esc(item.password)}','Password')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td><span style="font-size:11px;color:#7f8c8d;">${(item.remark||'N/A').substring(0,30)}</span></td>
+        <td>${v(item.origin)?`<span style="font-size:11px;background:#eaf4fd;color:#1a5276;padding:2px 7px;border-radius:4px;font-weight:600;">${item.origin}</span>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>${v(item.category)?`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid #ffcc80;">${item.category}</span>`:'<span class="na-cell">N/A</span>'}</td>
+        <td><span style="font-size:11px;">${item.automated_website||'N/A'}</span></td>
+        <td>${v(item.payment_gateway)?`<div class="field-cell"><span style="font-size:11px;color:#6c3483;">${(item.payment_gateway||'').substring(0,25)}</span><button class="copy-btn" onclick="copyText('${esc(item.payment_gateway)}','PG')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+    `;
+    tbody.insertBefore(tr, tbody.firstChild);
+}
+
+/* ── DELETE ──────────────────────────────────────── */
+function askDelete(id) {
+    _deleteId = id;
+    document.getElementById('deleteRecordId').textContent = '#' + id;
+    document.getElementById('deleteConfirmModal').classList.add('active');
+}
+
+async function confirmDelete() {
+    if (!_deleteId) return;
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const resp = await fetch('/website-directory-delete', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({id: _deleteId})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(`Record #${_deleteId} deleted!`, 'ok');
+            const row = document.getElementById(`wd-row-${_deleteId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s,transform 0.3s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-20px)';
+                setTimeout(() => row.remove(), 310);
+            }
+            closeModal('deleteConfirmModal');
+            _trackerData = null;
+        } else {
+            showToast('Delete failed: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete';
+        _deleteId = null;
+    }
+}
+/* ── BULK INSERT MODAL ───────────────────────────── */
+let _bulkRows = [];
+
+function openBulkInsertModal() {
+    document.getElementById('bulkInsertModal').classList.add('active');
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('bulk_date').value = today;
+    document.getElementById('bulkUrlInput').value = '';
+    document.getElementById('bulkUrlCount').textContent = '';
+    document.getElementById('bulkPreviewArea').style.display = 'none';
+    document.getElementById('bulkSubmitBtn').disabled = true;
+    document.getElementById('bulkSubmitBtn').style.opacity = '0.5';
+    _bulkRows = [];
+    ['bulk_search_for','bulk_group_app_name','bulk_name','bulk_remark','bulk_origin','bulk_category']
+        .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+}
+
+function onBulkUrlInput() {
+    const lines = document.getElementById('bulkUrlInput').value.trim().split('\n').filter(l=>l.trim());
+    const el = document.getElementById('bulkUrlCount');
+    el.textContent = lines.length ? `${lines.length} URL${lines.length>1?'s':''} detected` : '';
+}
+
+function parseBulkUrls() {
+    const raw = document.getElementById('bulkUrlInput').value.trim();
+    const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l);
+    if (!lines.length) { showToast('First Paste URLs!', 'err'); return; }
+
+    const gf = id => (document.getElementById(id)||{}).value||'';
+    const manualFinalUrl = gf('bulk_final_url');
+    const common = {
+        date:           gf('bulk_date'),
+        search_for:     gf('bulk_search_for'),
+        group_app_name: gf('bulk_group_app_name'),
+        name:           _loggedInName,
+        remark:         gf('bulk_remark'),
+        origin:         gf('bulk_origin'),
+        category:       gf('bulk_category'),
+    };
+    _bulkRows = lines.map(url => {
+        return {
+            url,
+            final_url:        url,
+            invitation_code:  '',
+            number:           '',
+            email:            '',
+            login_id:         '',
+            password:         '',
+            automated_website:'',
+            payment_gateway:  '',
+            ...common
+        };
+    });
+    const tbody = document.getElementById('bulkPreviewTbody');
+    tbody.innerHTML = _bulkRows.map((r,i) => `
+        <tr style="background:${i%2===0?'#fff':'#f0fdf9'};border-bottom:1px solid #e0f0e0;">
+            <td style="padding:6px 10px;color:#7f8c8d;white-space:nowrap;">${i+1}</td>
+            <td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#1a5276;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
+            <td style="padding:6px 10px;white-space:nowrap;">${r.search_for ? `<span style="background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;">${r.search_for}</span>` : '—'}</td>
+            <td style="padding:6px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.group_app_name||'—'}</td>
+            <td style="padding:6px 10px;white-space:nowrap;color:#7f8c8d;font-size:11px;">${r.remark||'—'}</td>
+            <td style="padding:6px 10px;white-space:nowrap;">${r.origin ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 6px;border-radius:3px;font-size:10px;">${r.origin}</span>` : '—'}</td>
+            <td style="padding:6px 10px;"><span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-size:10px;">${r.category||'—'}</span></td>
+        </tr>
+    `).join('');
+
+    document.getElementById('bulkPreviewCount').textContent = _bulkRows.length;
+    document.getElementById('bulkPreviewArea').style.display = '';
+    const btn = document.getElementById('bulkSubmitBtn');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    showToast(`${_bulkRows.length} rows ready!`, 'ok');
+}
+
+async function submitBulkInsert() {
+    if (!_bulkRows.length) { showToast('First Preview!', 'err'); return; }
+    const btn = document.getElementById('bulkSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
+    let success = 0, failed = 0;
+    for (let i = 0; i < _bulkRows.length; i++) {
+        try {
+            const resp = await fetch('/website-directory-insert', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify(_bulkRows[i])
+            });
+            const data = await resp.json();
+            if (data.success) { success++; }
+            else { failed++; console.warn('Insert failed for:', _bulkRows[i].url, data.error); }
+        } catch(e) { failed++; }
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Insert All';
+    showToast(`${success} inserted${failed?', '+failed+' failed':''}!`, success>0?'ok':'err');
+    if (success > 0) {
+        closeModal('bulkInsertModal');
+        setTimeout(()=>window.location.reload(), 900);
+    }
+}
+
+/* ── HELPING MODAL ───────────────────────────────── */
+let _helpingResults = [];
+
+function openHelpingModal() {
+    document.getElementById('helpingModal').classList.add('active');
+    document.getElementById('helpingPasteInput').value = '';
+    document.getElementById('helpingPasteCount').textContent = '';
+    document.getElementById('helpingResultsArea').style.display = 'none';
+    document.getElementById('helpingLoadingBar').style.display = 'none';
+    document.getElementById('helpingProgressBar').style.display = 'none';
+    _helpingResults = [];
+}
+
+function onHelpingPasteInput() {
+    const lines = document.getElementById('helpingPasteInput').value.trim().split('\n').filter(l => l.trim());
+    const el = document.getElementById('helpingPasteCount');
+    el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
+}
+
+function clearHelpingAll() {
+    document.getElementById('helpingPasteInput').value = '';
+    document.getElementById('helpingPasteCount').textContent = '';
+    document.getElementById('helpingResultsArea').style.display = 'none';
+    document.getElementById('helpingLoadingBar').style.display = 'none';
+    document.getElementById('helpingProgressBar').style.display = 'none';
+    _helpingResults = [];
+}
+
+async function parseHelpingUrls() {
+    const raw = document.getElementById('helpingPasteInput').value.trim();
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { showToast('No URLs found!', 'err'); return; }
+
+    const entries = lines.map(line => {
+        const parts = line.split(/\s*[|\t]\s*/).map(p => p.trim());
+        return { url: parts[0] || '', final_url: parts[1] || '' };
+    }).filter(e => e.url);
+
+    if (!entries.length) { showToast('Valid URLs not found!', 'err'); return; }
+
+    const loadingBar   = document.getElementById('helpingLoadingBar');
+    const loadingText  = document.getElementById('helpingLoadingText');
+    const progressBar  = document.getElementById('helpingProgressBar');
+    const progressFill = document.getElementById('helpingProgressFill');
+    const btn          = document.getElementById('helpingSearchBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+    loadingBar.style.display = 'flex';
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    document.getElementById('helpingResultsArea').style.display = 'none';
+    _helpingResults = [];
+
+    for (let i = 0; i < entries.length; i++) {
+        const pct = Math.round(((i + 1) / entries.length) * 100);
+        loadingText.textContent = `Searching ${i + 1} of ${entries.length}: ${entries[i].url.slice(0, 45)}...`;
+        progressFill.style.width = pct + '%';
+        const result = await fetchFromWDAPI(entries[i].url, entries[i].final_url);
+        _helpingResults.push(result);
+    }
+
+    loadingBar.style.display = 'none';
+    progressBar.style.display = 'none';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search"></i> Search &amp; Fill';
+    renderHelpingResults(_helpingResults);
+}
+
+async function fetchFromWDAPI(url, finalUrl) {
+    const result = {
+        url,
+        final_url:  finalUrl || '',
+        login_id:   '',
+        password:   '',
+        origin:     '',
+        category:   '',
+        found:      false,
+        record_id:  null
+    };
+
+    const trySearch = async (term) => {
+        if (!term) return null;
+        try {
+            const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(term));
+            if (!resp.ok) return null;
+            const data = await resp.json();
+            if (data.success && data.items && data.items.length > 0) return data.items[0];
+        } catch(e) {}
+        return null;
+    };
+
+    let found = await trySearch(url);
+    if (!found && finalUrl) found = await trySearch(finalUrl);
+    if (!found) {
+        try {
+            const domain = new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace(/^www\./, '');
+            found = await trySearch(domain);
+        } catch(e) {}
+    }
+
+    if (found) {
+        result.found     = true;
+        result.record_id = found.id;
+        result.final_url = (found.final_url && found.final_url !== 'NA' && !result.final_url) ? found.final_url : result.final_url;
+        result.login_id  = (found.login_id  && found.login_id  !== 'NA') ? found.login_id  : '';
+        result.password  = (found.password  && found.password  !== 'NA') ? found.password  : '';
+        result.origin    = (found.origin    && found.origin    !== 'NA') ? found.origin    : '';
+        result.category  = (found.category  && found.category  !== 'NA') ? found.category  : '';
+    }
+    return result;
+}
+
+function renderHelpingResults(results) {
+    const area    = document.getElementById('helpingResultsArea');
+    const list    = document.getElementById('helpingResultsList');
+    const summary = document.getElementById('helpingSummary');
+
+    const found    = results.filter(r => r.found).length;
+    const notFound = results.length - found;
+
+    summary.innerHTML = `
+        <div style="background:#e8f8f0;border:1px solid #a9dfbf;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#1e8449;">
+            <i class="fas fa-check-circle"></i> Found: ${found}
+        </div>
+        <div style="background:#fde8e8;border:1px solid #fbc7c7;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#c0392b;">
+            <i class="fas fa-times-circle"></i> Not Found: ${notFound}
+        </div>
+        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#6c3483;">
+            <i class="fas fa-list"></i> Total: ${results.length}
+        </div>
+    `;
+
+    const _e   = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const trunc = (s, n) => (s && s.length > n) ? s.slice(0, n-1) + '…' : (s||'');
+    const copyBtn = (val, label) => val
+        ? `<button onclick="copyText('${_e(val)}','${label}')" style="background:none;border:none;color:#8e44ad;cursor:pointer;padding:1px 3px;font-size:10px;vertical-align:middle;flex-shrink:0;"><i class="fas fa-copy"></i></button>`
+        : '';
+
+    /* 5-column grid: Final URL | Login ID | Password | Origin | Category */
+    list.innerHTML = results.map((r, i) => {
+        const rowBg = r.found ? '#faf5ff' : (i % 2 === 0 ? '#fff' : '#fafafa');
+        return `<div style="display:grid;grid-template-columns:2.2fr 1.5fr 1.5fr 1fr 1.3fr;gap:8px;align-items:center;padding:8px 10px;border-bottom:1px solid #f0e8f9;background:${rowBg};">
+
+            <!-- Final URL -->
+            <div style="display:flex;align-items:center;gap:3px;min-width:0;overflow:hidden;">
+                ${r.final_url
+                    ? `<a href="${_e(r.final_url)}" target="_blank"
+                            style="color:#8e44ad;text-decoration:none;font-family:monospace;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;"
+                            title="${_e(r.final_url)}">${_e(trunc(r.final_url, 32))}</a>
+                       ${copyBtn(r.final_url, 'Final URL')}`
+                    : `<span style="color:#95a5a6;font-size:10px;">—</span>`}
+            </div>
+
+            <!-- Login ID -->
+            <div style="display:flex;align-items:center;gap:2px;min-width:0;overflow:hidden;">
+                <span style="font-family:monospace;font-size:11px;color:#1a5276;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                      title="${_e(r.login_id)}">${r.login_id ? _e(trunc(r.login_id, 20)) : '<span style="color:#95a5a6;">—</span>'}</span>
+                ${copyBtn(r.login_id, 'Login ID')}
+            </div>
+
+            <!-- Password -->
+            <div style="display:flex;align-items:center;gap:2px;min-width:0;overflow:hidden;">
+                <span style="font-family:monospace;font-size:11px;color:#c0392b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                      title="${_e(r.password)}">${r.password ? _e(trunc(r.password, 20)) : '<span style="color:#95a5a6;">—</span>'}</span>
+                ${copyBtn(r.password, 'Password')}
+            </div>
+
+            <!-- Origin -->
+            <div>
+                ${r.origin
+                    ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:400;">${_e(r.origin)}</span>`
+                    : `<span style="color:#95a5a6;font-size:10px;">—</span>`}
+            </div>
+
+            <!-- Category -->
+            <div>
+                ${r.category
+                    ? `<span style="background:#fff3e0;color:#e65100;padding:2px 5px;border-radius:20px;font-size:10px;font-weight:400;border:1px solid #ffcc80;white-space:nowrap;">${_e(trunc(r.category, 16))}</span>`
+                    : `<span style="color:#95a5a6;font-size:10px;">—</span>`}
+            </div>
+        </div>`;
+    }).join('');
+
+    area.style.display = '';
+    showToast(`${found} found, ${notFound} new!`, found > 0 ? 'ok' : '');
+}
+
+function copyHelpingResults() {
+    if (!_helpingResults.length) return;
+    const lines = ['Final URL,Login ID,Password,Origin,Category'];
+    _helpingResults.forEach(r => {
+        const esc = v => { const s = String(v||''); return (s.includes(',')||s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s; };
+        lines.push([esc(r.final_url), esc(r.login_id), esc(r.password), esc(r.origin), esc(r.category)].join(','));
+    });
+    navigator.clipboard && navigator.clipboard.writeText(lines.join('\n'))
+        .then(() => showToast('CSV copied!', 'ok'))
+        .catch(() => showToast('Copy failed', 'err'));
+}
+
+function exportHelpingCSV() {
+    if (!_helpingResults.length) { showToast('No results to export', 'err'); return; }
+    const lines = ['Final URL,Login ID,Password,Origin,Category'];
+    _helpingResults.forEach(r => {
+        const esc = v => { const s = String(v||''); return (s.includes(',')||s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s; };
+        lines.push([esc(r.final_url), esc(r.login_id), esc(r.password), esc(r.origin), esc(r.category)].join(','));
+    });
+    const csv  = '\uFEFF' + lines.join('\n');
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+    const a    = document.createElement('a');
+    a.href     = URL.createObjectURL(blob);
+    a.download = `helping_results_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    showToast('Exported!', 'ok');
+}
+
+/* ── Auto-dismiss flash ─────────────────────────── */
+setTimeout(() => {
+    document.querySelectorAll('.flash-message').forEach(m => {
+        m.style.transition = 'opacity 0.3s';
+        m.style.opacity = '0';
+        setTimeout(() => m.remove(), 300);
+    });
+}, 5000);
+/* ── INSERT MODAL TABS ──────────────────────────── */
+let _insBulkRows = [];
+
+function switchInsertTab(tab) {
+    const isSingle = tab === 'single';
+    document.getElementById('insTabSingleContent').style.display = isSingle ? '' : 'none';
+    document.getElementById('insTabBulkContent').style.display   = isSingle ? 'none' : '';
+    document.getElementById('insertSubmitBtn').style.display     = isSingle ? 'inline-flex' : 'none';
+    document.getElementById('insBulkPreviewBtn').style.display   = isSingle ? 'none' : 'inline-flex';
+    document.getElementById('insBulkSubmitBtn').style.display    = isSingle ? 'none' : 'inline-flex';
+    document.getElementById('insTabSingle').style.background     = isSingle ? '#27ae60' : 'white';
+    document.getElementById('insTabSingle').style.color          = isSingle ? 'white' : '#7f8c8d';
+    document.getElementById('insTabBulk').style.background       = isSingle ? 'white' : '#27ae60';
+    document.getElementById('insTabBulk').style.color            = isSingle ? '#7f8c8d' : 'white';
+    if (!isSingle) {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('ins_bulk_date').value = today;
+        document.getElementById('ins_bulk_url_input').value = '';
+        document.getElementById('ins_bulk_url_count').textContent = '';
+        document.getElementById('ins_bulk_preview_area').style.display = 'none';
+        document.getElementById('insBulkSubmitBtn').disabled = true;
+        document.getElementById('insBulkSubmitBtn').style.opacity = '0.5';
+        _insBulkRows = [];
+    }
+}
+
+function onInsBulkUrlInput() {
+    const lines = document.getElementById('ins_bulk_url_input').value.trim().split('\n').filter(l => l.trim());
+    const el = document.getElementById('ins_bulk_url_count');
+    el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
+}
+
+function parseInsBulkUrls() {
+    const raw = document.getElementById('ins_bulk_url_input').value.trim();
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { showToast('First Paste URLs!', 'err'); return; }
+
+    const gf = id => (document.getElementById(id) || {}).value || '';
+    const manualFinalUrl = gf('ins_bulk_final_url');
+    const common = {
+        date:           gf('ins_bulk_date'),
+        search_for:     gf('ins_bulk_search_for'),
+        group_app_name: gf('ins_bulk_group_app_name'),
+        name:           _loggedInName,
+        remark:         gf('ins_bulk_remark'),
+        origin:         gf('ins_bulk_origin'),
+        category:       gf('ins_bulk_category'),
+    };
+    _insBulkRows = lines.map(url => {
+        return {
+            url,
+            final_url:        url,
+            invitation_code:  '',
+            number:'', email:'', login_id:'', password:'',
+            automated_website:'', payment_gateway:'',
+            ...common
+        };
+    });
+    const tbody = document.getElementById('ins_bulk_preview_tbody');
+    tbody.innerHTML = _insBulkRows.map((r, i) => `
+        <tr style="background:${i%2===0?'#fff':'#f0fdf9'};border-bottom:1px solid #e0f5ef;">
+            <td style="padding:5px 10px;color:#7f8c8d;white-space:nowrap;">${i+1}</td>
+            <td style="padding:5px 10px;font-family:monospace;font-size:10px;color:#1a5276;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
+            <td style="padding:5px 10px;white-space:nowrap;">${r.search_for ? `<span style="background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;">${r.search_for}</span>` : '—'}</td>
+            <td style="padding:5px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.group_app_name||'—'}</td>
+            <td style="padding:5px 10px;white-space:nowrap;color:#7f8c8d;font-size:11px;">${r.remark||'—'}</td>
+            <td style="padding:5px 10px;white-space:nowrap;">${r.origin ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 6px;border-radius:3px;font-size:10px;">${r.origin}</span>` : '—'}</td>
+            <td style="padding:5px 10px;"><span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-size:10px;">${r.category||'—'}</span></td>
+        </tr>
+    `).join('');
+
+    document.getElementById('ins_bulk_preview_count').textContent = _insBulkRows.length;
+    document.getElementById('ins_bulk_preview_area').style.display = '';
+    const btn = document.getElementById('insBulkSubmitBtn');
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    showToast(`${_insBulkRows.length} rows ready!`, 'ok');
+}
+
+async function submitInsBulk() {
+    if (!_insBulkRows.length) { showToast('First Preview!', 'err'); return; }
+    const btn = document.getElementById('insBulkSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
+    let success = 0, failed = 0;
+    for (let i = 0; i < _insBulkRows.length; i++) {
+        try {
+            const resp = await fetch('/website-directory-insert', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(_insBulkRows[i])
+            });
+            const data = await resp.json();
+            if (data.success) success++;
+            else { failed++; console.warn('Failed:', _insBulkRows[i].url, data.error); }
+        } catch(e) { failed++; }
+    }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Insert All';
+    showToast(`${success} inserted${failed ? ', ' + failed + ' failed' : ''}!`, success > 0 ? 'ok' : 'err');
+    if (success > 0) {
+        closeModal('insertModal');
+        setTimeout(() => window.location.reload(), 900);
+    }
+}
+/* ── Adjust header padding ──────────────────────── */
+function adjustPad() {
+    const hdr = document.querySelector('.fixed-header');
+    const con = document.querySelector('.container');
+    if (hdr && con) con.style.paddingTop = (hdr.offsetHeight + 10) + 'px';
+}
+adjustPad();
+window.addEventListener('resize', adjustPad);
+if (window.ResizeObserver) new ResizeObserver(adjustPad).observe(document.querySelector('.fixed-header'));
+</script>
+</body>
+</html>

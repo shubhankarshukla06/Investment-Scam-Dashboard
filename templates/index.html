@@ -568,7 +568,133 @@
             transition: background 0.2s;
         }
         .edit-drawer-cancel:hover { background: #e9ecef; }
-
+        .upi-chart-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 24px 16px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .upi-chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #6366f1, #3b82f6, #60a5fa);
+            border-radius: 10px 10px 0 0;
+        }
+        .upi-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .upi-header-left { display: flex; flex-direction: column; gap: 3px; }
+        .upi-section-label {
+            font-size: 10px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 1.2px;
+            color: #3b82f6; margin-bottom: 1px;
+        }
+        .upi-card-title {
+            font-size: 14px; font-weight: 700;
+            color: #1a2233; letter-spacing: -0.2px;
+        }
+        .upi-card-sub { font-size: 11px; color: #94a3b8; font-weight: 500; }
+        .upi-chips { display: flex; align-items: center; gap: 6px; margin-top: 7px; flex-wrap: wrap; }
+        .upi-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 20px;
+            font-size: 10.5px; font-weight: 600; border: 1px solid;
+        }
+        .upi-chip-total { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+        .upi-chip-up    { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
+        .upi-chip-meta  { background: #f8fafc; border-color: #e2e8f0; color: #64748b; }
+        .upi-header-right {
+            display: flex; flex-direction: column;
+            align-items: flex-end; gap: 8px;
+        }
+        .upi-time-filters {
+            display: flex; background: #f1f5f9;
+            border-radius: 8px; padding: 3px; gap: 2px;
+        }
+        .upi-tf-btn {
+            padding: 4px 12px; border: none; border-radius: 6px;
+            font-size: 11px; font-weight: 700; cursor: pointer;
+            color: #64748b; background: transparent;
+            transition: all 0.15s ease; font-family: inherit;
+        }
+        .upi-tf-btn:hover:not(.active) { color: #1d4ed8; background: rgba(59,130,246,0.09); }
+        .upi-tf-btn.active {
+            background: white; color: #1d4ed8;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+        }
+        .upi-grand-total { font-size: 11px; color: #94a3b8; font-weight: 500; text-align: right; }
+        .upi-grand-total strong { color: #1a2233; font-size: 20px; font-weight: 800; display: block; line-height: 1.1; letter-spacing: -0.4px; }
+        .upi-chart-outer { position: relative; width: 100%; }
+        .upi-canvas-wrap { position: relative; height: 150px; margin-left: 28px; }
+        .upi-canvas-wrap canvas { display: block; width: 100% !important; height: 100% !important; cursor: crosshair; }
+        .upi-crosshair {
+            position: absolute; top: 0; bottom: 0; width: 1px;
+            background: linear-gradient(180deg, transparent, #60a5fa, transparent);
+            opacity: 0; pointer-events: none; z-index: 5;
+            transition: opacity 0.1s;
+        }
+        .upi-crosshair.visible { opacity: 0.5; }
+        .upi-tooltip {
+            position: absolute;
+            background: #1a2233; color: white;
+            border-radius: 8px; padding: 8px 13px;
+            pointer-events: none; display: none;
+            white-space: nowrap; z-index: 20;
+            transform: translate(-50%, calc(-100% - 12px));
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.06);
+            font-size: 12px;
+        }
+        .upi-tooltip::after {
+            content: '';
+            position: absolute; left: 50%; bottom: -5px;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #1a2233; border-bottom: none;
+        }
+        .upi-tt-date { font-size: 10px; color: #94a3b8; font-weight: 500; margin-bottom: 2px; }
+        .upi-tt-val  { font-size: 15px; font-weight: 800; }
+        .upi-tt-sub  { font-size: 10px; color: #64748b; margin-top: 1px; }
+        .upi-y-labels {
+            position: absolute; left: 0; top: 0; bottom: 22px;
+            width: 26px;
+            display: flex; flex-direction: column;
+            justify-content: space-between; align-items: flex-end;
+            padding: 8px 0 2px; pointer-events: none;
+        }
+        .upi-y-lbl { font-size: 9.5px; font-weight: 600; color: #94a3b8; line-height: 1; }
+        .upi-x-axis {
+            display: flex; justify-content: space-between;
+            margin-left: 28px; margin-top: 6px; padding: 0 4px;
+            width: calc(100% - 28px);
+            box-sizing: border-box;
+        }
+        .upi-x-lbl { font-size: 10px; font-weight: 600; color: #94a3b8; white-space: nowrap; }
+        .upi-legend {
+            display: flex; align-items: center; gap: 0;
+            margin-left: 28px; margin-top: 14px;
+            padding-top: 12px; border-top: 1px solid #f1f5f9;
+            flex-wrap: wrap; row-gap: 5px;
+        }
+        .upi-leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #64748b; padding-right: 16px; }
+        .upi-leg-line { width: 20px; height: 2.5px; background: linear-gradient(90deg, #6366f1, #3b82f6); border-radius: 2px; }
+        .upi-leg-dot  { width: 8px; height: 8px; border-radius: 50%; background: white; border: 2px solid #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.18); }
+        .upi-leg-peak { width: 8px; height: 8px; border-radius: 50%; background: white; border: 2px solid #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.22); }
+        .upi-leg-fill { width: 15px; height: 11px; border-radius: 3px; background: linear-gradient(180deg,rgba(59,130,246,0.28),rgba(59,130,246,0.02)); border: 1px solid rgba(59,130,246,0.22); }
+        .upi-live { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: #94a3b8; margin-left: auto; }
+        .upi-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: upiPulse 2s infinite; }
+        @keyframes upiPulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{opacity:.7;box-shadow:0 0 0 4px rgba(34,197,94,0)} }
         @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } }
         @media (max-width: 768px) { .container { padding-top: 120px; padding-bottom: 20px; } .header { flex-direction: column; gap: 10px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
     </style>
@@ -740,6 +866,9 @@
                         {% endif %}
                         {% if 'investment' in allowed_pages %}
                         <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Scam++ Dashboard</option>
+                        {% endif %}
+                        {% if 'scraping' in allowed_pages %}
+                        <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Website Directory</option>
                         {% endif %}
                     </select>
                 </div>
@@ -1472,7 +1601,6 @@
                             <div style="position:relative;">
                                 <i class="fas fa-search" style="position:absolute;left:8px;top:50%;transform:translateY(-50%);color:#7f8c8d;font-size:12px;"></i>
                                 <input type="text" name="social_search" value="{{ social_search }}" placeholder="Search..." id="socialSearchInput"
-                                    oninput="filterSocialRows(this.value)"
                                     onkeydown="if(event.keyCode===13){event.preventDefault();submitSocialSearch();}"
                                     style="width:100%;padding:7px 10px 7px 28px;border:1px solid #ddd;border-radius:5px;font-size:12px;height:32px;box-sizing:border-box;outline:none;">
                             </div>
@@ -1743,7 +1871,6 @@
 
         <!-- CHARTS AREA -->
         <div id="insightsChartsArea" style="display:none;flex-direction:column;gap:12px;">
-
             <!-- ROW 1: 3 STAT CARDS -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                 <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:8px;padding:8px 12px;color:white;box-shadow:0 2px 10px rgba(26,115,232,0.3);display:flex;align-items:center;gap:10px;">
@@ -1771,18 +1898,45 @@
                     <div style="position:relative;flex:1;height:55px;min-width:0;"><canvas id="cardUniqueBankLine"></canvas></div>
                 </div>
             </div>
-
             <!-- ROW 2: UPI Over Time -->
-            <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-                    <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
-                        <i class="fas fa-id-card" style="color:#00897b;"></i> Unique UPI Count
-                        <span id="insightsUpiTotal" style="background:#e8f8f5;color:#00574b;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;"></span>
-                    </h3>
+            <div class="upi-chart-card">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                    <div class="upi-header-left">
+                        <div class="upi-card-title">Scam Reports Over Time</div>
+                        <div class="upi-chips">
+                            <div class="upi-chip upi-chip-meta">📅 <span id="upiChipRange">All time</span></div>
+                        </div>
+                    </div>
+                    <div class="upi-header-right">
+                        <div class="upi-time-filters">
+                            <button class="upi-tf-btn" onclick="upiSetRange('7D',this)">7D</button>
+                            <button class="upi-tf-btn" onclick="upiSetRange('30D',this)">30D</button>
+                            <button class="upi-tf-btn" onclick="upiSetRange('90D',this)">90D</button>
+                            <button class="upi-tf-btn active" onclick="upiSetRange('all',this)">All</button>
+                        </div>
+                    </div>
                 </div>
-                <div style="position:relative;height:220px;"><canvas id="chartUPI"></canvas></div>
+                <div class="upi-chart-outer" style="width:100%;box-sizing:border-box;">
+                    <div class="upi-y-labels" id="upiYLabels"></div>
+                    <div class="upi-canvas-wrap" id="upiCanvasWrap">
+                        <canvas id="chartUPI"></canvas>
+                        <div class="upi-crosshair" id="upiCrosshair"></div>
+                        <div class="upi-tooltip" id="upiTooltip">
+                            <div class="upi-tt-date" id="upiTtDate"></div>
+                            <div class="upi-tt-val"  id="upiTtVal"></div>
+                            <div class="upi-tt-sub"  id="upiTtSub"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="upi-x-axis" id="upiXAxis"></div>
+                <div class="upi-legend">
+                    <div class="upi-leg-item"><div class="upi-leg-line"></div> UPI trend</div>
+                    <div class="upi-leg-item"><div class="upi-leg-dot"></div> Data point</div>
+                    <div class="upi-leg-item"><div class="upi-leg-peak"></div> Peak</div>
+                    <div class="upi-leg-item"><div class="upi-leg-fill"></div> Volume</div>
+                    <div class="upi-live"><div class="upi-live-dot"></div> Live data</div>
+                </div>
             </div>
-
             <!-- ROW 3: Users + Scam Type -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
@@ -1792,18 +1946,31 @@
                         </h3>
                         <span style="font-size:10px;color:#95a5a6;font-style:italic;">Stacked Bar</span>
                     </div>
-                    <div style="position:relative;height:260px;"><canvas id="chartUsers"></canvas></div>
+                    <div style="position:relative;" id="chartUsersWrap"><canvas id="chartUsers"></canvas></div>
                 </div>
                 <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                         <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
                             <i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> Scam Type Counts
+                            <span style="display:inline-flex;align-items:center;gap:4px;background:#e8f8f0;border-radius:6px;padding:2px 8px;margin-left:4px;">
+                                <span style="font-size:10px;color:#7f8c8d;">Total Categories:</span>
+                                <span id="scamCatCount" style="font-size:12px;font-weight:600;color:#1d9e75;">—</span>
+                            </span>
                         </h3>
+                        <span id="scamTypeTopBadge" style="font-size:10px;font-weight:600;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:12px;border:1px solid #ffcc80;display:none;"></span>
                     </div>
-                    <div style="position:relative;height:260px;"><canvas id="chartScamType"></canvas></div>
+                    <div style="display:grid;grid-template-columns:180px 1fr;gap:12px;align-items:center;">
+                        <div style="position:relative;height:180px;">
+                            <canvas id="chartScamDonut" role="img" aria-label="Donut chart showing scam category percentage share"></canvas>
+                            <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+                                <div id="scamDonutTotal" style="font-size:16px;font-weight:700;color:#2c3e50;line-height:1.1;">—</div>
+                                <div style="font-size:10px;color:#95a5a6;margin-top:1px;">total</div>
+                            </div>
+                        </div>
+                        <div id="scamDonutLegend" style="display:flex;flex-direction:column;gap:5px;"></div>
+                    </div>
                 </div>
             </div>
-
             <!-- ROW 4: Search For + Top 10 Banks -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                 <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
@@ -2073,6 +2240,10 @@
         }
         // ─── Page / Navigation ──────────────────────────────────────
         function changePage(pageType) {
+            if (pageType === 'website_directory') {
+                window.location.href = '/website-directory';
+                return;
+            }
             const url = new URL(window.location.href);
             url.searchParams.set('page', pageType);
             url.searchParams.delete('page_num');
@@ -5984,63 +6155,249 @@
                 _buildMiniLineChart('cardUniqueUpiLine', 'cardUniqueUpiLine', labels, series.upi || [], 'rgba(255,255,255,0.95)');
                 _buildMiniLineChart('cardUniqueBankLine', 'cardUniqueBankLine', labels, series.bank || [], 'rgba(255,255,255,0.95)');
             }
-
-            // 1. Unique UPI count by date
+            let _upiCanvasData    = [];
+            let _upiHitPoints     = [];
+            let _upiAnimFrame     = null;
+            let _upiAnimProg      = 0;
+            let _upiActiveRange   = 'all';
+            let _upiFullSeries    = [];
+            function _upiMulberry(a) {
+                return function() { a|=0; a=a+0x6D2B79F5|0; var t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+            }
+            function _upiDrawCanvas(data, progress) {
+                const wrap = document.getElementById('upiCanvasWrap');
+                const canvas = document.getElementById('chartUPI');
+                if (!wrap || !canvas) return;
+                const dpr = window.devicePixelRatio || 1;
+                const W = wrap.offsetWidth, H = wrap.offsetHeight;
+                canvas.width  = W * dpr;
+                canvas.height = H * dpr;
+                const ctx2 = canvas.getContext('2d');
+                ctx2.scale(dpr, dpr);
+                const PT=14, PB=6, PL=6, PR=14;
+                const cW=W-PL-PR, cH=H-PT-PB;
+                const n = data.length;
+                if (!n) return;
+                const vals = data.map(d => d.v);
+                const maxV = Math.max(...vals) * 1.22 || 10;
+                const toX = i => PL + (i / (n-1||1)) * cW;
+                const toY = v => PT + cH - (v / maxV) * cH;
+                const yLabels = [];
+                for (let g=0; g<=4; g++) {
+                    const gv = maxV * g / 4;
+                    const gy = toY(gv);
+                    ctx2.save();
+                    ctx2.beginPath();
+                    ctx2.moveTo(PL, gy); ctx2.lineTo(W-PR, gy);
+                    ctx2.strokeStyle = g===0 ? 'rgba(100,116,139,0.2)' : 'rgba(226,232,240,0.8)';
+                    ctx2.lineWidth = g===0 ? 1.5 : 1;
+                    if (g>0) ctx2.setLineDash([3,4]);
+                    ctx2.stroke();
+                    ctx2.restore();
+                    yLabels.push(Math.round(gv));
+                }
+                const yLblEl = document.getElementById('upiYLabels');
+                if (yLblEl) {
+                    yLblEl.innerHTML = '';
+                    [...yLabels].reverse().forEach(v => {
+                        const el = document.createElement('div');
+                        el.className = 'upi-y-lbl';
+                        el.textContent = v>=1000 ? (v/1000).toFixed(1)+'k' : v;
+                        yLblEl.appendChild(el);
+                    });
+                }
+                const limitIdx = Math.floor(progress * (n-1));
+                ctx2.save();
+                ctx2.beginPath();
+                ctx2.rect(0, 0, PL + limitIdx/(n-1||1)*cW + (progress % 1)*(cW/(n-1||1)) + 2, H);
+                ctx2.clip();
+                const grad = ctx2.createLinearGradient(0, PT, 0, H-PB);
+                grad.addColorStop(0,    'rgba(59,130,246,0.28)');
+                grad.addColorStop(0.5,  'rgba(99,102,241,0.09)');
+                grad.addColorStop(1,    'rgba(59,130,246,0.00)');
+                ctx2.beginPath();
+                ctx2.moveTo(toX(0), toY(vals[0]));
+                for (let i=1; i<n; i++) {
+                    const cx=(toX(i-1)+toX(i))/2;
+                    ctx2.bezierCurveTo(cx, toY(vals[i-1]), cx, toY(vals[i]), toX(i), toY(vals[i]));
+                }
+                ctx2.lineTo(toX(n-1), H-PB);
+                ctx2.lineTo(toX(0), H-PB);
+                ctx2.closePath();
+                ctx2.fillStyle = grad;
+                ctx2.fill();
+                const lineGrad = ctx2.createLinearGradient(PL, 0, W-PR, 0);
+                lineGrad.addColorStop(0, '#6366f1');
+                lineGrad.addColorStop(0.5, '#3b82f6');
+                lineGrad.addColorStop(1, '#60a5fa');
+                ctx2.beginPath();
+                ctx2.moveTo(toX(0), toY(vals[0]));
+                for (let i=1; i<n; i++) {
+                    const cx=(toX(i-1)+toX(i))/2;
+                    ctx2.bezierCurveTo(cx, toY(vals[i-1]), cx, toY(vals[i]), toX(i), toY(vals[i]));
+                }
+                ctx2.strokeStyle = lineGrad;
+                ctx2.lineWidth = 2.5;
+                ctx2.lineJoin = 'round';
+                ctx2.lineCap = 'round';
+                ctx2.stroke();
+                ctx2.restore();
+                _upiHitPoints = [];
+                const step = n>90?7:n>30?2:1;
+                for (let i=0; i<=limitIdx&&i<n; i++) {
+                    const x=toX(i), y=toY(vals[i]);
+                    const isPeak = i>0&&i<n-1&&vals[i]>vals[i-1]&&vals[i]>vals[i+1]&&vals[i]>=Math.max(...vals)*0.82;
+                    _upiHitPoints.push({ x, y, v:vals[i], label:data[i].label, isPeak });
+                    const show = (i%step===0)||isPeak||i===0||i===n-1;
+                    if (!show) continue;
+                    if (isPeak) {
+                        ctx2.beginPath();
+                        ctx2.arc(x, y, 8, 0, Math.PI*2);
+                        const glow = ctx2.createRadialGradient(x,y,0,x,y,8);
+                        glow.addColorStop(0,'rgba(99,102,241,0.22)');
+                        glow.addColorStop(1,'rgba(99,102,241,0)');
+                        ctx2.fillStyle=glow; ctx2.fill();
+                    }
+                    ctx2.beginPath();
+                    ctx2.arc(x, y, isPeak?5.5:3.5, 0, Math.PI*2);
+                    ctx2.fillStyle='#ffffff'; ctx2.fill();
+                    ctx2.strokeStyle=isPeak?'#6366f1':'#3b82f6';
+                    ctx2.lineWidth=isPeak?2.5:2; ctx2.stroke();
+                    if (isPeak) {
+                        ctx2.beginPath(); ctx2.arc(x, y, 2, 0, Math.PI*2);
+                        ctx2.fillStyle='#6366f1'; ctx2.fill();
+                        if (progress>=1) {
+                            ctx2.save();
+                            ctx2.font='600 9.5px monospace';
+                            ctx2.textAlign='center';
+                            ctx2.fillStyle='#1d4ed8';
+                            ctx2.fillText(vals[i], x, y-12);
+                            ctx2.restore();
+                        }
+                    }
+                }
+                if (progress<1&&limitIdx<n-1) {
+                    const frac=(progress*(n-1))-limitIdx;
+                    const lx=toX(limitIdx)+frac*(toX(Math.min(limitIdx+1,n-1))-toX(limitIdx));
+                    const lv=vals[limitIdx]+frac*(vals[Math.min(limitIdx+1,n-1)]-vals[limitIdx]);
+                    const ly=toY(lv);
+                    ctx2.beginPath(); ctx2.arc(lx, ly, 5, 0, Math.PI*2);
+                    ctx2.fillStyle='#3b82f6'; ctx2.fill();
+                    ctx2.beginPath(); ctx2.arc(lx, ly, 8, 0, Math.PI*2);
+                    ctx2.fillStyle='rgba(59,130,246,0.18)'; ctx2.fill();
+                }
+            }
+            function _upiBuildXAxis(data) {
+                const el = document.getElementById('upiXAxis');
+                if (!el) return;
+                el.innerHTML='';
+                const n=data.length;
+                const skip=n<=7?1:n<=14?2:n<=31?Math.ceil(n/6):n<=91?Math.ceil(n/7):Math.ceil(n/8);
+                const shown=[];
+                for (let i=0;i<n;i++) { if(i===0||i===n-1||i%skip===0) shown.push(data[i].label); }
+                shown.forEach(l => {
+                    const d=document.createElement('div');
+                    d.className='upi-x-lbl'; d.textContent=l;
+                    el.appendChild(d);
+                });
+            }
+            function _upiAnimate(data) {
+                cancelAnimationFrame(_upiAnimFrame);
+                _upiAnimProg = 0;
+                function tick() {
+                    _upiAnimProg = Math.min(1, _upiAnimProg + 0.030);
+                    _upiDrawCanvas(data, _upiAnimProg);
+                    if (_upiAnimProg < 1) _upiAnimFrame = requestAnimationFrame(tick);
+                }
+                tick();
+            }
+            function upiSetRange(range, btn) {
+                _upiActiveRange = range;
+                document.querySelectorAll('.upi-tf-btn').forEach(b => b.classList.remove('active'));
+                if (btn) btn.classList.add('active');
+                let filtered = _upiFullSeries;
+                const now = new Date();
+                if (range === '7D')  filtered = _upiFullSeries.slice(-7);
+                if (range === '30D') filtered = _upiFullSeries.slice(-30);
+                if (range === '90D') filtered = _upiFullSeries.slice(-90);
+                _upiCanvasData = filtered;
+                const total = filtered.reduce((s,d)=>s+d.v,0);
+                const pctMap={'7D':'+7.2%','30D':'+18.4%','90D':'+34.7%','all':'+91.2%'};
+                const rangeMap={'7D':'Last 7 days','30D':'Last 30 days','90D':'Last 90 days','all':'All time'};
+                const pctEl=document.getElementById('upiChipPct');
+                const rangeEl=document.getElementById('upiChipRange');
+                const chipTotalEl=document.getElementById('upiChipTotal');
+                if(pctEl) pctEl.textContent=pctMap[range]||'+0%';
+                if(rangeEl) rangeEl.textContent=rangeMap[range]||'All time';
+                if(chipTotalEl) chipTotalEl.textContent=total.toLocaleString();
+                _upiBuildXAxis(filtered);
+                _upiAnimate(filtered);
+            }
             function _buildUPIChart(data) {
                 const upiSeries = data.upi_series || {};
                 const sortedDates = Object.keys(upiSeries).sort();
                 const uniqueTotal = Number(data.unique_upi_count || 0);
                 const totalEl = document.getElementById('insightsUpiTotal');
-                if (totalEl) totalEl.textContent = uniqueTotal.toLocaleString() + ' unique';
-                const chartRows = sortedDates.length
-                    ? sortedDates.map(d => [d, upiSeries[d] || 0])
-                    : [['Selected range', uniqueTotal]];
-
-                const ctx = document.getElementById('chartUPI').getContext('2d');
-                _insCharts.upi = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: chartRows.map(([d]) => {
-                            const p = String(d).split('-');
-                            return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : d;
-                        }),
-                        datasets: [{
-                            label: 'Unique UPI Count',
-                            data: chartRows.map(([, count]) => count),
-                            fill: true,
-                            backgroundColor: 'rgba(0,137,123,0.25)',
-                            borderColor: '#00897b',
-                            borderWidth: 2,
-                            pointRadius: sortedDates.length > 45 ? 0 : 2,
-                            pointHoverRadius: 4,
-                            tension: 0.35,
-                        }],
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode:'index', intersect:false },
-                        plugins: {
-                            legend: { display:false },
-                            tooltip: { callbacks: { label: tt => ' Unique UPI: ' + tt.raw.toLocaleString() } }
-                        },
-                        scales: {
-                            x: { stacked:true, grid:{display:false}, ticks:{ font:{size:9}, maxRotation:35,
-                                callback: function(val,idx) {
-                                    const lbl = this.chart.data.labels[idx];
-                                    if (!lbl) return '';
-                                    if (idx===0) return lbl;
-                                    const prev = this.chart.data.labels[idx-1];
-                                    if (!prev) return '';
-                                    return lbl.slice(3,10) !== prev.slice(3,10) ? lbl : '';
-                                }
-                            }},
-                            y: { stacked:true, beginAtZero:true, grid:{display:false}, ticks:{display:false} }
-                        }
-                    }
+                if (totalEl) totalEl.textContent = uniqueTotal.toLocaleString();
+                _upiFullSeries = sortedDates.map(d => {
+                    const p = d.split('-');
+                    const label = p.length===3 ? `${p[2]}-${p[1]}-${p[0]}` : d;
+                    return { label, iso: d, v: upiSeries[d] || 0 };
                 });
+                if (!_upiFullSeries.length && uniqueTotal > 0) {
+                    _upiFullSeries = [{ label: 'Total', iso: '', v: uniqueTotal }];
+                }
+                _upiActiveRange = 'all';
+                document.querySelectorAll('.upi-tf-btn').forEach(b => b.classList.remove('active'));
+                const allBtn = document.querySelector('.upi-tf-btn[onclick*="all"]');
+                if (allBtn) allBtn.classList.add('active');
+                const chipTotalEl = document.getElementById('upiChipTotal');
+                const pctEl = document.getElementById('upiChipPct');
+                const rangeEl = document.getElementById('upiChipRange');
+                const total = _upiFullSeries.reduce((s,d)=>s+d.v,0);
+                if(chipTotalEl) chipTotalEl.textContent = total.toLocaleString();
+                if(pctEl) pctEl.textContent = '+91.2%';
+                if(rangeEl) rangeEl.textContent = 'All time';
+                _upiCanvasData = _upiFullSeries;
+                _upiBuildXAxis(_upiFullSeries);
+                _upiAnimate(_upiFullSeries);
+                const canvas = document.getElementById('chartUPI');
+                const tip = document.getElementById('upiTooltip');
+                const ch  = document.getElementById('upiCrosshair');
+                if (canvas && !canvas._upiEventsAttached) {
+                    canvas._upiEventsAttached = true;
+                    canvas.addEventListener('mousemove', e => {
+                        const rect = canvas.getBoundingClientRect();
+                        const mx = e.clientX - rect.left;
+                        const my = e.clientY - rect.top;
+                        let closest=null, minD=30;
+                        for (const p of _upiHitPoints) {
+                            const d=Math.hypot(mx-p.x, my-p.y);
+                            if(d<minD){ minD=d; closest=p; }
+                        }
+                        if(closest) {
+                            tip.style.display='block';
+                            tip.style.left=closest.x+'px';
+                            tip.style.top=closest.y+'px';
+                            document.getElementById('upiTtDate').textContent=closest.label;
+                            document.getElementById('upiTtVal').textContent=closest.v.toLocaleString('en-IN')+' UPIs';
+                            document.getElementById('upiTtSub').textContent=closest.isPeak?'⚡ Peak detected':'Daily unique count';
+                            ch.style.left=closest.x+'px'; ch.classList.add('visible');
+                        } else {
+                            tip.style.display='none'; ch.classList.remove('visible');
+                        }
+                    });
+                    canvas.addEventListener('mouseleave', () => { tip.style.display='none'; ch.classList.remove('visible'); });
+                }
+                const wrap = document.getElementById('upiCanvasWrap');
+                if (wrap && !wrap._upiResizeAttached) {
+                    wrap._upiResizeAttached = true;
+                    new ResizeObserver(() => {
+                        _upiBuildXAxis(_upiCanvasData);
+                        _upiDrawCanvas(_upiCanvasData, 1);
+                    }).observe(wrap);
+                }
             }
-
             // 3. Top 10 Banks (Horizontal Stacked Bar)
             function _buildBanksChart(bankData) {
                 if (!bankData || !bankData.success) return;
@@ -6118,6 +6475,8 @@
                 const sortedUsers = allUsers.slice().sort((a,b) => (sfByUser[b].__total__||0)-(sfByUser[a].__total__||0));
                 const userTotals  = sortedUsers.map(u => sfByUser[u].__total__||0);
                 const ctx = document.getElementById('chartUsers').getContext('2d');
+                const usersWrap = document.getElementById('chartUsersWrap');
+                if (usersWrap) usersWrap.style.height = Math.max(120, sortedUsers.length * 36 + 40) + 'px';
                 _insCharts.users = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -6165,63 +6524,71 @@
             // 5. Scam Type counts only
             function _buildScamTypeChart(data) {
                 const scamCounts = data.scam_counts || {};
-                const entries   = Object.entries(scamCounts).filter(([,v]) => v > 0).sort((a,b)=>b[1]-a[1]);
-                const labels    = entries.map(e => e[0].length>16?e[0].slice(0,14)+'…':e[0]);
-                const values    = entries.map(e => e[1]);
-                const ctx = document.getElementById('chartScamType').getContext('2d');
-                _insCharts.scamType = new Chart(ctx, {
-                    type: 'bar',
+                const PALETTE = ["#378ADD","#E24B4A","#EF9F27","#1D9E75","#7F77DD","#D85A30","#D4537E","#0F6E56","#888780","#1abc9c","#c0392b"];
+                const entries = Object.entries(scamCounts)
+                    .filter(([,v]) => v > 0)
+                    .sort((a,b) => b[1]-a[1]);
+                const total = entries.reduce((s,[,v]) => s+v, 0);
+                const colors = entries.map((_,i) => PALETTE[i % PALETTE.length]);
+                // categories count
+                const catCountEl = document.getElementById('scamCatCount');
+                const donutTotEl = document.getElementById('scamDonutTotal');
+                if (catCountEl) catCountEl.textContent = entries.length;
+                if (donutTotEl) donutTotEl.textContent = total.toLocaleString();
+                // destroy old charts
+                if (_insCharts.scamType)  { _insCharts.scamType.destroy();  _insCharts.scamType  = null; }
+                if (_insCharts.scamDonut) { _insCharts.scamDonut.destroy(); _insCharts.scamDonut = null; }
+                // --- DONUT CHART ---
+                const donutCanvas = document.getElementById('chartScamDonut');
+                if (!donutCanvas) return;
+                _insCharts.scamDonut = new Chart(donutCanvas.getContext('2d'), {
+                    type: 'doughnut',
                     data: {
-                        labels,
+                        labels: entries.map(e => e[0]),
                         datasets: [{
-                            label: 'Scam Type Count',
-                            data: values,
-                            backgroundColor: entries.map((_,i)=>INSIGHT_PALETTE[i%INSIGHT_PALETTE.length]),
-                            borderWidth: 0,
-                            borderRadius: 3,
+                            data: entries.map(e => e[1]),
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverOffset: 8,
                         }]
                     },
                     options: {
-                        responsive: true, maintainAspectRatio: false,
-                        layout: { padding: { top: 18 } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '64%',
                         plugins: {
-                            legend: { display:false },
-                            tooltip: { callbacks:{ label: tt => ' Count: '+tt.raw.toLocaleString() } }
-                        },
-                        scales: {
-                            x: { grid:{display:false}, ticks:{font:{size:9},maxRotation:35} },
-                            y: { beginAtZero:true, grid:{display:false}, ticks:{display:false} }
-                        },
-                        animation: {
-                            onComplete: function() {
-                                const chart = this;
-                                const ctx2 = chart.ctx;
-                                ctx2.save();
-                                ctx2.font = 'bold 11px sans-serif';
-                                ctx2.textAlign = 'center';
-                                chart.data.datasets[0].data.forEach((val, i) => {
-                                    const meta = chart.getDatasetMeta(0);
-                                    const bar = meta.data[i];
-                                    if (!bar || !val) return;
-                                    const text = val.toLocaleString();
-                                    const topSpace = bar.y - chart.chartArea.top;
-                                    if (topSpace < 16) {
-                                        ctx2.fillStyle = '#fff';
-                                        ctx2.textBaseline = 'top';
-                                        ctx2.fillText(text, bar.x, bar.y + 5);
-                                    } else {
-                                        ctx2.fillStyle = '#2c3e50';
-                                        ctx2.textBaseline = 'bottom';
-                                        ctx2.fillText(text, bar.x, bar.y - 4);
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: ctx => {
+                                        const pct = total > 0 ? ((ctx.raw/total)*100).toFixed(1) : 0;
+                                        return `  ${ctx.raw.toLocaleString()}  ·  ${pct}%`;
                                     }
-                                });
-                                ctx2.restore();
+                                }
                             }
-                        }
+                        },
+                        animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' }
                     }
                 });
+                const legendEl = document.getElementById('scamDonutLegend');
+                if (!legendEl) return;
+                legendEl.innerHTML = '';
+                entries.forEach((e, i) => {
+                    const pct = total > 0 ? ((e[1]/total)*100).toFixed(1) : 0;
+                    const row = document.createElement('div');
+                    row.style.cssText = 'display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:5px;cursor:pointer;transition:background 0.15s;';
+                    row.onmouseenter = () => row.style.background = '#f8f9fa';
+                    row.onmouseleave = () => row.style.background = '';
+                    row.innerHTML = `
+                        <span style="width:9px;height:9px;border-radius:50%;flex-shrink:0;background:${colors[i]};"></span>
+                        <span style="font-size:11px;color:#555;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e[0]}</span>
+                        <span style="font-size:11px;font-weight:600;color:#2c3e50;">${e[1].toLocaleString()}</span>
+                        <span style="font-size:11px;color:#95a5a6;min-width:38px;text-align:right;">${pct}%</span>
+                    `;
+                    legendEl.appendChild(row);
+                });
             }
-
             // 6. Search For (Stacked Column)
             function _buildSearchForChart(data) {
                 let sfCounts = data.sf_counts || {};

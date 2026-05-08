@@ -145,6 +145,21 @@ SOCIAL_PLATFORM_OPTIONS = [
     "Gmail Accounts", "Total Numbers"
 ]
 
+WEBSITE_DIRECTORY_CATEGORY_OPTIONS = [
+    "Job Scam", "Subscription Scam", "Fake Website Scam",
+    "Loan Scam", "Government Scheme Scam", "Investment Scam",
+    "LPG Booking Scam", "IPL Tickets Scam"
+]
+
+WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS = ["Web", "App", "Web/App"]
+
+WEBSITE_DIRECTORY_COLUMNS = [
+    "id", "date", "name", "url", "final_url", "invitation_code",
+    "search_for", "group_app_name", "number", "email", "login_id",
+    "password", "remark", "origin", "category",
+    "automated_website", "payment_gateway", "inserted_at"
+]
+
 DEPARTMENT_OPTIONS = [
     "AML", "Investment Scam", "ITC", "Infringement", "Chargeback"
 ]
@@ -2716,6 +2731,412 @@ def investment_bank_data():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+    
+# ============================================================
+# WEBSITE DIRECTORY — LIST / FILTER
+# ============================================================
+@app.route("/website-directory", methods=["GET"])
+@login_required
+def website_directory():
+    user = get_current_user()
+    allowed_pages = session.get("allowed_pages", [])
+
+    wd_search    = request.args.get("wd_search",   "").strip()
+    wd_remark    = request.args.get("wd_remark",   "").strip()
+    wd_category  = request.args.get("wd_category", "").strip()
+    wd_search_for= request.args.get("wd_search_for","").strip()
+    wd_date_from = request.args.get("wd_date_from","").strip()
+    wd_date_to   = request.args.get("wd_date_to",  "").strip()
+    page = int(request.args.get("page_num", 1))
+
+    items = []
+    total_rows = 0
+    total_pages = 1
+
+    try:
+        query = supabase.table("website_directory").select("*", count="exact")
+        if wd_search:
+            lt = f"%{wd_search}%"
+            query = query.or_(
+                f"url.ilike.{lt},final_url.ilike.{lt},"
+                f"name.ilike.{lt},group_app_name.ilike.{lt},"
+                f"login_id.ilike.{lt},number.ilike.{lt},"
+                f"email.ilike.{lt},invitation_code.ilike.{lt}"
+            )
+        if wd_remark:
+            query = query.ilike("remark", f"%{wd_remark}%")
+        if wd_category:
+            query = query.eq("category", wd_category)
+        if wd_search_for:
+            query = query.eq("search_for", wd_search_for)
+        if wd_date_from:
+            query = query.gte("date", wd_date_from)
+        if wd_date_to:
+            query = query.lte("date", wd_date_to)
+
+        query = query.order("id", desc=True)
+        offset = (page - 1) * PER_PAGE
+        query = query.range(offset, offset + PER_PAGE - 1)
+        resp = query.execute()
+        items = resp.data or []
+        total_rows = resp.count or 0
+        total_pages = max(1, math.ceil(total_rows / PER_PAGE))
+    except Exception as e:
+        flash(f"Error fetching website directory: {e}", "error")
+
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
+    return render_template(
+        "website_directory.html",
+        items=items,
+        wd_search=wd_search,
+        wd_remark=wd_remark,
+        wd_category=wd_category,
+        wd_search_for=wd_search_for,
+        wd_date_from=wd_date_from,
+        wd_date_to=wd_date_to,
+        page_num=page,
+        total_pages=total_pages,
+        total_rows=total_rows,
+        wd_category_options=WEBSITE_DIRECTORY_CATEGORY_OPTIONS,
+        wd_search_for_options=WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS,
+        current_user=user,
+        allowed_pages=allowed_pages,
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+        can_view_activity_log=session.get("can_view_activity_log", False),
+    )
+
+
+# ============================================================
+# WEBSITE DIRECTORY — IMPORT
+# ============================================================
+@app.route("/website-directory-import", methods=["POST"])
+@login_required
+def website_directory_import():
+    file = request.files.get("file")
+    if not file or file.filename == "":
+        flash("No file selected", "error")
+        return redirect("/website-directory")
+    if not is_allowed_file(file.filename):
+        flash("Unsupported file type.", "error")
+        return redirect("/website-directory")
+
+    try:
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "csv"
+        df = read_data_file(temp_path, file_ext)
+        df.columns = df.columns.astype(str).str.strip()
+        df = df.fillna("")
+
+        COL_MAP = {
+            "date":             ["date", "Date", "DATE"],
+            "name":             ["name", "Name", "NAME"],
+            "url":              ["url", "URL", "Url", "website_url", "Website URL"],
+            "final_url":        ["final_url", "Final URL", "FinalURL", "final url"],
+            "invitation_code":  ["invitation_code", "Invitation Code", "InvitationCode", "invite_code"],
+            "search_for":       ["search_for", "Search For", "SearchFor", "search for"],
+            "group_app_name":   ["group_app_name", "Group/App Name", "Group App Name", "GroupAppName", "group_name", "app_name"],
+            "number":           ["number", "Number", "Phone", "phone", "Mobile", "mobile"],
+            "email":            ["email", "Email", "EMAIL", "mail"],
+            "login_id":         ["login_id", "Login ID", "LoginID", "login id", "Login Id"],
+            "password":         ["password", "Password", "PASSWORD", "pass"],
+            "remark":           ["remark", "Remark", "REMARK", "remarks", "Remarks"],
+            "origin":           ["origin", "Origin", "ORIGIN"],
+            "category":         ["category", "Category", "CATEGORY", "scam_type", "Scam Type"],
+            "automated_website":["automated_website", "Automated Website", "AutomatedWebsite", "automated"],
+            "payment_gateway":  ["payment_gateway", "Payment Gateway", "PaymentGateway", "gateway"],
+        }
+
+        def resolve_col(target_cols):
+            for c in target_cols:
+                if c in df.columns:
+                    return c
+            for c in target_cols:
+                for col in df.columns:
+                    if c.lower() == col.lower():
+                        return col
+            return None
+
+        DATE_FIELDS = {"date"}
+        records = []
+        for _, row in df.iterrows():
+            rec = {}
+            for db_col, candidates in COL_MAP.items():
+                src = resolve_col(candidates)
+                val = str(row[src]).strip() if src else ""
+                if db_col in DATE_FIELDS:
+                    rec[db_col] = val if val and val.upper() not in ("NA","N/A","NAN","","NONE","NULL") else None
+                else:
+                    rec[db_col] = val if val else "NA"
+            records.append(rec)
+
+        supabase.table("website_directory").insert(records).execute()
+        log_activity(
+            action_type="import",
+            target_table="website_directory",
+            extra_info={"file_name": filename, "records_count": len(records)}
+        )
+        flash(f"Imported successfully! {len(records)} records added.", "success")
+        os.remove(temp_path)
+    except Exception as e:
+        flash(f"Import Error: {e}", "error")
+    return redirect("/website-directory")
+
+# ============================================================
+# WEBSITE DIRECTORY — EXPORT
+# ============================================================
+@app.route("/website-directory-export", methods=["GET"])
+@login_required
+def website_directory_export():
+    try:
+        wd_search     = request.args.get("wd_search",    "").strip()
+        wd_remark     = request.args.get("wd_remark",    "").strip()
+        wd_category   = request.args.get("wd_category",  "").strip()
+        wd_search_for = request.args.get("wd_search_for","").strip()
+        wd_date_from  = request.args.get("wd_date_from", "").strip()
+        wd_date_to    = request.args.get("wd_date_to",   "").strip()
+
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            q = supabase.table("website_directory").select("*")
+            if wd_search:
+                lt = f"%{wd_search}%"
+                q = q.or_(
+                    f"url.ilike.{lt},final_url.ilike.{lt},"
+                    f"name.ilike.{lt},group_app_name.ilike.{lt},"
+                    f"login_id.ilike.{lt},number.ilike.{lt},"
+                    f"email.ilike.{lt},invitation_code.ilike.{lt}"
+                )
+            if wd_remark:    q = q.ilike("remark",     f"%{wd_remark}%")
+            if wd_category:  q = q.eq("category",      wd_category)
+            if wd_search_for:q = q.eq("search_for",    wd_search_for)
+            if wd_date_from: q = q.gte("date",          wd_date_from)
+            if wd_date_to:   q = q.lte("date",          wd_date_to)
+            chunk = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            rows = chunk.data or []
+            all_rows.extend(rows)
+            if len(rows) < CHUNK:
+                break
+            offset += CHUNK
+
+        df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
+        output = io.StringIO()
+        df.to_csv(output, index=False, encoding="utf-8-sig")
+        output.seek(0)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
+            download_name=f"website_directory_{ts}.csv",
+            as_attachment=True,
+            mimetype="text/csv"
+        )
+    except Exception as e:
+        flash(f"Export Error: {e}", "error")
+        return redirect("/website-directory")
+
+
+# ============================================================
+# WEBSITE DIRECTORY — TRACKER STATS
+# ============================================================
+@app.route("/website-directory-tracker-stats", methods=["GET"])
+@login_required
+def website_directory_tracker_stats():
+    try:
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            resp = supabase.table("website_directory") \
+                .select("category,search_for,remark,date") \
+                .order("id", desc=False) \
+                .range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        cat_counts = {}
+        sf_counts  = {}
+        remark_counts = {}
+        daily_counts  = {}
+
+        for row in all_rows:
+            cat = (row.get("category") or "Unknown").strip() or "Unknown"
+            sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
+            rem = (row.get("remark") or "").strip()
+            dt  = (row.get("date") or "")[:10]
+
+            cat_counts[cat] = cat_counts.get(cat, 0) + 1
+            sf_counts[sf]   = sf_counts.get(sf, 0) + 1
+            if rem and rem.upper() not in ("NA","N/A",""):
+                remark_counts[rem] = remark_counts.get(rem, 0) + 1
+            if dt:
+                daily_counts[dt] = daily_counts.get(dt, 0) + 1
+
+        return jsonify({
+            "success": True,
+            "total": len(all_rows),
+            "cat_counts": cat_counts,
+            "sf_counts":  sf_counts,
+            "remark_counts": dict(sorted(remark_counts.items(), key=lambda x: x[1], reverse=True)[:20]),
+            "daily_counts": {k: daily_counts[k] for k in sorted(daily_counts)},
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+# ============================================================
+# WEBSITE DIRECTORY — INSERT SINGLE RECORD
+# ============================================================
+@app.route("/website-directory-insert", methods=["POST"])
+@login_required
+def website_directory_insert():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data"})
+
+        ALLOWED = [
+            "date","name","url","final_url","invitation_code","search_for",
+            "group_app_name","number","email","login_id","password",
+            "remark","origin","category","automated_website","payment_gateway"
+        ]
+        record = {}
+        for f in ALLOWED:
+            val = str(data.get(f, "")).strip()
+            if f == "date":
+                record[f] = val if val and val.upper() not in ("NA","N/A","") else None
+            else:
+                record[f] = val if val else "NA"
+
+        resp = supabase.table("website_directory").insert(record).execute()
+        if resp.data:
+            log_activity(
+                action_type="import",
+                target_table="website_directory",
+                extra_info={"file_name": "manual_insert", "records_count": 1}
+            )
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Insert failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/website-directory-update", methods=["POST"])
+@login_required
+def website_directory_update():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data"})
+        rid = data.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+
+        ALLOWED = [
+            "date","name","url","final_url","invitation_code","search_for",
+            "group_app_name","number","email","login_id","password",
+            "remark","origin","category","automated_website","payment_gateway"
+        ]
+        record = {}
+        for f in ALLOWED:
+            val = str(data.get(f, "")).strip()
+            if f == "date":
+                record[f] = val if val and val.upper() not in ("NA","N/A","") else None
+            else:
+                record[f] = val if val else "NA"
+
+        resp = supabase.table("website_directory").update(record).eq("id", rid).execute()
+        if resp.data:
+            log_activity(
+                action_type="field_update",
+                target_table="website_directory",
+                target_record_id=rid,
+                field_name="edit",
+                new_value=str(record)
+            )
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Update failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/website-directory-get-record", methods=["GET"])
+@login_required
+def website_directory_get_record():
+    try:
+        rid = request.args.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+        resp = supabase.table("website_directory").select("*").eq("id", rid).limit(1).execute()
+        if resp.data:
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Record not found"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+# ============================================================
+# WEBSITE DIRECTORY — DELETE SINGLE RECORD
+# ============================================================
+@app.route("/website-directory-delete", methods=["POST"])
+@login_required
+def website_directory_delete():
+    try:
+        data = request.get_json()
+        rid = data.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+        supabase.table("website_directory").delete().eq("id", rid).execute()
+        log_activity(
+            action_type="field_update",
+            target_table="website_directory",
+            target_record_id=rid,
+            field_name="DELETE",
+            old_value="EXISTS",
+            new_value="DELETED"
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/website-directory-search-api", methods=["GET"])
+@login_required
+def website_directory_search_api():
+    try:
+        q = request.args.get("q", "").strip()
+        if not q:
+            return jsonify({"success": True, "items": []})
+        like_term = f"%{q}%"
+        resp = supabase.table("website_directory") \
+            .select("id,url,final_url,search_for,login_id,password,origin,category,invitation_code") \
+            .or_(f"url.ilike.{like_term},final_url.ilike.{like_term}") \
+            .order("id", desc=True) \
+            .limit(5) \
+            .execute()
+        items = resp.data or []
+        return jsonify({"success": True, "items": items})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+# ============================================================
+# WEBSITE DIRECTORY — DOWNLOAD TEMPLATE
+# ============================================================
+@app.route("/website-directory-template", methods=["GET"])
+@login_required
+def website_directory_template():
+    headers = [
+        "date","name","url","final_url","invitation_code","search_for",
+        "group_app_name","number","email","login_id","password",
+        "remark","origin","category","automated_website","payment_gateway"
+    ]
+    out = io.StringIO()
+    csv.writer(out).writerow(headers)
+    out.seek(0)
+    return send_file(
+        io.BytesIO(out.getvalue().encode("utf-8-sig")),
+        download_name="Website_Directory_Template.csv",
+        as_attachment=True,
+        mimetype="text/csv"
+    )
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
