@@ -2758,15 +2758,22 @@ def website_directory():
         if wd_search:
             lt = f"%{wd_search}%"
             query = query.or_(
-                f"url.ilike.%{wd_search}%,"
-                f"final_url.ilike.%{wd_search}%,"
-                f"name.ilike.%{wd_search}%,"
-                f"group_app_name.ilike.%{wd_search}%,"
-                f"login_id.ilike.%{wd_search}%,"
-                f"number.ilike.%{wd_search}%,"
-                f"email.ilike.%{wd_search}%,"
-                f"invitation_code.ilike.%{wd_search}%"
-            )             
+                f"url.ilike.{lt},"
+                f"final_url.ilike.{lt},"
+                f"name.ilike.{lt},"
+                f"group_app_name.ilike.{lt},"
+                f"login_id.ilike.{lt},"
+                f"number.ilike.{lt},"
+                f"email.ilike.{lt},"
+                f"invitation_code.ilike.{lt},"
+                f"password.ilike.{lt},"
+                f"remark.ilike.{lt},"
+                f"origin.ilike.{lt},"
+                f"category.ilike.{lt},"
+                f"search_for.ilike.{lt},"
+                f"automated_website.ilike.{lt},"
+                f"payment_gateway.ilike.{lt}"
+            )         
         if wd_remark:
             query = query.eq("remark", wd_remark)
         if wd_category:
@@ -2907,17 +2914,24 @@ def website_directory_export():
         while True:
             q = supabase.table("website_directory").select("*")
             if wd_search:
-                    lt = f"%{wd_search}%"
-                    query = query.or_(
-                        f"url.ilike.{lt},"
-                        f"final_url.ilike.{lt},"
-                        f"name.ilike.{lt},"
-                        f"group_app_name.ilike.{lt},"
-                        f"login_id.ilike.{lt},"
-                        f"number.ilike.{lt},"
-                        f"email.ilike.{lt},"
-                        f"invitation_code.ilike.{lt}"
-                    )
+                lt = f"%{wd_search}%"
+                q = q.or_(
+                    f"url.ilike.{lt},"
+                    f"final_url.ilike.{lt},"
+                    f"name.ilike.{lt},"
+                    f"group_app_name.ilike.{lt},"
+                    f"login_id.ilike.{lt},"
+                    f"number.ilike.{lt},"
+                    f"email.ilike.{lt},"
+                    f"invitation_code.ilike.{lt},"
+                    f"password.ilike.{lt},"
+                    f"remark.ilike.{lt},"
+                    f"origin.ilike.{lt},"
+                    f"category.ilike.{lt},"
+                    f"search_for.ilike.{lt},"
+                    f"automated_website.ilike.{lt},"
+                    f"payment_gateway.ilike.{lt}"
+                )
             if wd_remark:    q = q.eq("remark", wd_remark)
             if wd_category:  q = q.eq("category",      wd_category)
             if wd_search_for:q = q.eq("search_for",    wd_search_for)

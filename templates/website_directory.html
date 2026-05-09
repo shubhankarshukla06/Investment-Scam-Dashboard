@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Investment Scam Website Directory — Scam Intelligence Dashboard</title>
+<title>Scam Intelligence Dashboard</title>
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -35,7 +35,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 /* Page Selector */
 .page-selector { display:flex; align-items:center; gap:6px; }
 .page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
-.page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:160px; height:34px; }
+.page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:185px; height:34px; }
 .page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
 
 /* Filters */
@@ -327,7 +327,22 @@ tr:hover { background:#f8fffe; }
                         </div>
                         <div class="form-group">
                             <label>Origin</label>
-                            <input type="text" id="ins_bulk_origin" placeholder="India / Unknown">
+                            <select id="ins_bulk_origin">
+                                <option value="">-- Select Origin --</option>
+                                <option value="India">India</option>
+                                <option value="United States Of America">United States Of America</option>
+                                <option value="Netherlands">Netherlands</option>
+                                <option value="Singapore">Singapore</option>
+                                <option value="Canada">Canada</option>
+                                <option value="Germany">Germany</option>
+                                <option value="France">France</option>
+                                <option value="Sweden">Sweden</option>
+                                <option value="Finland">Finland</option>
+                                <option value="Lithuania">Lithuania</option>
+                                <option value="Bangladesh">Bangladesh</option>
+                                <option value="Cyprus">Cyprus</option>
+                                <option value="NA">NA</option>
+                            </select>
                         </div>
                         <div class="form-group" style="grid-column:span 2;">
                             <label>Category</label>
@@ -349,12 +364,11 @@ tr:hover { background:#f8fffe; }
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">#</th>
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">URL</th>
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Search For</th>
-                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App</th>
-                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Remark</th>
-                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Origin</th>
-                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Category</th>
-                            </tr>
-                        </thead>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App <span style="font-weight:400;font-size:9px;color:#27ae60;">(editable)</span></th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Origin <span style="font-weight:400;font-size:9px;color:#27ae60;">(editable)</span></th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Category <span style="font-weight:400;font-size:9px;color:#27ae60;">(editable)</span></th>
+                                </tr>
+                            </thead>
                         <tbody id="ins_bulk_preview_tbody"></tbody>
                         </table>
                     </div>
@@ -501,24 +515,6 @@ tr:hover { background:#f8fffe; }
                         <input type="text" id="bulk_group_app_name" placeholder="Common app/group name">
                     </div>
                     <div class="form-group">
-                        <label>Remark</label>
-                        <select id="bulk_remark">
-                            <option value="">-- Select --</option>
-                            <option value="IPG" selected>IPG</option>
-                            <option value="OTP Issue">OTP Issue</option>
-                            <option value="Signup Issue">Signup Issue</option>
-                            <option value="Website Not Working">Website Not Working</option>
-                            <option value="Wrong Invitation Code">Wrong Invitation Code</option>
-                            <option value="IPG">IPG</option>
-                            <option value="UPI Not Available">UPI Not Available</option>
-                            <option value="Login Issue">Login Issue</option>
-                            <option value="Payment Processing Error">Payment Processing Error</option>
-                            <option value="Deposit Section Issues">Deposit Section Issues</option>
-                            <option value="Need New Credentials">Need New Credentials</option>
-                            <option value="Redirect To New Website/App">Redirect To New Website/App</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
                         <label>Origin</label>
                         <input type="text" id="bulk_origin" placeholder="India / Unknown">
                     </div>
@@ -623,10 +619,6 @@ tr:hover { background:#f8fffe; }
                 </div>
                 <div id="helpingResultsList" style="border:1px solid #e9d8f5;border-top:none;border-radius:0 0 6px 6px;max-height:420px;overflow-y:auto;"></div>
                 <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
-                    <button onclick="copyHelpingResults()"
-                        style="padding:6px 14px;background:#27ae60;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
-                        <i class="fas fa-copy"></i> Copy CSV
-                    </button>
                     <button onclick="exportHelpingCSV()"
                         style="padding:6px 14px;background:#3498db;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
                         <i class="fas fa-file-export"></i> Export CSV
@@ -641,9 +633,12 @@ tr:hover { background:#f8fffe; }
 <div class="fixed-header">
     <div class="header">
         <div class="logo">
-            <div class="logo-sub">
-                <h1><i class="fas fa-globe" style="color:#27ae60;margin-right:6px;"></i>Website Directory</h1>
-                <span class="header-username"><i class="fas fa-user-circle" style="color:#27ae60;font-size:11px;"></i> {{ display_name }}</span>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div>
+                    <h1 style="font-size:18px;color:#2c3e50;font-weight:700;line-height:1.2;">Scam Intelligence Dashboard</h1>
+                    <p style="color:#7f8c8d;font-size:12px;margin-top:2px;">Investment Scam Website Directory</p>
+                </div>
+                <span class="header-username"><i class="fas fa-user-circle" style="color:#32d3a2;font-size:11px;"></i> {{ display_name }}</span>
             </div>
         </div>
         <div class="header-actions">
@@ -667,7 +662,7 @@ tr:hover { background:#f8fffe; }
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
                     {% if 'scraping' in allowed_pages %}
-                    <option value="website_directory" selected>Website Directory</option>
+                    <option value="website_directory" selected>Scam++ Website Directory</option>
                     {% endif %}
                 </select>
             </div>
@@ -703,7 +698,7 @@ tr:hover { background:#f8fffe; }
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
             <a href="/?page=scraping" class="btn" style="background:#6366f1;color:white;">
-                <i class="fas fa-history"></i> Activity Log
+                <i class="fas fa-history"></i> User's Activity Log
             </a>
             <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;">
                 <i class="fas fa-sign-out-alt"></i> Logout
@@ -750,7 +745,7 @@ tr:hover { background:#f8fffe; }
                     <label><i class="fas fa-search"></i> Search</label>
                     <div class="search-box">
                         <i class="fas fa-search search-icon"></i>
-                        <input type="text" name="wd_search" value="{{ wd_search }}" placeholder="URL, name, login ID, number..."
+                        <input type="text" name="wd_search" value="{{ wd_search }}" placeholder="Keywords Filter"
                             onkeyup="if(event.keyCode===13) this.form.submit()">
                     </div>
                 </div>
@@ -1827,7 +1822,7 @@ function parseInsBulkUrls() {
         search_for:     gf('ins_bulk_search_for'),
         group_app_name: gf('ins_bulk_group_app_name'),
         name:           _loggedInName,
-        remark:         gf('ins_bulk_remark'),
+        remark:         'IPG',
         origin:         gf('ins_bulk_origin'),
         category:       gf('ins_bulk_category'),
     };
@@ -1842,15 +1837,30 @@ function parseInsBulkUrls() {
         };
     });
     const tbody = document.getElementById('ins_bulk_preview_tbody');
+    const catOptions = ['','Job Scam','Subscription Scam','Fake Website Scam','Loan Scam','Government Scheme Scam','Investment Scam','LPG Booking Scam','IPL Tickets Scam'];
+    const originOptions = ['','India','United States Of America','Netherlands','Singapore','Canada','Germany','France','Sweden','Finland','Lithuania','Bangladesh','Cyprus','NA'];
     tbody.innerHTML = _insBulkRows.map((r, i) => `
         <tr style="background:${i%2===0?'#fff':'#f0fdf9'};border-bottom:1px solid #e0f5ef;">
             <td style="padding:5px 10px;color:#7f8c8d;white-space:nowrap;">${i+1}</td>
             <td style="padding:5px 10px;font-family:monospace;font-size:10px;color:#1a5276;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
             <td style="padding:5px 10px;white-space:nowrap;">${r.search_for ? `<span style="background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;">${r.search_for}</span>` : '—'}</td>
-            <td style="padding:5px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.group_app_name||'—'}</td>
-            <td style="padding:5px 10px;white-space:nowrap;color:#7f8c8d;font-size:11px;">${r.remark||'—'}</td>
-            <td style="padding:5px 10px;white-space:nowrap;">${r.origin ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 6px;border-radius:3px;font-size:10px;">${r.origin}</span>` : '—'}</td>
-            <td style="padding:5px 10px;"><span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-size:10px;">${r.category||'—'}</span></td>
+            <td style="padding:5px 8px;min-width:130px;">
+                <input type="text" value="${r.group_app_name||''}" placeholder="Group/App name"
+                    onchange="_insBulkRows[${i}].group_app_name=this.value"
+                    style="width:100%;padding:3px 7px;border:1.5px solid #a2d9ce;border-radius:4px;font-size:11px;outline:none;height:26px;background:white;color:#2c3e50;">
+            </td>
+            <td style="padding:5px 8px;min-width:120px;">
+                <select onchange="_insBulkRows[${i}].origin=this.value"
+                    style="width:100%;padding:3px 6px;border:1.5px solid #a2d9ce;border-radius:4px;font-size:11px;outline:none;height:26px;background:white;color:#1a5276;">
+                    ${originOptions.map(o => `<option value="${o}" ${r.origin===o?'selected':''}>${o||'-- Origin --'}</option>`).join('')}
+                </select>
+            </td>
+            <td style="padding:5px 8px;min-width:150px;">
+                <select onchange="_insBulkRows[${i}].category=this.value"
+                    style="width:100%;padding:3px 6px;border:1.5px solid #a2d9ce;border-radius:4px;font-size:11px;outline:none;height:26px;background:white;color:#e65100;">
+                    ${catOptions.map(c => `<option value="${c}" ${r.category===c?'selected':''}>${c||'-- Category --'}</option>`).join('')}
+                </select>
+            </td>
         </tr>
     `).join('');
 
