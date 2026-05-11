@@ -852,10 +852,6 @@ def get_user_activity_log():
                                 extra = {}
  
                         dept = extra.get("department", "")
- 
-                        # KEY FIX: if no department stored, HIDE the log
-                        # (old logs before department tracking was added)
-                        # Previously this returned True which caused the leak
                         if not dept:
                             return False
  
@@ -863,10 +859,7 @@ def get_user_activity_log():
  
                     # Any other action type on social table → hide from restricted users
                     return False
- 
-                # ── scrapping_data and BS_Investment_Scam ───────────────
-                # These are not department-restricted, show all
-                return False
+                return True
  
             logs = [l for l in all_logs if _log_allowed(l)]
  

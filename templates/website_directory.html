@@ -144,6 +144,38 @@ tr:hover { background:#f8fffe; }
 .t-toggle-btn.active { background:#27ae60; color:white; box-shadow:0 2px 8px rgba(39,174,96,0.35); }
 .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; box-shadow:-2px -2px 6px rgba(0,0,0,0.12); }
 .dev-credit-footer span { color:#3498db; font-weight:700; }
+        .user-activity-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .user-activity-modal.active { display: flex; }
+        .ual-content { background: white; border-radius: 12px; width: 100%; max-width: 1100px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,0.25); }
+        .ual-header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+        .ual-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
+        .ual-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
+        .ual-close:hover { background: rgba(255,255,255,0.2); }
+        .ual-filters { display: flex; gap: 10px; padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+        .ual-search-wrap { position: relative; display: flex; align-items: center; }
+        .ual-search-wrap i { position: absolute; left: 10px; color: #9ca3af; font-size: 13px; pointer-events: none; }
+        .ual-search-wrap input { padding: 7px 12px 7px 32px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; width: 260px; height: 34px; outline: none; }
+        .ual-search-wrap input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+        .ual-filters select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; height: 34px; min-width: 190px; outline: none; }
+        .ual-filters select:focus { border-color: #6366f1; }
+        .ual-clear-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; height: 34px; display: flex; align-items: center; gap: 5px; }
+        .ual-clear-btn:hover { background: #c0392b; }
+        .ual-stats { padding: 8px 16px; background: #eef2ff; border-bottom: 1px solid #c7d2fe; font-size: 12px; color: #4338ca; font-weight: 600; flex-shrink: 0; }
+        .ual-body { overflow-y: auto; flex-grow: 1; }
+        .ual-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+        .ual-table thead th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 5; white-space: nowrap; }
+        .ual-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        .ual-table tbody tr:hover { background: #f8f9ff; }
+        .ual-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+        .ual-badge-update { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+        .ual-badge-import { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .ual-page-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #374151; white-space: nowrap; }
+        .ual-val-change { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+        .ual-old { background: #fee2e2; color: #991b1b; padding: 1px 6px; border-radius: 3px; font-size: 11px; text-decoration: line-through; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ual-new { background: #dcfce7; color: #166534; padding: 1px 6px; border-radius: 3px; font-size: 11px; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ual-arrow { color: #9ca3af; font-size: 10px; }
+        .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
+        .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
 </style>
 </head>
 <body>
@@ -629,6 +661,42 @@ tr:hover { background:#f8fffe; }
     </div>
 </div>
 
+<!-- User Activity Log Modal -->
+<div class="user-activity-modal" id="userActivityLogModal">
+    <div class="ual-content">
+        <div class="ual-header">
+            <h2><i class="fas fa-history"></i> User's Activity Log</h2>
+            <button class="ual-close" onclick="closeUserActivityLog()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="ual-filters">
+            <div class="ual-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="text" id="ualSearch" placeholder="Search by user, field, value, record ID..." oninput="filterUAL()">
+            </div>
+            <select id="ualPageFilter" onchange="filterUAL()">
+                <option value="">All Pages</option>
+                <option value="social_media_accounts">Social Media Accounts</option>
+                <option value="scrapping_data">Scrapping Data</option>
+                <option value="BS_Investment_Scam">BS Investment Scam</option>
+                <option value="website_directory">Scam++ Website Directory</option>
+            </select>
+            <select id="ualActionFilter" onchange="filterUAL()">
+                <option value="">All Actions</option>
+                <option value="field_update">Field Updates</option>
+                <option value="import">Imports</option>
+            </select>
+            <button class="ual-clear-btn" onclick="clearUAL()"><i class="fas fa-times"></i> Clear</button>
+            <button class="ual-clear-btn" onclick="exportUAL()" style="background:#2ecc71;"><i class="fas fa-file-export"></i> Export</button>
+        </div>
+        <div class="ual-stats" id="ualStats"><i class="fas fa-list"></i> Loading...</div>
+        <div class="ual-body" id="ualBody">
+            <div style="text-align:center;padding:40px 20px;color:#7f8c8d;">
+                <div style="border:3px solid #f3f3f3;border-top:3px solid #6366f1;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div>
+                <p>Loading activity log...</p>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Fixed Header -->
 <div class="fixed-header">
     <div class="header">
@@ -697,9 +765,9 @@ tr:hover { background:#f8fffe; }
             <button type="button" class="btn btn-outline" onclick="window.location.reload()">
                 <i class="fas fa-sync-alt"></i> Refresh
             </button>
-            <a href="/?page=scraping" class="btn" style="background:#6366f1;color:white;">
+            <button type="button" class="btn" style="background:#6366f1;color:white;" onclick="showUserActivityLog()">
                 <i class="fas fa-history"></i> User's Activity Log
-            </a>
+            </button>
             <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
@@ -988,7 +1056,6 @@ tr:hover { background:#f8fffe; }
     </div>
     {% endif %}
 </div>
-
 <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
 
 <script>
@@ -1905,7 +1972,143 @@ function adjustPad() {
 }
 adjustPad();
 window.addEventListener('resize', adjustPad);
+// REPLACE WITH
 if (window.ResizeObserver) new ResizeObserver(adjustPad).observe(document.querySelector('.fixed-header'));
+
+/* ── USER ACTIVITY LOG ──────────────────────────────────────── */
+let _ualAllLogs = [];
+
+function showUserActivityLog() {
+    document.getElementById('userActivityLogModal').classList.add('active');
+    _loadUAL();
+}
+
+function closeUserActivityLog() {
+    document.getElementById('userActivityLogModal').classList.remove('active');
+}
+
+async function _loadUAL() {
+    document.getElementById('ualBody').innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7f8c8d;"><div style="border:3px solid #f3f3f3;border-top:3px solid #6366f1;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div><p>Loading activity log...</p></div>';
+    document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
+    try {
+        const resp = await fetch('/get-user-activity-log');
+        const data = await resp.json();
+        if (data.success) { _ualAllLogs = data.logs; _renderUAL(_ualAllLogs); }
+        else document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
+    } catch(e) {
+        document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Network error</p></div>`;
+    }
+}
+
+function filterUAL() {
+    const search = document.getElementById('ualSearch').value.toLowerCase();
+    const page   = document.getElementById('ualPageFilter').value;
+    const action = document.getElementById('ualActionFilter').value;
+    const filtered = _ualAllLogs.filter(log => {
+        const mp = !page   || log.target_table === page;
+        const ma = !action || log.action_type  === action;
+        const ms = !search || [log.display_name, log.field_name, log.old_value,
+                               log.new_value, log.action_type, log.target_table,
+                               String(log.target_record_id||''), JSON.stringify(log.extra_info||{})]
+                              .some(v => (v||'').toLowerCase().includes(search));
+        return mp && ma && ms;
+    });
+    _renderUAL(filtered);
+}
+
+function clearUAL() {
+    document.getElementById('ualSearch').value = '';
+    document.getElementById('ualPageFilter').value = '';
+    document.getElementById('ualActionFilter').value = '';
+    _renderUAL(_ualAllLogs);
+}
+
+const _UAL_PAGE_LABEL = {
+    'social_media_accounts': 'Social Media Accounts',
+    'scrapping_data':        'Scrapping Data',
+    'BS_Investment_Scam':    'BS Investment Scam',
+    'website_directory':     'Scam++ Website Directory'
+};
+
+function _fmtTS(created_at) {
+    if (!created_at) return { date:'—', time:'—' };
+    const d = new Date(created_at);
+    return {
+        date: d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'}),
+        time: d.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true})
+    };
+}
+function _renderUAL(logs) {
+    document.getElementById('ualStats').innerHTML = `<i class="fas fa-list"></i> Showing <strong>${logs.length}</strong> records`;
+    if (!logs.length) {
+        document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-history"></i><p>No activity found</p></div>`;
+        return;
+    }
+    let rows = '';
+    logs.forEach((log, i) => {
+        const { date, time } = _fmtTS(log.created_at);
+        const badge = log.action_type === 'field_update'
+            ? `<span class="ual-badge ual-badge-update"><i class="fas fa-edit"></i> Field Update</span>`
+            : `<span class="ual-badge ual-badge-import"><i class="fas fa-file-import"></i> Import</span>`;
+        const pageLabel = _UAL_PAGE_LABEL[log.target_table] || log.target_table || '—';
+        let changeHtml = '—';
+        if (log.action_type === 'field_update') {
+            changeHtml = `<div class="ual-val-change">
+                <span class="ual-old" title="${log.old_value||''}">${log.old_value||'—'}</span>
+                <span class="ual-arrow"><i class="fas fa-arrow-right"></i></span>
+                <span class="ual-new" title="${log.new_value||''}">${log.new_value||'—'}</span>
+            </div>`;
+        } else if (log.action_type === 'import' && log.extra_info) {
+            changeHtml = `<span style="font-size:11px;color:#374151;"><i class="fas fa-file-excel" style="color:#2ecc71;"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
+        }
+        rows += `<tr>
+            <td style="color:#9ca3af;font-size:11px;text-align:center;">${log.id||(i+1)}</td>
+            <td><div style="font-weight:600;color:#2c3e50;font-size:12px;">${log.display_name||'—'}</div></td>
+            <td style="font-size:11px;">${changeHtml}</td>
+            <td><div style="font-size:11px;color:#374151;white-space:nowrap;">${date}</div><div style="font-size:11px;color:#6366f1;font-weight:600;white-space:nowrap;">${time}</div></td>
+            <td><span class="ual-page-badge">${pageLabel}</span></td>
+            <td style="font-size:11px;color:#4b5563;font-family:monospace;max-width:80px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${log.field_name||''}">${log.field_name||'—'}</td>
+            <td style="font-size:11px;color:#6b7280;max-width:70px;width:70px;text-align:center;">${log.target_record_id||'—'}</td>
+            <td>${badge}</td>
+        </tr>`;
+    });
+    document.getElementById('ualBody').innerHTML = `<table class="ual-table"><thead><tr>
+        <th>ID</th><th>Login User</th><th>Change</th>
+        <th>Timestamp</th><th>Page</th>
+        <th style="max-width:80px;width:80px;">Field</th>
+        <th style="max-width:70px;width:70px;">Record ID</th>
+        <th>Action</th>
+    </tr></thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+function exportUAL() {
+    if (!_ualAllLogs.length) { showToast('No records to export', 'err'); return; }
+    const esc = v => { const s=String(v===null||v===undefined?'':v); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:''+s; };
+    const headers = ['ID','Login User','Old Value','New Value','Timestamp','Action','Page','Field','Record ID'];
+    const rows = _ualAllLogs.map(log => {
+        const {date, time} = _fmtTS(log.created_at);
+        let updatedVal = log.new_value||'';
+        if (log.action_type==='import' && log.extra_info) updatedVal = `${log.extra_info.records_count||0} records (${log.extra_info.file_name||''})`;
+        return [log.id||'', log.display_name||'', log.old_value||'', updatedVal,
+                `${date} ${time}`, log.action_type||'',
+                _UAL_PAGE_LABEL[log.target_table]||log.target_table||'',
+                log.field_name||'', log.target_record_id||''].map(esc).join(',');
+    });
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+    a.href=url; a.download=`activity_log_${ts}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    showToast('Exported!', 'ok');
+}
+
+document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('userActivityLogModal')) closeUserActivityLog();
+});
 </script>
 </body>
 </html>
