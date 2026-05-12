@@ -226,7 +226,7 @@ tr:hover { background:#f8fffe; }
                 </div>
                 <div class="form-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">URL</label><input type="text" id="ins_url" placeholder="https://example.com" oninput="onInsUrlInput(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
-                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="ins_final_url" placeholder="https://final.example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="ins_final_url" placeholder="https://final.example.com" oninput="clearTimeout(_insUrlCheckTimer);_insUrlCheckTimer=setTimeout(()=>checkSingleUrlDuplicate(this.value,'ins_final_url','ins_final_url_status'),500)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
                 </div>
                 <div class="form-group">
                     <label>Invitation Code</label>
@@ -394,6 +394,7 @@ tr:hover { background:#f8fffe; }
                             <thead>
                             <tr style="background:#e8f8f5;position:sticky;top:0;">
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">#</th>
+                                <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Status</th>
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">URL</th>
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Search For</th>
                                 <th style="padding:6px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App <span style="font-weight:400;font-size:9px;color:#27ae60;">(editable)</span></th>
@@ -805,6 +806,10 @@ tr:hover { background:#f8fffe; }
                 <button class="clear-btn" onclick="window.location.href='/website-directory'">
                     <i class="fas fa-times"></i> Clear Filters
                 </button>
+                <button type="button" onclick="openInoperableModal()"
+                    style="background:#e74c3c;color:white;border:none;padding:5px 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                    <i class="fas fa-ban"></i> Inoperable Websites
+                </button>
             </div>
         </div>
         <form method="GET" action="/website-directory" id="filterForm">
@@ -874,7 +879,6 @@ tr:hover { background:#f8fffe; }
         <table id="wdTable">
             <thead>
                 <tr>
-                    <th>Action</th>
                     <th>ID</th>
                     <th>Date</th>
                     <th>Name</th>
@@ -892,18 +896,13 @@ tr:hover { background:#f8fffe; }
                     <th>Category</th>
                     <th>Automated</th>
                     <th>Payment Gateway</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody>
                 {% if items %}
                 {% for item in items %}
                 <tr id="wd-row-{{ item.id }}">
-                    <td>
-                        <button onclick="openEditModal({{ item.id }})"
-                            style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
-                    </td>
                     <td><strong style="color:#1e8449;">#{{ item.id }}</strong></td>
                     <td>
                         {% if item.get('date') and item['date'] not in ['NA','N/A','',None] %}
@@ -1028,6 +1027,12 @@ tr:hover { background:#f8fffe; }
                         </div>
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
+                    <td>
+                        <button onclick="openEditModal({{ item.id }})"
+                            style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </td>
                 </tr>
                 {% endfor %}
                 {% else %}
@@ -1101,6 +1106,7 @@ function extractUrlParts(rawUrl) {
 function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
 
 // Single insert — URL type/paste karne pe auto-fill Final URL + Invite Code
+let _insUrlCheckTimer = null;
 function onInsUrlInput(val) {
     if (!val || val.length < 8) return;
     const { finalUrl, inviteCode } = extractUrlParts(val);
@@ -1108,6 +1114,55 @@ function onInsUrlInput(val) {
     const icEl = document.getElementById('ins_invitation_code');
     if (fuEl && !fuEl.value) fuEl.value = finalUrl;
     if (icEl && !icEl.value && inviteCode) icEl.value = inviteCode;
+
+    // Duplicate check with debounce
+    clearTimeout(_insUrlCheckTimer);
+    _insUrlCheckTimer = setTimeout(() => checkSingleUrlDuplicate(val, 'ins_url', 'ins_url_status'), 500);
+}
+
+async function checkSingleUrlDuplicate(url, inputId, statusId) {
+    if (!url || url.length < 6) return;
+    let el = document.getElementById(statusId);
+    if (!el) {
+        el = document.createElement('div');
+        el.id = statusId;
+        el.style.cssText = 'font-size:11px;margin-top:4px;padding:3px 8px;border-radius:4px;font-weight:600;display:inline-flex;align-items:center;gap:5px;';
+        const inputEl = document.getElementById(inputId);
+        if (inputEl) inputEl.parentNode.insertBefore(el, inputEl.nextSibling);
+    }
+    el.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:10px;"></i> Checking...';
+    el.style.background = '#f0f4ff';
+    el.style.color = '#5470c6';
+
+    try {
+        const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(url));
+        const data = await resp.json();
+        const urlInput = document.getElementById(inputId);
+        if (data.success && data.items && data.items.length > 0) {
+            el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> URL already exists (ID #' + data.items[0].id + ')';
+            el.style.background = '#fde8e8';
+            el.style.color = '#c0392b';
+            if (urlInput) {
+                urlInput.style.borderColor = '#e74c3c';
+                urlInput.style.background = '#fff8f8';
+            }
+            // Also check final_url
+            const fuEl = document.getElementById('ins_final_url');
+            if (fuEl && !fuEl.value && data.items[0].final_url && data.items[0].final_url !== 'NA') {
+                fuEl.value = data.items[0].final_url;
+            }
+        } else {
+            el.innerHTML = '<i class="fas fa-check-circle"></i> New URL';
+            el.style.background = '#e8f8f0';
+            el.style.color = '#1e8449';
+            if (urlInput) {
+                urlInput.style.borderColor = '#27ae60';
+                urlInput.style.background = '#f0fff4';
+            }
+        }
+    } catch(e) {
+        if (el) el.innerHTML = '';
+    }
 }
 function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
 
@@ -1357,7 +1412,25 @@ async function submitEdit() {
         if (data.success) {
             showToast('Record updated!', 'ok');
             closeModal('editModal');
-            setTimeout(()=>window.location.reload(), 800);
+            const newRemark = payload.remark || '';
+            const INOPERABLE_REMARKS = [
+                'OTP Issue','Signup Issue','Website Not Working','Wrong Invitation Code',
+                'UPI Not Available','Login Issue','Payment Processing Error',
+                'Deposit Section Issues','Need New Credentials','Redirect To New Website/App'
+            ];
+            const isInoperable = INOPERABLE_REMARKS.includes(newRemark);
+            if (isInoperable) {
+                const row = document.getElementById('wd-row-' + payload.id);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s,transform 0.3s';
+                    row.style.opacity = '0';
+                    row.style.transform = 'translateX(20px)';
+                    setTimeout(() => row.remove(), 310);
+                }
+                showToast('Moved to Inoperable!', 'ok');
+            } else {
+                setTimeout(()=>window.location.reload(), 800);
+            }
         } else {
             showToast('Error: ' + data.error, 'err');
         }
@@ -1877,13 +1950,12 @@ function onInsBulkUrlInput() {
     el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
 }
 
-function parseInsBulkUrls() {
+async function parseInsBulkUrls() {
     const raw = document.getElementById('ins_bulk_url_input').value.trim();
     const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
     if (!lines.length) { showToast('First Paste URLs!', 'err'); return; }
 
     const gf = id => (document.getElementById(id) || {}).value || '';
-    const manualFinalUrl = gf('ins_bulk_final_url');
     const common = {
         date:           gf('ins_bulk_date'),
         search_for:     gf('ins_bulk_search_for'),
@@ -1893,23 +1965,78 @@ function parseInsBulkUrls() {
         origin:         gf('ins_bulk_origin'),
         category:       gf('ins_bulk_category'),
     };
-    _insBulkRows = lines.map(url => {
-        return {
-            url,
-            final_url:        url,
-            invitation_code:  '',
-            number:'', email:'', login_id:'', password:'',
-            automated_website:'', payment_gateway:'',
-            ...common
-        };
-    });
-    const tbody = document.getElementById('ins_bulk_preview_tbody');
+    _insBulkRows = lines.map(url => ({
+        url,
+        final_url: url,
+        invitation_code: '',
+        number: '', email: '', login_id: '', password: '',
+        automated_website: '', payment_gateway: '',
+        _status: 'checking',
+        ...common
+    }));
+
+    document.getElementById('ins_bulk_preview_count').textContent = _insBulkRows.length;
+    document.getElementById('ins_bulk_preview_area').style.display = '';
+
+    // Render initial skeleton with "checking" state
+    _renderBulkPreviewTable();
+
+    const btn = document.getElementById('insBulkSubmitBtn');
+    btn.disabled = true;
+    btn.style.opacity = '0.5';
+
+    // Now check each URL
+    let checked = 0;
+    for (let i = 0; i < _insBulkRows.length; i++) {
+        try {
+            const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(_insBulkRows[i].url));
+            const data = await resp.json();
+            if (data.success && data.items && data.items.length > 0) {
+                _insBulkRows[i]._status = 'duplicate';
+                _insBulkRows[i]._dup_id = data.items[0].id;
+            } else {
+                _insBulkRows[i]._status = 'new';
+            }
+        } catch(e) {
+            _insBulkRows[i]._status = 'error';
+        }
+        checked++;
+        // Re-render every 5 rows or at end
+        if (checked % 5 === 0 || checked === _insBulkRows.length) {
+            _renderBulkPreviewTable();
+        }
+    }
+
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    const dupCount = _insBulkRows.filter(r => r._status === 'duplicate').length;
+    const newCount = _insBulkRows.filter(r => r._status === 'new').length;
+    showToast(`${newCount} new, ${dupCount} duplicate${dupCount !== 1 ? 's' : ''}`, dupCount > 0 ? '' : 'ok');
+}
+
+function _renderBulkPreviewTable() {
     const catOptions = ['','Job Scam','Subscription Scam','Fake Website Scam','Loan Scam','Government Scheme Scam','Investment Scam','LPG Booking Scam','IPL Tickets Scam'];
     const originOptions = ['','India','United States Of America','Netherlands','Singapore','Canada','Germany','France','Sweden','Finland','Lithuania','Bangladesh','Cyprus','NA'];
-    tbody.innerHTML = _insBulkRows.map((r, i) => `
-        <tr style="background:${i%2===0?'#fff':'#f0fdf9'};border-bottom:1px solid #e0f5ef;">
+    const tbody = document.getElementById('ins_bulk_preview_tbody');
+    tbody.innerHTML = _insBulkRows.map((r, i) => {
+        const isDup     = r._status === 'duplicate';
+        const isNew     = r._status === 'new';
+        const isChecking= r._status === 'checking';
+        const rowBg = isDup ? '#fff8f8' : isNew ? '#f0fff4' : (i % 2 === 0 ? '#fff' : '#f9f9f9');
+        let statusBadge = '';
+        if (isChecking) {
+            statusBadge = '<span style="background:#f0f4ff;color:#5470c6;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;"><i class="fas fa-spinner fa-spin" style="font-size:9px;"></i> Checking</span>';
+        } else if (isDup) {
+            statusBadge = `<span style="background:#fde8e8;color:#c0392b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border:1px solid #fbc7c7;"><i class="fas fa-exclamation-triangle" style="font-size:9px;"></i> Exists #${r._dup_id||''}</span>`;
+        } else if (isNew) {
+            statusBadge = '<span style="background:#e8f8f0;color:#1e8449;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border:1px solid #a9dfbf;"><i class="fas fa-check-circle" style="font-size:9px;"></i> New</span>';
+        } else {
+            statusBadge = '<span style="background:#f5f5f5;color:#7f8c8d;padding:2px 7px;border-radius:4px;font-size:10px;">?</span>';
+        }
+        return `<tr style="background:${rowBg};border-bottom:1px solid ${isDup ? '#fde' : '#e0f5ef'};">
             <td style="padding:5px 10px;color:#7f8c8d;white-space:nowrap;">${i+1}</td>
-            <td style="padding:5px 10px;font-family:monospace;font-size:10px;color:#1a5276;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
+            <td style="padding:5px 10px;">${statusBadge}</td>
+            <td style="padding:5px 10px;font-family:monospace;font-size:10px;color:${isDup?'#c0392b':'#1a5276'};max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
             <td style="padding:5px 10px;white-space:nowrap;">${r.search_for ? `<span style="background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;">${r.search_for}</span>` : '—'}</td>
             <td style="padding:5px 8px;min-width:130px;">
                 <input type="text" value="${r.group_app_name||''}" placeholder="Group/App name"
@@ -1928,15 +2055,21 @@ function parseInsBulkUrls() {
                     ${catOptions.map(c => `<option value="${c}" ${r.category===c?'selected':''}>${c||'-- Category --'}</option>`).join('')}
                 </select>
             </td>
-        </tr>
-    `).join('');
+        </tr>`;
+    }).join('');
 
-    document.getElementById('ins_bulk_preview_count').textContent = _insBulkRows.length;
-    document.getElementById('ins_bulk_preview_area').style.display = '';
-    const btn = document.getElementById('insBulkSubmitBtn');
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    showToast(`${_insBulkRows.length} rows ready!`, 'ok');
+    // Update count badge with dup/new summary
+    const dupCount = _insBulkRows.filter(r => r._status === 'duplicate').length;
+    const newCount = _insBulkRows.filter(r => r._status === 'new').length;
+    const checkingCount = _insBulkRows.filter(r => r._status === 'checking').length;
+    let summary = `${_insBulkRows.length} rows`;
+    if (!checkingCount) {
+        summary += ` — <span style="color:#1e8449;font-weight:700;">${newCount} new</span>`;
+        if (dupCount) summary += ` <span style="color:#c0392b;font-weight:700;">· ${dupCount} duplicate</span>`;
+    } else {
+        summary += ` — checking ${checkingCount}...`;
+    }
+    document.getElementById('ins_bulk_preview_count').innerHTML = summary;
 }
 
 async function submitInsBulk() {
@@ -2109,6 +2242,235 @@ function exportUAL() {
 document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
     if (e.target === document.getElementById('userActivityLogModal')) closeUserActivityLog();
 });
+</script>
+<!-- Inoperable Websites Modal -->
+<div class="modal-overlay" id="inoperableModal">
+    <div class="modal-box" style="max-width:98vw;max-height:97vh;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#e74c3c,#c0392b);">
+            <h2><i class="fas fa-ban"></i> Inoperable Websites
+                <span id="inoperableTotalBadge" style="font-size:12px;font-weight:600;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;margin-left:8px;"></span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('inoperableModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <!-- Filters inside modal -->
+        <div style="display:flex;gap:8px;align-items:center;padding:10px 16px;background:#fdf2f2;border-bottom:1px solid #fbc7c7;flex-shrink:0;flex-wrap:wrap;">
+            <div style="position:relative;flex:1;min-width:200px;">
+                <i class="fas fa-search" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#e74c3c;font-size:12px;pointer-events:none;"></i>
+                <input type="text" id="inopSearchInput"
+                    placeholder="Search URL, Login ID, Password, Category..."
+                    oninput="filterInoperable()"
+                    style="width:100%;padding:7px 12px 7px 30px;border:1.5px solid #fbc7c7;border-radius:6px;font-size:12px;outline:none;height:32px;box-sizing:border-box;background:white;color:#2c3e50;">
+            </div>
+            <select id="inopRemarkFilter" onchange="filterInoperable()"
+                style="padding:6px 10px;border:1.5px solid #fbc7c7;border-radius:6px;font-size:12px;background:white;color:#c0392b;cursor:pointer;height:32px;font-weight:600;outline:none;min-width:180px;">
+                <option value="">All Remarks (excl. IPG)</option>
+                <option value="OTP Issue">OTP Issue</option>
+                <option value="Signup Issue">Signup Issue</option>
+                <option value="Website Not Working">Website Not Working</option>
+                <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                <option value="UPI Not Available">UPI Not Available</option>
+                <option value="Login Issue">Login Issue</option>
+                <option value="Payment Processing Error">Payment Processing Error</option>
+                <option value="Deposit Section Issues">Deposit Section Issues</option>
+                <option value="Need New Credentials">Need New Credentials</option>
+                <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+            </select>
+            <span id="inopFilterCount" style="font-size:11px;color:#7f8c8d;font-weight:600;white-space:nowrap;"></span>
+            <button onclick="clearInopFilters()" style="padding:5px 10px;background:#95a5a6;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;">
+                <i class="fas fa-times"></i> Clear
+            </button>
+            <button onclick="exportInoperableCSV()" style="padding:5px 12px;background:#3498db;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;font-weight:600;">
+                <i class="fas fa-file-export"></i> Export CSV
+            </button>
+        </div>
+        <!-- Table -->
+        <div style="overflow-x:auto;overflow-y:auto;flex-grow:1;max-height:calc(97vh - 170px);"></div>
+            <table style="width:max-content;min-width:100%;border-collapse:collapse;" id="inopTable">
+                <thead>
+                    <tr>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Date</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Name</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;min-width:200px;">URL</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;min-width:220px;">Final URL</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Search For</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Login ID</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Password</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Remark</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Origin</th>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;">Category</th>
+                    </tr>
+                </thead>
+                <tbody id="inopTbody">
+                    <tr><td colspan="10" style="text-align:center;padding:40px;color:#95a5a6;">
+                        <div style="border:3px solid #f3f3f3;border-top:3px solid #e74c3c;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+                        Loading...
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+/* ── INOPERABLE WEBSITES ─────────────────────────────── */
+let _inopAllData = [];
+let _inopFiltered = [];
+
+async function openInoperableModal() {
+    document.getElementById('inoperableModal').classList.add('active');
+    document.getElementById('inopSearchInput').value = '';
+    document.getElementById('inopRemarkFilter').value = '';
+    document.getElementById('inopFilterCount').textContent = '';
+    _inopAllData = [];
+    _inopFiltered = [];
+    document.getElementById('inopTbody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#95a5a6;">
+        <div style="border:3px solid #f3f3f3;border-top:3px solid #e74c3c;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 12px;"></div>
+        Loading Inoperable Websites...
+    </td></tr>`;
+    document.getElementById('inoperableTotalBadge').textContent = '';
+    try {
+        // Fetch all records with remark != IPG (fetch in chunks)
+        const CHUNK = 1000;
+        let offset = 0;
+        let allRows = [];
+        while (true) {
+            const resp = await fetch(`/website-directory-inoperable?offset=${offset}&limit=${CHUNK}`);
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || 'Fetch failed');
+            allRows = allRows.concat(data.items || []);
+            if ((data.items || []).length < CHUNK) break;
+            offset += CHUNK;
+        }
+        _inopAllData = allRows;
+        _inopFiltered = allRows;
+        document.getElementById('inoperableTotalBadge').textContent = allRows.length + ' records';
+        _renderInopTable(allRows);
+    } catch(e) {
+        document.getElementById('inopTbody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#e74c3c;font-size:13px;">
+            <i class="fas fa-exclamation-circle"></i> Error: ${e.message}
+        </td></tr>`;
+    }
+}
+
+function filterInoperable() {
+    const search = (document.getElementById('inopSearchInput').value || '').toLowerCase().trim();
+    const remark = document.getElementById('inopRemarkFilter').value;
+    _inopFiltered = _inopAllData.filter(item => {
+        const matchRemark = !remark || (item.remark || '') === remark;
+        if (!search) return matchRemark;
+        const haystack = [
+            item.url, item.final_url, item.login_id, item.password,
+            item.category, item.origin, item.remark, item.name,
+            item.group_app_name, item.search_for, item.date
+        ].map(v => (v || '').toLowerCase()).join(' ');
+        return matchRemark && haystack.includes(search);
+    });
+    document.getElementById('inopFilterCount').textContent = `Showing ${_inopFiltered.length} of ${_inopAllData.length}`;
+    _renderInopTable(_inopFiltered);
+}
+
+function clearInopFilters() {
+    document.getElementById('inopSearchInput').value = '';
+    document.getElementById('inopRemarkFilter').value = '';
+    _inopFiltered = _inopAllData;
+    document.getElementById('inopFilterCount').textContent = '';
+    _renderInopTable(_inopAllData);
+}
+
+function _renderInopTable(rows) {
+    const tbody = document.getElementById('inopTbody');
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:50px;color:#95a5a6;">
+            <i class="fas fa-check-circle" style="font-size:32px;display:block;margin-bottom:10px;color:#a9dfbf;"></i>
+            No inoperable websites found
+        </td></tr>`;
+        return;
+    }
+    const v  = val => val && !['NA','N/A','',null,undefined].includes(String(val).trim());
+    const e  = s  => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const tr = (s,n) => s && s.length>n ? s.slice(0,n-1)+'…' : (s||'');
+    const SF_MAP = { 'Web':'#e3f2fd:#0d47a1', 'App':'#e8f5e9:#1b5e20', 'Web/App':'#fff3e0:#e65100' };
+    const REMARK_COLORS = {
+        'OTP Issue':             '#fff3e0:#e65100',
+        'Website Not Working':   '#fde8e8:#c0392b',
+        'Login Issue':           '#fde8e8:#c0392b',
+        'Signup Issue':          '#fef9e7:#b7950b',
+        'UPI Not Available':     '#fde8e8:#c0392b',
+        'Wrong Invitation Code': '#fef9e7:#b7950b',
+        'Payment Processing Error': '#fde8e8:#c0392b',
+        'Deposit Section Issues':   '#fde8e8:#c0392b',
+        'Need New Credentials':     '#f3e5f5:#6c3483',
+        'Redirect To New Website/App': '#e8f5e9:#1b5e20',
+    };
+    tbody.innerHTML = rows.map((item, i) => {
+        const sfParts = SF_MAP[item.search_for] ? SF_MAP[item.search_for].split(':') : null;
+        const rkParts = REMARK_COLORS[item.remark] ? REMARK_COLORS[item.remark].split(':') : null;
+        const rowBg = i % 2 === 0 ? '#fff' : '#fff8f8';
+        const tdS = `padding:8px 12px;border-bottom:1px solid #fde;font-size:12px;vertical-align:middle;white-space:nowrap;`;
+        return `<tr style="background:${rowBg};" onmouseover="this.style.background='#fdf2f2'" onmouseout="this.style.background='${rowBg}'">
+            <td style="${tdS}font-weight:600;color:#2c3e50;">${v(item.date) ? item.date.split('T')[0] : '<span style="color:#95a5a6;">—</span>'}</td>
+            <td style="${tdS}color:#555;">${v(item.name) ? e(tr(item.name, 20)) : '<span style="color:#95a5a6;">—</span>'}</td>
+            <td style="${tdS}min-width:200px;max-width:260px;">
+                ${v(item.url)
+                    ? `<div style="display:flex;align-items:center;gap:4px;"><a href="${e(item.url)}" target="_blank" style="color:#3498db;text-decoration:none;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;display:inline-block;" title="${e(item.url)}">${e(tr(item.url,35))}</a><button onclick="copyText('${e(item.url)}','URL')" style="background:none;border:none;color:#3498db;cursor:pointer;padding:1px 3px;font-size:10px;flex-shrink:0;"><i class="fas fa-copy"></i></button></div>`
+                    : '<span style="color:#95a5a6;font-style:italic;">—</span>'}
+            </td>
+            <td style="${tdS}min-width:220px;max-width:280px;">
+                ${v(item.final_url)
+                    ? `<div style="display:flex;align-items:center;gap:4px;"><a href="${e(item.final_url)}" target="_blank" style="color:#8e44ad;text-decoration:none;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px;display:inline-block;" title="${e(item.final_url)}">${e(tr(item.final_url,38))}</a><button onclick="copyText('${e(item.final_url)}','Final URL')" style="background:none;border:none;color:#8e44ad;cursor:pointer;padding:1px 3px;font-size:10px;flex-shrink:0;"><i class="fas fa-copy"></i></button></div>`
+                    : '<span style="color:#95a5a6;font-style:italic;">—</span>'}
+            </td>
+            <td style="${tdS}">
+                ${sfParts
+                    ? `<span style="background:${sfParts[0]};color:${sfParts[1]};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;">${e(item.search_for)}</span>`
+                    : '<span style="color:#95a5a6;">—</span>'}
+            </td>
+            <td style="${tdS}">
+                ${v(item.login_id)
+                    ? `<div style="display:flex;align-items:center;gap:3px;"><span style="font-family:monospace;font-size:11px;color:#1a5276;">${e(tr(item.login_id,20))}</span><button onclick="copyText('${e(item.login_id)}','Login ID')" style="background:none;border:none;color:#3498db;cursor:pointer;padding:1px 3px;font-size:10px;"><i class="fas fa-copy"></i></button></div>`
+                    : '<span style="color:#95a5a6;">—</span>'}
+            </td>
+            <td style="${tdS}">
+                ${v(item.password)
+                    ? `<div style="display:flex;align-items:center;gap:3px;"><span style="font-family:monospace;font-size:11px;color:#c0392b;">${e(tr(item.password,20))}</span><button onclick="copyText('${e(item.password)}','Password')" style="background:none;border:none;color:#e74c3c;cursor:pointer;padding:1px 3px;font-size:10px;"><i class="fas fa-copy"></i></button></div>`
+                    : '<span style="color:#95a5a6;">—</span>'}
+            </td>
+            <td style="${tdS}">
+                ${rkParts
+                    ? `<span style="background:${rkParts[0]};color:${rkParts[1]};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;">${e(item.remark)}</span>`
+                    : (v(item.remark) ? `<span style="font-size:11px;color:#7f8c8d;font-weight:600;">${e(tr(item.remark,25))}</span>` : '<span style="color:#95a5a6;">—</span>')}
+            </td>
+            <td style="${tdS}">
+                ${v(item.origin)
+                    ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:400;">${e(item.origin)}</span>`
+                    : '<span style="color:#95a5a6;">—</span>'}
+            </td>
+            <td style="${tdS}">
+                ${v(item.category)
+                    ? `<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid #ffcc80;white-space:nowrap;">${e(tr(item.category,20))}</span>`
+                    : '<span style="color:#95a5a6;">—</span>'}
+            </td>
+        </tr>`;
+    }).join('');
+}
+
+function exportInoperableCSV() {
+    const rows = _inopFiltered.length ? _inopFiltered : _inopAllData;
+    if (!rows.length) { showToast('No data to export', 'err'); return; }
+    const esc = v => { const s=String(v===null||v===undefined?'':v); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:''+s; };
+    const headers = ['Date','Name','URL','Final URL','Search For','Login ID','Password','Remark','Origin','Category'];
+    const lines = [headers.join(','), ...rows.map(r => [
+        r.date, r.name, r.url, r.final_url, r.search_for,
+        r.login_id, r.password, r.remark, r.origin, r.category
+    ].map(esc).join(','))];
+    const blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `inoperable_websites_${new Date().toISOString().slice(0,10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    showToast('Exported!', 'ok');
+}
 </script>
 </body>
 </html>

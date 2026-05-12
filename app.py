@@ -524,28 +524,135 @@ def extract_search_for_from_url(url):
 
 
 def lookup_origin_and_category_from_master(url):
+    """
+    Legacy single-row lookup — kept for compatibility.
+    Queries website_directory table in Supabase.
+    For bulk processing use bulk_lookup_origin_category() instead.
+    """
     url_value = clean_value(url)
     if url_value == "NA":
         return "NA", "NA"
-    url_clean = url_value.lower().strip()
-    if url_clean in MASTER_URL_DATA:
-        return MASTER_URL_DATA[url_clean]["origin"], MASTER_URL_DATA[url_clean]["category_of_website"]
-    for alt in [("http://", "https://"), ("https://", "http://")]:
-        if url_clean.startswith(alt[0]):
-            alt_url = alt[1] + url_clean[len(alt[0]):]
-            if alt_url in MASTER_URL_DATA:
-                return MASTER_URL_DATA[alt_url]["origin"], MASTER_URL_DATA[alt_url]["category_of_website"]
+    url_clean = url_value.strip()
     try:
-        domain = urlparse(url_clean).netloc
-        for master_url, data in MASTER_URL_DATA.items():
-            try:
-                if urlparse(master_url).netloc == domain:
-                    return data["origin"], data["category_of_website"]
-            except:
-                continue
-    except:
-        pass
+        # Try exact match first (case-insensitive via ilike)
+        resp = supabase.table("website_directory") \
+            .select("origin,category") \
+            .or_(f"url.ilike.{url_clean},final_url.ilike.{url_clean}") \
+            .limit(1).execute()
+        if resp.data:
+            row = resp.data[0]
+            origin   = (row.get("origin")   or "NA").strip() or "NA"
+            category = (row.get("category") or "NA").strip() or "NA"
+            return origin, category
+        # Try domain-level match
+        try:
+            domain = urlparse(url_clean).netloc
+            if domain:
+                domain_clean = domain[4:] if domain.startswith("www.") else domain
+                like_term = f"%{domain_clean}%"
+                resp2 = supabase.table("website_directory") \
+                    .select("origin,category") \
+                    .or_(f"url.ilike.{like_term},final_url.ilike.{like_term}") \
+                    .limit(1).execute()
+                if resp2.data:
+                    row = resp2.data[0]
+                    origin   = (row.get("origin")   or "NA").strip() or "NA"
+                    category = (row.get("category") or "NA").strip() or "NA"
+                    return origin, category
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"[WD Lookup] Error for {url}: {e}")
     return "NA", "NA"
+
+
+def bulk_lookup_origin_category(urls: list) -> dict:
+    """
+    Fetch origin+category for a list of URLs from website_directory in one pass.
+    Returns dict: { url_lower: (origin, category) }
+    Matching priority: exact url/final_url → domain fallback.
+    """
+    result = {}
+    unique_urls = [u for u in set(urls) if u and u.upper() not in ("NA", "N/A", "")]
+    if not unique_urls:
+        return result
+
+    # Build domain index for fallback
+    domain_map = {}
+    for u in unique_urls:
+        try:
+            netloc = urlparse(u).netloc
+            if netloc:
+                domain = netloc[4:] if netloc.startswith("www.") else netloc
+                if domain not in domain_map:
+                    domain_map[domain] = u
+        except Exception:
+            pass
+
+    CHUNK = 200
+    try:
+        all_rows = []
+        offset = 0
+        while True:
+            resp = supabase.table("website_directory") \
+                .select("url,final_url,origin,category") \
+                .order("id", desc=False) \
+                .range(offset, offset + CHUNK - 1).execute()
+            rows = resp.data or []
+            all_rows.extend(rows)
+            if len(rows) < CHUNK:
+                break
+            offset += CHUNK
+
+        # Build lookup maps from DB
+        url_exact   = {}   # url_lower → (origin, category)
+        domain_db   = {}   # domain    → (origin, category)
+
+        for row in all_rows:
+            origin   = (row.get("origin")   or "NA").strip() or "NA"
+            category = (row.get("category") or "NA").strip() or "NA"
+            for col in ("url", "final_url"):
+                val = (row.get(col) or "").strip().lower()
+                if val and val not in ("na", "n/a", ""):
+                    url_exact[val] = (origin, category)
+                    try:
+                        netloc = urlparse(val).netloc
+                        if netloc:
+                            dom = netloc[4:] if netloc.startswith("www.") else netloc
+                            if dom not in domain_db:
+                                domain_db[dom] = (origin, category)
+                    except Exception:
+                        pass
+
+        # Match each requested URL
+        for u in unique_urls:
+            u_lower = u.lower().strip()
+            if u_lower in url_exact:
+                result[u_lower] = url_exact[u_lower]
+                continue
+            # Try http/https swap
+            for old, new in [("https://", "http://"), ("http://", "https://")]:
+                if u_lower.startswith(old):
+                    alt = new + u_lower[len(old):]
+                    if alt in url_exact:
+                        result[u_lower] = url_exact[alt]
+                        break
+            if u_lower in result:
+                continue
+            # Domain fallback
+            try:
+                netloc = urlparse(u_lower).netloc
+                if netloc:
+                    dom = netloc[4:] if netloc.startswith("www.") else netloc
+                    if dom in domain_db:
+                        result[u_lower] = domain_db[dom]
+            except Exception:
+                pass
+
+    except Exception as e:
+        print(f"[bulk_lookup_origin_category] Error: {e}")
+
+    return result
 
 
 def extract_case_time_and_date_from_npci_url(url):
@@ -632,6 +739,23 @@ def process_sheet_data(df, sheet_type):
     unique_upi_ids = set()
     unique_bank_accounts = set()
     unique_websites = set()
+
+    # ── Pre-fetch origin/category for all website URLs in one bulk call ──
+    _website_url_col = None
+    for h in standardized_headers:
+        if h == "Website URL":
+            _website_url_col = h
+            break
+    _wd_cache = {}
+    if _website_url_col and _website_url_col in df.columns:
+        _all_urls = [
+            clean_value(df.iloc[i][_website_url_col])
+            for i in range(len(df))
+        ]
+        _valid_urls = [u for u in _all_urls if u != "NA"]
+        if _valid_urls:
+            _wd_cache = bulk_lookup_origin_category(_valid_urls)
+
     for idx in range(len(df)):
         row_data = {col: "NA" for col in REQUIRED_COLUMNS}
         row_data['case_generated_time'] = "NA"
@@ -683,7 +807,8 @@ def process_sheet_data(df, sheet_type):
             })
             row_data['upi_bank_account_wallet'] = "UPI" if row_data['upi_vpa'] != "NA" else "Bank Account"
             if row_data['website_url'] != "NA":
-                origin, category = lookup_origin_and_category_from_master(row_data['website_url'])
+                _key = row_data['website_url'].lower().strip()
+                origin, category = _wd_cache.get(_key, ("NA", "NA"))
                 row_data['origin'] = origin
                 row_data['category_of_website'] = category
             else:
@@ -703,7 +828,8 @@ def process_sheet_data(df, sheet_type):
             if row_data['scam_type'] != "NA" and row_data['category_of_website'] == "NA":
                 row_data['category_of_website'] = row_data['scam_type']
             if row_data['website_url'] != "NA":
-                origin, _ = lookup_origin_and_category_from_master(row_data['website_url'])
+                _key = row_data['website_url'].lower().strip()
+                origin, _ = _wd_cache.get(_key, ("NA", "NA"))
                 row_data['origin'] = origin
             else:
                 row_data['origin'] = "NA"
@@ -726,7 +852,8 @@ def process_sheet_data(df, sheet_type):
         row_data['search_for'] = extract_search_for_from_url(row_data['website_url'])
         if sheet_type != 'messaging' and row_data['category_of_website'] == "NA":
             if row_data['website_url'] != "NA":
-                _, category = lookup_origin_and_category_from_master(row_data['website_url'])
+                _key = row_data['website_url'].lower().strip()
+                _, category = _wd_cache.get(_key, ("NA", "NA"))
                 row_data['category_of_website'] = category
         row_data['screenshot_case_report_link'] = row_data.get('screenshot', "NA")
         row_data.pop('_original_screenshot', None)
@@ -2748,6 +2875,7 @@ def website_directory():
 
     try:
         query = supabase.table("website_directory").select("*", count="exact")
+        query = query.or_("remark.is.null,remark.eq.NA,remark.eq.,remark.eq.IPG")
         if wd_search:
             lt = f"%{wd_search}%"
             query = query.or_(
@@ -3152,6 +3280,64 @@ def website_directory_template():
         as_attachment=True,
         mimetype="text/csv"
     )
+@app.route("/website-directory-summary-stats", methods=["GET"])
+@login_required
+def website_directory_summary_stats():
+    """
+    Returns count of website_directory records grouped by category,
+    optionally filtered by date range (date column).
+    Used by Scrapping Summary → Category/Platform wise summary.
+    """
+    try:
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to",   "").strip()
+        date_on   = request.args.get("date_on",   "").strip()
+
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            q = supabase.table("website_directory").select("category")
+            if date_on:
+                q = q.eq("date", date_on)
+            else:
+                if date_from:
+                    q = q.gte("date", date_from)
+                if date_to:
+                    q = q.lte("date", date_to)
+            resp = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        cat_counts = {}
+        for row in all_rows:
+            cat = (row.get("category") or "Unknown").strip() or "Unknown"
+            if cat.upper() in ("NA", "N/A", ""):
+                cat = "Unknown"
+            cat_counts[cat] = cat_counts.get(cat, 0) + 1
+
+        return jsonify({"success": True, "cat_counts": cat_counts, "total": len(all_rows)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/website-directory-inoperable", methods=["GET"])
+@login_required
+def website_directory_inoperable():
+    try:
+        offset = int(request.args.get("offset", 0))
+        limit  = int(request.args.get("limit", 1000))
+        resp = supabase.table("website_directory") \
+            .select("id,date,name,url,final_url,search_for,login_id,password,remark,origin,category,group_app_name") \
+            .not_.eq("remark", "IPG") \
+            .not_.is_("remark", "null") \
+            .order("id", desc=True) \
+            .range(offset, offset + limit - 1) \
+            .execute()
+        return jsonify({"success": True, "items": resp.data or []})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
