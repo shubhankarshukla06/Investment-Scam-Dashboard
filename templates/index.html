@@ -255,6 +255,17 @@
             .tracker-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
             .tracker-loading .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            @keyframes skshimmer {
+                0%   { background-position: -600px 0; }
+                100% { background-position:  600px 0; }
+            }
+            .sk {
+                border-radius: 6px;
+                background: #e8eaed;
+                background-image: linear-gradient(90deg, #e8eaed 0px, #f4f5f7 120px, #e8eaed 240px);
+                background-size: 600px 100%;
+                animation: skshimmer 1.4s infinite linear;
+            }
             /* ============================================================
             ACTIVITY & PERMANENT BLOCK MODALS
             ============================================================ */
@@ -1859,10 +1870,118 @@
             </div>
 
             <!-- LOADING / EMPTY -->
-            <div id="insightsLoading" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
-                <div style="border:3px solid #f3f3f3;border-top:3px solid #3498db;border-radius:50%;width:36px;height:36px;animation:spin 1s linear infinite;margin:0 auto 14px;"></div>
-                <p style="color:#7f8c8d;font-size:13px;">Loading insights data...</p>
-            </div>
+            <div id="insightsLoading" style="display:none;flex-direction:column;gap:12px;padding:4px 0;">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                    <div style="background:white;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.07);display:flex;align-items:center;gap:10px;">
+                    <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:8px;">
+                        <div class="sk" style="height:11px;width:90px;"></div>
+                        <div class="sk" style="height:24px;width:60px;"></div>
+                        <div class="sk" style="height:10px;width:110px;"></div>
+                    </div>
+                    <div class="sk" style="flex:1;height:55px;border-radius:6px;"></div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.07);display:flex;align-items:center;gap:10px;">
+                    <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:8px;">
+                        <div class="sk" style="height:11px;width:90px;"></div>
+                        <div class="sk" style="height:24px;width:60px;"></div>
+                        <div class="sk" style="height:10px;width:110px;"></div>
+                    </div>
+                    <div class="sk" style="flex:1;height:55px;border-radius:6px;"></div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.07);display:flex;align-items:center;gap:10px;">
+                    <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:8px;">
+                        <div class="sk" style="height:11px;width:90px;"></div>
+                        <div class="sk" style="height:24px;width:60px;"></div>
+                        <div class="sk" style="height:10px;width:110px;"></div>
+                    </div>
+                    <div class="sk" style="flex:1;height:55px;border-radius:6px;"></div>
+                    </div>
+                </div>
+                <div style="background:white;border-radius:10px;padding:18px 22px;box-shadow:0 1px 6px rgba(0,0,0,0.07);">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div class="sk" style="height:14px;width:180px;"></div>
+                        <div style="display:flex;gap:6px;">
+                        <div class="sk" style="height:20px;width:80px;border-radius:20px;"></div>
+                        <div class="sk" style="height:20px;width:70px;border-radius:20px;"></div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:4px;">
+                        <div class="sk" style="height:28px;width:36px;border-radius:7px;"></div>
+                        <div class="sk" style="height:28px;width:40px;border-radius:7px;"></div>
+                        <div class="sk" style="height:28px;width:40px;border-radius:7px;"></div>
+                        <div class="sk" style="height:28px;width:36px;border-radius:7px;"></div>
+                    </div>
+                    </div>
+                    <div class="sk" style="height:150px;width:100%;border-radius:8px;"></div>
+                    <div style="display:flex;gap:24px;margin-top:14px;padding-top:12px;border-top:1px solid #f0f0f0;">
+                    <div class="sk" style="height:11px;width:80px;"></div>
+                    <div class="sk" style="height:11px;width:65px;"></div>
+                    <div class="sk" style="height:11px;width:55px;"></div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.07);">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                        <div class="sk" style="height:13px;width:140px;"></div>
+                        <div class="sk" style="height:11px;width:60px;"></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:90px;flex-shrink:0;"></div><div class="sk" style="height:22px;flex:1;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:75px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:75%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:100px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:55%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:80px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:40%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:60px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:30%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                    </div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.07);">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+                        <div class="sk" style="height:13px;width:140px;"></div>
+                        <div class="sk" style="height:20px;width:80px;border-radius:20px;"></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:160px 1fr;gap:14px;align-items:center;">
+                        <div style="height:160px;display:flex;align-items:center;justify-content:center;">
+                        <div class="sk" style="width:160px;height:160px;border-radius:50%;"></div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:6px;"><div class="sk" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;"></div><div class="sk" style="height:11px;flex:1;"></div><div class="sk" style="height:11px;width:28px;"></div></div>
+                        <div style="display:flex;align-items:center;gap:6px;"><div class="sk" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;"></div><div class="sk" style="height:11px;flex:1;"></div><div class="sk" style="height:11px;width:28px;"></div></div>
+                        <div style="display:flex;align-items:center;gap:6px;"><div class="sk" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;"></div><div class="sk" style="height:11px;flex:1;"></div><div class="sk" style="height:11px;width:28px;"></div></div>
+                        <div style="display:flex;align-items:center;gap:6px;"><div class="sk" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;"></div><div class="sk" style="height:11px;flex:1;"></div><div class="sk" style="height:11px;width:28px;"></div></div>
+                        <div style="display:flex;align-items:center;gap:6px;"><div class="sk" style="width:9px;height:9px;border-radius:50%;flex-shrink:0;"></div><div class="sk" style="height:11px;flex:1;"></div><div class="sk" style="height:11px;width:28px;"></div></div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                    <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.07);">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                        <div class="sk" style="height:13px;width:150px;"></div>
+                        <div class="sk" style="height:11px;width:60px;"></div>
+                    </div>
+                    <div style="display:flex;align-items:flex-end;gap:6px;height:180px;padding:0 4px;">
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;"><div class="sk" style="height:11px;border-radius:3px;margin-bottom:4px;"></div><div class="sk" style="height:90px;border-radius:4px 4px 0 0;"></div></div>
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;"><div class="sk" style="height:11px;border-radius:3px;margin-bottom:4px;"></div><div class="sk" style="height:130px;border-radius:4px 4px 0 0;"></div></div>
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;"><div class="sk" style="height:11px;border-radius:3px;margin-bottom:4px;"></div><div class="sk" style="height:60px;border-radius:4px 4px 0 0;"></div></div>
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;"><div class="sk" style="height:11px;border-radius:3px;margin-bottom:4px;"></div><div class="sk" style="height:110px;border-radius:4px 4px 0 0;"></div></div>
+                        <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:4px;"><div class="sk" style="height:11px;border-radius:3px;margin-bottom:4px;"></div><div class="sk" style="height:75px;border-radius:4px 4px 0 0;"></div></div>
+                    </div>
+                    </div>
+                    <div style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 6px rgba(0,0,0,0.07);">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:14px;">
+                        <div class="sk" style="height:13px;width:100px;"></div>
+                        <div class="sk" style="height:11px;width:60px;"></div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:80px;flex-shrink:0;"></div><div class="sk" style="height:22px;flex:1;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:110px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:65%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:95px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:50%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:75px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:38%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                        <div style="display:flex;align-items:center;gap:8px;"><div class="sk" style="height:11px;width:120px;flex-shrink:0;"></div><div class="sk" style="height:22px;width:28%;"></div><div class="sk" style="height:11px;width:28px;flex-shrink:0;"></div></div>
+                    </div>
+                    </div>
+                </div>
+                </div>
             <div id="insightsEmpty" style="display:none;text-align:center;padding:60px 20px;background:white;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);">
                 <i class="fas fa-chart-bar" style="font-size:48px;color:#dde3ed;display:block;margin-bottom:14px;"></i>
                 <p style="color:#7f8c8d;font-size:14px;font-weight:600;">No data found for selected filters</p>
@@ -3213,13 +3332,20 @@
                 if (!userCol && summaryHeaders.length > 0) userCol = summaryHeaders[0];
                 if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
 
+                // ── Approved_by column detection ──────────────────────────
+                const approvedByColCandidates = ['approved_by','Approved_by','Approved_By','APPROVED_BY','approvedby','ApprovedBy'];
+                let approvedByCol = null;
+                for (const c of approvedByColCandidates) {
+                    if (summaryHeaders.includes(c)) { approvedByCol = c; break; }
+                }
+
                 const dateColCandidates = ['Inserted_date','inserted_date','Date','date'];
                 let dateCol = null;
                 for (const c of dateColCandidates) {
                     if (summaryHeaders.includes(c)) { dateCol = c; break; }
                 }
 
-                // ── Detect date range from uploaded file ──────────────────────
+                // ── Date range from uploaded file ──────────────────────────
                 let minDate = null, maxDate = null;
                 if (dateCol) {
                     summaryParsedData.forEach(row => {
@@ -3230,8 +3356,23 @@
                     });
                 }
 
-                // ── Fetch Scrapping counts from scrapping_data (per user, per date) ──
-                let scrapUserCounts = {};   // { "User Name": count }
+                // ── Quality Check: count rows where Approved_by != input_user ──
+                // Result: { "Shubhankar": 5, "Parul": 3 } — keyed by Approved_by value
+                const qualityCheckCounts = {};
+                if (approvedByCol) {
+                    summaryParsedData.forEach(row => {
+                        const inputUser  = (row[userCol]        || '').trim();
+                        const approvedBy = (row[approvedByCol]  || '').trim();
+                        if (!approvedBy || approvedBy.toUpperCase() === 'NA' || !approvedBy) return;
+                        // Only count if input_user != approved_by (someone else reviewed it)
+                        if (inputUser.toLowerCase() !== approvedBy.toLowerCase()) {
+                            qualityCheckCounts[approvedBy] = (qualityCheckCounts[approvedBy] || 0) + 1;
+                        }
+                    });
+                }
+
+                // ── Fetch Scrapping counts ─────────────────────────────────
+                let scrapUserCounts = {};
                 try {
                     showToast('Fetching scrapping data...', false, false);
                     const scrapParams = [];
@@ -3253,8 +3394,8 @@
                     showToast('Scrapping data fetch failed', true);
                 }
 
-                // ── Fetch Website Directory counts (per user/name, per date) ──
-                let wdUserCounts = {};   // { "User Name": count }
+                // ── Fetch Website Directory counts ────────────────────────
+                let wdUserCounts = {};
                 try {
                     showToast('Fetching website directory data...', false, false);
                     const wdParams = [];
@@ -3272,7 +3413,78 @@
                     showToast('Website directory data fetch failed', true);
                 }
 
-                // ── NAME_ORDER for sorting ─────────────────────────────────────
+                // ── Fetch MIS API data (Credentials + Remark) ─────────────
+                // API: /getDepartmentData?user_mail=...&department=...&role=...
+                // We proxy through our Flask endpoint to avoid CORS
+                // Returns array of records with fields including credentials count, remarks, dates
+                let misDataByUser = {};  // { "clean_user_name_lower": { credentials: N, remark: "..." } }
+                try {
+                    showToast('Fetching MIS data...', false, false);
+                    const misResp = await fetch(
+                        '/getDepartmentData?user_mail=tl_shubhankar.shukla%40pixeltruth.com&department=Anti_Money_Laundering&role=Team_Lead'
+                    );
+                    const misRaw = await misResp.json();
+
+                    if (Array.isArray(misRaw) && misRaw.length > 0) {
+                        // Filter by date range if available
+                        const filtered = misRaw.filter(record => {
+                            if (!minDate && !maxDate) return true;
+                            // Try common date fields
+                            const recDate = record.date || record.Date || record.inserted_date || record.Inserted_date || '';
+                            const d = recDate.toString().split('T')[0];
+                            if (!d) return true;
+                            if (minDate && d < minDate) return false;
+                            if (maxDate && d > maxDate) return false;
+                            return true;
+                        });
+
+                        // Group by user/name field in MIS data
+                        // Common name fields in MIS response
+                        const misNameFields = ['user_name','username','name','Name','employee_name','emp_name','user'];
+                        const misCredFields = ['credentials','credential_count','creds','Credentials'];
+                        const misRemarkFields = ['remark','remarks','Remark','Remarks','status','Status'];
+
+                        filtered.forEach(record => {
+                            // Find name
+                            let misPerson = '';
+                            for (const f of misNameFields) {
+                                if (record[f]) { misPerson = String(record[f]).trim(); break; }
+                            }
+                            if (!misPerson) return;
+
+                            const cleanMis = misPerson.toLowerCase();
+
+                            // Find credentials value
+                            let creds = 0;
+                            for (const f of misCredFields) {
+                                if (record[f] !== undefined && record[f] !== null) {
+                                    creds = parseInt(record[f]) || 0; break;
+                                }
+                            }
+
+                            // Find remark value
+                            let remark = '';
+                            for (const f of misRemarkFields) {
+                                if (record[f] && String(record[f]).trim() && String(record[f]).trim().toUpperCase() !== 'NA') {
+                                    remark = String(record[f]).trim(); break;
+                                }
+                            }
+
+                            if (!misDataByUser[cleanMis]) {
+                                misDataByUser[cleanMis] = { credentials: 0, remark: '' };
+                            }
+                            misDataByUser[cleanMis].credentials += creds;
+                            if (remark && !misDataByUser[cleanMis].remark) {
+                                misDataByUser[cleanMis].remark = remark;
+                            }
+                        });
+                    }
+                } catch(e) {
+                    console.warn('MIS API fetch failed:', e.message);
+                    // Non-fatal — summary will show NA for credentials/remark
+                }
+
+                // ── NAME_ORDER for sorting ─────────────────────────────────
                 const NAME_ORDER = [
                     "Shubhankar Shukla",
                     "Sheetal Dubey",
@@ -3286,6 +3498,11 @@
                         .map(row => (row[userCol] || '').trim())
                         .filter(u => u)
                 )];
+
+                // Also include users who appear only as Approved_by
+                const approvedByUsers = approvedByCol
+                    ? [...new Set(summaryParsedData.map(r => (r[approvedByCol] || '').trim()).filter(u => u && u.toUpperCase() !== 'NA'))]
+                    : [];
 
                 const absentNames = NAME_ORDER.filter(orderedName => {
                     return !sheetUsersRaw.some(excelUser => {
@@ -3311,7 +3528,7 @@
                     return idxA - idxB;
                 });
 
-                // ── Build userData ─────────────────────────────────────────────
+                // ── Search For column ──────────────────────────────────────
                 const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
                 let searchCol = null;
                 for (const c of searchColCandidates) {
@@ -3319,6 +3536,7 @@
                 }
                 const socialPlatforms = ['telegram','whatsapp','facebook','instagram','threads','thread','youtube','x','twitter','snapchat','tiktok','linkedin','pinterest','reddit'];
 
+                // ── Build userData ─────────────────────────────────────────
                 const userData = {};
                 users.forEach(u => {
                     const isAbsent = u.startsWith('__absent__');
@@ -3334,7 +3552,7 @@
                     };
                 });
 
-                // Insertion counts from uploaded Excel file
+                // ── Insertion counts from uploaded Excel file ──────────────
                 summaryParsedData.forEach(row => {
                     const user = (row[userCol] || '').trim();
                     if (!userData[user]) return;
@@ -3351,14 +3569,36 @@
                     userData[user].total++;
                 });
 
-                // ── Match scrapping counts to users ────────────────────────────
-                // scrapUserCounts keys = "name" field from scrapping_data
-                // userData keys = Excel user names (may differ slightly)
+                // ── Match Quality Check counts to users ───────────────────
+                // qualityCheckCounts is keyed by Approved_by value (from the sheet)
+                // We need to match those to userData keys (input_user names)
                 users.forEach(excelUser => {
                     if (excelUser.startsWith('__absent__')) return;
                     const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
 
-                    // Find matching key in scrapUserCounts
+                    // Find matching Approved_by entries for this user
+                    let qcCount = 0;
+                    Object.entries(qualityCheckCounts).forEach(([approvedByName, cnt]) => {
+                        const cleanApproved = excelNameToApiName(approvedByName).toLowerCase();
+                        // Match if names overlap meaningfully
+                        if (
+                            cleanApproved === cleanExcel ||
+                            cleanApproved.includes(cleanExcel) ||
+                            cleanExcel.includes(cleanApproved) ||
+                            approvedByName.toLowerCase().includes(cleanExcel) ||
+                            cleanExcel.includes(approvedByName.toLowerCase())
+                        ) {
+                            qcCount += cnt;
+                        }
+                    });
+                    userData[excelUser].qualityCheck = qcCount;
+                });
+
+                // ── Match scrapping counts to users ────────────────────────
+                users.forEach(excelUser => {
+                    if (excelUser.startsWith('__absent__')) return;
+                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+
                     let scrapCount = 0;
                     Object.entries(scrapUserCounts).forEach(([scrapName, cnt]) => {
                         const cleanScrap = excelNameToApiName(scrapName).toLowerCase();
@@ -3369,7 +3609,7 @@
                     });
                     userData[excelUser].scrapping = scrapCount;
 
-                    // Find matching key in wdUserCounts
+                    // Match WS counts
                     let wdCount = 0;
                     Object.entries(wdUserCounts).forEach(([wdName, cnt]) => {
                         const cleanWd = excelNameToApiName(wdName).toLowerCase();
@@ -3379,9 +3619,25 @@
                         }
                     });
                     userData[excelUser].webSearching = wdCount;
+
+                    // ── Match MIS data (credentials + remark) ──────────────
+                    let credentials = 0;
+                    let remark = '';
+                    Object.entries(misDataByUser).forEach(([misKey, misVal]) => {
+                        if (
+                            misKey === cleanExcel ||
+                            misKey.includes(cleanExcel) ||
+                            cleanExcel.includes(misKey)
+                        ) {
+                            credentials += misVal.credentials || 0;
+                            if (!remark && misVal.remark) remark = misVal.remark;
+                        }
+                    });
+                    userData[excelUser].credentials = credentials;
+                    userData[excelUser].remark = remark;
                 });
 
-                // ── Date string for header ─────────────────────────────────────
+                // ── Date string for header ─────────────────────────────────
                 let dateStr = '';
                 if (maxDate) {
                     const parts = maxDate.split('-');
@@ -6020,7 +6276,7 @@
                     const loading   = document.getElementById('insightsLoading');
                     const chartsDiv = document.getElementById('insightsChartsArea');
                     const emptyDiv  = document.getElementById('insightsEmpty');
-                    loading.style.display   = 'block';
+                    loading.style.display   = 'flex';
                     chartsDiv.style.display = 'none';
                     emptyDiv.style.display  = 'none';
 

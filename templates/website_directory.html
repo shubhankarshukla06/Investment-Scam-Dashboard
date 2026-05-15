@@ -1560,12 +1560,6 @@ function prependRow(item) {
     tr.id = `wd-row-${item.id}`;
     _wdItems[item.id] = item;
     tr.innerHTML = `
-        <td>
-            <button onclick="openEditModal(${item.id})"
-                style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                <i class="fas fa-edit"></i> Edit
-            </button>
-        </td>
         <td><strong style="color:#1e8449;">#${item.id}</strong></td>
         <td><span style="font-size:11px;font-weight:600;color:#2c3e50;">${item.date||'N/A'}</span></td>
         <td><span style="font-size:11px;">${(item.name||'N/A').substring(0,25)}</span></td>
@@ -1583,6 +1577,12 @@ function prependRow(item) {
         <td>${v(item.category)?`<span style="font-size:10px;background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:20px;font-weight:700;border:1px solid #ffcc80;">${item.category}</span>`:'<span class="na-cell">N/A</span>'}</td>
         <td><span style="font-size:11px;">${item.automated_website||'N/A'}</span></td>
         <td>${v(item.payment_gateway)?`<div class="field-cell"><span style="font-size:11px;color:#6c3483;">${(item.payment_gateway||'').substring(0,25)}</span><button class="copy-btn" onclick="copyText('${esc(item.payment_gateway)}','PG')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
+        <td>
+            <button onclick="openEditModal(${item.id})"
+                style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+        </td>
     `;
     tbody.insertBefore(tr, tbody.firstChild);
 }
