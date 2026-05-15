@@ -3212,51 +3212,67 @@
                 }
                 if (!userCol && summaryHeaders.length > 0) userCol = summaryHeaders[0];
                 if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
+
                 const dateColCandidates = ['Inserted_date','inserted_date','Date','date'];
                 let dateCol = null;
                 for (const c of dateColCandidates) {
                     if (summaryHeaders.includes(c)) { dateCol = c; break; }
                 }
-                let apiData = [];
-                try {
-                    showToast('Fetching department data...', false, false);
-                    const resp = await fetch('/getDepartmentData?user_mail=tl_shubhankar.shukla%40pixeltruth.com&department=Anti_Money_Laundering&role=Team_Lead');
-                    apiData = await resp.json();
-                } catch(e) {
-                    showToast('API fetch failed — Scrapping/QC columns will be empty', true);
+
+                // ── Detect date range from uploaded file ──────────────────────
+                let minDate = null, maxDate = null;
+                if (dateCol) {
+                    summaryParsedData.forEach(row => {
+                        const d = (row[dateCol] || '').trim();
+                        if (!d || d.toUpperCase() === 'NA') return;
+                        if (!minDate || d < minDate) minDate = d;
+                        if (!maxDate || d > maxDate) maxDate = d;
+                    });
                 }
-                const apiLookup = {};
-                apiData.forEach(row => {
-                    const apiName = (row.user_name || '').trim();
-                    const apiDate = (row.date || '').split('T')[0];
-                    const key = `${apiName}__${apiDate}`;
-                    if (!apiLookup[key]) {
-                        apiLookup[key] = {
-                            investment_scam_scrap: 0,
-                            total_qc: 0,
-                            website_searching: 0,
-                            credential_making: 0,
-                            remark: row.remark || ''
-                        };
+
+                // ── Fetch Scrapping counts from scrapping_data (per user, per date) ──
+                let scrapUserCounts = {};   // { "User Name": count }
+                try {
+                    showToast('Fetching scrapping data...', false, false);
+                    const scrapParams = [];
+                    if (minDate === maxDate && minDate) scrapParams.push(`date_on=${minDate}`);
+                    else {
+                        if (minDate) scrapParams.push(`date_from=${minDate}`);
+                        if (maxDate) scrapParams.push(`date_to=${maxDate}`);
                     }
-                    const getField = (obj, ...keys) => {
-                        for (const k of keys) {
-                            if (obj[k] !== undefined && obj[k] !== null) return obj[k];
-                            const kl = k.toLowerCase();
-                            const ku = k.toUpperCase();
-                            if (obj[kl] !== undefined) return obj[kl];
-                            if (obj[ku] !== undefined) return obj[ku];
-                        }
-                        return 0;
-                    };
-                    apiLookup[key].investment_scam_scrap += parseInt(getField(row, 'investment_scam_scrap', 'Investment_Scam_Scrap', 'INVESTMENT_SCAM_SCRAP')) || 0;
-                    apiLookup[key].total_qc             += parseInt(getField(row, 'total_qc', 'Total_QC', 'TOTAL_QC', 'Total_Qc')) || 0;
-                    apiLookup[key].website_searching    += parseInt(getField(row, 'website_searching', 'Website_Searching', 'WEBSITE_SEARCHING')) || 0;
-                    apiLookup[key].credential_making    += parseInt(getField(row, 'credential_making', 'Credential_Making', 'CREDENTIAL_MAKING')) || 0;
-                    if (row.remark && row.remark !== 'NA') {
-                        apiLookup[key].remark = row.remark;
+                    const scrapResp = await fetch('/scrapping-summary-data?' + scrapParams.join('&'));
+                    const scrapData = await scrapResp.json();
+                    if (scrapData.success) {
+                        (scrapData.rows || []).forEach(row => {
+                            const name = (row.name || '').trim();
+                            if (!name || name.toUpperCase() === 'NA') return;
+                            scrapUserCounts[name] = (scrapUserCounts[name] || 0) + 1;
+                        });
                     }
-                });
+                } catch(e) {
+                    showToast('Scrapping data fetch failed', true);
+                }
+
+                // ── Fetch Website Directory counts (per user/name, per date) ──
+                let wdUserCounts = {};   // { "User Name": count }
+                try {
+                    showToast('Fetching website directory data...', false, false);
+                    const wdParams = [];
+                    if (minDate === maxDate && minDate) wdParams.push(`date_on=${minDate}`);
+                    else {
+                        if (minDate) wdParams.push(`date_from=${minDate}`);
+                        if (maxDate) wdParams.push(`date_to=${maxDate}`);
+                    }
+                    const wdResp = await fetch('/website-directory-user-summary?' + wdParams.join('&'));
+                    const wdData = await wdResp.json();
+                    if (wdData.success) {
+                        wdUserCounts = wdData.user_counts || {};
+                    }
+                } catch(e) {
+                    showToast('Website directory data fetch failed', true);
+                }
+
+                // ── NAME_ORDER for sorting ─────────────────────────────────────
                 const NAME_ORDER = [
                     "Shubhankar Shukla",
                     "Sheetal Dubey",
@@ -3264,11 +3280,13 @@
                     "Honey Singhal",
                     "Ananya Verma"
                 ];
+
                 const sheetUsersRaw = [...new Set(
                     summaryParsedData
                         .map(row => (row[userCol] || '').trim())
                         .filter(u => u)
                 )];
+
                 const absentNames = NAME_ORDER.filter(orderedName => {
                     return !sheetUsersRaw.some(excelUser => {
                         const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
@@ -3276,8 +3294,10 @@
                         return cleanExcel.includes(cleanOrdered) || cleanOrdered.includes(cleanExcel);
                     });
                 });
+
                 const absentPlaceholders = absentNames.map(n => '__absent__' + n);
                 const allUsersForSort = [...sheetUsersRaw, ...absentPlaceholders];
+
                 const users = allUsersForSort.sort((a, b) => {
                     const rawA = a.startsWith('__absent__') ? a.replace('__absent__', '') : a;
                     const rawB = b.startsWith('__absent__') ? b.replace('__absent__', '') : b;
@@ -3290,24 +3310,31 @@
                     if (idxB === -1) return -1;
                     return idxA - idxB;
                 });
-                const userData = {};
-                users.forEach(u => {
-                    const isAbsent = u.startsWith('__absent__');
-                    userData[u] = {
-                        sm: 0, web: 0, app: 0, total: 0,
-                        scrapping: 0, qualityCheck: 0,
-                        webSearching: 0, credentials: 0,
-                        remark: '',
-                        absent: isAbsent,
-                        displayName: isAbsent ? u.replace('__absent__', '') : u
-                    };
-                });
+
+                // ── Build userData ─────────────────────────────────────────────
                 const searchColCandidates = ['search_for','Search_for','Search_For','SEARCH_FOR'];
                 let searchCol = null;
                 for (const c of searchColCandidates) {
                     if (summaryHeaders.includes(c)) { searchCol = c; break; }
                 }
                 const socialPlatforms = ['telegram','whatsapp','facebook','instagram','threads','thread','youtube','x','twitter','snapchat','tiktok','linkedin','pinterest','reddit'];
+
+                const userData = {};
+                users.forEach(u => {
+                    const isAbsent = u.startsWith('__absent__');
+                    userData[u] = {
+                        sm: 0, web: 0, app: 0, total: 0,
+                        scrapping: 0,
+                        qualityCheck: 0,
+                        webSearching: 0,
+                        credentials: 0,
+                        remark: '',
+                        absent: isAbsent,
+                        displayName: isAbsent ? u.replace('__absent__', '') : u
+                    };
+                });
+
+                // Insertion counts from uploaded Excel file
                 summaryParsedData.forEach(row => {
                     const user = (row[userCol] || '').trim();
                     if (!userData[user]) return;
@@ -3323,65 +3350,38 @@
                     }
                     userData[user].total++;
                 });
+
+                // ── Match scrapping counts to users ────────────────────────────
+                // scrapUserCounts keys = "name" field from scrapping_data
+                // userData keys = Excel user names (may differ slightly)
                 users.forEach(excelUser => {
                     if (excelUser.startsWith('__absent__')) return;
-                    const apiName = excelNameToApiName(excelUser);
-                    const userDates = dateCol
-                    ? [...new Set(
-                            summaryParsedData
-                            .filter(row => (row[userCol] || '').trim() === excelUser)
-                            .map(row => (row[dateCol] || '').trim())
-                            .filter(d => d && d.toUpperCase() !== 'NA')
-                            )]
-                        : [];
-                    let totalScrapping = 0, totalQC = 0, totalWS = 0, totalCred = 0;
-                    let lastRemark = '';
-                    if (userDates.length > 0) {
-                        userDates.forEach(excelDate => {
-                            let normalizedDate = excelDate;
-                            const dmyMatch = excelDate.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-                            if (dmyMatch) {
-                                normalizedDate = `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
-                            }
-                            const key = `${apiName}__${normalizedDate}`;
-                            console.log(`[API Match] Excel user: "${excelUser}" → apiName: "${apiName}", date: "${normalizedDate}", key: "${key}", found: ${!!apiLookup[key]}`);
-                            if (apiLookup[key]) {
-                                totalScrapping += apiLookup[key].investment_scam_scrap;
-                                totalQC        += apiLookup[key].total_qc;
-                                totalWS        += apiLookup[key].website_searching;
-                                totalCred      += apiLookup[key].credential_making;
-                                if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
-                                    lastRemark = apiLookup[key].remark;
-                                }
-                            }
-                        });
-                    } else {
-                        const matchingKeys = Object.keys(apiLookup).filter(k => k.startsWith(`${apiName}__`));
-                        matchingKeys.forEach(key => {
-                            totalScrapping += apiLookup[key].investment_scam_scrap;
-                            totalQC        += apiLookup[key].total_qc;
-                            totalWS        += apiLookup[key].website_searching;
-                            totalCred      += apiLookup[key].credential_making;
-                            if (apiLookup[key].remark && apiLookup[key].remark !== 'NA') {
-                                lastRemark = apiLookup[key].remark;
-                            }
-                        });
-                    }
-                    userData[excelUser].scrapping    = totalScrapping;
-                    userData[excelUser].qualityCheck = totalQC;
-                    userData[excelUser].webSearching = totalWS;
-                    userData[excelUser].credentials  = totalCred;
-                    userData[excelUser].remark       = lastRemark;
-                });
-                let maxDate = null;
-                if (dateCol) {
-                    summaryParsedData.forEach(row => {
-                        const d = (row[dateCol] || '').trim();
-                        if (d && d.toUpperCase() !== 'NA') {
-                            if (!maxDate || d > maxDate) maxDate = d;
+                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+
+                    // Find matching key in scrapUserCounts
+                    let scrapCount = 0;
+                    Object.entries(scrapUserCounts).forEach(([scrapName, cnt]) => {
+                        const cleanScrap = excelNameToApiName(scrapName).toLowerCase();
+                        if (cleanScrap.includes(cleanExcel) || cleanExcel.includes(cleanScrap) ||
+                            scrapName.toLowerCase().includes(cleanExcel) || cleanExcel.includes(scrapName.toLowerCase())) {
+                            scrapCount += cnt;
                         }
                     });
-                }
+                    userData[excelUser].scrapping = scrapCount;
+
+                    // Find matching key in wdUserCounts
+                    let wdCount = 0;
+                    Object.entries(wdUserCounts).forEach(([wdName, cnt]) => {
+                        const cleanWd = excelNameToApiName(wdName).toLowerCase();
+                        if (cleanWd.includes(cleanExcel) || cleanExcel.includes(cleanWd) ||
+                            wdName.toLowerCase().includes(cleanExcel) || cleanExcel.includes(wdName.toLowerCase())) {
+                            wdCount += cnt;
+                        }
+                    });
+                    userData[excelUser].webSearching = wdCount;
+                });
+
+                // ── Date string for header ─────────────────────────────────────
                 let dateStr = '';
                 if (maxDate) {
                     const parts = maxDate.split('-');
@@ -3391,6 +3391,7 @@
                     const today = new Date();
                     dateStr = `${String(today.getDate()).padStart(2,'0')}-${String(today.getMonth()+1).padStart(2,'0')}-${today.getFullYear()}`;
                 }
+
                 lastSummaryResult = { type: 'users_detailed', userData, users, dateStr };
                 renderUsersSummaryTable(userData, users, dateStr);
             }
@@ -3460,7 +3461,8 @@
                     "Carding Scam",
                     "Fake Website Scam",
                     "Shopping Scam",
-                    "Subscription Scam"
+                    "Subscription Scam",
+                    "ChaarDham Booking Scam"
                 ];
                 const sortedScamTypes = Object.entries(scamTypeData).sort((a, b) => {
                     const idxA = CATEGORY_ORDER.indexOf(a[0]);
@@ -4619,7 +4621,7 @@
                     const SCAM_ORDER = [
                         "Investment Scam","LPG Booking Scam","Government Scheme Scam",
                         "Fake Account Selling Scam","Job Scam","Currency Exchange Scam",
-                        "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam"
+                        "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam","ChaarDham Booking Scam"
                     ];
                     const PLATFORM_ORDER = ['Telegram','Thread','Facebook','Instagram','YouTube','X'];
                     const sortedScamTypes = [...allScamTypesSet].sort((a, b) => {
@@ -5122,7 +5124,7 @@
             const SCRAP_SCAM_TYPES = [
                 "Investment Scam","Job Scam","Government Scheme Scam","Loan Scam",
                 "Subscription Scam","Fake Account Selling Scam","Fake Website Scam",
-                "Shopping Scam","Carding Scam","Currency Exchange Scam","LPG Booking Scam"
+                "Shopping Scam","Carding Scam","Currency Exchange Scam","LPG Booking Scam","ChaarDham Booking Scam"
             ];
             const SCRAP_PLATFORMS = ["Telegram","WhatsApp","Facebook","Instagram","Threads","YouTube","X"];
             function _detectPlatformFromUrl(url) {
@@ -6948,6 +6950,7 @@
                                     <option value="Carding Scam">Carding Scam</option>
                                     <option value="Currency Exchange Scam">Currency Exchange Scam</option>
                                     <option value="LPG Booking Scam">LPG Booking Scam</option>
+                                    <option value="ChaarDham Booking Scam">ChaarDham Booking Scam</option>
                                 </select>
                             </div>
                             <div style="display:flex;flex-direction:column;gap:5px;">

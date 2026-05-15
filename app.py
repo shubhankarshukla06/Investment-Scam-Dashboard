@@ -112,7 +112,6 @@ CONFIG_PATH = BASE_DIR / "sheet_mapping_config.json"
 EXCEL_FOLDER_PATH = BASE_DIR / "excel_data"
 EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
 
-MASTER_URL_DATA_PATH = EXCEL_FOLDER_PATH / "Website_mapping.xlsx"
 BANK_NAME_MAPPING_PATH = EXCEL_FOLDER_PATH / "bank_name.xlsx"
 IFSC_MAPPING_PATH = EXCEL_FOLDER_PATH / "ifsc_mapping.xlsx"
 
@@ -148,10 +147,10 @@ SOCIAL_PLATFORM_OPTIONS = [
 WEBSITE_DIRECTORY_CATEGORY_OPTIONS = [
     "Job Scam", "Subscription Scam", "Fake Website Scam",
     "Loan Scam", "Government Scheme Scam", "Investment Scam",
-    "LPG Booking Scam", "IPL Tickets Scam"
+    "LPG Booking Scam", "IPL Tickets Scam", "ChaarDham Booking Scam"
 ]
 
-WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS = ["Web", "App", "Web/App"]
+WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS = ["Web", "App"]
 
 WEBSITE_DIRECTORY_COLUMNS = [
     "id", "date", "name", "url", "final_url", "invitation_code",
@@ -217,8 +216,6 @@ SHEET_TYPES = {
     'investment': 'Investment_Scam',
     'messaging': 'Messaging_Channel'
 }
-
-MASTER_URL_DATA = {}
 BANK_NAME_MAPPING = {}
 IFSC_MAPPING = {}
 
@@ -284,18 +281,8 @@ def read_data_file(file_path, file_ext):
 
 
 def load_excel_data():
-    global MASTER_URL_DATA, BANK_NAME_MAPPING, IFSC_MAPPING
+    global BANK_NAME_MAPPING, IFSC_MAPPING
     try:
-        if MASTER_URL_DATA_PATH.exists():
-            df_master = pd.read_excel(MASTER_URL_DATA_PATH)
-            MASTER_URL_DATA = {}
-            for _, row in df_master.iterrows():
-                url = str(row.get('website_url', '')).strip()
-                if url and url.lower() not in ['na', 'nan', '']:
-                    MASTER_URL_DATA[url.lower().strip()] = {
-                        "origin": str(row.get('origin', 'NA')).strip(),
-                        "category_of_website": str(row.get('category_of_website', 'NA')).strip()
-                    }
         if BANK_NAME_MAPPING_PATH.exists():
             df_bank = pd.read_excel(BANK_NAME_MAPPING_PATH)
             BANK_NAME_MAPPING = {}
@@ -1533,35 +1520,6 @@ def get_number_type_counts():
         return jsonify({"success": True, "counts": counts})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-@app.route("/get-platform-counts", methods=["GET"])
-@login_required
-def get_platform_counts():
-    try:
-        platforms = ["Facebook", "Amazon", "Instagram", "Telegram", "WhatsApp", "Gmail Accounts", "Total Numbers"]
-        platform_counts = {}
-        status_counts = {}
-        for platform in platforms:
-            try:
-                response = social_supabase.table("social_media_accounts").select("*", count='exact').eq("platform", platform).execute()
-                platform_counts[platform] = response.count or 0
-                status_response = social_supabase.table("social_media_accounts").select("account_status", count='exact').eq("platform", platform).execute()
-                status_counts[platform] = {"Active": 0, "Block": 0, "Restricted": 0, "Frozen": 0, "Permanent Block": 0}
-                if hasattr(status_response, 'data'):
-                    for item in status_response.data:
-                        status = (item.get('account_status') or '').lower()
-                        if 'active' in status: status_counts[platform]["Active"] += 1
-                        elif 'block' in status and 'permanent' not in status: status_counts[platform]["Block"] += 1
-                        elif 'restricted' in status: status_counts[platform]["Restricted"] += 1
-                        elif 'frozen' in status: status_counts[platform]["Frozen"] += 1
-                        elif 'permanent' in status: status_counts[platform]["Permanent Block"] += 1
-            except Exception as e:
-                platform_counts[platform] = 0
-                status_counts[platform] = {"Active": 0, "Block": 0, "Restricted": 0, "Frozen": 0, "Permanent Block": 0}
-        total_response = social_supabase.table("social_media_accounts").select("*", count='exact').execute()
-        platform_counts["Total"] = total_response.count or 0
-        return jsonify({"success": True, "platform_counts": platform_counts, "status_counts": status_counts})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
 # ============================================================
 # SOCIAL IMPORT — with activity logging
 # ============================================================
@@ -1806,13 +1764,10 @@ def generate_sheet():
 @login_required
 def get_excel_headers():
     try:
-        master_headers = list(pd.read_excel(MASTER_URL_DATA_PATH).columns) if MASTER_URL_DATA_PATH.exists() else []
         bank_headers = list(pd.read_excel(BANK_NAME_MAPPING_PATH).columns) if BANK_NAME_MAPPING_PATH.exists() else []
         return jsonify({
             "success": True,
-            "master_url_data_headers": master_headers,
             "bank_name_mapping_headers": bank_headers,
-            "master_url_data_count": len(MASTER_URL_DATA),
             "bank_name_mapping_count": len(BANK_NAME_MAPPING)
         })
     except Exception as e:
@@ -1834,7 +1789,7 @@ def get_ifsc_headers():
 def reload_data():
     try:
         load_excel_data()
-        return jsonify({"success": True, "message": f"Data reloaded! URLs: {len(MASTER_URL_DATA)}, Bank: {len(BANK_NAME_MAPPING)}, IFSC: {len(IFSC_MAPPING)}"})
+        return jsonify({"success": True, "message": f"Data reloaded! Bank: {len(BANK_NAME_MAPPING)}, IFSC: {len(IFSC_MAPPING)}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -1971,7 +1926,6 @@ def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "excel_data_loaded": {
-            "master_url_data": len(MASTER_URL_DATA),
             "bank_name_mapping": len(BANK_NAME_MAPPING),
             "ifsc_mapping": len(IFSC_MAPPING)
         }
@@ -3079,8 +3033,6 @@ def website_directory_export():
     except Exception as e:
         flash(f"Export Error: {e}", "error")
         return redirect("/website-directory")
-
-
 # ============================================================
 # WEBSITE DIRECTORY — TRACKER STATS
 # ============================================================
@@ -3090,9 +3042,11 @@ def website_directory_tracker_stats():
     try:
         CHUNK = 1000
         all_rows, offset = [], 0
+
+        # ── Fetch ALL rows first ──
         while True:
             resp = supabase.table("website_directory") \
-                .select("category,search_for,remark,date") \
+                .select("category,search_for,remark,date,name") \
                 .order("id", desc=False) \
                 .range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
@@ -3101,36 +3055,54 @@ def website_directory_tracker_stats():
                 break
             offset += CHUNK
 
-        cat_counts = {}
-        sf_counts  = {}
-        remark_counts = {}
-        daily_counts  = {}
+        # ── Aggregation AFTER loop ──
+        cat_counts        = {}
+        sf_counts         = {}
+        remark_counts     = {}
+        daily_counts      = {}
+        user_total_counts = {}
+        user_cat_counts   = {}
 
         for row in all_rows:
-            cat = (row.get("category") or "Unknown").strip() or "Unknown"
-            sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
-            rem = (row.get("remark") or "").strip()
-            dt  = (row.get("date") or "")[:10]
+            cat  = (row.get("category")   or "Unknown").strip() or "Unknown"
+            sf   = (row.get("search_for") or "Unknown").strip() or "Unknown"
+            rem  = (row.get("remark")     or "").strip()
+            dt   = (row.get("date")       or "")[:10]
+            user = (row.get("name")       or "Unknown").strip() or "Unknown"
+            if user.upper() in ("NA", "N/A", ""):
+                user = "Unknown"
 
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
-            sf_counts[sf]   = sf_counts.get(sf, 0) + 1
-            if rem and rem.upper() not in ("NA","N/A",""):
+            sf_counts[sf]   = sf_counts.get(sf,  0) + 1
+
+            if rem and rem.upper() not in ("NA", "N/A", ""):
                 remark_counts[rem] = remark_counts.get(rem, 0) + 1
+
             if dt:
                 daily_counts[dt] = daily_counts.get(dt, 0) + 1
+
+            user_total_counts[user] = user_total_counts.get(user, 0) + 1
+            if user not in user_cat_counts:
+                user_cat_counts[user] = {}
+            user_cat_counts[user][cat] = user_cat_counts[user].get(cat, 0) + 1
 
         return jsonify({
             "success": True,
             "total": len(all_rows),
-            "cat_counts": cat_counts,
-            "sf_counts":  sf_counts,
-            "remark_counts": dict(sorted(remark_counts.items(), key=lambda x: x[1], reverse=True)[:20]),
+            "cat_counts":   cat_counts,
+            "sf_counts":    sf_counts,
+            "remark_counts": dict(
+                sorted(remark_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+            ),
             "daily_counts": {k: daily_counts[k] for k in sorted(daily_counts)},
+            "user_total_counts": dict(
+                sorted(user_total_counts.items(), key=lambda x: x[1], reverse=True)
+            ),
+            "user_cat_counts": user_cat_counts,
         })
+
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-
 # ============================================================
 # WEBSITE DIRECTORY — INSERT SINGLE RECORD
 # ============================================================
@@ -3280,6 +3252,48 @@ def website_directory_template():
         as_attachment=True,
         mimetype="text/csv"
     )
+
+@app.route("/website-directory-user-summary", methods=["GET"])
+@login_required
+def website_directory_user_summary():
+    """
+    Returns count of website_directory records grouped by name (user),
+    optionally filtered by date range.
+    """
+    try:
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to",   "").strip()
+        date_on   = request.args.get("date_on",   "").strip()
+
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            q = supabase.table("website_directory").select("name")
+            if date_on:
+                q = q.eq("date", date_on)
+            else:
+                if date_from:
+                    q = q.gte("date", date_from)
+                if date_to:
+                    q = q.lte("date", date_to)
+            resp = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+
+        user_counts = {}
+        for row in all_rows:
+            name = (row.get("name") or "Unknown").strip() or "Unknown"
+            if name.upper() in ("NA", "N/A", ""):
+                name = "Unknown"
+            user_counts[name] = user_counts.get(name, 0) + 1
+
+        return jsonify({"success": True, "user_counts": user_counts, "total": len(all_rows)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
 @app.route("/website-directory-summary-stats", methods=["GET"])
 @login_required
 def website_directory_summary_stats():

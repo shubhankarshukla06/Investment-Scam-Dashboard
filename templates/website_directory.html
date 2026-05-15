@@ -108,16 +108,16 @@ tr:hover { background:#f8fffe; }
 
 /* Tracker */
 .tracker-body { padding:20px; overflow-y:auto; flex-grow:1; }
-.tracker-banner { background:linear-gradient(135deg,#27ae60,#1e8449); border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; color:white; }
+.tracker-banner { background:linear-gradient(135deg,#3498db,#2980b9); border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; color:white; }
 .tracker-banner .bl { font-size:13px; font-weight:600; opacity:0.9; display:flex; align-items:center; gap:8px; }
 .tracker-banner .bn { font-size:24px; font-weight:800; }
 .t-section-title { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px; margin:14px 0 10px; display:flex; align-items:center; gap:8px; }
 .t-section-title::after { content:''; flex:1; height:1px; background:#eee; }
 .t-card { background:#f8f9fa; border-radius:8px; padding:12px 14px; margin-bottom:8px; border:1px solid #e9ecef; display:flex; justify-content:space-between; align-items:center; }
 .t-card:hover { background:#f0fff4; }
-.t-card-label { font-size:13px; color:#2c3e50; font-weight:600; display:flex; align-items:center; gap:8px; }
-.t-card-label i { color:#27ae60; font-size:14px; }
-.t-card-count { background:#27ae60; color:white; padding:3px 12px; border-radius:12px; font-size:13px; font-weight:700; min-width:40px; text-align:center; }
+.t-card:hover { background:#ebf5fb; }
+.t-card-label i { color:#3498db; font-size:14px; }
+.t-card-count { background:#3498db; color:white; padding:3px 12px; border-radius:12px; font-size:13px; font-weight:700; min-width:40px; text-align:center; }
 .t-pill { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid; margin:3px 3px 3px 0; }
 .pill-web   { background:#e3f2fd; color:#0d47a1; border-color:#90caf9; }
 .pill-app   { background:#e8f5e9; color:#1b5e20; border-color:#a5d6a7; }
@@ -139,9 +139,9 @@ tr:hover { background:#f8fffe; }
 .empty-state { text-align:center; padding:50px 20px; color:#95a5a6; }
 .empty-state i { font-size:40px; display:block; margin-bottom:14px; color:#dde3ed; }
 .tracker-toggle { display:flex; gap:8px; padding:12px 20px 0; border-bottom:1px solid #eee; background:white; flex-wrap:wrap; flex-shrink:0; }
-.t-toggle-btn { padding:6px 16px; border:2px solid #27ae60; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; background:white; color:#27ae60; }
-.t-toggle-btn:hover { background:#f0fff4; }
-.t-toggle-btn.active { background:#27ae60; color:white; box-shadow:0 2px 8px rgba(39,174,96,0.35); }
+.t-toggle-btn { padding:6px 16px; border:2px solid #3498db; border-radius:20px; font-size:12px; font-weight:700; cursor:pointer; transition:all 0.2s; background:white; color:#3498db; }
+.t-toggle-btn:hover { background:#ebf5fb; }
+.t-toggle-btn.active { background:#3498db; color:white; box-shadow:0 2px 8px rgba(52,152,219,0.35); }
 .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; box-shadow:-2px -2px 6px rgba(0,0,0,0.12); }
 .dev-credit-footer span { color:#3498db; font-weight:700; }
         .user-activity-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
@@ -184,15 +184,15 @@ tr:hover { background:#f8fffe; }
 <!-- Tracker Modal -->
 <div class="modal-overlay" id="trackerModal">
     <div class="modal-box" style="max-width:820px;">
-        <div class="modal-hdr" style="background:linear-gradient(135deg,#27ae60,#1e8449);">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#3498db,#2980b9);">
             <h2><i class="fas fa-chart-bar"></i> Website Directory Tracker</h2>
             <button class="modal-close" onclick="closeModal('trackerModal')"><i class="fas fa-times"></i></button>
         </div>
         <div class="tracker-toggle">
             <button class="t-toggle-btn active" id="tBtn1" onclick="setTrackerView('category')"><i class="fas fa-list"></i> By Category</button>
-            <button class="t-toggle-btn" id="tBtn2" onclick="setTrackerView('searchfor')"><i class="fas fa-globe"></i> By Search For</button>
             <button class="t-toggle-btn" id="tBtn3" onclick="setTrackerView('remark')"><i class="fas fa-comment"></i> By Remark</button>
             <button class="t-toggle-btn" id="tBtn4" onclick="setTrackerView('trend')"><i class="fas fa-chart-line"></i> Daily Trend</button>
+            <button class="t-toggle-btn" id="tBtn5" onclick="setTrackerView('userwise')"><i class="fas fa-users"></i> User Wise</button>
         </div>
         <div class="tracker-body" id="trackerBody">
             <div class="empty-state"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:14px;">Loading...</p></div>
@@ -238,7 +238,6 @@ tr:hover { background:#f8fffe; }
                         <option value="">-- Select --</option>
                         <option value="Web">Web</option>
                         <option value="App">App</option>
-                        <option value="Web/App">Web/App</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -332,7 +331,6 @@ tr:hover { background:#f8fffe; }
                                 <option value="">-- Select --</option>
                                 <option value="Web">Web</option>
                                 <option value="App">App</option>
-                                <option value="Web/App">Web/App</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -437,7 +435,6 @@ tr:hover { background:#f8fffe; }
                         <option value="">-- Select --</option>
                         <option value="Web">Web</option>
                         <option value="App">App</option>
-                        <option value="Web/App">Web/App</option>
                     </select>
                 </div>
                 <div class="form-group"><label>Group / App Name</label><input type="text" id="edit_group_app_name"></div>
@@ -484,7 +481,6 @@ tr:hover { background:#f8fffe; }
     </div>
 </div>
 
-<!-- Delete Confirm Modal -->
  <!-- Delete Confirm Modal -->
 <div class="modal-overlay" id="deleteConfirmModal">
     <div class="modal-box sm">
@@ -503,101 +499,6 @@ tr:hover { background:#f8fffe; }
         </div>
     </div>
 </div>
-<!-- Bulk URL Paste Modal -->
-<div class="modal-overlay" id="bulkInsertModal">
-    <div class="modal-box" style="max-width:860px;">
-        <div class="modal-hdr" style="background:linear-gradient(135deg,#1abc9c,#16a085);">
-            <h2><i class="fas fa-list-ul"></i> Bulk URL Paste — Insert Records</h2>
-            <button class="modal-close" onclick="closeModal('bulkInsertModal')"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body" style="padding:16px 20px;">
-            <div style="background:#e8f8f5;border:1px solid #a2d9ce;border-radius:6px;padding:8px 14px;font-size:12px;color:#117a65;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-info-circle" style="flex-shrink:0;"></i>
-                Paste one URL per line. Choose the common fields below that will apply to all rows.
-            </div>
-            <!-- URL Paste Area -->
-            <div style="margin-bottom:14px;">
-                <label style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
-                    <i class="fas fa-paste"></i> URLs (per line)
-                </label>
-                <textarea id="bulkUrlInput" rows="6"
-                    placeholder="https://site1.com&#10;https://site2.com&#10;https://site3.com"
-                    oninput="onBulkUrlInput()"
-                    style="width:100%;padding:10px 12px;border:1.5px solid #a2d9ce;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:110px;box-sizing:border-box;"></textarea>
-                <span id="bulkUrlCount" style="font-size:11px;color:#7f8c8d;display:block;margin-top:4px;"></span>
-            </div>
-            <!-- Common Fields -->
-            <div style="background:#f0fdf9;border:1px solid #a2d9ce;border-radius:8px;padding:14px 16px;margin-bottom:14px;">
-                <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;"><i class="fas fa-sliders-h"></i> Common Fields (sabhi rows pe apply honge)</div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
-                    <div class="form-group">
-                        <label>Date</label>
-                        <input type="date" id="bulk_date">
-                    </div>
-                    <div class="form-group">
-                        <label>Search For</label>
-                        <select id="bulk_search_for">
-                            <option value="">-- Select --</option>
-                            <option value="Web">Web</option>
-                            <option value="App">App</option>
-                            <option value="Web/App">Web/App</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Group / App Name</label>
-                        <input type="text" id="bulk_group_app_name" placeholder="Common app/group name">
-                    </div>
-                    <div class="form-group">
-                        <label>Origin</label>
-                        <input type="text" id="bulk_origin" placeholder="India / Unknown">
-                    </div>
-                    <div class="form-group" style="grid-column:span 2;">
-                        <label>Category</label>
-                        <select id="bulk_category">
-                    </div>
-                            <option value="">-- Select --</option>
-                            {% for c in wd_category_options %}
-                            <option value="{{ c }}">{{ c }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <!-- Preview Table -->
-            <div id="bulkPreviewArea" style="display:none;">
-                <div style="font-size:11px;font-weight:700;color:#117a65;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;"><i class="fas fa-eye"></i> Preview — <span id="bulkPreviewCount"></span> records</div>
-                <div style="border:1px solid #a2d9ce;border-radius:6px;overflow:hidden;max-height:260px;overflow-y:auto;">
-                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
-                        <thead>
-                            <tr style="background:#e8f8f5;position:sticky;top:0;z-index:1;">
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">#</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">URL</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Search For</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Group/App</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Remark</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Origin</th>
-                                <th style="padding:7px 10px;text-align:left;font-weight:700;color:#117a65;border-bottom:1px solid #a2d9ce;white-space:nowrap;">Category</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bulkPreviewTbody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer" style="justify-content:space-between;align-items:center;">
-            <button class="btn btn-outline" onclick="parseBulkUrls()" style="border-color:#1abc9c;color:#1abc9c;">
-                <i class="fas fa-eye"></i> Preview
-            </button>
-            <div style="display:flex;gap:10px;">
-                <button class="btn btn-outline" onclick="closeModal('bulkInsertModal')">Cancel</button>
-                <button class="btn btn-success" onclick="submitBulkInsert()" id="bulkSubmitBtn" disabled style="background:#1abc9c;opacity:0.5;">
-                    <i class="fas fa-save"></i> Insert All
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Helping Modal — 5 columns: Final URL | Login ID | Password | Origin | Category -->
 <div class="modal-overlay" id="helpingModal">
     <div class="modal-box" style="max-width:1100px;">
@@ -605,63 +506,165 @@ tr:hover { background:#f8fffe; }
             <h2><i class="fas fa-magic"></i> Helping — Website Data Finder</h2>
             <button class="modal-close" onclick="closeModal('helpingModal')"><i class="fas fa-times"></i></button>
         </div>
+        <!-- TABS -->
+        <div style="display:flex;gap:0;border-bottom:2px solid #e9ecef;background:white;flex-shrink:0;">
+            <button id="helpTabFind" onclick="switchHelpTab('find')"
+                style="padding:9px 20px;border:none;background:#8e44ad;color:white;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s;">
+                <i class="fas fa-search"></i> Find Data
+            </button>
+            <button id="helpTabRemark" onclick="switchHelpTab('remark')"
+                style="padding:9px 20px;border:none;background:white;color:#7f8c8d;font-size:12px;font-weight:700;cursor:pointer;border-left:1px solid #e9ecef;transition:all 0.2s;">
+                <i class="fas fa-comment-dots"></i> Change Remark
+            </button>
+        </div>
         <div class="modal-body" style="padding:16px 20px;">
-            <div style="background:#f9f0ff;border:1px solid #d7b8f5;border-radius:6px;padding:8px 14px;font-size:12px;color:#6c3483;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-info-circle" style="color:#8e44ad;flex-shrink:0;"></i>
-                Paste URLs — <strong>Final URL, Login ID, Password, Origin, Category</strong> auto-fill from directory.
-            </div>
-            <div style="margin-bottom:12px;">
-                <label style="font-size:11px;font-weight:700;color:#6c3483;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
-                    <i class="fas fa-paste"></i> URLs Paste
-                </label>
-                <textarea id="helpingPasteInput" rows="4"
-                    placeholder="https://example.com&#10;https://site2.com&#10;https://site3.com"
-                    oninput="onHelpingPasteInput()"
-                    style="width:100%;padding:10px 12px;border:1.5px solid #d7b8f5;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:85px;box-sizing:border-box;">
-                </textarea>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
-                    <span id="helpingPasteCount" style="font-size:11px;color:#7f8c8d;"></span>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="parseHelpingUrls()" id="helpingSearchBtn"
-                            style="padding:6px 16px;background:#8e44ad;color:white;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
-                            <i class="fas fa-search"></i> Search
-                        </button>
-                        <button onclick="clearHelpingAll()"
-                            style="padding:6px 12px;background:#e74c3c;color:white;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:30px;">
-                            <i class="fas fa-trash"></i> Clear
+
+            <!-- ── FIND TAB ── -->
+            <div id="helpTabFindContent">
+                <div style="background:#f9f0ff;border:1px solid #d7b8f5;border-radius:6px;padding:8px 14px;font-size:12px;color:#6c3483;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-info-circle" style="color:#8e44ad;flex-shrink:0;"></i>
+                    Paste URLs — <strong>Final URL, Login ID, Password, Origin, Category</strong> auto-fill from directory.
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label style="font-size:11px;font-weight:700;color:#6c3483;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                        <i class="fas fa-paste"></i> URLs Paste
+                    </label>
+                    <textarea id="helpingPasteInput" rows="4"
+                        placeholder="https://example.com&#10;https://site2.com&#10;https://site3.com"
+                        oninput="onHelpingPasteInput()"
+                        style="width:100%;padding:10px 12px;border:1.5px solid #d7b8f5;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:85px;box-sizing:border-box;">
+                    </textarea>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">
+                        <span id="helpingPasteCount" style="font-size:11px;color:#7f8c8d;"></span>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="parseHelpingUrls()" id="helpingSearchBtn"
+                                style="padding:6px 16px;background:#8e44ad;color:white;border:none;border-radius:5px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                                <i class="fas fa-search"></i> Search
+                            </button>
+                            <button onclick="clearHelpingAll()"
+                                style="padding:6px 12px;background:#e74c3c;color:white;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:30px;">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="helpingLoadingBar" style="display:none;background:#f3e5f5;border-radius:6px;padding:10px 14px;font-size:12px;color:#6c3483;font-weight:600;align-items:center;gap:8px;margin-bottom:12px;">
+                    <i class="fas fa-spinner fa-spin" style="color:#8e44ad;"></i>
+                    <span id="helpingLoadingText">Searching...</span>
+                </div>
+                <div id="helpingProgressBar" style="display:none;background:#ede3f7;border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden;">
+                    <div id="helpingProgressFill" style="height:100%;background:#8e44ad;transition:width 0.3s;width:0%;border-radius:4px;"></div>
+                </div>
+                <div id="helpingResultsArea" style="display:none;">
+                    <div id="helpingSummary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;"></div>
+                    <div style="background:#f3e5f5;border-radius:6px 6px 0 0;padding:7px 10px;display:grid;grid-template-columns:2.2fr 1.5fr 1.5fr 1fr 1.3fr;gap:8px;align-items:center;border-bottom:2px solid #ce93d8;">
+                        <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Final URL</span>
+                        <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Login ID</span>
+                        <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Password</span>
+                        <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Origin</span>
+                        <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Category</span>
+                    </div>
+                    <div id="helpingResultsList" style="border:1px solid #e9d8f5;border-top:none;border-radius:0 0 6px 6px;max-height:420px;overflow-y:auto;"></div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
+                        <button onclick="exportHelpingCSV()"
+                            style="padding:6px 14px;background:#3498db;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
+                            <i class="fas fa-file-export"></i> Export CSV
                         </button>
                     </div>
                 </div>
             </div>
-            <div id="helpingLoadingBar" style="display:none;background:#f3e5f5;border-radius:6px;padding:10px 14px;font-size:12px;color:#6c3483;font-weight:600;align-items:center;gap:8px;margin-bottom:12px;">
-                <i class="fas fa-spinner fa-spin" style="color:#8e44ad;"></i>
-                <span id="helpingLoadingText">Searching...</span>
-            </div>
-            <div id="helpingProgressBar" style="display:none;background:#ede3f7;border-radius:4px;height:6px;margin-bottom:12px;overflow:hidden;">
-                <div id="helpingProgressFill" style="height:100%;background:#8e44ad;transition:width 0.3s;width:0%;border-radius:4px;"></div>
-            </div>
-            <div id="helpingResultsArea" style="display:none;">
-                <div id="helpingSummary" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;"></div>
-                <!-- 5-column header: Final URL | Login ID | Password | Origin | Category -->
-                <div style="background:#f3e5f5;border-radius:6px 6px 0 0;padding:7px 10px;display:grid;grid-template-columns:2.2fr 1.5fr 1.5fr 1fr 1.3fr;gap:8px;align-items:center;border-bottom:2px solid #ce93d8;">
-                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Final URL</span>
-                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Login ID</span>
-                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Password</span>
-                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Origin</span>
-                    <span style="font-size:10px;font-weight:700;color:#4a148c;text-transform:uppercase;letter-spacing:0.5px;">Category</span>
+
+            <!-- ── CHANGE REMARK TAB ── -->
+            <div id="helpTabRemarkContent" style="display:none;">
+                <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:8px 14px;font-size:12px;color:#f57f17;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
+                    <i class="fas fa-info-circle" style="flex-shrink:0;"></i>
+                    Paste URLs (one per line) and the system will search in the directory and apply the selected remark.
                 </div>
-                <div id="helpingResultsList" style="border:1px solid #e9d8f5;border-top:none;border-radius:0 0 6px 6px;max-height:420px;overflow-y:auto;"></div>
-                <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
-                    <button onclick="exportHelpingCSV()"
-                        style="padding:6px 14px;background:#3498db;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;">
-                        <i class="fas fa-file-export"></i> Export CSV
-                    </button>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:11px;font-weight:700;color:#6c3483;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                            <i class="fas fa-paste"></i> URLs (per line)
+                        </label>
+                        <textarea id="remarkPasteInput" rows="6"
+                            placeholder="https://example.com&#10;https://site2.com&#10;https://site3.com"
+                            oninput="onRemarkPasteInput()"
+                            style="width:100%;padding:10px 12px;border:1.5px solid #d7b8f5;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:white;line-height:1.6;min-height:130px;box-sizing:border-box;"></textarea>
+                        <span id="remarkPasteCount" style="font-size:11px;color:#7f8c8d;display:block;margin-top:4px;"></span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:12px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:700;color:#6c3483;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">
+                                <i class="fas fa-comment-dots"></i> New Remark
+                            </label>
+                            <select id="remarkNewRemark"
+                                style="width:100%;padding:8px 10px;border:1.5px solid #d7b8f5;border-radius:6px;font-size:12px;background:white;color:#2c3e50;outline:none;height:34px;cursor:pointer;">
+                                <option value="">-- Select Remark --</option>
+                                <option value="IPG">IPG</option>
+                                <option value="OTP Issue">OTP Issue</option>
+                                <option value="Signup Issue">Signup Issue</option>
+                                <option value="Website Not Working">Website Not Working</option>
+                                <option value="Wrong Invitation Code">Wrong Invitation Code</option>
+                                <option value="UPI Not Available">UPI Not Available</option>
+                                <option value="Login Issue">Login Issue</option>
+                                <option value="Payment Processing Error">Payment Processing Error</option>
+                                <option value="Deposit Section Issues">Deposit Section Issues</option>
+                                <option value="Need New Credentials">Need New Credentials</option>
+                                <option value="Redirect To New Website/App">Redirect To New Website/App</option>
+                            </select>
+                        </div>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                            <button onclick="searchRemarkUrls()" id="remarkSearchBtn"
+                                style="flex:1;padding:8px 12px;background:#8e44ad;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;">
+                                <i class="fas fa-search"></i> Search & Preview
+                            </button>
+                            <button onclick="clearRemarkTab()"
+                                style="padding:8px 12px;background:#95a5a6;color:white;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;min-height:34px;">
+                                <i class="fas fa-times"></i> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div id="remarkLoadingBar" style="display:none;background:#f3e5f5;border-radius:6px;padding:10px 14px;font-size:12px;color:#6c3483;font-weight:600;align-items:center;gap:8px;margin-bottom:10px;">
+                    <i class="fas fa-spinner fa-spin" style="color:#8e44ad;"></i>
+                    <span id="remarkLoadingText">Searching...</span>
+                </div>
+                <div id="remarkProgressBar" style="display:none;background:#ede3f7;border-radius:4px;height:6px;margin-bottom:10px;overflow:hidden;">
+                    <div id="remarkProgressFill" style="height:100%;background:#8e44ad;transition:width 0.3s;width:0%;border-radius:4px;"></div>
+                </div>
+
+                <!-- Results preview -->
+                <div id="remarkResultsArea" style="display:none;">
+                    <div id="remarkSummaryBadges" style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;"></div>
+                    <div style="border:1px solid #d7b8f5;border-radius:6px;overflow:hidden;max-height:280px;overflow-y:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                            <thead>
+                                <tr style="background:#f3e5f5;position:sticky;top:0;">
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">#</th>
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">Status</th>
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">URL (Pasted)</th>
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">Record ID</th>
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">Current Remark</th>
+                                    <th style="padding:7px 10px;text-align:left;font-weight:700;color:#6c3483;border-bottom:1px solid #d7b8f5;white-space:nowrap;font-size:10px;">New Remark</th>
+                                </tr>
+                            </thead>
+                            <tbody id="remarkResultsTbody"></tbody>
+                        </table>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px;">
+                        <button onclick="applyRemarkChanges()" id="remarkApplyBtn"
+                            style="padding:8px 18px;background:#27ae60;color:white;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-check"></i> Apply Remark to Found Records
+                        </button>
+                    </div>
                 </div>
             </div>
+
         </div>
     </div>
 </div>
-
 <!-- User Activity Log Modal -->
 <div class="user-activity-modal" id="userActivityLogModal">
     <div class="ual-content">
@@ -821,24 +824,6 @@ tr:hover { background:#f8fffe; }
                         <input type="text" name="wd_search" value="{{ wd_search }}" placeholder="Keywords Filter"
                             onkeyup="if(event.keyCode===13) this.form.submit()">
                     </div>
-                </div>
-                <div class="filter-group">
-                    <label><i class="fas fa-comment"></i> Remark</label>
-                    <select name="wd_remark" onchange="this.form.submit()"
-                        class="{{ 'active-filter' if wd_remark else '' }}">
-                        <option value="">All Remarks</option>
-                        <option value="OTP Issue" {{ 'selected' if wd_remark == 'OTP Issue' else '' }}>OTP Issue</option>
-                        <option value="Signup Issue" {{ 'selected' if wd_remark == 'Signup Issue' else '' }}>Signup Issue</option>
-                        <option value="Website Not Working" {{ 'selected' if wd_remark == 'Website Not Working' else '' }}>Website Not Working</option>
-                        <option value="Wrong Invitation Code" {{ 'selected' if wd_remark == 'Wrong Invitation Code' else '' }}>Wrong Invitation Code</option>
-                        <option value="IPG" {{ 'selected' if wd_remark == 'IPG' else '' }}>IPG</option>
-                        <option value="UPI Not Available" {{ 'selected' if wd_remark == 'UPI Not Available' else '' }}>UPI Not Available</option>
-                        <option value="Login Issue" {{ 'selected' if wd_remark == 'Login Issue' else '' }}>Login Issue</option>
-                        <option value="Payment Processing Error" {{ 'selected' if wd_remark == 'Payment Processing Error' else '' }}>Payment Processing Error</option>
-                        <option value="Deposit Section Issues" {{ 'selected' if wd_remark == 'Deposit Section Issues' else '' }}>Deposit Section Issues</option>
-                        <option value="Need New Credentials" {{ 'selected' if wd_remark == 'Need New Credentials' else '' }}>Need New Credentials</option>
-                        <option value="Redirect To New Website/App" {{ 'selected' if wd_remark == 'Redirect To New Website/App' else '' }}>Redirect To New Website/App</option>
-                    </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-exclamation-triangle"></i> Category</label>
@@ -1211,13 +1196,18 @@ function openTracker() {
     setTrackerView('category');
     if (!_trackerData) loadTrackerData();
 }
-
 function setTrackerView(view) {
     _trackerView = view;
-    ['tBtn1','tBtn2','tBtn3','tBtn4'].forEach((id,i) => {
+    // Map each button ID to the view it represents
+    const btnViewMap = {
+        'tBtn1': 'category',
+        'tBtn3': 'remark',
+        'tBtn4': 'trend',
+        'tBtn5': 'userwise'
+    };
+    Object.entries(btnViewMap).forEach(([id, v]) => {
         const btn = document.getElementById(id);
-        const views = ['category','searchfor','remark','trend'];
-        btn.classList.toggle('active', views[i] === view);
+        if (btn) btn.classList.toggle('active', v === view);
     });
     if (_trackerData) renderTracker(_trackerData);
 }
@@ -1241,7 +1231,7 @@ const CAT_ICONS = {
     'Job Scam':'fas fa-briefcase','Subscription Scam':'fas fa-bell',
     'Fake Website Scam':'fas fa-globe','Loan Scam':'fas fa-hand-holding-usd',
     'Government Scheme Scam':'fas fa-landmark','Investment Scam':'fas fa-chart-line',
-    'LPG Booking Scam':'fas fa-fire','IPL Tickets Scam':'fas fa-ticket-alt','Unknown':'fas fa-tag'
+    'LPG Booking Scam':'fas fa-fire','IPL Tickets Scam':'fas fa-ticket-alt','ChaarDham Booking Scam':'fas fa-tag'
 };
 const SF_PILL = { 'Web':'pill-web','App':'pill-app','Web/App':'pill-webap' };
 
@@ -1258,16 +1248,6 @@ function renderTracker(data) {
         entries.forEach(([cat,cnt]) => {
             const icon = CAT_ICONS[cat]||CAT_ICONS['Unknown'];
             html += `<div class="t-card"><div class="t-card-label"><i class="${icon}"></i> ${cat}</div><span class="t-card-count">${cnt}</span></div>`;
-        });
-    } else if (_trackerView === 'searchfor') {
-        const entries = Object.entries(data.sf_counts||{}).sort((a,b)=>b[1]-a[1]);
-        html += `<div class="t-section-title"><i class="fas fa-globe"></i> By Search For</div>`;
-        entries.forEach(([sf,cnt]) => {
-            const pillCls = SF_PILL[sf]||'pill-unk';
-            html += `<div class="t-card">
-                <div class="t-card-label"><span class="t-pill ${pillCls}">${sf}</span></div>
-                <span class="t-card-count">${cnt}</span>
-            </div>`;
         });
     } else if (_trackerView === 'remark') {
         const entries = Object.entries(data.remark_counts||{}).slice(0,20);
@@ -1288,6 +1268,60 @@ function renderTracker(data) {
         } else {
             html += `<div class="chart-wrap"><canvas id="trendChart"></canvas></div>`;
         }
+    } else if (_trackerView === 'userwise') {
+        const userTotals = data.user_total_counts || {};
+        const userCats   = data.user_cat_counts   || {};
+        const allCats    = Object.keys(data.cat_counts || {}).sort();
+        const users      = Object.keys(userTotals);
+
+        html += `<div class="t-section-title"><i class="fas fa-users"></i> User Wise Count</div>`;
+
+        if (!users.length) {
+            html += '<p style="color:#95a5a6;font-size:12px;padding:8px;">No user data available</p>';
+        } else {
+            html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">';
+            users.forEach(user => {
+                html += `<div style="background:#ebf5fb;border:1px solid #aed6f1;border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;font-weight:700;color:#2980b9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;" title="${user}">${user}</span>
+                    <span style="background:#3498db;color:white;font-size:11px;font-weight:800;padding:1px 8px;border-radius:10px;white-space:nowrap;">${userTotals[user]}</span>
+                </div>`;
+            });
+            html += '</div>';
+
+            html += `<div class="t-section-title"><i class="fas fa-table"></i> Category Breakdown</div>`;
+            const catList = allCats.length ? allCats : [...new Set(users.flatMap(u => Object.keys(userCats[u]||{})))].sort();
+
+            html += `<div style="overflow-x:auto;border:1px solid #e0f0e0;border-radius:6px;">
+                <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:400px;">
+                    <thead>
+                        <tr style="background:#f0fff4;">
+                            <th style="padding:5px 10px;text-align:left;font-weight:700;color:#1e8449;border-bottom:2px solid #a9dfbf;white-space:nowrap;position:sticky;left:0;background:#f0fff4;">Category</th>
+                            ${users.map(u => `<th style="padding:5px 10px;text-align:center;font-weight:700;color:#1e8449;border-bottom:2px solid #a9dfbf;white-space:nowrap;">${u}</th>`).join('')}
+                            <th style="padding:5px 10px;text-align:center;font-weight:700;color:#27ae60;border-bottom:2px solid #a9dfbf;white-space:nowrap;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${catList.map((cat, i) => {
+                            const rowTotal = users.reduce((s, u) => s + ((userCats[u]||{})[cat]||0), 0);
+                            if (rowTotal === 0) return '';
+                            return `<tr style="background:${i%2===0?'#fff':'#f8fffe'};">
+                                <td style="padding:4px 10px;font-weight:600;color:#2c3e50;white-space:nowrap;position:sticky;left:0;background:${i%2===0?'#fff':'#f8fffe'};">${cat}</td>
+                                ${users.map(u => {
+                                    const cnt = (userCats[u]||{})[cat]||0;
+                                    return `<td style="padding:4px 10px;text-align:center;color:${cnt>0?'#1e8449':'#bdc3c7'};font-weight:${cnt>0?'700':'400'};">${cnt>0?cnt:'—'}</td>`;
+                                }).join('')}
+                                <td style="padding:4px 10px;text-align:center;font-weight:800;color:#27ae60;">${rowTotal}</td>
+                            </tr>`;
+                        }).join('')}
+                        <tr style="background:#f0fff4;border-top:2px solid #a9dfbf;">
+                            <td style="padding:5px 10px;font-weight:800;color:#27ae60;position:sticky;left:0;background:#f0fff4;">TOTAL</td>
+                            ${users.map(u => `<td style="padding:5px 10px;text-align:center;font-weight:800;color:#27ae60;">${userTotals[u]||0}</td>`).join('')}
+                            <td style="padding:5px 10px;text-align:center;font-weight:800;color:#27ae60;">${Object.values(userTotals).reduce((a,b)=>a+b,0)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>`;
+        }
     }
     body.innerHTML = html;
     if (_trackerView === 'trend') {
@@ -1303,11 +1337,11 @@ function renderTracker(data) {
                     datasets: [{
                         label: 'Records',
                         data: dates.map(d => daily[d]),
-                        borderColor: '#27ae60',
-                        backgroundColor: 'rgba(39,174,96,0.1)',
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52,152,219,0.1)',
                         borderWidth: 2.5,
                         pointRadius: 3,
-                        pointBackgroundColor: '#27ae60',
+                        pointBackgroundColor: '#3498db',
                         fill: true,
                         tension: 0.35
                     }]
@@ -1593,106 +1627,6 @@ async function confirmDelete() {
         _deleteId = null;
     }
 }
-/* ── BULK INSERT MODAL ───────────────────────────── */
-let _bulkRows = [];
-
-function openBulkInsertModal() {
-    document.getElementById('bulkInsertModal').classList.add('active');
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('bulk_date').value = today;
-    document.getElementById('bulkUrlInput').value = '';
-    document.getElementById('bulkUrlCount').textContent = '';
-    document.getElementById('bulkPreviewArea').style.display = 'none';
-    document.getElementById('bulkSubmitBtn').disabled = true;
-    document.getElementById('bulkSubmitBtn').style.opacity = '0.5';
-    _bulkRows = [];
-    ['bulk_search_for','bulk_group_app_name','bulk_name','bulk_remark','bulk_origin','bulk_category']
-        .forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-}
-
-function onBulkUrlInput() {
-    const lines = document.getElementById('bulkUrlInput').value.trim().split('\n').filter(l=>l.trim());
-    const el = document.getElementById('bulkUrlCount');
-    el.textContent = lines.length ? `${lines.length} URL${lines.length>1?'s':''} detected` : '';
-}
-
-function parseBulkUrls() {
-    const raw = document.getElementById('bulkUrlInput').value.trim();
-    const lines = raw.split('\n').map(l=>l.trim()).filter(l=>l);
-    if (!lines.length) { showToast('First Paste URLs!', 'err'); return; }
-
-    const gf = id => (document.getElementById(id)||{}).value||'';
-    const manualFinalUrl = gf('bulk_final_url');
-    const common = {
-        date:           gf('bulk_date'),
-        search_for:     gf('bulk_search_for'),
-        group_app_name: gf('bulk_group_app_name'),
-        name:           _loggedInName,
-        remark:         gf('bulk_remark'),
-        origin:         gf('bulk_origin'),
-        category:       gf('bulk_category'),
-    };
-    _bulkRows = lines.map(url => {
-        return {
-            url,
-            final_url:        url,
-            invitation_code:  '',
-            number:           '',
-            email:            '',
-            login_id:         '',
-            password:         '',
-            automated_website:'',
-            payment_gateway:  '',
-            ...common
-        };
-    });
-    const tbody = document.getElementById('bulkPreviewTbody');
-    tbody.innerHTML = _bulkRows.map((r,i) => `
-        <tr style="background:${i%2===0?'#fff':'#f0fdf9'};border-bottom:1px solid #e0f0e0;">
-            <td style="padding:6px 10px;color:#7f8c8d;white-space:nowrap;">${i+1}</td>
-            <td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#1a5276;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.url}">${r.url}</td>
-            <td style="padding:6px 10px;white-space:nowrap;">${r.search_for ? `<span style="background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;">${r.search_for}</span>` : '—'}</td>
-            <td style="padding:6px 10px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.group_app_name||'—'}</td>
-            <td style="padding:6px 10px;white-space:nowrap;color:#7f8c8d;font-size:11px;">${r.remark||'—'}</td>
-            <td style="padding:6px 10px;white-space:nowrap;">${r.origin ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 6px;border-radius:3px;font-size:10px;">${r.origin}</span>` : '—'}</td>
-            <td style="padding:6px 10px;"><span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:10px;font-size:10px;">${r.category||'—'}</span></td>
-        </tr>
-    `).join('');
-
-    document.getElementById('bulkPreviewCount').textContent = _bulkRows.length;
-    document.getElementById('bulkPreviewArea').style.display = '';
-    const btn = document.getElementById('bulkSubmitBtn');
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    showToast(`${_bulkRows.length} rows ready!`, 'ok');
-}
-
-async function submitBulkInsert() {
-    if (!_bulkRows.length) { showToast('First Preview!', 'err'); return; }
-    const btn = document.getElementById('bulkSubmitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Inserting...';
-    let success = 0, failed = 0;
-    for (let i = 0; i < _bulkRows.length; i++) {
-        try {
-            const resp = await fetch('/website-directory-insert', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify(_bulkRows[i])
-            });
-            const data = await resp.json();
-            if (data.success) { success++; }
-            else { failed++; console.warn('Insert failed for:', _bulkRows[i].url, data.error); }
-        } catch(e) { failed++; }
-    }
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> Insert All';
-    showToast(`${success} inserted${failed?', '+failed+' failed':''}!`, success>0?'ok':'err');
-    if (success > 0) {
-        closeModal('bulkInsertModal');
-        setTimeout(()=>window.location.reload(), 900);
-    }
-}
-
 /* ── HELPING MODAL ───────────────────────────────── */
 let _helpingResults = [];
 
@@ -1703,6 +1637,7 @@ function openHelpingModal() {
     document.getElementById('helpingResultsArea').style.display = 'none';
     document.getElementById('helpingLoadingBar').style.display = 'none';
     document.getElementById('helpingProgressBar').style.display = 'none';
+    switchHelpTab('find');
     _helpingResults = [];
 }
 
@@ -1909,7 +1844,193 @@ function exportHelpingCSV() {
     document.body.removeChild(a);
     showToast('Exported!', 'ok');
 }
+/* ── HELPING TABS ────────────────────────────────── */
+function switchHelpTab(tab) {
+    const isFindTab = tab === 'find';
+    document.getElementById('helpTabFindContent').style.display   = isFindTab ? '' : 'none';
+    document.getElementById('helpTabRemarkContent').style.display = isFindTab ? 'none' : '';
+    document.getElementById('helpTabFind').style.background   = isFindTab ? '#8e44ad' : 'white';
+    document.getElementById('helpTabFind').style.color        = isFindTab ? 'white' : '#7f8c8d';
+    document.getElementById('helpTabRemark').style.background = isFindTab ? 'white' : '#8e44ad';
+    document.getElementById('helpTabRemark').style.color      = isFindTab ? '#7f8c8d' : 'white';
+}
 
+/* ── REMARK CHANGE TAB ───────────────────────────── */
+let _remarkRows = [];
+
+function onRemarkPasteInput() {
+    const lines = document.getElementById('remarkPasteInput').value.trim().split('\n').filter(l => l.trim());
+    const el = document.getElementById('remarkPasteCount');
+    el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
+}
+
+function clearRemarkTab() {
+    document.getElementById('remarkPasteInput').value = '';
+    document.getElementById('remarkPasteCount').textContent = '';
+    document.getElementById('remarkNewRemark').value = '';
+    document.getElementById('remarkResultsArea').style.display = 'none';
+    document.getElementById('remarkLoadingBar').style.display = 'none';
+    document.getElementById('remarkProgressBar').style.display = 'none';
+    _remarkRows = [];
+}
+
+async function searchRemarkUrls() {
+    const raw = document.getElementById('remarkPasteInput').value.trim();
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+    const newRemark = document.getElementById('remarkNewRemark').value;
+
+    if (!lines.length) { showToast('First, paste the URLs!', 'err'); return; }
+    if (!newRemark) { showToast('First, select the new remark!', 'err'); return; }
+
+    const loadingBar   = document.getElementById('remarkLoadingBar');
+    const loadingText  = document.getElementById('remarkLoadingText');
+    const progressBar  = document.getElementById('remarkProgressBar');
+    const progressFill = document.getElementById('remarkProgressFill');
+    const btn          = document.getElementById('remarkSearchBtn');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
+    loadingBar.style.display = 'flex';
+    progressBar.style.display = 'block';
+    progressFill.style.width = '0%';
+    document.getElementById('remarkResultsArea').style.display = 'none';
+    _remarkRows = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const url = lines[i];
+        const pct = Math.round(((i + 1) / lines.length) * 100);
+        loadingText.textContent = `Searching ${i + 1} of ${lines.length}: ${url.slice(0, 45)}...`;
+        progressFill.style.width = pct + '%';
+
+        let found = null;
+        // Try exact URL match first
+        try {
+            const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(url));
+            const data = await resp.json();
+            if (data.success && data.items && data.items.length > 0) {
+                found = data.items[0];
+            }
+        } catch(e) {}
+
+        // Domain fallback
+        if (!found) {
+            try {
+                const domain = new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace(/^www\./, '');
+                const resp2 = await fetch('/website-directory-search-api?q=' + encodeURIComponent(domain));
+                const data2 = await resp2.json();
+                if (data2.success && data2.items && data2.items.length > 0) {
+                    found = data2.items[0];
+                }
+            } catch(e) {}
+        }
+
+        _remarkRows.push({
+            url,
+            found: !!found,
+            record_id: found ? found.id : null,
+            current_remark: found ? (found.remark || 'N/A') : null,
+            new_remark: newRemark,
+        });
+    }
+
+    loadingBar.style.display = 'none';
+    progressBar.style.display = 'none';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-search"></i> Search & Preview';
+    _renderRemarkResults();
+}
+
+function _renderRemarkResults() {
+    const area   = document.getElementById('remarkResultsArea');
+    const tbody  = document.getElementById('remarkResultsTbody');
+    const badges = document.getElementById('remarkSummaryBadges');
+
+    const found    = _remarkRows.filter(r => r.found).length;
+    const notFound = _remarkRows.length - found;
+
+    badges.innerHTML = `
+        <div style="background:#e8f8f0;border:1px solid #a9dfbf;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#1e8449;">
+            <i class="fas fa-check-circle"></i> Found: ${found}
+        </div>
+        <div style="background:#fde8e8;border:1px solid #fbc7c7;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#c0392b;">
+            <i class="fas fa-times-circle"></i> Not Found: ${notFound}
+        </div>
+        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#6c3483;">
+            <i class="fas fa-list"></i> Total: ${_remarkRows.length}
+        </div>
+    `;
+
+    const e = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    tbody.innerHTML = _remarkRows.map((r, i) => {
+        const rowBg = r.found ? (i % 2 === 0 ? '#faf5ff' : '#f5eff9') : '#fff8f8';
+        const statusBadge = r.found
+            ? `<span style="background:#e8f8f0;color:#1e8449;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid #a9dfbf;white-space:nowrap;"><i class="fas fa-check-circle"></i> Found #${r.record_id}</span>`
+            : `<span style="background:#fde8e8;color:#c0392b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid #fbc7c7;white-space:nowrap;"><i class="fas fa-times-circle"></i> Not Found</span>`;
+        return `<tr style="background:${rowBg};border-bottom:1px solid #f0e8f9;">
+            <td style="padding:6px 10px;color:#7f8c8d;font-size:11px;">${i + 1}</td>
+            <td style="padding:6px 10px;">${statusBadge}</td>
+            <td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#333;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e(r.url)}">${e(r.url)}</td>
+            <td style="padding:6px 10px;font-size:11px;color:#8e44ad;font-weight:700;">${r.record_id || '—'}</td>
+            <td style="padding:6px 10px;font-size:11px;color:#7f8c8d;">${r.current_remark !== null ? e(r.current_remark) : '—'}</td>
+            <td style="padding:6px 10px;">
+                ${r.found
+                    ? `<span style="background:#e8f8f0;color:#1e8449;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">${e(r.new_remark)}</span>`
+                    : `<span style="color:#95a5a6;font-size:11px;">—</span>`}
+            </td>
+        </tr>`;
+    }).join('');
+
+    area.style.display = '';
+    const applyBtn = document.getElementById('remarkApplyBtn');
+    if (found === 0) {
+        applyBtn.disabled = true;
+        applyBtn.style.opacity = '0.5';
+        showToast('No URL found in the directory!', 'err');
+    } else {
+        applyBtn.disabled = false;
+        applyBtn.style.opacity = '1';
+        showToast(`${found} records found `, 'ok');
+    }
+}
+
+async function applyRemarkChanges() {
+    const toUpdate = _remarkRows.filter(r => r.found && r.record_id);
+    if (!toUpdate.length) { showToast('No records to update!', 'err'); return; }
+
+    const btn = document.getElementById('remarkApplyBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+    let success = 0, failed = 0;
+    for (const row of toUpdate) {
+        try {
+            const resp = await fetch('/website-directory-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: row.record_id, remark: row.new_remark })
+            });
+            const data = await resp.json();
+            if (data.success) success++;
+            else { failed++; console.warn('Failed ID:', row.record_id, data.error); }
+        } catch(e) { failed++; }
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Apply Remark to Found Records';
+
+    if (success > 0) {
+        showToast(`${success} records updated${failed ? ', ' + failed + ' failed' : ''}!`, 'ok');
+        // Update local preview to show applied state
+        _remarkRows.forEach(r => {
+            if (r.found) r.current_remark = r.new_remark;
+        });
+        _renderRemarkResults();
+        // Tracker invalidate
+        _trackerData = null;
+    } else {
+        showToast('No updates applied!', 'err');
+    }
+}
 /* ── Auto-dismiss flash ─────────────────────────── */
 setTimeout(() => {
     document.querySelectorAll('.flash-message').forEach(m => {
@@ -2015,7 +2136,7 @@ async function parseInsBulkUrls() {
 }
 
 function _renderBulkPreviewTable() {
-    const catOptions = ['','Job Scam','Subscription Scam','Fake Website Scam','Loan Scam','Government Scheme Scam','Investment Scam','LPG Booking Scam','IPL Tickets Scam'];
+    const catOptions = ['','Job Scam','Subscription Scam','Fake Website Scam','Loan Scam','Government Scheme Scam','Investment Scam','LPG Booking Scam','IPL Tickets Scam','ChaarDham Booking Scam'];
     const originOptions = ['','India','United States Of America','Netherlands','Singapore','Canada','Germany','France','Sweden','Finland','Lithuania','Bangladesh','Cyprus','NA'];
     const tbody = document.getElementById('ins_bulk_preview_tbody');
     tbody.innerHTML = _insBulkRows.map((r, i) => {
@@ -2284,10 +2405,11 @@ document.getElementById('userActivityLogModal')?.addEventListener('click', e => 
             </button>
         </div>
         <!-- Table -->
-        <div style="overflow-x:auto;overflow-y:auto;flex-grow:1;max-height:calc(97vh - 170px);"></div>
+        <div style="overflow-x:auto;overflow-y:auto;flex-grow:1;max-height:calc(97vh - 170px);">
             <table style="width:max-content;min-width:100%;border-collapse:collapse;" id="inopTable">
                 <thead>
                     <tr>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">ID</th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Date</th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Name</th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;min-width:200px;">URL</th>
@@ -2310,7 +2432,6 @@ document.getElementById('userActivityLogModal')?.addEventListener('click', e => 
         </div>
     </div>
 </div>
-
 <script>
 /* ── INOPERABLE WEBSITES ─────────────────────────────── */
 let _inopAllData = [];
@@ -2346,7 +2467,7 @@ async function openInoperableModal() {
         document.getElementById('inoperableTotalBadge').textContent = allRows.length + ' records';
         _renderInopTable(allRows);
     } catch(e) {
-        document.getElementById('inopTbody').innerHTML = `<tr><td colspan="10" style="text-align:center;padding:40px;color:#e74c3c;font-size:13px;">
+        document.getElementById('inopTbody').innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#e74c3c;font-size:13px;">
             <i class="fas fa-exclamation-circle"></i> Error: ${e.message}
         </td></tr>`;
     }
@@ -2380,7 +2501,7 @@ function clearInopFilters() {
 function _renderInopTable(rows) {
     const tbody = document.getElementById('inopTbody');
     if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;padding:50px;color:#95a5a6;">
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center;padding:40px;color:#95a5a6;">
             <i class="fas fa-check-circle" style="font-size:32px;display:block;margin-bottom:10px;color:#a9dfbf;"></i>
             No inoperable websites found
         </td></tr>`;
@@ -2390,24 +2511,13 @@ function _renderInopTable(rows) {
     const e  = s  => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     const tr = (s,n) => s && s.length>n ? s.slice(0,n-1)+'…' : (s||'');
     const SF_MAP = { 'Web':'#e3f2fd:#0d47a1', 'App':'#e8f5e9:#1b5e20', 'Web/App':'#fff3e0:#e65100' };
-    const REMARK_COLORS = {
-        'OTP Issue':             '#fff3e0:#e65100',
-        'Website Not Working':   '#fde8e8:#c0392b',
-        'Login Issue':           '#fde8e8:#c0392b',
-        'Signup Issue':          '#fef9e7:#b7950b',
-        'UPI Not Available':     '#fde8e8:#c0392b',
-        'Wrong Invitation Code': '#fef9e7:#b7950b',
-        'Payment Processing Error': '#fde8e8:#c0392b',
-        'Deposit Section Issues':   '#fde8e8:#c0392b',
-        'Need New Credentials':     '#f3e5f5:#6c3483',
-        'Redirect To New Website/App': '#e8f5e9:#1b5e20',
-    };
+    const REMARK_COLORS = {};
     tbody.innerHTML = rows.map((item, i) => {
         const sfParts = SF_MAP[item.search_for] ? SF_MAP[item.search_for].split(':') : null;
-        const rkParts = REMARK_COLORS[item.remark] ? REMARK_COLORS[item.remark].split(':') : null;
-        const rowBg = i % 2 === 0 ? '#fff' : '#fff8f8';
-        const tdS = `padding:8px 12px;border-bottom:1px solid #fde;font-size:12px;vertical-align:middle;white-space:nowrap;`;
-        return `<tr style="background:${rowBg};" onmouseover="this.style.background='#fdf2f2'" onmouseout="this.style.background='${rowBg}'">
+        const rowBg = i % 2 === 0 ? '#fff' : '#fafafa';
+        const tdS = `padding:7px 12px;border-bottom:1px solid #eee;font-size:12px;vertical-align:middle;white-space:nowrap;`;
+        return `<tr style="background:${rowBg};" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${rowBg}'">
+            <td style="${tdS}font-weight:700;color:#c0392b;">#${item.id || '—'}</td>
             <td style="${tdS}font-weight:600;color:#2c3e50;">${v(item.date) ? item.date.split('T')[0] : '<span style="color:#95a5a6;">—</span>'}</td>
             <td style="${tdS}color:#555;">${v(item.name) ? e(tr(item.name, 20)) : '<span style="color:#95a5a6;">—</span>'}</td>
             <td style="${tdS}min-width:200px;max-width:260px;">
@@ -2436,18 +2546,18 @@ function _renderInopTable(rows) {
                     : '<span style="color:#95a5a6;">—</span>'}
             </td>
             <td style="${tdS}">
-                ${rkParts
-                    ? `<span style="background:${rkParts[0]};color:${rkParts[1]};padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;">${e(item.remark)}</span>`
-                    : (v(item.remark) ? `<span style="font-size:11px;color:#7f8c8d;font-weight:600;">${e(tr(item.remark,25))}</span>` : '<span style="color:#95a5a6;">—</span>')}
+                ${v(item.remark)
+                    ? `<span style="font-size:11px;color:#555;font-weight:500;">${e(tr(item.remark,25))}</span>`
+                    : '<span style="color:#95a5a6;">—</span>'}
             </td>
             <td style="${tdS}">
                 ${v(item.origin)
-                    ? `<span style="background:#eaf4fd;color:#1a5276;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:400;">${e(item.origin)}</span>`
+                    ? `<span style="font-size:11px;color:#555;">${e(item.origin)}</span>`
                     : '<span style="color:#95a5a6;">—</span>'}
             </td>
             <td style="${tdS}">
                 ${v(item.category)
-                    ? `<span style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;border:1px solid #ffcc80;white-space:nowrap;">${e(tr(item.category,20))}</span>`
+                    ? `<span style="font-size:11px;color:#555;">${e(tr(item.category,20))}</span>`
                     : '<span style="color:#95a5a6;">—</span>'}
             </td>
         </tr>`;
@@ -2458,9 +2568,9 @@ function exportInoperableCSV() {
     const rows = _inopFiltered.length ? _inopFiltered : _inopAllData;
     if (!rows.length) { showToast('No data to export', 'err'); return; }
     const esc = v => { const s=String(v===null||v===undefined?'':v); return (s.includes(',')||s.includes('"')||s.includes('\n'))?`"${s.replace(/"/g,'""')}"`:''+s; };
-    const headers = ['Date','Name','URL','Final URL','Search For','Login ID','Password','Remark','Origin','Category'];
+    const headers = ['ID','Date','Name','URL','Final URL','Search For','Login ID','Password','Remark','Origin','Category'];
     const lines = [headers.join(','), ...rows.map(r => [
-        r.date, r.name, r.url, r.final_url, r.search_for,
+        r.id, r.date, r.name, r.url, r.final_url, r.search_for,
         r.login_id, r.password, r.remark, r.origin, r.category
     ].map(esc).join(','))];
     const blob = new Blob(['\uFEFF' + lines.join('\n')], { type:'text/csv;charset=utf-8;' });
