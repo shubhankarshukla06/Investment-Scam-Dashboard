@@ -3358,6 +3358,64 @@ def website_directory_inoperable():
         return jsonify({"success": True, "items": resp.data or []})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+@app.route("/social-search-ajax", methods=["GET"])
+@login_required
+def social_search_ajax():
+    try:
+        query = request.args.get("q", "").strip()
+        platform = request.args.get("platform", "").strip()
+        status = request.args.get("status", "").strip()
+        department = request.args.get("department", "").strip()
+        permanent_block = request.args.get("permanent_block", "").strip()
+
+        q = social_supabase.table("social_media_accounts").select("*", count='exact')
+
+        allowed_depts = session.get("allowed_departments")
+        if allowed_depts:
+            if len(allowed_depts) == 1:
+                q = q.eq("department", allowed_depts[0])
+            else:
+                q = q.in_("department", allowed_depts)
+
+        if query:
+            like_term = f"%{query}%"
+            q = q.or_(
+                f"login_user.ilike.{like_term},"
+                f"number.ilike.{like_term},"
+                f"full_name.ilike.{like_term},"
+                f"page_name.ilike.{like_term},"
+                f"platform.ilike.{like_term},"
+                f"account_status.ilike.{like_term},"
+                f"owned_by.ilike.{like_term},"
+                f"department.ilike.{like_term},"
+                f"sim_operator.ilike.{like_term},"
+                f"mail_id.ilike.{like_term},"
+                f"account_id.ilike.{like_term},"
+                f"number_type.ilike.{like_term},"
+                f"login_device.ilike.{like_term}"
+            )
+
+        if platform:
+            q = q.eq("platform", platform)
+        if department:
+            q = q.eq("department", department)
+
+        if permanent_block == "true":
+            q = q.eq("account_status", "Permanent Block")
+        else:
+            if status:
+                q = q.eq("account_status", status)
+            else:
+                q = q.neq("account_status", "Permanent Block")
+
+        q = q.order("id", desc=False).range(0, 999)
+        resp = q.execute()
+        items = [dict(row) for row in (resp.data or [])]
+        total = resp.count or len(items)
+
+        return jsonify({"success": True, "items": items, "total": total})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

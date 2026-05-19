@@ -2367,60 +2367,227 @@
                 url.searchParams.delete('page_num');
                 window.location.href = url.toString();
             }
-            function submitSocialSearch() { document.getElementById('socialFilterForm').submit(); }
-            function filterSocialRows(query) {
-                const q = query.trim().toLowerCase();
-                const tbody = document.getElementById('socialMediaTableBody');
-                if (!tbody) return;
-                const rows = tbody.querySelectorAll('tr[data-id]');
-                let visibleCount = 0;
-                rows.forEach(row => {
-                    if (!q) {
-                        row.style.display = '';
-                        visibleCount++;
-                        return;
-                    }
-                    const tds = row.querySelectorAll('td');
-                    let matched = false;
-                    tds.forEach(td => {
-                        if (td.style.display === 'none') return;
-                        const text = (td.textContent || td.innerText || '').toLowerCase();
-                        if (text.includes(q)) matched = true;
-                    });
-                    const dataFields = [
-                        row.dataset.login_user,
-                        row.dataset.number,
-                        row.dataset.full_name,
-                        row.dataset.platform,
-                        row.dataset.account_status,
-                        row.dataset.owned_by,
-                        row.dataset.department,
-                        row.dataset.sim_operator,
-                    ];
-                    if (!matched) {
-                        dataFields.forEach(val => {
-                            if (val && val.toLowerCase().includes(q)) matched = true;
-                        });
-                    }
-                    row.style.display = matched ? '' : 'none';
-                    if (matched) visibleCount++;
-                });
-                let emptyRow = tbody.querySelector('.rt-empty-filter-row');
-                if (visibleCount === 0 && q) {
-                    if (!emptyRow) {
-                        emptyRow = document.createElement('tr');
-                        emptyRow.className = 'rt-empty-filter-row';
-                        emptyRow.innerHTML = `<td colspan="24" style="text-align:center;padding:30px;color:#95a5a6;">
-                            <i class="fas fa-search" style="font-size:20px;display:block;margin-bottom:8px;color:#ddd;"></i>
-                            No rows match "<strong style="color:#2c3e50;">${query.trim()}</strong>" on this page.
-                            <br><span style="font-size:11px;margin-top:6px;display:block;">Press <kbd style="background:#f0f0f0;padding:1px 5px;border-radius:3px;border:1px solid #ccc;">Enter</kbd> to search all pages</span>
-                        </td>`;
-                        tbody.appendChild(emptyRow);
-                    }
+            function submitSocialSearch() {
+                const inp = document.getElementById('socialSearchInput');
+                const q = inp ? inp.value.trim() : '';
+                if (q.length >= 1) {
+                    _doSocialAjaxSearch(q);
                 } else {
-                    if (emptyRow) emptyRow.remove();
+                    document.getElementById('socialFilterForm').submit();
                 }
             }
+            let _socialSearchTimer = null;
+            let _socialSearchActive = false;
+            function filterSocialRows(query) {
+                // Legacy function - now triggers AJAX search
+                if (query && query.trim()) {
+                    _triggerSocialAjaxSearch(query.trim());
+                } else {
+                    _clearSocialAjaxSearch();
+                }
+            }
+
+            function _triggerSocialAjaxSearch(query) {
+                if (_socialSearchTimer) clearTimeout(_socialSearchTimer);
+                _socialSearchTimer = setTimeout(() => {
+                    _doSocialAjaxSearch(query);
+                }, 350);
+            }
+
+            async function _doSocialAjaxSearch(query) {
+                const tbody = document.getElementById('socialMediaTableBody');
+                if (!tbody) return;
+                _socialSearchActive = true;
+
+                const platform = document.getElementById('socialPlatformSelect')?.value || '';
+                const status = document.getElementById('socialStatusSelect')?.value || '';
+                const department = document.getElementById('socialDepartmentSelect')?.value || '';
+
+                // Show loading state
+                tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;padding:40px;color:#7f8c8d;">
+                    <div style="display:inline-flex;flex-direction:column;align-items:center;gap:10px;">
+                        <div style="width:28px;height:28px;border:3px solid #f0f0f0;border-top:3px solid #3498db;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                        <span style="font-size:13px;">Searching across all records...</span>
+                    </div>
+                </td></tr>`;
+
+                try {
+                    const params = new URLSearchParams({ q: query });
+                    if (platform) params.set('platform', platform);
+                    if (status) params.set('status', status);
+                    if (department) params.set('department', department);
+
+                    const resp = await fetch('/social-search-ajax?' + params.toString());
+                    const data = await resp.json();
+
+                    if (!data.success) {
+                        tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;padding:30px;color:#e74c3c;">
+                            <i class="fas fa-exclamation-circle"></i> Error: ${data.error}
+                        </td></tr>`;
+                        return;
+                    }
+
+                    _renderSocialAjaxResults(data.items, query, data.total);
+
+                } catch(e) {
+                    tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;padding:30px;color:#e74c3c;">
+                        <i class="fas fa-exclamation-circle"></i> Network error: ${e.message}
+                    </td></tr>`;
+                }
+            }
+
+            function _clearSocialAjaxSearch() {
+                if (!_socialSearchActive) return;
+                _socialSearchActive = false;
+                // Reload page to restore normal paginated view
+                const url = new URL(window.location.href);
+                url.searchParams.delete('social_search');
+                url.searchParams.delete('page_num');
+                window.location.href = url.toString();
+            }
+
+            function _renderSocialAjaxResults(items, query, total) {
+                const tbody = document.getElementById('socialMediaTableBody');
+                if (!tbody) return;
+
+                const currentPlatform = document.getElementById('socialPlatformSelect')?.value || '';
+                filterSocialColumns(currentPlatform);
+
+                if (!items.length) {
+                    tbody.innerHTML = `<tr><td colspan="24" style="text-align:center;padding:40px;color:#95a5a6;">
+                        <i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:10px;color:#dde3ed;"></i>
+                        <strong style="font-size:14px;color:#2c3e50;">No results found</strong><br>
+                        <span style="font-size:12px;margin-top:4px;display:block;">No records match "<strong>${query}</strong>"</span>
+                    </td></tr>`;
+                    _updateSocialSearchBadge(0, query);
+                    return;
+                }
+
+                const highlight = (text, q) => {
+                    if (!text || !q) return text || 'N/A';
+                    const s = String(text);
+                    const idx = s.toLowerCase().indexOf(q.toLowerCase());
+                    if (idx === -1) return s;
+                    return s.slice(0, idx) +
+                        `<mark style="background:#fff3cd;padding:0 2px;border-radius:2px;">${s.slice(idx, idx + q.length)}</mark>` +
+                        s.slice(idx + q.length);
+                };
+
+                const v = (val) => val && !['N/A','NA','',null].includes(val) ? String(val) : null;
+
+                const rows = items.map(item => {
+                    const status = item.account_status || 'Active';
+                    const sl = status.toLowerCase();
+                    let rowClass = 'row-active', badgeClass = 'status-active';
+                    if (sl.includes('permanent')) { rowClass = 'row-permanent-block'; badgeClass = 'status-permanent-block'; }
+                    else if (sl.includes('block')) { rowClass = 'row-block'; badgeClass = 'status-block'; }
+                    else if (sl.includes('restricted')) { rowClass = 'row-restricted'; badgeClass = 'status-restricted'; }
+                    else if (sl.includes('frozen')) { rowClass = 'row-frozen'; badgeClass = 'status-frozen'; }
+
+                    const esc = s => String(s || '').replace(/'/g, "\\'");
+                    const q = query;
+
+                    return `<tr id="row-${item.id}" class="${rowClass}" data-id="${item.id}"
+                        data-platform="${item.platform||''}"
+                        data-login_user="${item.login_user||''}"
+                        data-number="${item.number||''}"
+                        data-login_device="${item.login_device||''}"
+                        data-full_name="${item.full_name||''}"
+                        data-account_status="${item.account_status||'Active'}"
+                        data-review_status="${item.review_status||'NA'}"
+                        data-blocked_date="${item.blocked_date||''}"
+                        data-unblock_date="${item.unblocked_date||item.unblock_date||''}"
+                        data-recharge_date="${item.recharge_date||''}"
+                        data-account_create_date="${item.account_create_date||''}"
+                        data-owned_by="${item.owned_by||''}"
+                        data-sim_operator="${item.sim_operator||''}"
+                        data-department="${item.department||''}">
+                        <td class="edit-col-td" style="display:none;">
+                            <button class="edit-row-btn" onclick="openEditDrawer(event, this.closest('tr'))">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                        </td>
+                        <td data-col="id">${item.id}</td>
+                        <td data-col="platform"><span class="platform-badge">${highlight(item.platform, q) || 'N/A'}</span></td>
+                        <td data-col="department">${v(item.department) ? `<span style="background:#e8f5e9;color:#1b5e20;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;">${highlight(item.department, q)}</span>` : '<span style="color:#95a5a6;">—</span>'}</td>
+                        <td data-col="owned_by">${highlight(item.owned_by, q) || 'N/A'}</td>
+                        <td data-col="login_user">${highlight(item.login_user, q) || 'N/A'}</td>
+                        <td data-col="number"><span style="display:inline-flex;align-items:center;gap:4px;">
+                            ${v(item.number) ? `<span>${highlight(item.number, q)}</span><button class="copy-btn" onclick="copyToClipboard('${esc(item.number)}','Number')"><i class="fas fa-copy"></i></button>` : 'N/A'}
+                        </span></td>
+                        <td data-col="login_device">${highlight(item.login_device, q) || 'N/A'}</td>
+                        <td data-col="sim_inserted_device">${item.sim_inserted_device || 'N/A'}</td>
+                        <td data-col="account_status"><span class="status-display ${badgeClass}">${status}</span></td>
+                        <td data-col="review_status">${item.review_status || 'NA'}</td>
+                        <td data-col="number_type">${item.number_type || 'N/A'}</td>
+                        <td data-col="blocked_date">${item.blocked_date || 'N/A'}</td>
+                        <td data-col="unblocked_date">${item.unblocked_date || item.unblock_date || 'N/A'}</td>
+                        <td data-col="account_create_date">${item.account_create_date || 'N/A'}</td>
+                        <td data-col="sim_operator">${highlight(item.sim_operator, q) || 'N/A'}</td>
+                        <td data-col="full_name">${highlight(item.full_name, q) || 'N/A'}</td>
+                        <td data-col="recharge_date">${item.recharge_date || 'N/A'}</td>
+                        <td data-col="sim_buy_date">${item.sim_buy_date || 'N/A'}</td>
+                        <td data-col="account_type">${item.account_type || 'N/A'}</td>
+                        <td data-col="mail_id">${highlight(item.mail_id, q) || 'N/A'}</td>
+                        <td data-col="account_id">${highlight(item.account_id, q) || 'N/A'}</td>
+                        <td data-col="password">${v(item.password) ? `<span style="display:inline-flex;align-items:center;gap:4px;"><span style="font-family:monospace;font-size:11px;color:#c0392b;">${item.password}</span><button class="copy-btn" onclick="copyToClipboard('${esc(item.password)}','Password')"><i class="fas fa-copy"></i></button></span>` : '<span style="color:#95a5a6;">N/A</span>'}</td>
+                        <td data-col="page_name">${highlight(item.page_name, q) || 'N/A'}</td>
+                    </tr>`;
+                });
+
+                tbody.innerHTML = rows.join('');
+                _updateSocialSearchBadge(total, query);
+                filterSocialColumns(currentPlatform);
+
+                // Re-apply edit mode if active
+                if (_editModeActive) {
+                    document.getElementById('editColTh').style.display = '';
+                    document.querySelectorAll('.edit-col-td').forEach(td => {
+                        td.style.setProperty('display', 'table-cell', 'important');
+                    });
+                }
+            }
+
+            function _updateSocialSearchBadge(count, query) {
+                // Update or create search result badge
+                let badge = document.getElementById('socialSearchResultBadge');
+                if (!badge) {
+                    const filtersDiv = document.querySelector('.social-page .filters');
+                    if (filtersDiv) {
+                        badge = document.createElement('div');
+                        badge.id = 'socialSearchResultBadge';
+                        badge.style.cssText = 'display:flex;align-items:center;gap:6px;background:#ebf5fb;border:1px solid #aed6f1;padding:5px 12px;border-radius:6px;font-size:12px;color:#1a5276;font-weight:600;margin-top:6px;';
+                        filtersDiv.appendChild(badge);
+                    }
+                }
+                if (badge) {
+                    badge.style.display = 'flex';
+                    badge.innerHTML = `<i class="fas fa-search" style="color:#3498db;"></i>
+                        Found <strong style="color:#2980b9;">${count.toLocaleString()}</strong> result${count !== 1 ? 's' : ''} for "<em>${query}</em>"
+                        <button onclick="_clearSocialAjaxSearch()" style="margin-left:8px;background:#e74c3c;color:white;border:none;padding:2px 8px;border-radius:4px;font-size:11px;cursor:pointer;">
+                            <i class="fas fa-times"></i> Clear
+                        </button>`;
+                }
+            }
+            // Social search input — debounce AJAX search
+            (function initSocialSearchInput() {
+                const inp = document.getElementById('socialSearchInput');
+                if (!inp) return;
+                inp.addEventListener('input', function() {
+                    const q = this.value.trim();
+                    if (q.length === 0) {
+                        _clearSocialAjaxSearch();
+                    } else if (q.length >= 2) {
+                        _triggerSocialAjaxSearch(q);
+                    }
+                });
+                inp.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        this.value = '';
+                        _clearSocialAjaxSearch();
+                    }
+                });
+            })();
             let _editModeActive = false;
             let _editDrawerCurrentId = null;
             let _editDrawerChanges = {};
