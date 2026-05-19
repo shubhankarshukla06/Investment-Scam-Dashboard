@@ -6273,13 +6273,14 @@
                 const SM_PLATFORMS = ['Telegram','WhatsApp','Facebook','Instagram','Threads','Thread','YouTube','X','Twitter','Snapchat','TikTok','LinkedIn','Pinterest','Reddit'];
 
                 async function loadInsightsData() {
+                    _insLastData = null;
+                    _insBankData = null;
                     const loading   = document.getElementById('insightsLoading');
                     const chartsDiv = document.getElementById('insightsChartsArea');
                     const emptyDiv  = document.getElementById('insightsEmpty');
                     loading.style.display   = 'flex';
                     chartsDiv.style.display = 'none';
                     emptyDiv.style.display  = 'none';
-
                     const params = new URLSearchParams();
                     const from = document.getElementById('insightsDateFrom').value;
                     const to   = document.getElementById('insightsDateTo').value;

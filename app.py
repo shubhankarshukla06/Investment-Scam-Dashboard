@@ -2597,7 +2597,7 @@ def investment_insights_data():
             if scam_type:  q = q.eq("Scam_type",  scam_type)
             if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
             if input_user: q = q.eq("Input_user", input_user)
-            resp  = q.order("Inserted_date", desc=False).range(offset, offset + CHUNK - 1).execute()
+            resp  = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:
@@ -2623,14 +2623,20 @@ def investment_insights_data():
             if parsed_date:
                 dated_rows.append((r, parsed_date))
             if not d: continue
-            if d not in upi_by_date:
-                upi_by_date[d] = set()
             if wallet_val == "UPI" and upi and upi.upper() not in ("NA", "N/A", ""):
+                if d not in upi_by_date:
+                    upi_by_date[d] = set()
                 upi_by_date[d].add(upi)
                 upi_set.add(upi)
             if wallet_val == "Bank Account" and bank_acc and bank_acc.upper() not in ("NA", "N/A", ""):
                 bank_set.add(bank_acc)
-        upi_series = {d: len(s) for d, s in sorted(upi_by_date.items())}
+        # upi_series: cumulative unique UPIs seen up to each date
+        # This ensures chart total matches the card total
+        seen_upis = set()
+        upi_series = {}
+        for d in sorted(upi_by_date.keys()):
+            seen_upis.update(upi_by_date[d])
+            upi_series[d] = len(upi_by_date[d])
 
         def _trend_bucket(start_date, end_date):
             case_count = 0
@@ -2773,7 +2779,7 @@ def investment_bank_data():
             if scam_type:  q = q.eq("Scam_type", scam_type)
             if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
             if input_user: q = q.eq("Input_user", input_user)
-            resp  = q.order("Inserted_date", desc=False).range(offset, offset + CHUNK - 1).execute()
+            resp  = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:

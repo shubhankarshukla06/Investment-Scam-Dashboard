@@ -425,6 +425,12 @@ tr:hover { background:#f8fffe; }
             <input type="hidden" id="edit_id">
             <div class="form-grid">
                 <div class="form-group"><label>Date</label><input type="date" id="edit_date"></div>
+                <div class="form-group">
+                    <label>Name (Inserted By)</label>
+                    <select id="edit_name" style="padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;background:white;color:#2c3e50;outline:none;height:34px;width:100%;">
+                        <option value="">-- Select User --</option>
+                    </select>
+                </div>
                 <div class="form-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">URL</label><input type="text" id="edit_url" placeholder="https://example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
                     <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="edit_final_url" placeholder="https://final.example.com" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
@@ -1058,7 +1064,42 @@ const _wdItems    = {};
 {% endfor %}{% endif %}
 
 // Logged-in user ka clean name (for auto-fill in name field)
+// Logged-in user ka clean name (for auto-fill in name field)
 const _loggedInName = "{{ clean_display_name }}";
+
+// WD Users cache
+let _wdUsersList = [];
+
+async function _loadWdUsers() {
+    if (_wdUsersList.length) return _wdUsersList;
+    const names = new Set();
+    Object.values(_wdItems).forEach(item => {
+        const n = (item.name || '').trim();
+        if (n && !['NA','N/A','nan',''].includes(n)) names.add(n);
+    });
+    if (_loggedInName) names.add(_loggedInName);
+    _wdUsersList = [...names].sort();
+    return _wdUsersList;
+}
+
+function _populateNameDropdown(selectId, currentName) {
+    const el = document.getElementById(selectId);
+    if (!el) return;
+    while (el.options.length > 1) el.remove(1);
+    _wdUsersList.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        el.appendChild(opt);
+    });
+    if (currentName && !_wdUsersList.includes(currentName)) {
+        const opt = document.createElement('option');
+        opt.value = currentName;
+        opt.textContent = currentName;
+        el.appendChild(opt);
+    }
+    el.value = currentName || _loggedInName || '';
+}
 
 // URL se final URL (domain only) aur invite code extract karna
 function extractUrlParts(rawUrl) {
@@ -1092,6 +1133,15 @@ function showLoading() { document.getElementById('loadingOverlay').style.display
 
 // Single insert — URL type/paste karne pe auto-fill Final URL + Invite Code
 let _insUrlCheckTimer = null;
+function _stripQueryHash(url) {
+    try {
+        const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+        return (u.origin + u.pathname).replace(/\/$/, '').toLowerCase();
+    } catch(e) {
+        return url.toLowerCase().split('?')[0].split('#')[0].replace(/\/$/, '');
+    }
+}
+
 function onInsUrlInput(val) {
     if (!val || val.length < 8) return;
     const { finalUrl, inviteCode } = extractUrlParts(val);
@@ -1104,7 +1154,6 @@ function onInsUrlInput(val) {
     clearTimeout(_insUrlCheckTimer);
     _insUrlCheckTimer = setTimeout(() => checkSingleUrlDuplicate(val, 'ins_url', 'ins_url_status'), 500);
 }
-
 async function checkSingleUrlDuplicate(url, inputId, statusId) {
     if (!url || url.length < 6) return;
     let el = document.getElementById(statusId);
@@ -1120,21 +1169,44 @@ async function checkSingleUrlDuplicate(url, inputId, statusId) {
     el.style.color = '#5470c6';
 
     try {
-        const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(url));
+        const baseUrl = _stripQueryHash(url);
+        let searchTerm = baseUrl;
+        try {
+            const u = new URL(url.startsWith('http') ? url : 'https://' + url);
+            searchTerm = u.hostname.replace(/^www\./, '') + u.pathname.replace(/\/$/, '');
+        } catch(e) {}
+
+        const resp = await fetch('/website-directory-search-api?q=' + encodeURIComponent(searchTerm));
         const data = await resp.json();
         const urlInput = document.getElementById(inputId);
+
         if (data.success && data.items && data.items.length > 0) {
-            el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> URL already exists (ID #' + data.items[0].id + ')';
-            el.style.background = '#fde8e8';
-            el.style.color = '#c0392b';
-            if (urlInput) {
-                urlInput.style.borderColor = '#e74c3c';
-                urlInput.style.background = '#fff8f8';
-            }
-            // Also check final_url
-            const fuEl = document.getElementById('ins_final_url');
-            if (fuEl && !fuEl.value && data.items[0].final_url && data.items[0].final_url !== 'NA') {
-                fuEl.value = data.items[0].final_url;
+            const matchedItem = data.items.find(item => {
+                const dbUrl      = _stripQueryHash(item.url || '');
+                const dbFinalUrl = _stripQueryHash(item.final_url || '');
+                return dbUrl === baseUrl || dbFinalUrl === baseUrl;
+            });
+
+            if (matchedItem) {
+                el.innerHTML = '<i class="fas fa-exclamation-triangle"></i> URL already exists (ID #' + matchedItem.id + ')';
+                el.style.background = '#fde8e8';
+                el.style.color = '#c0392b';
+                if (urlInput) {
+                    urlInput.style.borderColor = '#e74c3c';
+                    urlInput.style.background = '#fff8f8';
+                }
+                const fuEl = document.getElementById('ins_final_url');
+                if (fuEl && !fuEl.value && matchedItem.final_url && matchedItem.final_url !== 'NA') {
+                    fuEl.value = matchedItem.final_url;
+                }
+            } else {
+                el.innerHTML = '<i class="fas fa-check-circle"></i> New URL';
+                el.style.background = '#e8f8f0';
+                el.style.color = '#1e8449';
+                if (urlInput) {
+                    urlInput.style.borderColor = '#27ae60';
+                    urlInput.style.background = '#f0fff4';
+                }
             }
         } else {
             el.innerHTML = '<i class="fas fa-check-circle"></i> New URL';
@@ -1359,11 +1431,10 @@ function renderTracker(data) {
     }
 }
 /* ── EDIT MODAL ──────────────────────────────────── */
-function openEditModal(id) {
-    // _wdItems se dhundo, agar nahi mila toh server se fetch karo
+async function openEditModal(id) {
+    await _loadWdUsers();
     const item = _wdItems[id];
     if (!item) {
-        // Server se fetch karke modal open karo
         fetch('/website-directory-get-record?id=' + id)
             .then(r => r.json())
             .then(data => {
@@ -1409,6 +1480,7 @@ function _fillEditModal(id, item) {
     document.getElementById('edit_category').value          = g('category');
     document.getElementById('edit_automated_website').value = g('automated_website');
     document.getElementById('edit_payment_gateway').value   = g('payment_gateway');
+    _populateNameDropdown('edit_name', g('name'));
 }
 
 async function submitEdit() {
@@ -1418,7 +1490,7 @@ async function submitEdit() {
     const payload = {
         id,
         date:              g('edit_date'),
-        name:              _loggedInName,
+        name:              g('edit_name') || _loggedInName,
         url:               g('edit_url'),
         final_url:         g('edit_final_url'),
         invitation_code:   g('edit_invitation_code'),
