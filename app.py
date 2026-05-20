@@ -3163,9 +3163,13 @@ def website_directory_update():
         ]
         record = {}
         for f in ALLOWED:
+            if f not in data:
+                continue  # Only update fields that are sent
             val = str(data.get(f, "")).strip()
             if f == "date":
                 record[f] = val if val and val.upper() not in ("NA","N/A","") else None
+            elif f == "remark":
+                record[f] = val  # Allow empty string for remark
             else:
                 record[f] = val if val else "NA"
 
@@ -3217,6 +3221,34 @@ def website_directory_delete():
             new_value="DELETED"
         )
         return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+@app.route("/website-directory-delete-bulk", methods=["POST"])
+@login_required
+def website_directory_delete_bulk():
+    try:
+        data = request.get_json()
+        ids = data.get("ids", [])
+        if not ids:
+            return jsonify({"success": False, "error": "No IDs provided"})
+        clean_ids = []
+        for item in ids:
+            try:
+                clean_ids.append(int(str(item).strip()))
+            except (ValueError, TypeError):
+                continue
+        if not clean_ids:
+            return jsonify({"success": False, "error": "No valid IDs"})
+        supabase.table("website_directory").delete().in_("id", clean_ids).execute()
+        log_activity(
+            action_type="field_update",
+            target_table="website_directory",
+            field_name="DELETE_BULK",
+            old_value="EXISTS",
+            new_value="DELETED",
+            extra_info={"ids": clean_ids, "count": len(clean_ids)}
+        )
+        return jsonify({"success": True, "deleted": len(clean_ids)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 

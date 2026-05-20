@@ -424,7 +424,7 @@ tr:hover { background:#f8fffe; }
         <div class="modal-body">
             <input type="hidden" id="edit_id">
             <div class="form-grid">
-                <div class="form-group"><label>Date</label><input type="date" id="edit_date"></div>
+                <div class="form-group"><label>Date <span style="font-size:10px;color:#95a5a6;">(auto-preserved)</span></label><input type="date" id="edit_date" readonly style="background:#f8f9fa;color:#7f8c8d;cursor:not-allowed;"></div>
                 <div class="form-group">
                     <label>Name (Inserted By)</label>
                     <select id="edit_name" style="padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;background:white;color:#2c3e50;outline:none;height:34px;width:100%;">
@@ -739,7 +739,7 @@ tr:hover { background:#f8fffe; }
                     {% if 'investment' in allowed_pages %}
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
-                    {% if 'scraping' in allowed_pages %}
+                    {% if 'investment' in allowed_pages %}
                     <option value="website_directory" selected>Scam++ Website Directory</option>
                     {% endif %}
                 </select>
@@ -1489,7 +1489,7 @@ async function submitEdit() {
     const g = i => (document.getElementById(i)||{}).value||'';
     const payload = {
         id,
-        date:              g('edit_date'),
+        date:              _wdItems[id] ? (_wdItems[id].date || g('edit_date')) : g('edit_date'),
         name:              g('edit_name') || _loggedInName,
         url:               g('edit_url'),
         final_url:         g('edit_final_url'),
@@ -2435,6 +2435,74 @@ function exportUAL() {
 document.getElementById('userActivityLogModal')?.addEventListener('click', e => {
     if (e.target === document.getElementById('userActivityLogModal')) closeUserActivityLog();
 });
+function toggleAllInoperable(master) {
+    document.querySelectorAll('.inop-row-check').forEach(cb => {
+        cb.checked = master.checked;
+    });
+    onInopCheckChange();
+}
+function onInopCheckChange() {
+    const checked = document.querySelectorAll('.inop-row-check:checked');
+    const count = checked.length;
+    const moveBtn = document.getElementById('inopMoveBtn');
+    const moveCountEl = document.getElementById('inopMoveCount');
+    const delBtn = document.getElementById('inopDeleteBtn');
+    const delCountEl = document.getElementById('inopDeleteCount');
+    if (moveBtn) { moveBtn.disabled = count === 0; moveBtn.style.opacity = count > 0 ? '1' : '0.5'; }
+    if (moveCountEl) moveCountEl.textContent = count;
+    if (delBtn) { delBtn.disabled = count === 0; delBtn.style.opacity = count > 0 ? '1' : '0.5'; }
+    if (delCountEl) delCountEl.textContent = count;
+    const allCbs = document.querySelectorAll('.inop-row-check');
+    const master = document.getElementById('inopSelectAll');
+    if (master) master.indeterminate = count > 0 && count < allCbs.length;
+    if (master) master.checked = count > 0 && count === allCbs.length;
+}
+async function moveInoperableToDirectory() {
+    const checked = [...document.querySelectorAll('.inop-row-check:checked')];
+    if (!checked.length) { showToast('Koi record select nahi kiya!', 'err'); return; }
+    const ids = checked.map(cb => parseInt(cb.dataset.id));
+    const btn = document.getElementById('inopMoveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Moving...';
+    let success = 0, failed = 0;
+    for (const id of ids) {
+        try {
+            const resp = await fetch('/website-directory-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, remark: 'IPG' })
+            });
+            const data = await resp.json();
+            if (data.success) {
+                success++;
+                const row = document.querySelector(`.inop-row-check[data-id="${id}"]`)?.closest('tr');
+                if (row) row.remove();
+                _inopAllData  = _inopAllData.filter(i => i.id !== id);
+                _inopFiltered = _inopFiltered.filter(i => i.id !== id);
+                const mainRow = document.getElementById(`wd-row-${id}`);
+                if (mainRow) mainRow.remove();
+            } else {
+                failed++;
+            }
+        } catch(e) {
+            failed++;
+        }
+    }
+    btn.disabled = false;
+    btn.innerHTML = `<i class="fas fa-exchange-alt"></i> Move to Directory (<span id="inopMoveCount">0</span>)`;
+    document.getElementById('inoperableTotalBadge').textContent = _inopAllData.length + ' records';
+    document.querySelectorAll('.inop-row-check').forEach(cb => cb.checked = false);
+    const master = document.getElementById('inopSelectAll');
+    if (master) { master.checked = false; master.indeterminate = false; }
+    onInopCheckChange();
+    _trackerData = null;
+    if (success > 0) {
+        showToast(`${success} record${success > 1 ? 's' : ''} moved to Directory!`, 'ok');
+        closeModal('inoperableModal');
+        setTimeout(() => window.location.reload(), 600);
+    }
+    if (failed > 0) showToast(`${failed} record${failed > 1 ? 's' : ''} move failed`, 'err');
+}
 </script>
 <!-- Inoperable Websites Modal -->
 <div class="modal-overlay" id="inoperableModal">
@@ -2468,6 +2536,13 @@ document.getElementById('userActivityLogModal')?.addEventListener('click', e => 
                 <option value="Need New Credentials">Need New Credentials</option>
                 <option value="Redirect To New Website/App">Redirect To New Website/App</option>
             </select>
+            <select id="inopCategoryFilter" onchange="filterInoperable()"
+                style="padding:6px 10px;border:1.5px solid #fbc7c7;border-radius:6px;font-size:12px;background:white;color:#c0392b;cursor:pointer;height:32px;font-weight:600;outline:none;min-width:160px;">
+                <option value="">All Categories</option>
+                {% for c in wd_category_options %}
+                <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+            </select>
             <span id="inopFilterCount" style="font-size:11px;color:#7f8c8d;font-weight:600;white-space:nowrap;"></span>
             <button onclick="clearInopFilters()" style="padding:5px 10px;background:#95a5a6;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;">
                 <i class="fas fa-times"></i> Clear
@@ -2475,12 +2550,23 @@ document.getElementById('userActivityLogModal')?.addEventListener('click', e => 
             <button onclick="exportInoperableCSV()" style="padding:5px 12px;background:#3498db;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;font-weight:600;">
                 <i class="fas fa-file-export"></i> Export CSV
             </button>
+            <button onclick="moveInoperableToDirectory()" id="inopMoveBtn" style="padding:5px 12px;background:#27ae60;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;font-weight:600;opacity:0.5;" disabled>
+                <i class="fas fa-exchange-alt"></i> Move to Directory (<span id="inopMoveCount">0</span>)
+            </button>
+            <button onclick="deleteSelectedInoperable()" id="inopDeleteBtn"
+                style="padding:5px 12px;background:#e74c3c;color:white;border:none;border-radius:5px;font-size:11px;cursor:pointer;height:32px;display:flex;align-items:center;gap:4px;font-weight:600;opacity:0.5;"
+                disabled>
+                <i class="fas fa-trash"></i> Delete (<span id="inopDeleteCount">0</span>)
+            </button>
         </div>
         <!-- Table -->
         <div style="overflow-x:auto;overflow-y:auto;flex-grow:1;max-height:calc(97vh - 170px);">
             <table style="width:max-content;min-width:100%;border-collapse:collapse;" id="inopTable">
                 <thead>
                     <tr>
+                        <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">
+                            <input type="checkbox" id="inopSelectAll" onclick="toggleAllInoperable(this)" title="Select All" style="cursor:pointer;width:14px;height:14px;">
+                        </th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">ID</th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Date</th>
                         <th style="background:#fdf2f2;color:#c0392b;padding:9px 12px;text-align:left;border-bottom:2px solid #fbc7c7;font-size:12px;white-space:nowrap;position:sticky;top:0;z-index:5;border-right:1px solid #fbc7c7;">Name</th>
@@ -2544,27 +2630,29 @@ async function openInoperableModal() {
         </td></tr>`;
     }
 }
-
 function filterInoperable() {
-    const search = (document.getElementById('inopSearchInput').value || '').toLowerCase().trim();
-    const remark = document.getElementById('inopRemarkFilter').value;
+    const search   = (document.getElementById('inopSearchInput').value || '').toLowerCase().trim();
+    const remark   = document.getElementById('inopRemarkFilter').value;
+    const category = document.getElementById('inopCategoryFilter') ? document.getElementById('inopCategoryFilter').value : '';
     _inopFiltered = _inopAllData.filter(item => {
-        const matchRemark = !remark || (item.remark || '') === remark;
-        if (!search) return matchRemark;
+        const matchRemark   = !remark   || (item.remark   || '') === remark;
+        const matchCategory = !category || (item.category || '') === category;
+        if (!search) return matchRemark && matchCategory;
         const haystack = [
             item.url, item.final_url, item.login_id, item.password,
             item.category, item.origin, item.remark, item.name,
             item.group_app_name, item.search_for, item.date
         ].map(v => (v || '').toLowerCase()).join(' ');
-        return matchRemark && haystack.includes(search);
+        return matchRemark && matchCategory && haystack.includes(search);
     });
     document.getElementById('inopFilterCount').textContent = `Showing ${_inopFiltered.length} of ${_inopAllData.length}`;
     _renderInopTable(_inopFiltered);
 }
-
 function clearInopFilters() {
     document.getElementById('inopSearchInput').value = '';
     document.getElementById('inopRemarkFilter').value = '';
+    const catEl = document.getElementById('inopCategoryFilter');
+    if (catEl) catEl.value = '';
     _inopFiltered = _inopAllData;
     document.getElementById('inopFilterCount').textContent = '';
     _renderInopTable(_inopAllData);
@@ -2589,6 +2677,9 @@ function _renderInopTable(rows) {
         const rowBg = i % 2 === 0 ? '#fff' : '#fafafa';
         const tdS = `padding:7px 12px;border-bottom:1px solid #eee;font-size:12px;vertical-align:middle;white-space:nowrap;`;
         return `<tr style="background:${rowBg};" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='${rowBg}'">
+            <td style="${tdS}text-align:center;">
+                <input type="checkbox" class="inop-row-check" data-id="${item.id}" onchange="onInopCheckChange()" style="cursor:pointer;width:14px;height:14px;">
+            </td>
             <td style="${tdS}font-weight:700;color:#c0392b;">#${item.id || '—'}</td>
             <td style="${tdS}font-weight:600;color:#2c3e50;">${v(item.date) ? item.date.split('T')[0] : '<span style="color:#95a5a6;">—</span>'}</td>
             <td style="${tdS}color:#555;">${v(item.name) ? e(tr(item.name, 20)) : '<span style="color:#95a5a6;">—</span>'}</td>
@@ -2635,7 +2726,6 @@ function _renderInopTable(rows) {
         </tr>`;
     }).join('');
 }
-
 function exportInoperableCSV() {
     const rows = _inopFiltered.length ? _inopFiltered : _inopAllData;
     if (!rows.length) { showToast('No data to export', 'err'); return; }
@@ -2652,6 +2742,48 @@ function exportInoperableCSV() {
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     showToast('Exported!', 'ok');
+}
+
+async function deleteSelectedInoperable() {
+    const checked = [...document.querySelectorAll('.inop-row-check:checked')];
+    if (!checked.length) { showToast('Koi record select nahi kiya!', 'err'); return; }
+    const ids = checked.map(cb => parseInt(cb.dataset.id));
+    if (!confirm(`${ids.length} record(s) permanently delete karna chahte hain?\nYeh action wapas nahi hoga.`)) return;
+    const btn = document.getElementById('inopDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+    try {
+        const resp = await fetch('/website-directory-delete-bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            ids.forEach(id => {
+                const row = document.querySelector(`.inop-row-check[data-id="${id}"]`)?.closest('tr');
+                if (row) row.remove();
+                _inopAllData  = _inopAllData.filter(i => i.id !== id);
+                _inopFiltered = _inopFiltered.filter(i => i.id !== id);
+                const mainRow = document.getElementById(`wd-row-${id}`);
+                if (mainRow) mainRow.remove();
+            });
+            document.getElementById('inoperableTotalBadge').textContent = _inopAllData.length + ' records';
+            document.getElementById('inopFilterCount').textContent = `Showing ${_inopFiltered.length} of ${_inopAllData.length}`;
+            const master = document.getElementById('inopSelectAll');
+            if (master) { master.checked = false; master.indeterminate = false; }
+            onInopCheckChange();
+            _trackerData = null;
+            showToast(`${data.deleted} record(s) permanently delete ho gaye!`, 'ok');
+        } else {
+            showToast('Delete failed: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-trash"></i> Delete (<span id="inopDeleteCount">0</span>)`;
+    }
 }
 </script>
 </body>
