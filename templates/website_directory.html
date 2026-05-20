@@ -739,7 +739,7 @@ tr:hover { background:#f8fffe; }
                     {% if 'investment' in allowed_pages %}
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
-                    {% if 'investment' in allowed_pages %}
+                    {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
                     <option value="website_directory" selected>Scam++ Website Directory</option>
                     {% endif %}
                 </select>
