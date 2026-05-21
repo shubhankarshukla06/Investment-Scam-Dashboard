@@ -3579,24 +3579,18 @@
                 } catch(e) {
                     showToast('Website directory data fetch failed', true);
                 }
-
-                // ── Fetch MIS API data (Credentials + Remark) ─────────────
-                // API: /getDepartmentData?user_mail=...&department=...&role=...
-                // We proxy through our Flask endpoint to avoid CORS
-                // Returns array of records with fields including credentials count, remarks, dates
-                let misDataByUser = {};  // { "clean_user_name_lower": { credentials: N, remark: "..." } }
+                const misDataByUser = {};
                 try {
                     showToast('Fetching MIS data...', false, false);
+                    const currentUserEmail = "{{ session.get('email', '') }}";
                     const misResp = await fetch(
-                        '/getDepartmentData?user_mail=tl_shubhankar.shukla%40pixeltruth.com&department=Anti_Money_Laundering&role=Team_Lead'
+                        `/getDepartmentData?user_mail=${encodeURIComponent(currentUserEmail)}&department=Anti_Money_Laundering&role=Team_Lead`
                     );
                     const misRaw = await misResp.json();
 
                     if (Array.isArray(misRaw) && misRaw.length > 0) {
-                        // Filter by date range if available
                         const filtered = misRaw.filter(record => {
                             if (!minDate && !maxDate) return true;
-                            // Try common date fields
                             const recDate = record.date || record.Date || record.inserted_date || record.Inserted_date || '';
                             const d = recDate.toString().split('T')[0];
                             if (!d) return true;
@@ -3605,23 +3599,22 @@
                             return true;
                         });
 
-                        // Group by user/name field in MIS data
-                        // Common name fields in MIS response
                         const misNameFields = ['user_name','username','name','Name','employee_name','emp_name','user'];
                         const misCredFields = ['credentials','credential_count','creds','Credentials'];
                         const misRemarkFields = ['remark','remarks','Remark','Remarks','status','Status'];
 
                         filtered.forEach(record => {
-                            // Find name
                             let misPerson = '';
                             for (const f of misNameFields) {
                                 if (record[f]) { misPerson = String(record[f]).trim(); break; }
                             }
                             if (!misPerson) return;
 
-                            const cleanMis = misPerson.toLowerCase();
+                            // Store with BOTH original lowercase AND cleaned version as keys
+                            // so matching works regardless of prefix stripping
+                            const cleanMisOriginal = misPerson.toLowerCase();
+                            const cleanMisCleaned  = excelNameToApiName(misPerson).toLowerCase();
 
-                            // Find credentials value
                             let creds = 0;
                             for (const f of misCredFields) {
                                 if (record[f] !== undefined && record[f] !== null) {
@@ -3629,7 +3622,6 @@
                                 }
                             }
 
-                            // Find remark value
                             let remark = '';
                             for (const f of misRemarkFields) {
                                 if (record[f] && String(record[f]).trim() && String(record[f]).trim().toUpperCase() !== 'NA') {
@@ -3637,14 +3629,19 @@
                                 }
                             }
 
-                            if (!misDataByUser[cleanMis]) {
-                                misDataByUser[cleanMis] = { credentials: 0, remark: '' };
-                            }
-                            misDataByUser[cleanMis].credentials += creds;
-                            if (remark && !misDataByUser[cleanMis].remark) {
-                                misDataByUser[cleanMis].remark = remark;
+                            // Store under both keys so matching catches either form
+                            for (const key of [cleanMisOriginal, cleanMisCleaned]) {
+                                if (!misDataByUser[key]) {
+                                    misDataByUser[key] = { credentials: 0, remark: '' };
+                                }
+                                misDataByUser[key].credentials += creds;
+                                if (remark && !misDataByUser[key].remark) {
+                                    misDataByUser[key].remark = remark;
+                                }
                             }
                         });
+
+                        console.log('[MIS] loaded records:', filtered.length, '| keys:', Object.keys(misDataByUser));
                     }
                 } catch(e) {
                     console.warn('MIS API fetch failed:', e.message);
@@ -3657,7 +3654,10 @@
                     "Sheetal Dubey",
                     "Parul Satsangi",
                     "Honey Singhal",
-                    "Ananya Verma"
+                    "Ananya Verma",
+                    "Kakul Pal",
+                    "Rozma Khan",
+                    "Rishabh Yadav",
                 ];
 
                 const sheetUsersRaw = [...new Set(
@@ -3672,21 +3672,67 @@
                     : [];
 
                 const absentNames = NAME_ORDER.filter(orderedName => {
-                    return !sheetUsersRaw.some(excelUser => {
+                const cleanOrdered = orderedName.toLowerCase();
+                // Check if present in Excel file
+                const inExcel = sheetUsersRaw.some(excelUser => {
+                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+                    return cleanExcel.includes(cleanOrdered) || cleanOrdered.includes(cleanExcel);
+                });
+                if (inExcel) return false;
+                // Also check scrapping data — if they scraped something, they're not absent
+                const inScrapping = Object.keys(scrapUserCounts).some(scrapName => {
+                    const cleanScrap = excelNameToApiName(scrapName).toLowerCase();
+                    return cleanScrap.includes(cleanOrdered) || cleanOrdered.includes(cleanScrap) ||
+                        scrapName.toLowerCase().includes(cleanOrdered) || cleanOrdered.includes(scrapName.toLowerCase());
+                });
+                if (inScrapping) return false;
+                // Also check website directory data
+                const inWd = Object.keys(wdUserCounts).some(wdName => {
+                    const cleanWd = excelNameToApiName(wdName).toLowerCase();
+                    return cleanWd.includes(cleanOrdered) || cleanOrdered.includes(cleanWd) ||
+                        wdName.toLowerCase().includes(cleanOrdered) || cleanOrdered.includes(wdName.toLowerCase());
+                });
+                return !inWd;
+            });
+
+                // Users not in Excel but found in scrapping/WD/MIS → show with real data, not AB
+                const partialDataNames = NAME_ORDER.filter(orderedName => {
+                    const cleanOrdered = orderedName.toLowerCase();
+                    // Skip if already in Excel
+                    const inExcel = sheetUsersRaw.some(excelUser => {
                         const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
-                        const cleanOrdered = orderedName.toLowerCase();
                         return cleanExcel.includes(cleanOrdered) || cleanOrdered.includes(cleanExcel);
                     });
+                    if (inExcel) return false;
+                    // Check if they have ANY data from scrapping, WD, or MIS
+                    const inScrapping = Object.keys(scrapUserCounts).some(scrapName => {
+                        const cleanScrap = excelNameToApiName(scrapName).toLowerCase();
+                        return cleanScrap.includes(cleanOrdered) || cleanOrdered.includes(cleanScrap) ||
+                            scrapName.toLowerCase().includes(cleanOrdered) || cleanOrdered.includes(scrapName.toLowerCase());
+                    });
+                    if (inScrapping) return true;
+                    const inWd = Object.keys(wdUserCounts).some(wdName => {
+                        const cleanWd = excelNameToApiName(wdName).toLowerCase();
+                        return cleanWd.includes(cleanOrdered) || cleanOrdered.includes(cleanWd) ||
+                            wdName.toLowerCase().includes(cleanOrdered) || cleanOrdered.includes(wdName.toLowerCase());
+                    });
+                    if (inWd) return true;
+                    const inMis = Object.keys(misDataByUser).some(misKey => {
+                        return misKey.includes(cleanOrdered) || cleanOrdered.includes(misKey);
+                    });
+                    return inMis;
                 });
-
+                // These have partial data — add as real users (not absent)
+                const partialDataPlaceholders = partialDataNames.map(n => '__partial__' + n);
                 const absentPlaceholders = absentNames.map(n => '__absent__' + n);
-                const allUsersForSort = [...sheetUsersRaw, ...absentPlaceholders];
-
+                const allUsersForSort = [...sheetUsersRaw, ...partialDataPlaceholders, ...absentPlaceholders];
                 const users = allUsersForSort.sort((a, b) => {
-                    const rawA = a.startsWith('__absent__') ? a.replace('__absent__', '') : a;
-                    const rawB = b.startsWith('__absent__') ? b.replace('__absent__', '') : b;
-                    const cleanA = a.startsWith('__absent__') ? rawA : excelNameToApiName(a);
-                    const cleanB = b.startsWith('__absent__') ? rawB : excelNameToApiName(b);
+                    const rawA = a.startsWith('__absent__') ? a.replace('__absent__', '') :
+                                 a.startsWith('__partial__') ? a.replace('__partial__', '') : a;
+                    const rawB = b.startsWith('__absent__') ? b.replace('__absent__', '') :
+                                 b.startsWith('__partial__') ? b.replace('__partial__', '') : b;
+                    const cleanA = (a.startsWith('__absent__') || a.startsWith('__partial__')) ? rawA : excelNameToApiName(a);
+                    const cleanB = (b.startsWith('__absent__') || b.startsWith('__partial__')) ? rawB : excelNameToApiName(b);
                     const idxA = NAME_ORDER.findIndex(n => cleanA.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanA.toLowerCase()));
                     const idxB = NAME_ORDER.findIndex(n => cleanB.toLowerCase().includes(n.toLowerCase()) || n.toLowerCase().includes(cleanB.toLowerCase()));
                     if (idxA === -1 && idxB === -1) return rawA.localeCompare(rawB);
@@ -3706,7 +3752,8 @@
                 // ── Build userData ─────────────────────────────────────────
                 const userData = {};
                 users.forEach(u => {
-                    const isAbsent = u.startsWith('__absent__');
+                    const isAbsent  = u.startsWith('__absent__');
+                    const isPartial = u.startsWith('__partial__');
                     userData[u] = {
                         sm: 0, web: 0, app: 0, total: 0,
                         scrapping: 0,
@@ -3715,39 +3762,51 @@
                         credentials: 0,
                         remark: '',
                         absent: isAbsent,
-                        displayName: isAbsent ? u.replace('__absent__', '') : u
+                        partial: isPartial,
+                        displayName: isAbsent ? u.replace('__absent__', '') :
+                                     isPartial ? u.replace('__partial__', '') : u
                     };
                 });
 
                 // ── Insertion counts from uploaded Excel file ──────────────
+                // ── Insertion counts from uploaded Excel file ──────────────
                 summaryParsedData.forEach(row => {
                     const user = (row[userCol] || '').trim();
-                    if (!userData[user]) return;
+                    // Also match partial users by display name
+                    let targetKey = user;
+                    if (!userData[user]) {
+                        // Try to match a partial placeholder
+                        const matchKey = Object.keys(userData).find(k => {
+                            if (!k.startsWith('__partial__')) return false;
+                            const dn = k.replace('__partial__','').toLowerCase();
+                            return user.toLowerCase().includes(dn) || dn.includes(user.toLowerCase());
+                        });
+                        if (matchKey) targetKey = matchKey;
+                        else return;
+                    }
+                    if (!userData[targetKey]) return;
                     const sf = searchCol ? (row[searchCol] || '').trim().toLowerCase() : '';
                     if (sf === 'app' || sf === 'application') {
-                        userData[user].app++;
+                        userData[targetKey].app++;
                     } else if (sf === 'web' || sf === 'website') {
-                        userData[user].web++;
+                        userData[targetKey].web++;
                     } else if (sf && sf !== 'na' && sf !== 'unknown') {
                         const isSM = socialPlatforms.some(sm => sf.includes(sm) || sm.includes(sf));
-                        if (isSM) userData[user].sm++;
-                        else userData[user].web++;
+                        if (isSM) userData[targetKey].sm++;
+                        else userData[targetKey].web++;
                     }
-                    userData[user].total++;
+                    userData[targetKey].total++;
                 });
-
-                // ── Match Quality Check counts to users ───────────────────
-                // qualityCheckCounts is keyed by Approved_by value (from the sheet)
-                // We need to match those to userData keys (input_user names)
                 users.forEach(excelUser => {
                     if (excelUser.startsWith('__absent__')) return;
-                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+                    const rawName = excelUser.startsWith('__partial__')
+                        ? excelUser.replace('__partial__', '')
+                        : excelUser;
+                    const cleanExcel = excelNameToApiName(rawName).toLowerCase();
 
-                    // Find matching Approved_by entries for this user
                     let qcCount = 0;
                     Object.entries(qualityCheckCounts).forEach(([approvedByName, cnt]) => {
                         const cleanApproved = excelNameToApiName(approvedByName).toLowerCase();
-                        // Match if names overlap meaningfully
                         if (
                             cleanApproved === cleanExcel ||
                             cleanApproved.includes(cleanExcel) ||
@@ -3764,7 +3823,10 @@
                 // ── Match scrapping counts to users ────────────────────────
                 users.forEach(excelUser => {
                     if (excelUser.startsWith('__absent__')) return;
-                    const cleanExcel = excelNameToApiName(excelUser).toLowerCase();
+                    const rawName = excelUser.startsWith('__partial__')
+                        ? excelUser.replace('__partial__', '')
+                        : excelUser;
+                    const cleanExcel = excelNameToApiName(rawName).toLowerCase();
 
                     let scrapCount = 0;
                     Object.entries(scrapUserCounts).forEach(([scrapName, cnt]) => {
@@ -3786,22 +3848,34 @@
                         }
                     });
                     userData[excelUser].webSearching = wdCount;
-
                     // ── Match MIS data (credentials + remark) ──────────────
                     let credentials = 0;
                     let remark = '';
+                    // Also try the raw (non-cleaned) form of the Excel name
+                    const rawExcelLower = rawName.toLowerCase();
                     Object.entries(misDataByUser).forEach(([misKey, misVal]) => {
-                        if (
+                        const alreadyCounted = credentials > 0;
+                        if (alreadyCounted) return; // avoid double-counting
+                        const matched =
                             misKey === cleanExcel ||
+                            misKey === rawExcelLower ||
                             misKey.includes(cleanExcel) ||
-                            cleanExcel.includes(misKey)
-                        ) {
+                            cleanExcel.includes(misKey) ||
+                            misKey.includes(rawExcelLower) ||
+                            rawExcelLower.includes(misKey) ||
+                            // word-level partial match (e.g. "shubhankar" inside "shubhankar shukla")
+                            cleanExcel.split(' ').some(word => word.length > 3 && misKey.includes(word)) ||
+                            misKey.split(' ').some(word => word.length > 3 && cleanExcel.includes(word));
+                        if (matched) {
                             credentials += misVal.credentials || 0;
                             if (!remark && misVal.remark) remark = misVal.remark;
                         }
                     });
                     userData[excelUser].credentials = credentials;
                     userData[excelUser].remark = remark;
+                    if (credentials > 0 || remark) {
+                        console.log(`[MIS match] ${rawName} → credentials:${credentials}, remark:${remark}`);
+                    }
                 });
 
                 // ── Date string for header ─────────────────────────────────
@@ -4011,8 +4085,9 @@
                 let totals = { sm: 0, web: 0, app: 0, total: 0, scrapping: 0, qualityCheck: 0, webSearching: 0, credentials: 0 };
                 users.forEach(user => {
                     const d = userData[user];
-                    const isAbsent = d.absent;
-                    const cleanUser = isAbsent ? d.displayName : excelNameToApiName(user);
+                    const isAbsent  = d.absent;
+                    const isPartial = d.partial;
+                    const cleanUser = (isAbsent || isPartial) ? d.displayName : excelNameToApiName(user);
                     const tr = document.createElement('tr');
                     if (isAbsent) {
                         tr.style.cssText = 'background:#fde8d8;';
@@ -4092,7 +4167,7 @@
                     users.forEach(user => {
                         const d = userData[user];
                         lines.push([
-                            escCSV(user),
+                            escCSV(d.displayName || user),
                             d.sm || 'NA', d.web || 'NA', d.app || 'NA', d.total,
                             d.scrapping || 'NA', d.qualityCheck || 'NA',
                             d.webSearching || 'NA', d.credentials || 'NA',
