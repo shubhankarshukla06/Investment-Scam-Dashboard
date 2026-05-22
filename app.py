@@ -2586,7 +2586,7 @@ def investment_insights_data():
         while True:
             q = supabase.table("BS_Investment_Scam").select(
                 "Inserted_date,Input_user,Search_for,Scam_type,"
-                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number"
+                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number,Web_contact_no"
             )
             if date_from:  q = q.gte("Inserted_date", date_from)
             if date_to:    q = q.lte("Inserted_date", date_to)
@@ -2735,7 +2735,25 @@ def investment_insights_data():
         sf_counts = {}
         for r in rows:
             sf = (r.get("search_for") or "Unknown").strip() or "Unknown"
-            sf_counts[sf] = sf_counts.get(sf, 0) + 1
+            wc = (r.get("web_contact_no") or "").strip()
+            has_contact = wc and wc.upper() not in ("NA", "N/A", "", "NONE", "NULL")
+
+            if has_contact:
+                # Web contact number present → always count as WhatsApp
+                # Also add 1 to original sf if it's not WhatsApp already
+                wa_key = "WhatsApp"
+                sf_counts[wa_key] = sf_counts.get(wa_key, 0) + 1
+                # If sf is not WhatsApp, still count it under its own category too
+                if sf.lower() != "whatsapp":
+                    sf_counts[sf] = sf_counts.get(sf, 0) + 1
+            else:
+                # No contact number → count normally under search_for
+                sf_counts[sf] = sf_counts.get(sf, 0) + 1
+
+        # Normalize WhatsApp variants (case fix)
+        for key in list(sf_counts.keys()):
+            if key.lower() == "whatsapp" and key != "WhatsApp":
+                sf_counts["WhatsApp"] = sf_counts.get("WhatsApp", 0) + sf_counts.pop(key)
         return jsonify({
             "success": True,
             "total_rows": len(rows),

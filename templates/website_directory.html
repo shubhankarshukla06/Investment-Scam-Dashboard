@@ -245,14 +245,6 @@ tr:hover { background:#f8fffe; }
                     <input type="text" id="ins_group_app_name" placeholder="Group or App name">
                 </div>
                 <div class="form-group">
-                    <label>Number</label>
-                    <input type="text" id="ins_number" placeholder="+91XXXXXXXXXX or NA">
-                </div>
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="text" id="ins_email" placeholder="user@example.com or NA">
-                </div>
-                <div class="form-group">
                     <label>Login ID (number / email / username)</label>
                     <input type="text" id="ins_login_id" placeholder="Any login identifier">
                 </div>
@@ -444,8 +436,6 @@ tr:hover { background:#f8fffe; }
                     </select>
                 </div>
                 <div class="form-group"><label>Group / App Name</label><input type="text" id="edit_group_app_name"></div>
-                <div class="form-group"><label>Number</label><input type="text" id="edit_number"></div>
-                <div class="form-group"><label>Email</label><input type="text" id="edit_email"></div>
                 <div class="form-group"><label>Login ID</label><input type="text" id="edit_login_id"></div>
                 <div class="form-group"><label>Password</label><input type="text" id="edit_password"></div>
                 <div class="form-group"><label>Category</label>
@@ -864,7 +854,6 @@ tr:hover { background:#f8fffe; }
             </div>
         </form>
     </div>
-
     <!-- Table -->
     <div class="table-container">
         <table id="wdTable">
@@ -878,8 +867,6 @@ tr:hover { background:#f8fffe; }
                     <th class="col-inv-code">Inv. Code</th>
                     <th>Search For</th>
                     <th>Group / App Name</th>
-                    <th>Number</th>
-                    <th>Email</th>
                     <th>Login ID</th>
                     <th>Password</th>
                     <th>Remark</th>
@@ -950,22 +937,6 @@ tr:hover { background:#f8fffe; }
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
                     <td>
-                        {% if item.get('number') and item['number'] not in ['NA','N/A','',None] %}
-                        <div class="field-cell">
-                            <span style="font-size:11px;">{{ item['number'] }}</span>
-                            <button class="copy-btn" onclick="copyText('{{ item['number']|replace("'","\\'") }}','Number')"><i class="fas fa-copy"></i></button>
-                        </div>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                        {% if item.get('email') and item['email'] not in ['NA','N/A','',None] %}
-                        <div class="field-cell">
-                            <span style="font-size:11px;color:#2980b9;">{{ item['email'] }}</span>
-                            <button class="copy-btn" onclick="copyText('{{ item['email']|replace("'","\\'") }}','Email')"><i class="fas fa-copy"></i></button>
-                        </div>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
-                    <td>
                         {% if item.get('login_id') and item['login_id'] not in ['NA','N/A','',None] %}
                         <div class="field-cell">
                             <span style="font-family:monospace;font-size:11px;color:#1a5276;">{{ item['login_id'] }}</span>
@@ -1028,7 +999,7 @@ tr:hover { background:#f8fffe; }
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="18">
+                    <td colspan="16">
                         <div class="empty-state">
                             <i class="fas fa-globe"></i>
                             <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
@@ -1062,8 +1033,6 @@ let _deleteId     = null;
 const _wdItems    = {};
 {% if items %}{% for item in items %}_wdItems[{{ item.id }}] = {{ item | tojson | safe }};
 {% endfor %}{% endif %}
-
-// Logged-in user ka clean name (for auto-fill in name field)
 // Logged-in user ka clean name (for auto-fill in name field)
 const _loggedInName = "{{ clean_display_name }}";
 
@@ -1471,8 +1440,6 @@ function _fillEditModal(id, item) {
     document.getElementById('edit_invitation_code').value   = g('invitation_code');
     document.getElementById('edit_search_for').value        = g('search_for');
     document.getElementById('edit_group_app_name').value    = g('group_app_name');
-    document.getElementById('edit_number').value            = g('number');
-    document.getElementById('edit_email').value             = g('email');
     document.getElementById('edit_login_id').value          = g('login_id');
     document.getElementById('edit_password').value          = g('password');
     document.getElementById('edit_remark').value            = g('remark');
@@ -1496,8 +1463,6 @@ async function submitEdit() {
         invitation_code:   g('edit_invitation_code'),
         search_for:        g('edit_search_for'),
         group_app_name:    g('edit_group_app_name'),
-        number:            g('edit_number'),
-        email:             g('edit_email'),
         login_id:          g('edit_login_id'),
         password:          g('edit_password'),
         remark:            g('edit_remark'),
@@ -1563,7 +1528,7 @@ function openInsertModal() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('ins_date').value = today;
     ['ins_url','ins_final_url','ins_invitation_code','ins_group_app_name',
-     'ins_number','ins_email','ins_login_id','ins_password','ins_origin',
+     'ins_login_id','ins_password','ins_origin',
      'ins_automated_website','ins_payment_gateway'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -1585,8 +1550,6 @@ async function submitInsert() {
         invitation_code:   g('ins_invitation_code'),
         search_for:        g('ins_search_for'),
         group_app_name:    g('ins_group_app_name'),
-        number:            g('ins_number'),
-        email:             g('ins_email'),
         login_id:          g('ins_login_id'),
         password:          g('ins_password'),
         remark:            g('ins_remark'),
@@ -1640,8 +1603,6 @@ function prependRow(item) {
         <td class="col-inv-code">${v(item.invitation_code)?`<div class="field-cell"><span style="font-family:monospace;font-size:10px;color:#8e44ad;max-width:60px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${item.invitation_code}</span><button class="copy-btn" onclick="copyText('${esc(item.invitation_code)}','Inv Code')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
         <td>${v(item.search_for)?('<span class="sf-badge '+({'Web':'pill-web','App':'pill-app','Web/App':'pill-webap'}[item.search_for]||'pill-unk')+'">'+item.search_for+'</span>'):'<span class="na-cell">N/A</span>'}</td>
         <td><span style="font-size:11px;">${v(item.group_app_name)?item.group_app_name.substring(0,30):'N/A'}</span></td>
-        <td>${v(item.number)?`<div class="field-cell"><span style="font-size:11px;">${item.number}</span><button class="copy-btn" onclick="copyText('${esc(item.number)}','Number')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
-        <td>${v(item.email)?`<div class="field-cell"><span style="font-size:11px;color:#2980b9;">${item.email}</span><button class="copy-btn" onclick="copyText('${esc(item.email)}','Email')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
         <td>${v(item.login_id)?`<div class="field-cell"><span style="font-family:monospace;font-size:11px;color:#1a5276;">${item.login_id}</span><button class="copy-btn" onclick="copyText('${esc(item.login_id)}','Login ID')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
         <td>${v(item.password)?`<div class="field-cell"><span style="font-family:monospace;font-size:11px;color:#c0392b;">${item.password}</span><button class="copy-btn" onclick="copyText('${esc(item.password)}','Password')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
         <td><span style="font-size:11px;color:#7f8c8d;">${(item.remark||'N/A').substring(0,30)}</span></td>

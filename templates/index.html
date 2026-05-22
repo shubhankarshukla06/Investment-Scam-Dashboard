@@ -3630,14 +3630,13 @@
                             }
 
                             // Store under both keys so matching catches either form
-                            for (const key of [cleanMisOriginal, cleanMisCleaned]) {
-                                if (!misDataByUser[key]) {
-                                    misDataByUser[key] = { credentials: 0, remark: '' };
-                                }
-                                misDataByUser[key].credentials += creds;
-                                if (remark && !misDataByUser[key].remark) {
-                                    misDataByUser[key].remark = remark;
-                                }
+                            const canonicalKey = cleanMisCleaned || cleanMisOriginal;
+                            if (!misDataByUser[canonicalKey]) {
+                                misDataByUser[canonicalKey] = { credentials: 0, remark: '', rawName: misPerson };
+                            }
+                            misDataByUser[canonicalKey].credentials += creds;
+                            if (remark && !misDataByUser[canonicalKey].remark) {
+                                misDataByUser[canonicalKey].remark = remark;
                             }
                         });
 
@@ -3853,29 +3852,33 @@
                     let remark = '';
                     // Also try the raw (non-cleaned) form of the Excel name
                     const rawExcelLower = rawName.toLowerCase();
-                    Object.entries(misDataByUser).forEach(([misKey, misVal]) => {
-                        const alreadyCounted = credentials > 0;
-                        if (alreadyCounted) return; // avoid double-counting
-                        const matched =
-                            misKey === cleanExcel ||
-                            misKey === rawExcelLower ||
-                            misKey.includes(cleanExcel) ||
-                            cleanExcel.includes(misKey) ||
-                            misKey.includes(rawExcelLower) ||
-                            rawExcelLower.includes(misKey) ||
-                            // word-level partial match (e.g. "shubhankar" inside "shubhankar shukla")
-                            cleanExcel.split(' ').some(word => word.length > 3 && misKey.includes(word)) ||
-                            misKey.split(' ').some(word => word.length > 3 && cleanExcel.includes(word));
-                        if (matched) {
-                            credentials += misVal.credentials || 0;
-                            if (!remark && misVal.remark) remark = misVal.remark;
+                    let misBestMatch = null;
+                    if (misDataByUser[cleanExcel]) {
+                        misBestMatch = misDataByUser[cleanExcel];
+                    } else if (misDataByUser[rawExcelLower]) {
+                        misBestMatch = misDataByUser[rawExcelLower];
+                    } else {
+                        for (const [misKey, misVal] of Object.entries(misDataByUser)) {
+                            const matched =
+                                misKey.includes(cleanExcel) ||
+                                cleanExcel.includes(misKey) ||
+                                misKey.includes(rawExcelLower) ||
+                                rawExcelLower.includes(misKey);
+                            if (matched) {
+                                misBestMatch = misVal;
+                                break; // Pehla match mila — ruko, loop mat chalao
+                            }
                         }
-                    });
+                    }
+                    if (misBestMatch) {
+                        credentials = misBestMatch.credentials || 0;
+                        remark = misBestMatch.remark || '';
+                        if (credentials > 0 || remark) {
+                            console.log(`[MIS match] ${rawName} → creds:${credentials}, remark:${remark}`);
+                        }
+                    }
                     userData[excelUser].credentials = credentials;
                     userData[excelUser].remark = remark;
-                    if (credentials > 0 || remark) {
-                        console.log(`[MIS match] ${rawName} → credentials:${credentials}, remark:${remark}`);
-                    }
                 });
 
                 // ── Date string for header ─────────────────────────────────
@@ -4257,7 +4260,7 @@
                     showToast('Error: ' + e.message, true);
                 }
             }
-            // ─── DUPLICATE CHECKER ───────────────────────────────────────
+            // ─── DUPLICATE CHECKER ─────────
             function toggleDupInputMode(mode) {
                 document.getElementById('dupManualArea').style.display = mode === 'manual' ? '' : 'none';
                 document.getElementById('dupFileArea').style.display   = mode === 'file'   ? '' : 'none';
@@ -4473,7 +4476,7 @@
                 document.body.removeChild(a); URL.revokeObjectURL(url);
                 showToast(`Exported ${_dupAllResults.length} records`, false, true);
             }
-            // ─── Helpers ─────────────────────────────────────────────────
+            // ─── Helpers ───────────
             function copyToClipboard(text, fieldName) {
                 if (!text || ['NA','null','N/A'].includes(text)) { showToast(`No ${fieldName} to copy`, true); return; }
                 const ta = document.createElement('textarea');
@@ -7162,18 +7165,23 @@
                         data: {
                             labels,
                             datasets: [{
-                                label: 'Count',
-                                data: values,
-                                backgroundColor: labels.map((l,i)=>SF_COLORS[l]||INSIGHT_PALETTE[i%INSIGHT_PALETTE.length]),
-                                borderWidth: 0,
-                                borderRadius: 4,
-                            }]
+                            label: 'Count (WhatsApp includes Web Contact No.)',
+                            data: values,
+                            backgroundColor: labels.map((l,i)=>SF_COLORS[l]||INSIGHT_PALETTE[i%INSIGHT_PALETTE.length]),
+                            borderWidth: 0,
+                            borderRadius: 4,
+                        }]
                         },
                         options: {
                             responsive: true, maintainAspectRatio: false,
                             plugins: {
                                 legend: { display:false },
-                                tooltip: { callbacks:{ label: tt => ' '+tt.raw.toLocaleString() } }
+                                tooltip: { callbacks:{ 
+                                label: tt => {
+                                    const note = tt.label === 'WhatsApp' ? ' (incl. Web Contact No.)' : '';
+                                    return ' ' + tt.raw.toLocaleString() + note;
+                                }
+                            }}
                             },
                             scales: {
                                 x: { stacked:true, grid:{display:false}, ticks:{font:{size:11},maxRotation:0} },
