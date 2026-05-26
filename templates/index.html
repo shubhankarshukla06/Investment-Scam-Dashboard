@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Scam Intelligence Dashboard</title>
+        <title>Scam Intelligence GUI</title>
         <link rel="icon" type="image/png" href="/static/favicon.png">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -42,6 +42,8 @@
             .btn-outline:hover { background: #f0f7ff; }
             .btn-warning { background: #f39c12; color: white; }
             .btn-warning:hover { background: #e67e22; }
+            .btn-danger { background: #e74c3c; color: white; }
+            .btn-danger:hover { background: #c0392b; }
             .page-content { display: none; }
             .page-content.active { display: flex; flex-direction: column; }
             /* ============================================================
@@ -848,7 +850,7 @@
             <div class="header">
                 <div class="logo">
                     <div class="logo-title-row">
-                        <h1>Scam Intelligence Dashboard</h1>
+                        <h1>Scam Intelligence GUI</h1>
                         <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
                     </div>
                     <p id="pageSubtitle">
@@ -862,8 +864,7 @@
                 </div>
                 <div class="header-controls">
                     <div class="page-selector">
-                        <label><i class="fas fa-columns"></i> Page:</label>
-                        <select class="page-select" onchange="changePage(this.value)">
+                            <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changePageFromWD(this.value)">
                             {% if 'scraping' in allowed_pages %}
                             <option value="scraping" {% if page_type == 'scraping' %}selected{% endif %}>Scraping Data</option>
                             {% endif %}
@@ -923,14 +924,14 @@
                             <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
                         </form>
                         {% endif %}
-                        <button class="btn btn-outline" onclick="window.location.reload()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                        <button type="button" class="btn btn-outline" onclick="window.location.reload()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
                         {% if can_view_activity_log and page_type in ['scraping', 'social', 'investment'] %}
                         <button type="button" class="btn" style="background:#6366f1;color:white;gap:5px;" onclick="showUserActivityLog()">
                             <i class="fas fa-history"></i> User's Activity Log
                         </button>
                         {% endif %}
                         <div style="display:flex;align-items:center;gap:6px;margin-left:4px;padding-left:8px;border-left:1px solid #e2e8f0;">
-                            <a href="/logout" class="btn" style="background:#e74c3c;color:white;padding:5px 10px;height:30px;font-size:11px;"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                            <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;" title="Logout"><i class="fas fa-sign-out-alt"></i></a>
                         </div>
                     </div>
                 </div>
@@ -2357,7 +2358,7 @@
                 }
             }
             // ─── Page / Navigation ──────────────────────────────────────
-            function changePage(pageType) {
+            function changePageFromWD(pageType) {
                 if (pageType === 'website_directory') {
                     window.location.href = '/website-directory';
                     return;
@@ -3296,8 +3297,9 @@
             function downloadTemplate() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
-                showLoading(); window.location.href = `/download-template/${sheetType}`;
-                setTimeout(hideLoading, 1000);
+                showLoading();
+                window.location.href = `/download-template/${sheetType}`;
+                setTimeout(hideLoading, 2000);
             }
             function previewData() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
@@ -3354,7 +3356,7 @@
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
                 showLoading();
                 document.getElementById('sheetForm').submit();
-                setTimeout(hideLoading, 5000);
+                setTimeout(hideLoading, 3000);
             }
             // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
             function onSummaryTypeChange() {
@@ -4863,8 +4865,15 @@
                     container.style.paddingBottom = '4px';
                 }
             }
+            // Multiple calls to ensure correct calculation after fonts/icons load
             adjustContainerPadding();
-            window.addEventListener('load', adjustContainerPadding);
+            setTimeout(adjustContainerPadding, 100);
+            setTimeout(adjustContainerPadding, 300);
+            setTimeout(adjustContainerPadding, 600);
+            window.addEventListener('load', () => {
+                adjustContainerPadding();
+                setTimeout(adjustContainerPadding, 200);
+            });
             window.addEventListener('resize', adjustContainerPadding);
             if (window.ResizeObserver) {
                 new ResizeObserver(adjustContainerPadding).observe(

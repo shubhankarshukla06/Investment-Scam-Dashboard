@@ -2915,8 +2915,6 @@ def website_directory():
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
     )
-
-
 # ============================================================
 # WEBSITE DIRECTORY — IMPORT
 # ============================================================
