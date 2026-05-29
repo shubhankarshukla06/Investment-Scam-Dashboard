@@ -2737,34 +2737,73 @@ def investment_insights_data():
             sf = (r.get("search_for") or "Unknown").strip() or "Unknown"
             wc = (r.get("web_contact_no") or "").strip()
             has_contact = wc and wc.upper() not in ("NA", "N/A", "", "NONE", "NULL")
-
             if has_contact:
-                # Web contact number present → always count as WhatsApp
-                # Also add 1 to original sf if it's not WhatsApp already
-                wa_key = "WhatsApp"
-                sf_counts[wa_key] = sf_counts.get(wa_key, 0) + 1
-                # If sf is not WhatsApp, still count it under its own category too
-                if sf.lower() != "whatsapp":
-                    sf_counts[sf] = sf_counts.get(sf, 0) + 1
+                sf_counts["WhatsApp"] = sf_counts.get("WhatsApp", 0) + 1
             else:
-                # No contact number → count normally under search_for
+                # No contact number → original sf mein count karo
                 sf_counts[sf] = sf_counts.get(sf, 0) + 1
-
         # Normalize WhatsApp variants (case fix)
         for key in list(sf_counts.keys()):
             if key.lower() == "whatsapp" and key != "WhatsApp":
                 sf_counts["WhatsApp"] = sf_counts.get("WhatsApp", 0) + sf_counts.pop(key)
+        # ── Average daily cases ──────────────────────────────
+        active_dates = [d for d in user_by_date.keys() if d]
+        if active_dates:
+            if input_user:
+                user_daily = {
+                    d: user_by_date[d].get(input_user, 0)
+                    for d in active_dates
+                    if user_by_date[d].get(input_user, 0) > 0
+                }
+                avg_cases = round(sum(user_daily.values()) / len(user_daily), 1) if user_daily else 0
+            else:
+                total_daily = {d: sum(user_by_date[d].values()) for d in active_dates}
+                avg_cases = round(sum(total_daily.values()) / len(total_daily), 1) if total_daily else 0
+        else:
+            avg_cases = 0
+        # ── Per-user stats for comparison ───────────────────
+        user_stats = {}
+        for u in all_users:
+            u_upi_set  = set()
+            u_bank_set = set()
+            u_dates    = set()
+            u_total    = 0
+            for r in rows:
+                ru = (r.get("input_user") or "Unknown").strip()
+                if ru != u:
+                    continue
+                u_total += 1
+                d = (r.get("inserted_date") or "")[:10]
+                if d:
+                    u_dates.add(d)
+                wallet_val = (r.get("upi_bank_account_wallet") or "").strip()
+                upi_val    = (r.get("upi_vpa") or "").strip()
+                bank_val   = (r.get("bank_account_number") or "").strip()
+                if wallet_val == "UPI" and upi_val and upi_val.upper() not in ("NA", "N/A", ""):
+                    u_upi_set.add(upi_val)
+                if wallet_val == "Bank Account" and bank_val and bank_val.upper() not in ("NA", "N/A", ""):
+                    u_bank_set.add(bank_val)
+            u_avg = round(u_total / len(u_dates), 1) if u_dates else 0
+            user_stats[u] = {
+                "total":       u_total,
+                "avg":         u_avg,
+                "unique_upi":  len(u_upi_set),
+                "unique_bank": len(u_bank_set),
+            }
+
         return jsonify({
             "success": True,
             "total_rows": len(rows),
             "unique_upi_count": len(upi_set),
             "unique_bank_count": len(bank_set),
+            "avg_cases": avg_cases,
             "trend_30d": trend_30d,
             "upi_series":   upi_series,
             "user_by_date": {d: user_by_date[d] for d in sorted(user_by_date)},
             "all_users":    all_users,
             "scam_counts":  scam_counts,
             "sf_counts":    sf_counts,
+            "user_stats":   user_stats,
             "all_input_users": sorted(list({(r.get("input_user") or "Unknown").strip() for r in rows if r.get("input_user")})),
         })
     except Exception as e:
@@ -2805,12 +2844,11 @@ def investment_bank_data():
             offset += CHUNK
 
         rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
-
         bank_counts = {}
         for r in rows:
-            bn = (r.get("bank_name") or "Unknown").strip()
-            if not bn or bn.upper() in ("NA", "N/A", ""):
-                bn = "Unknown"
+            bn = (r.get("bank_name") or "").strip()
+            if not bn or bn.upper() in ("NA", "N/A", "") or bn.lower() == "unknown":
+                continue
             bank_counts[bn] = bank_counts.get(bn, 0) + 1
 
         sorted_banks = sorted(bank_counts.items(), key=lambda x: x[1], reverse=True)[:10]
@@ -3464,6 +3502,141 @@ def social_search_ajax():
         return jsonify({"success": True, "items": items, "total": total})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+# ============================================================
+# TOTAL NUMBERS — Public Read-Only API
+# ============================================================
+
+TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator"
+
+
+@app.route("/api/total-numbers", methods=["GET"])
+def api_total_numbers_list():
+    """
+    GET /api/total-numbers
+    Public read-only — no login required.
+    Returns all Total Numbers records (7 columns only).
+    Query params: department, account_status, number_type, sim_operator, search, page, per_page
+    """
+    try:
+        department     = request.args.get("department",     "").strip()
+        account_status = request.args.get("account_status", "").strip()
+        number_type    = request.args.get("number_type",    "").strip()
+        sim_operator   = request.args.get("sim_operator",   "").strip()
+        search         = request.args.get("search",         "").strip()
+        page           = max(1, int(request.args.get("page",     1)))
+        per_page       = min(500, max(1, int(request.args.get("per_page", 100))))
+
+        query = social_supabase.table("social_media_accounts") \
+            .select(TN_COLUMNS, count="exact") \
+            .eq("platform", "Total Numbers")
+
+        if department:
+            query = query.eq("department", department)
+        if account_status:
+            query = query.eq("account_status", account_status)
+        if number_type:
+            query = query.eq("number_type", number_type)
+        if sim_operator:
+            query = query.ilike("sim_operator", f"%{sim_operator}%")
+        if search:
+            lt = f"%{search}%"
+            query = query.or_(
+                f"owned_by.ilike.{lt},"
+                f"number.ilike.{lt},"
+                f"sim_inserted_device.ilike.{lt},"
+                f"account_status.ilike.{lt},"
+                f"number_type.ilike.{lt},"
+                f"sim_operator.ilike.{lt},"
+                f"department.ilike.{lt}"
+            )
+
+        offset = (page - 1) * per_page
+        resp   = query.order("id", desc=False) \
+                      .range(offset, offset + per_page - 1) \
+                      .execute()
+
+        items      = resp.data or []
+        total_rows = resp.count or 0
+
+        return jsonify({
+            "success":     True,
+            "total":       total_rows,
+            "page":        page,
+            "per_page":    per_page,
+            "total_pages": max(1, math.ceil(total_rows / per_page)),
+            "items":       items
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/total-numbers/<int:record_id>", methods=["GET"])
+def api_total_numbers_get(record_id):
+    """
+    GET /api/total-numbers/<id>
+    Public read-only — fetch single record by ID.
+    """
+    try:
+        resp = social_supabase.table("social_media_accounts") \
+            .select(TN_COLUMNS) \
+            .eq("id", record_id) \
+            .eq("platform", "Total Numbers") \
+            .limit(1) \
+            .execute()
+
+        if not resp.data:
+            return jsonify({"success": False, "error": "Record not found"}), 404
+
+        return jsonify({"success": True, "record": resp.data[0]})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/total-numbers/stats", methods=["GET"])
+def api_total_numbers_stats():
+    """
+    GET /api/total-numbers/stats
+    Public read-only — summary counts by status, number_type, department, sim_operator.
+    """
+    try:
+        resp = social_supabase.table("social_media_accounts") \
+            .select(TN_COLUMNS) \
+            .eq("platform", "Total Numbers") \
+            .execute()
+
+        rows = resp.data or []
+
+        status_counts   = {}
+        num_type_counts = {}
+        dept_counts     = {}
+        sim_op_counts   = {}
+
+        for r in rows:
+            s  = (r.get("account_status") or "Unknown").strip()
+            nt = (r.get("number_type")    or "Unknown").strip()
+            d  = (r.get("department")     or "Unknown").strip()
+            so = (r.get("sim_operator")   or "Unknown").strip()
+
+            status_counts[s]   = status_counts.get(s,   0) + 1
+            num_type_counts[nt] = num_type_counts.get(nt, 0) + 1
+            dept_counts[d]     = dept_counts.get(d,     0) + 1
+            sim_op_counts[so]  = sim_op_counts.get(so,  0) + 1
+
+        return jsonify({
+            "success":        True,
+            "total":          len(rows),
+            "by_status":      status_counts,
+            "by_number_type": num_type_counts,
+            "by_department":  dept_counts,
+            "by_sim_operator": dict(
+                sorted(sim_op_counts.items(), key=lambda x: x[1], reverse=True)
+            )
+        })
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

@@ -13,7 +13,7 @@
             .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 100px; padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
             .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
             .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-            .logo { display: flex; flex-direction: column; gap: 2px; }
+            .logo { display: flex; flex-direction: column; gap: 0px; }
             .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
             .logo h1 { font-size: 18px; color: #2c3e50; }
             .header-username {
@@ -24,7 +24,7 @@
                 padding-left: 10px;
                 white-space: nowrap;
             }
-            .logo p { color: #7f8c8d; font-size: 12px; }
+            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 400; }
             .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
             .dev-credit-footer span { color: #3498db; font-weight: 700; }
             .header-controls { display: flex; align-items: center; gap: 10px; }
@@ -1813,7 +1813,7 @@
             </div>
             {% endif %}
         {% if 'investment' in allowed_pages %}
-        <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;overflow-y:auto;max-height:calc(100vh - 110px);">
+        <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;overflow-y:visible;">
             <!-- FILTER BAR -->
             <div style="background:white;border-radius:8px;padding:8px 12px;box-shadow:0 1px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:100;">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -1872,7 +1872,7 @@
 
             <!-- LOADING / EMPTY -->
             <div id="insightsLoading" style="display:none;flex-direction:column;gap:12px;padding:4px 0;">
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
                     <div style="background:white;border-radius:10px;padding:12px 14px;box-shadow:0 1px 6px rgba(0,0,0,0.07);display:flex;align-items:center;gap:10px;">
                     <div style="flex:0 0 auto;display:flex;flex-direction:column;gap:8px;">
                         <div class="sk" style="height:11px;width:90px;"></div>
@@ -1990,8 +1990,8 @@
 
             <!-- CHARTS AREA -->
             <div id="insightsChartsArea" style="display:none;flex-direction:column;gap:12px;">
-                <!-- ROW 1: 3 STAT CARDS -->
-                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+                <!-- ROW 1: 4 STAT CARDS -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;" id="insightsStatCards">
                     <div style="background:linear-gradient(135deg,#1a73e8,#0d47a1);border-radius:8px;padding:8px 12px;color:white;box-shadow:0 2px 10px rgba(26,115,232,0.3);display:flex;align-items:center;gap:10px;">
                         <div style="flex:0 0 auto;">
                             <div style="font-size:10px;font-weight:600;opacity:0.85;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;"><i class="fas fa-database" style="margin-right:5px;"></i>Total Cases</div>
@@ -2015,6 +2015,14 @@
                             <div id="cardUniqueBankTrend" style="font-size:10px;opacity:0.86;margin-top:4px;font-weight:600;">Last 30 days: 0</div>
                         </div>
                         <div style="position:relative;flex:1;height:55px;min-width:0;"><canvas id="cardUniqueBankLine"></canvas></div>
+                    </div>
+                    <div style="background:linear-gradient(135deg,#6c3483,#4a235a);border-radius:8px;padding:8px 12px;color:white;box-shadow:0 2px 10px rgba(108,52,131,0.3);display:flex;align-items:center;gap:10px;">
+                        <div style="flex:0 0 auto;">
+                            <div style="font-size:10px;font-weight:600;opacity:0.85;text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px;"><i class="fas fa-calculator" style="margin-right:5px;"></i>Avg Daily Cases</div>
+                            <div id="cardAvgCases" style="font-size:20px;font-weight:800;letter-spacing:0;line-height:1;">0</div>
+                            <div id="cardAvgCasesSub" style="font-size:10px;opacity:0.86;margin-top:4px;font-weight:600;">per active day</div>
+                        </div>
+                        <div style="position:relative;flex:1;height:55px;min-width:0;"><canvas id="cardAvgCasesLine"></canvas></div>
                     </div>
                 </div>
                 <!-- ROW 2: UPI Over Time -->
@@ -2111,7 +2119,6 @@
                         <div style="position:relative;height:220px;"><canvas id="chartBanks"></canvas></div>
                     </div>
                 </div>
-
                 <div id="userComparisonSection" style="background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);display:none;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
                             <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
@@ -2119,6 +2126,7 @@
                                 <span id="compareUserLabel" style="background:#fff3e0;color:#e65100;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:4px;"></span>
                             </h3>
                     </div>
+                    <div id="userComparisonSummary"></div>
                     <div style="overflow-x:auto;max-height:200px;overflow-y:auto;">
                         <table id="userComparisonTable" style="width:100%;border-collapse:collapse;font-size:12px;">
                             <thead id="userComparisonThead"></thead>
@@ -2126,9 +2134,9 @@
                         </table>
                     </div>
                 </div>
-
-            </div><!-- end insightsChartsArea -->
-        </div>
+                </div><!-- end insightsChartsArea -->
+            </div>
+        </div><!-- end insights-page -->
         {% endif %}
         </div>
         <div class="flash-container">
@@ -4865,6 +4873,16 @@
                     container.style.paddingBottom = '4px';
                 }
             }
+
+            // Single reliable call after full load
+            window.addEventListener('load', adjustContainerPadding);
+            window.addEventListener('resize', adjustContainerPadding);
+            if (window.ResizeObserver) {
+                new ResizeObserver(adjustContainerPadding).observe(
+                    document.querySelector('.fixed-header')
+                );
+            }
+            adjustContainerPadding();
             // Multiple calls to ensure correct calculation after fonts/icons load
             adjustContainerPadding();
             setTimeout(adjustContainerPadding, 100);
@@ -6462,27 +6480,299 @@
                     const compareUser = document.getElementById('insightsCompareUser').value;
                     const inputUser   = document.getElementById('insightsInputUser').value;
                     const section     = document.getElementById('userComparisonSection');
-                    if (!compareUser || !_insLastData) { if (section) section.style.display = 'none'; return; }
+                    if (!compareUser || !_insLastData) {
+                        if (section) section.style.display = 'none';
+                        _toggleComparisonMode(false);
+                        return;
+                    }
                     section.style.display = '';
                     _buildUserComparisonTable(inputUser, compareUser, _insLastData);
+                    _toggleComparisonMode(true, inputUser, compareUser, _insLastData);
+                }
+
+                function _toggleComparisonMode(active, user1, user2, data) {
+                    const chartsArea = document.getElementById('insightsChartsArea');
+                    if (!chartsArea) return;
+                    const allRows = chartsArea.querySelectorAll(':scope > div:not(#insightsComparisonCharts):not(#userComparisonSection)');
+                    if (!active) {
+                        allRows.forEach(r => r.style.display = '');
+                        const compSection = document.getElementById('insightsComparisonCharts');
+                        if (compSection) compSection.style.display = 'none';
+                        if (data) {
+                            _insDestroyAll();
+                            _buildCardTrendCharts(data.trend_30d);
+                            _buildUPIChart(data);
+                            _buildBanksChart(_insBankData);
+                            _buildUsersChart(data);
+                            _buildScamTypeChart(data);
+                            _buildSearchForChart(data);
+                        }
+                        return;
+                    }
+                    allRows.forEach(r => r.style.display = 'none');
+                    let compSection = document.getElementById('insightsComparisonCharts');
+                    if (!compSection) {
+                        compSection = document.createElement('div');
+                        compSection.id = 'insightsComparisonCharts';
+                        compSection.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+                        // userComparisonSection ke pehle insert karo
+                        const ucs = document.getElementById('userComparisonSection');
+                        if (ucs) chartsArea.insertBefore(compSection, ucs);
+                        else chartsArea.appendChild(compSection);
+                    }
+                    compSection.style.display = 'flex';
+                    _buildComparisonCharts(user1, user2, data);
+                }
+
+                function _buildComparisonCharts(user1, user2, data) {
+                    const compSection = document.getElementById('insightsComparisonCharts');
+                    if (!compSection) return;
+                    compSection.innerHTML = '';
+                    // Destroy old comparison charts
+                    ['compLine','compUsers','compScam','compSF'].forEach(k => {
+                        if (_insCharts[k]) { _insCharts[k].destroy(); _insCharts[k] = null; }
+                    });
+
+                    const u1Label    = user1 || 'All Users';
+                    const u2Label    = user2;
+                    const C1         = '#9b59b6';
+                    const C2         = '#e67e22';
+                    const userByDate = data.user_by_date || {};
+                    const scamCounts = data.scam_counts  || {};
+                    const sfCounts   = data.sf_counts    || {};
+                    const userStats  = data.user_stats   || {};
+                    const u1Stats = user1 ? (userStats[user1] || {total:0,avg:0,unique_upi:0,unique_bank:0}) : {
+                        total: Object.values(userStats).reduce((s,u)=>s+(u.total||0),0),
+                        avg: 0,
+                        unique_upi: data.unique_upi_count || 0,
+                        unique_bank: data.unique_bank_count || 0,
+                    };
+                    const u2Stats = userStats[user2] || {total:0,avg:0,unique_upi:0,unique_bank:0};
+                    function getUserDailyData(user) {
+                        const result = {};
+                        Object.entries(userByDate).forEach(([date, dayMap]) => {
+                            let cnt;
+                            if (!user) {
+                                cnt = Object.values(dayMap).reduce((a,b)=>a+b,0);
+                            } else {
+                                // Try exact match first, then case-insensitive
+                                if (dayMap[user] !== undefined) {
+                                    cnt = dayMap[user];
+                                } else {
+                                    const userLower = user.toLowerCase();
+                                    const matchedKey = Object.keys(dayMap).find(k => k.toLowerCase() === userLower);
+                                    cnt = matchedKey ? dayMap[matchedKey] : 0;
+                                }
+                            }
+                            if (cnt > 0) result[date] = cnt;
+                        });
+                        return result;
+                    }
+                    const u1Daily  = getUserDailyData(user1 || null);
+                    const u2Daily  = getUserDailyData(user2);
+                    const allDates = [...new Set([...Object.keys(u1Daily), ...Object.keys(u2Daily)])].sort();
+                    const fmtD     = d => { const p=d.split('-'); return p.length===3?`${p[2]}-${p[1]}-${p[0]}`:d; };
+
+                    // ── ROW 1: Daily line chart ──────────────────────────
+                    const row1 = document.createElement('div');
+                    row1.style.cssText = 'background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);';
+                    row1.innerHTML = `
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                            <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0;display:flex;align-items:center;gap:6px;">
+                                <i class="fas fa-chart-line" style="color:#9b59b6;"></i> Daily Cases Comparison
+                                <span style="background:#f3e5f5;color:#6c3483;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:4px;">${u1Label} vs ${u2Label}</span>
+                            </h3>
+                        </div>
+                        <div style="position:relative;height:200px;"><canvas id="compLineChart"></canvas></div>`;
+                    compSection.appendChild(row1);
+
+                    // ── ROW 2: Users bar + Top 5 Scam ───────────────────
+                    const row2 = document.createElement('div');
+                    row2.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;';
+                    const usersDiv = document.createElement('div');
+                    usersDiv.style.cssText = 'background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);';
+                    usersDiv.innerHTML = `
+                        <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0 0 12px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-users" style="color:#9b59b6;"></i> Input User Counts
+                        </h3>
+                        <div style="position:relative;height:200px;"><canvas id="compUsersBar"></canvas></div>`;
+                    const top5Scams = Object.entries(scamCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(e=>e[0]);
+                    const scamDiv = document.createElement('div');
+                    scamDiv.style.cssText = 'background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);';
+                    scamDiv.innerHTML = `
+                        <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0 0 12px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-exclamation-triangle" style="color:#e67e22;"></i> Top 5 Scam Types
+                        </h3>
+                        <div style="position:relative;height:200px;"><canvas id="compScamBar"></canvas></div>`;
+                    row2.appendChild(usersDiv);
+                    row2.appendChild(scamDiv);
+                    compSection.appendChild(row2);
+
+                    // ── ROW 3: Search For comparison ─────────────────────
+                    const row3 = document.createElement('div');
+                    row3.style.cssText = 'background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);';
+                    row3.innerHTML = `
+                        <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0 0 12px;display:flex;align-items:center;gap:6px;">
+                            <i class="fas fa-globe" style="color:#27ae60;"></i> Search For Distribution Comparison
+                        </h3>
+                        <div style="position:relative;height:200px;"><canvas id="compSFBar"></canvas></div>`;
+                    compSection.appendChild(row3);
+
+                    // ── Draw charts after DOM ready ──────────────────────
+                    setTimeout(() => {
+                        // Line chart
+                        const ctxL = document.getElementById('compLineChart');
+                        if (ctxL) {
+                            _insCharts.compLine = new Chart(ctxL.getContext('2d'), {
+                                type: 'line',
+                                data: {
+                                    labels: allDates.map(fmtD),
+                                    datasets: [
+                                        { label: u1Label, data: allDates.map(d=>u1Daily[d]||0), borderColor:C1, backgroundColor:C1+'22', borderWidth:2.5, pointRadius:3, tension:0.35, fill:true },
+                                        { label: u2Label, data: allDates.map(d=>u2Daily[d]||0), borderColor:C2, backgroundColor:C2+'22', borderWidth:2.5, pointRadius:3, tension:0.35, fill:true }
+                                    ]
+                                },
+                                options: {
+                                    responsive:true, maintainAspectRatio:false,
+                                    plugins:{ legend:{display:true,position:'top',labels:{font:{size:11}}}, tooltip:{callbacks:{label:tt=>` ${tt.dataset.label}: ${tt.raw}`}} },
+                                    scales:{ x:{grid:{display:false},ticks:{font:{size:10},maxRotation:35}}, y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}} }
+                                }
+                            });
+                        }
+
+                        // Users bar
+                        const ctxU = document.getElementById('compUsersBar');
+                        if (ctxU) {
+                            const u1Count = u1Stats.total || Object.values(u1Daily).reduce((a,b)=>a+b,0);
+                            const u2Count = u2Stats.total || Object.values(u2Daily).reduce((a,b)=>a+b,0);
+                            _insCharts.compUsers = new Chart(ctxU.getContext('2d'), {
+                                type: 'bar',
+                                data: {
+                                    labels: [u1Label, u2Label],
+                                    datasets: [{ label:'Total Cases', data:[u1Count,u2Count], backgroundColor:[C1,C2], borderWidth:0, borderRadius:6 }]
+                                },
+                                options: {
+                                    responsive:true, maintainAspectRatio:false,
+                                    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:tt=>` ${tt.raw.toLocaleString()} cases`}} },
+                                    scales:{ x:{grid:{display:false},ticks:{font:{size:12},color:'#2c3e50'}}, y:{beginAtZero:true,ticks:{display:false}} },
+                                    animation:{ onComplete:function(){ const ch=this,ctx2=ch.ctx; ctx2.save(); ctx2.font='bold 13px sans-serif'; ctx2.textAlign='center'; ctx2.textBaseline='bottom'; ch.data.datasets[0].data.forEach((val,i)=>{ const bar=ch.getDatasetMeta(0).data[i]; if(!bar)return; ctx2.fillStyle=ch.data.datasets[0].backgroundColor[i]; ctx2.fillText(val.toLocaleString(),bar.x,bar.y-4); }); ctx2.restore(); } }
+                                }
+                            });
+                        }
+
+                        // Top 5 Scam bar — per-user actual counts from user_stats breakdown
+                        const ctxS = document.getElementById('compScamBar');
+                        if (ctxS) {
+                            // Calculate per-user scam counts from user_by_date
+                        const u1ScamCounts = {};
+                        const u2ScamCounts = {};
+                        (data.all_users || []).forEach(u => {
+                            if(u === user1 || (!user1 && true)) {
+                                // use overall scam counts weighted by ratio
+                            }
+                        });
+                        // Use userStats ratio for scam breakdown
+                        const totalAll = (u1Stats.total||0) + (u2Stats.total||0) || 1;
+                        const u1R = (u1Stats.total||0) / totalAll;
+                        const u2R = (u2Stats.total||0) / totalAll;
+                        _insCharts.compScam = new Chart(ctxS.getContext('2d'), {
+                            type: 'bar',
+                            data: {
+                                labels: top5Scams.map(s=>s.length>16?s.slice(0,14)+'…':s),
+                                datasets: [
+                                    { label:u1Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u1R)), backgroundColor:C1, borderWidth:0, borderRadius:4 },
+                                    { label:u2Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u2R)), backgroundColor:C2, borderWidth:0, borderRadius:4 }
+                                ]
+                            },
+                                options: {
+                                    responsive:true, maintainAspectRatio:false,
+                                    plugins:{ legend:{display:true,position:'top',labels:{font:{size:10}}}, tooltip:{callbacks:{label:tt=>` ${tt.dataset.label}: ${tt.raw}`}} },
+                                    scales:{ x:{grid:{display:false},ticks:{font:{size:9},maxRotation:30}}, y:{beginAtZero:true,ticks:{display:false}} }
+                                }
+                            });
+                        }
+
+                        // Search For comparison bar
+                        const ctxSF = document.getElementById('compSFBar');
+                        if (ctxSF) {
+                            const sfKeys  = Object.keys(sfCounts).sort((a,b)=>sfCounts[b]-sfCounts[a]);
+                            const totalAll = (u1Stats.total||0) + (u2Stats.total||0) || 1;
+                            const u1R = (u1Stats.total||0) / totalAll;
+                            const u2R = (u2Stats.total||0) / totalAll;
+                            _insCharts.compSF = new Chart(ctxSF.getContext('2d'), {
+                                type: 'bar',
+                                data: {
+                                    labels: sfKeys,
+                                    datasets: [
+                                        { label:u1Label, data:sfKeys.map(k=>Math.round((sfCounts[k]||0)*u1R)), backgroundColor:C1, borderWidth:0, borderRadius:4 },
+                                        { label:u2Label, data:sfKeys.map(k=>Math.round((sfCounts[k]||0)*u2R)), backgroundColor:C2, borderWidth:0, borderRadius:4 }
+                                    ]
+                                },
+                                options: {
+                                    responsive:true, maintainAspectRatio:false,
+                                    plugins:{ legend:{display:true,position:'top',labels:{font:{size:11}}}, tooltip:{callbacks:{label:tt=>` ${tt.dataset.label}: ${tt.raw}`}} },
+                                    scales:{ x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0}}, y:{beginAtZero:true,ticks:{display:false}} }
+                                }
+                            });
+                        }
+                    }, 60);
                 }
 
                 function _buildUserComparisonTable(user1, user2, data) {
                     const label = document.getElementById('compareUserLabel');
                     const u1Label = user1 || 'All Users';
                     if (label) label.textContent = u1Label + ' vs ' + user2;
+
                     const userByDate = data.user_by_date || {};
-                    const allDates = Object.keys(userByDate).sort();
+                    const userStats  = data.user_stats   || {};
+                    const allDates   = Object.keys(userByDate).sort();
+                    const u1Stats = user1 ? (userStats[user1] || {}) : {
+                        total: Object.values(userStats).reduce((s,u)=>s+(u.total||0),0),
+                        avg: 0,
+                        unique_upi: data.unique_upi_count || 0,
+                        unique_bank: data.unique_bank_count || 0,
+                    };
+                    const u2Stats = userStats[user2] || {};
                     function getUserCount(date, user) {
                         if (!userByDate[date]) return 0;
                         if (!user) return Object.values(userByDate[date]).reduce((a,b)=>a+b,0);
-                        return userByDate[date][user] || 0;
+                        if (userByDate[date][user] !== undefined) return userByDate[date][user];
+                        const userLower = user.toLowerCase();
+                        const matchedKey = Object.keys(userByDate[date]).find(k => k.toLowerCase() === userLower);
+                        return matchedKey ? userByDate[date][matchedKey] : 0;
                     }
+                    // ── Summary stat cards ───────────────────────────────
+                    const summaryEl = document.getElementById('userComparisonSummary');
+                    if (summaryEl) {
+                        const statCard = (lbl, v1, v2) => `
+                            <div style="background:#f8f9fa;border:1px solid #eee;border-radius:8px;padding:10px 14px;flex:1;min-width:110px;text-align:center;">
+                                <div style="font-size:10px;font-weight:700;color:#7f8c8d;text-transform:uppercase;margin-bottom:8px;">${lbl}</div>
+                                <div style="display:flex;justify-content:space-around;align-items:center;gap:6px;">
+                                    <div>
+                                        <div style="font-size:9px;color:#9b59b6;font-weight:700;margin-bottom:2px;">${u1Label.split(' ')[0]}</div>
+                                        <div style="font-size:17px;font-weight:800;color:#9b59b6;">${v1}</div>
+                                    </div>
+                                    <div style="color:#ddd;font-size:18px;">|</div>
+                                    <div>
+                                        <div style="font-size:9px;color:#e67e22;font-weight:700;margin-bottom:2px;">${user2.split(' ')[0]}</div>
+                                        <div style="font-size:17px;font-weight:800;color:#e67e22;">${v2}</div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        summaryEl.innerHTML = `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+                            ${statCard('Total Cases',    (u1Stats.total||0).toLocaleString(),      (u2Stats.total||0).toLocaleString())}
+                            ${statCard('Avg Daily',      (u1Stats.avg||0),                         (u2Stats.avg||0))}
+                            ${statCard('Unique UPI',     (u1Stats.unique_upi||0).toLocaleString(),  (u2Stats.unique_upi||0).toLocaleString())}
+                            ${statCard('Unique Bank',    (u1Stats.unique_bank||0).toLocaleString(), (u2Stats.unique_bank||0).toLocaleString())}
+                        </div>`;
+                    }
+
+                    // ── Date-wise table ──────────────────────────────────
                     const thead = document.getElementById('userComparisonThead');
                     const tbody = document.getElementById('userComparisonTbody');
                     thead.innerHTML = ''; tbody.innerHTML = '';
-                    const thS = 'padding:6px 10px;font-size:11px;font-weight:700;border-bottom:2px solid #eee;text-align:center;white-space:nowrap;color:#2c3e50;';
-                    const tdS = 'padding:5px 8px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0;';
+                    const thS   = 'padding:6px 10px;font-size:11px;font-weight:700;border-bottom:2px solid #eee;text-align:center;white-space:nowrap;color:#2c3e50;';
+                    const tdS   = 'padding:5px 8px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0;';
                     const tdLbl = 'padding:5px 8px;font-size:11px;font-weight:600;border-bottom:1px solid #f0f0f0;color:#2c3e50;white-space:nowrap;';
                     thead.innerHTML = `<tr>
                         <th style="${thS}text-align:left;">Date</th>
@@ -6496,23 +6786,25 @@
                         const c2 = getUserCount(date, user2);
                         if (c1===0 && c2===0) return;
                         tot1+=c1; tot2+=c2;
-                        const diff = c1-c2;
+                        const diff      = c1-c2;
                         const diffColor = diff>0?'#1e8449':diff<0?'#c0392b':'#7f8c8d';
-                        const diffStr = diff>0?'+'+diff:String(diff);
+                        const diffStr   = diff>0?'+'+diff:String(diff);
                         const parts = date.split('-');
-                        const dStr = parts.length===3?`${parts[2]}-${parts[1]}-${parts[0]}`:date;
+                        const dStr  = parts.length===3?`${parts[2]}-${parts[1]}-${parts[0]}`:date;
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `<td style="${tdLbl}">${dStr}</td>
+                        tr.innerHTML = `
+                            <td style="${tdLbl}">${dStr}</td>
                             <td style="${tdS}color:#9b59b6;font-weight:600;">${c1||'—'}</td>
                             <td style="${tdS}color:#e67e22;font-weight:600;">${c2||'—'}</td>
                             <td style="${tdS}color:${diffColor};font-weight:700;">${c1===0&&c2===0?'—':diffStr}</td>`;
                         tbody.appendChild(tr);
                     });
-                    const diffTot = tot1-tot2;
+                    const diffTot      = tot1-tot2;
                     const diffTotColor = diffTot>0?'#1e8449':diffTot<0?'#c0392b':'#7f8c8d';
                     const totalTr = document.createElement('tr');
                     totalTr.style.background = '#f8f9fa';
-                    totalTr.innerHTML = `<td style="${thS}text-align:left;border-top:2px solid #ddd;">Total</td>
+                    totalTr.innerHTML = `
+                        <td style="${thS}text-align:left;border-top:2px solid #ddd;">Total</td>
                         <td style="${thS}color:#9b59b6;border-top:2px solid #ddd;">${tot1}</td>
                         <td style="${thS}color:#e67e22;border-top:2px solid #ddd;">${tot2}</td>
                         <td style="${thS}color:${diffTotColor};border-top:2px solid #ddd;">${diffTot>0?'+'+diffTot:diffTot}</td>`;
@@ -6576,6 +6868,9 @@
                         const upiTotal = Number(data.unique_upi_count || 0);
                         document.getElementById('cardUniqueUpi').textContent   = upiTotal.toLocaleString();
                         document.getElementById('cardUniqueBank').textContent  = (data.unique_bank_count||0).toLocaleString();
+                        document.getElementById('cardAvgCases').textContent    = (data.avg_cases||0).toLocaleString();
+                        const selUser = document.getElementById('insightsInputUser').value;
+                        document.getElementById('cardAvgCasesSub').textContent = selUser ? `${selUser.split(' ')[0]}'s daily avg` : 'per active day';
                         _setLast30Trend('cardTotalCasesTrend', data.trend_30d && data.trend_30d.cases);
                         _setLast30Trend('cardUniqueUpiTrend', data.trend_30d && data.trend_30d.upi);
                         _setLast30Trend('cardUniqueBankTrend', data.trend_30d && data.trend_30d.bank);
@@ -6713,8 +7008,9 @@
                     const series = (trend && trend.series) || {};
                     const labels = series.labels || [];
                     _buildMiniLineChart('cardTotalCasesLine', 'cardTotalCasesLine', labels, series.cases || [], 'rgba(255,255,255,0.95)');
-                    _buildMiniLineChart('cardUniqueUpiLine', 'cardUniqueUpiLine', labels, series.upi || [], 'rgba(255,255,255,0.95)');
-                    _buildMiniLineChart('cardUniqueBankLine', 'cardUniqueBankLine', labels, series.bank || [], 'rgba(255,255,255,0.95)');
+                    _buildMiniLineChart('cardUniqueUpiLine',  'cardUniqueUpiLine',  labels, series.upi  || [], 'rgba(255,255,255,0.95)');
+                    _buildMiniLineChart('cardUniqueBankLine', 'cardUniqueBankLine', labels, series.bank  || [], 'rgba(255,255,255,0.95)');
+                    _buildMiniLineChart('cardAvgCasesLine',   'cardAvgCasesLine',   labels, series.cases || [], 'rgba(255,255,255,0.95)');
                 }
                 let _upiCanvasData    = [];
                 let _upiHitPoints     = [];
@@ -7213,10 +7509,9 @@
                         }
                     });
                 }
-
                 (function initInsights() {
                     if (document.querySelector('.insights-page.active')) {
-                        loadInsightsData();
+                        setTimeout(loadInsightsData, 500);
                     }
                 })();
 

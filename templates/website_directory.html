@@ -696,7 +696,7 @@ tr:hover { background:#f8fffe; }
             <div style="display:flex;align-items:center;gap:10px;">
                 <div>
                     <h1 style="font-size:18px;color:#2c3e50;font-weight:700;line-height:1.2;">Scam Intelligence GUI</h1>
-                    <p style="color:#7f8c8d;font-size:12px;margin-top:2px;">Investment Scam Website Directory</p>
+                    <p style="color:#7f8c8d;font-size:12px;margin-top:2px;min-height:16px;">Investment Scam Website Directory</p>
                 </div>
                 <span class="header-username"><i class="fas fa-user-circle" style="color:#32d3a2;font-size:11px;"></i> {{ display_name }}</span>
             </div>
@@ -2248,16 +2248,10 @@ function adjustPad() {
     const con = document.querySelector('.container');
     if (hdr && con) con.style.paddingTop = (hdr.offsetHeight + 10) + 'px';
 }
-adjustPad();
-setTimeout(adjustPad, 100);
-setTimeout(adjustPad, 300);
-setTimeout(adjustPad, 600);
-window.addEventListener('load', () => {
-    adjustPad();
-    setTimeout(adjustPad, 200);
-});
+window.addEventListener('load', adjustPad);
 window.addEventListener('resize', adjustPad);
 if (window.ResizeObserver) new ResizeObserver(adjustPad).observe(document.querySelector('.fixed-header'));
+adjustPad();
 
 /* ── USER ACTIVITY LOG ──────────────────────────────────────── */
 let _ualAllLogs = [];
