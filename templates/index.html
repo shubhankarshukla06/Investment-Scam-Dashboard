@@ -24,7 +24,7 @@
                 padding-left: 10px;
                 white-space: nowrap;
             }
-            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 400; }
+            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 600; }
             .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
             .dev-credit-footer span { color: #3498db; font-weight: 700; }
             .header-controls { display: flex; align-items: center; gap: 10px; }
@@ -4882,22 +4882,15 @@
                     document.querySelector('.fixed-header')
                 );
             }
-            adjustContainerPadding();
-            // Multiple calls to ensure correct calculation after fonts/icons load
-            adjustContainerPadding();
-            setTimeout(adjustContainerPadding, 100);
-            setTimeout(adjustContainerPadding, 300);
-            setTimeout(adjustContainerPadding, 600);
-            window.addEventListener('load', () => {
-                adjustContainerPadding();
-                setTimeout(adjustContainerPadding, 200);
-            });
+            // single clean init — no redundant calls
+            window.addEventListener('load', adjustContainerPadding);
             window.addEventListener('resize', adjustContainerPadding);
             if (window.ResizeObserver) {
                 new ResizeObserver(adjustContainerPadding).observe(
                     document.querySelector('.fixed-header')
                 );
             }
+            adjustContainerPadding();
                 let _scrapSummaryData   = [];
                 let _scrapWsParsedData  = [];   // rows from WS file
                 let _scrapWsHeaders     = [];
@@ -6480,14 +6473,46 @@
                     const compareUser = document.getElementById('insightsCompareUser').value;
                     const inputUser   = document.getElementById('insightsInputUser').value;
                     const section     = document.getElementById('userComparisonSection');
-                    if (!compareUser || !_insLastData) {
+                    if (!compareUser) {
                         if (section) section.style.display = 'none';
                         _toggleComparisonMode(false);
                         return;
                     }
-                    section.style.display = '';
-                    _buildUserComparisonTable(inputUser, compareUser, _insLastData);
-                    _toggleComparisonMode(true, inputUser, compareUser, _insLastData);
+                    // Re-fetch with NO input_user filter so both users' data is available
+                    _fetchCompareData(inputUser, compareUser);
+                }
+
+                async function _fetchCompareData(user1, user2) {
+                    const params = new URLSearchParams();
+                    const from = document.getElementById('insightsDateFrom').value;
+                    const to   = document.getElementById('insightsDateTo').value;
+                    const sf   = document.getElementById('insightsSearchFor').value;
+                    const st   = document.getElementById('insightsScamType').value;
+                    const wall = document.getElementById('insightsWallet').value;
+                    // NOTE: intentionally NO input_user filter — we need all users' data
+                    if (from) params.set('date_from', from);
+                    if (to)   params.set('date_to', to);
+                    if (sf)   params.set('search_for', sf);
+                    if (st)   params.set('scam_type', st);
+                    if (wall) params.set('wallet', wall);
+
+                    showToast('Loading comparison data...', '');
+                    try {
+                        const [insResp, bankResp] = await Promise.all([
+                            fetch('/investment-insights-data?' + params.toString()),
+                            fetch('/investment-bank-data?' + params.toString()),
+                        ]);
+                        const data     = await insResp.json();
+                        const bankData = await bankResp.json();
+                        if (!data.success) { showToast('Comparison fetch failed', 'err'); return; }
+
+                        const section = document.getElementById('userComparisonSection');
+                        if (section) section.style.display = '';
+                        _buildUserComparisonTable(user1, user2, data);
+                        _toggleComparisonMode(true, user1, user2, data);
+                    } catch(e) {
+                        showToast('Comparison error: ' + e.message, false, false);
+                    }
                 }
 
                 function _toggleComparisonMode(active, user1, user2, data) {
@@ -6851,7 +6876,7 @@
 
                         loading.style.display = 'none';
 
-                        if (!data.success || data.total_rows === 0) {
+                        if (!data.success || !data.total_rows) {
                             emptyDiv.style.display = 'block';
                             _insDestroyAll();
                             const lb = document.getElementById('insightsLastDateBadge');
@@ -7511,7 +7536,7 @@
                 }
                 (function initInsights() {
                     if (document.querySelector('.insights-page.active')) {
-                        setTimeout(loadInsightsData, 500);
+                        setTimeout(loadInsightsData, 800);
                     }
                 })();
 

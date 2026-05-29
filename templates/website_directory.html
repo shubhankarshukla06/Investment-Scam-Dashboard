@@ -15,7 +15,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .logo h1 { font-size:18px; color:#2c3e50; }
 .logo-sub { display:flex; align-items:center; gap:10px; }
 .header-username { font-size:12px; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
-.logo p { color:#7f8c8d; font-size:12px; margin-top:2px; }
+.logo p { color:#7f8c8d; font-size:12px; margin-top:2px; font-weight:600; }
 .header-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
 .btn { padding:6px 12px; border:none; border-radius:5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; font-size:12px; transition:all 0.2s; white-space:nowrap; height:34px; }
 .btn-primary  { background:#3498db; color:white; }
@@ -2252,7 +2252,7 @@ window.addEventListener('load', adjustPad);
 window.addEventListener('resize', adjustPad);
 if (window.ResizeObserver) new ResizeObserver(adjustPad).observe(document.querySelector('.fixed-header'));
 adjustPad();
-
+setTimeout(adjustPad, 200);
 /* ── USER ACTIVITY LOG ──────────────────────────────────────── */
 let _ualAllLogs = [];
 

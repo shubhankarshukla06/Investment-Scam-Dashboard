@@ -3507,8 +3507,6 @@ def social_search_ajax():
 # ============================================================
 
 TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator"
-
-
 @app.route("/api/total-numbers", methods=["GET"])
 def api_total_numbers_list():
     """
