@@ -3610,7 +3610,7 @@
                         });
 
                         const misNameFields = ['user_name','username','name','Name','employee_name','emp_name','user'];
-                        const misCredFields = ['credentials','credential_count','creds','Credentials'];
+                        const misCredFields = ['Credential_Making','credentials','credential_count','creds','Credentials'];
                         const misRemarkFields = ['remark','remarks','Remark','Remarks','status','Status'];
 
                         filtered.forEach(record => {
@@ -3619,7 +3619,6 @@
                                 if (record[f]) { misPerson = String(record[f]).trim(); break; }
                             }
                             if (!misPerson) return;
-
                             // Store with BOTH original lowercase AND cleaned version as keys
                             // so matching works regardless of prefix stripping
                             const cleanMisOriginal = misPerson.toLowerCase();
@@ -3631,14 +3630,12 @@
                                     creds = parseInt(record[f]) || 0; break;
                                 }
                             }
-
                             let remark = '';
                             for (const f of misRemarkFields) {
                                 if (record[f] && String(record[f]).trim() && String(record[f]).trim().toUpperCase() !== 'NA') {
                                     remark = String(record[f]).trim(); break;
                                 }
                             }
-
                             // Store under both keys so matching catches either form
                             const canonicalKey = cleanMisCleaned || cleanMisOriginal;
                             if (!misDataByUser[canonicalKey]) {
@@ -3674,7 +3671,6 @@
                         .map(row => (row[userCol] || '').trim())
                         .filter(u => u)
                 )];
-
                 // Also include users who appear only as Approved_by
                 const approvedByUsers = approvedByCol
                     ? [...new Set(summaryParsedData.map(r => (r[approvedByCol] || '').trim()).filter(u => u && u.toUpperCase() !== 'NA'))]

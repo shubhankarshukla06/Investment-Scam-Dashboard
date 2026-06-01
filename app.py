@@ -3564,7 +3564,6 @@ def api_total_numbers_list():
             "total_pages": max(1, math.ceil(total_rows / per_page)),
             "items":       items
         })
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
