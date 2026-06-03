@@ -24,7 +24,7 @@
                 padding-left: 10px;
                 white-space: nowrap;
             }
-            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 600; }
+            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 600; display: block; visibility: visible; }
             .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
             .dev-credit-footer span { color: #3498db; font-weight: 700; }
             .header-controls { display: flex; align-items: center; gap: 10px; }
@@ -2179,14 +2179,25 @@
                 const sel = document.getElementById('socialPlatformSelect');
                 if (sel) filterSocialColumns(sel.value);
             })();
-            (function initNumberTypeCounts() {
-                if (document.querySelector('.social-page.active')) {
-                    loadNumberTypeCounts();
-                }
-            })();
+            // initNumberTypeCounts moved to loadSessionInfo().then() block
             const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
-            const _IS_ADMIN = {{ 'true' if current_user and current_user.is_admin else 'false' }};
-            const _ALLOWED_DEPTS = {{ (current_user.allowed_departments | tojson) if current_user and current_user.allowed_departments else 'null' }};
+            let _IS_ADMIN = false;
+            let _ALLOWED_DEPTS = null;
+            let _CURRENT_EMAIL = '';
+            let _DISPLAY_NAME = '';
+
+            async function loadSessionInfo() {
+                try {
+                    const resp = await fetch('/get-session-info');
+                    const data = await resp.json();
+                    _IS_ADMIN      = data.is_admin      || false;
+                    _ALLOWED_DEPTS = data.allowed_depts || null;
+                    _CURRENT_EMAIL = data.email         || '';
+                    _DISPLAY_NAME  = data.display_name  || '';
+                } catch(e) {
+                    console.error('Session info load failed:', e);
+                }
+            }
             const PLATFORM_ACCOUNT_STATUS = {
                 "Facebook":["Active","Block","Restricted","Permanent Block"],
                 "Instagram":["Active","Block","Permanent Block"],
@@ -3223,8 +3234,7 @@
             function confirmAction() { document.getElementById('confirmationModal').classList.remove('active'); pendingAction = null; }
             // ─── Sheet Maker ─────────────────────────────────────────────
             function getFirstName() {
-                const raw = "{{ display_name }}";
-                const cleaned = raw.replace(/\s*\(.*?\)\s*/g, '').trim();
+                const cleaned = _DISPLAY_NAME.replace(/\s*\(.*?\)\s*/g, '').trim();
                 return cleaned.split(' ')[0] || cleaned;
             }
             function showSheetReadyMessage() {
@@ -3532,9 +3542,7 @@
                         if (!maxDate || d > maxDate) maxDate = d;
                     });
                 }
-
                 // ── Quality Check: count rows where Approved_by != input_user ──
-                // Result: { "Shubhankar": 5, "Parul": 3 } — keyed by Approved_by value
                 const qualityCheckCounts = {};
                 if (approvedByCol) {
                     summaryParsedData.forEach(row => {
@@ -3592,10 +3600,7 @@
                 const misDataByUser = {};
                 try {
                     showToast('Fetching MIS data...', false, false);
-                    const currentUserEmail = "{{ session.get('email', '') }}";
-                    const misResp = await fetch(
-                        `/getDepartmentData?user_mail=${encodeURIComponent(currentUserEmail)}&department=Anti_Money_Laundering&role=Team_Lead`
-                    );
+                    const misResp = await fetch('/getDepartmentData');
                     const misRaw = await misResp.json();
 
                     if (Array.isArray(misRaw) && misRaw.length > 0) {
@@ -4220,7 +4225,7 @@
                 document.body.removeChild(a); URL.revokeObjectURL(url);
                 showToast('Summary exported successfully!', false, true);
             }
-            // ─── Copy Summary as Image ───────────────────────────────────
+            // ─── Copy Summary as Image ───────
             async function copySummaryAsImage() {
                 const wrapper = document.getElementById('summaryTableWrapper');
                 if (!wrapper) { showToast('No summary to copy', true); return; }
@@ -4870,23 +4875,26 @@
                 }
             }
 
-            // Single reliable call after full load
-            window.addEventListener('load', adjustContainerPadding);
+            document.fonts.ready.then(() => {
+                adjustContainerPadding();
+            });
+
             window.addEventListener('resize', adjustContainerPadding);
+
             if (window.ResizeObserver) {
                 new ResizeObserver(adjustContainerPadding).observe(
                     document.querySelector('.fixed-header')
                 );
             }
-            // single clean init — no redundant calls
-            window.addEventListener('load', adjustContainerPadding);
-            window.addEventListener('resize', adjustContainerPadding);
-            if (window.ResizeObserver) {
-                new ResizeObserver(adjustContainerPadding).observe(
-                    document.querySelector('.fixed-header')
-                );
-            }
-            adjustContainerPadding();
+            // Load session info first, then init page-specific features
+            loadSessionInfo().then(() => {
+                if (document.querySelector('.insights-page.active')) {
+                    setTimeout(loadInsightsData, 800);
+                }
+                if (document.querySelector('.social-page.active')) {
+                    loadNumberTypeCounts();
+                }
+            });
                 let _scrapSummaryData   = [];
                 let _scrapWsParsedData  = [];   // rows from WS file
                 let _scrapWsHeaders     = [];
@@ -7530,12 +7538,6 @@
                         }
                     });
                 }
-                (function initInsights() {
-                    if (document.querySelector('.insights-page.active')) {
-                        setTimeout(loadInsightsData, 800);
-                    }
-                })();
-
                 document.getElementById('insightsInputUser')?.addEventListener('change', function() {
                         loadInsightsData();
                 });

@@ -181,8 +181,8 @@ BS_INVESTMENT_COLUMNS = [
 ]
 
 BS_INVESTMENT_SCAM_TYPE_OPTIONS = [
-    "Investment Scam", "Loan Scam", "Subscription Scam", "Carding Scam",
-    "Fake Website Scam", "Currency Exchange Scam", "Job Scam", "Shopping Scam"
+    "Investment Scam", "Loan Scam", "Subscription Scam", "Carding Scam","Government Scheme Scam",
+    "Fake Website Scam", "Currency Exchange Scam", "Job Scam", "Shopping Scam","LPG Booking Scam", "IPL Tickets Scam", "ChaarDham Booking Scam"
 ]
 
 BS_INVESTMENT_SEARCH_FOR_OPTIONS = [
@@ -292,7 +292,7 @@ def load_excel_data():
                 for _, row in df_bank.iterrows():
                     k = str(row.get(key_col, '')).strip().lower()
                     v = str(row.get(bank_col, 'NA')).strip()
-                    if k and k not in ['na', 'nan', '']:
+                    if k and k not in ['na', 'nan', 'none', 'null', '']:
                         BANK_NAME_MAPPING[k] = v
         if IFSC_MAPPING_PATH.exists():
             df_ifsc = pd.read_excel(IFSC_MAPPING_PATH)
@@ -303,11 +303,10 @@ def load_excel_data():
                 for _, row in df_ifsc.iterrows():
                     k = str(row.get(prefix_col, '')).strip().upper()
                     v = str(row.get(bank_col2, 'NA')).strip()
-                    if k and k.lower() not in ['na', 'nan', '']:
+                    if k and k.lower() not in ['na', 'nan', 'none', 'null', '']:
                         IFSC_MAPPING[k] = v
     except Exception as e:
         print(f"Error loading Excel data: {e}")
-        MASTER_URL_DATA = {}
         BANK_NAME_MAPPING = {}
         IFSC_MAPPING = {}
 load_excel_data()
@@ -371,7 +370,7 @@ def create_default_config():
         },
         "global_settings": {
             "date_format": "%Y-%m-%d",
-            "na_values": ["NA", "N/A", "", "null", "NULL", "None", "nan", "NaN", "undefined"],
+            "na_values": ["NA", "N/A", "", "null", "NULL", "None", "undefined"],
             "allowed_extensions": list(ALLOWED_IMPORT_EXTENSIONS),
             "max_file_size_mb": 50
         }
@@ -423,16 +422,15 @@ def standardize_headers(headers, sheet_type):
         if not mapped:
             standardized.append(header)
     return standardized
-
-
 def clean_value(value):
-    if pd.isna(value) or value in ["NA", "", None, "null", "NULL", "None", "nan", "NaN", "undefined"]:
+    if pd.isna(value) or value in ["NA", "", None, "null", "NULL", "None", "undefined"]:
         return "NA"
     value_str = str(value).strip()
+    # String ban jaane ke baad bhi check karo
+    if value_str.lower() in ("nan", "none", "null", "na", "n/a", "undefined", ""):
+        return "NA"
     value_str = ''.join(char for char in value_str if ord(char) < 0x10000)
     return value_str
-
-
 def extract_handle(upi_vpa):
     upi_vpa = clean_value(upi_vpa)
     if upi_vpa == "NA":
@@ -441,10 +439,11 @@ def extract_handle(upi_vpa):
         handle_part = upi_vpa.split('@')[1]
         if '.' in handle_part:
             handle_part = handle_part.split('.')[0]
-        return handle_part.lower()
+        handle = handle_part.lower().strip()
+        if not handle or handle in ('nan', 'none', 'null', 'na', 'n/a', ''):
+            return "NA"
+        return handle
     return "NA"
-
-
 def get_bank_name_from_handle(handle, ifsc_code=None):
     if handle != "NA" and handle:
         handle_lower = handle.lower().strip()
@@ -715,7 +714,6 @@ def extract_payment_gateway_name(upi_url, website_url):
     except Exception as e:
         return "NA"
 
-
 def process_sheet_data(df, sheet_type):
     result_df = pd.DataFrame(columns=REQUIRED_COLUMNS)
     if df.empty:
@@ -856,15 +854,16 @@ def process_sheet_data(df, sheet_type):
             row_data['upi_url'] = "NA"
             row_data['payment_gateway_name'] = "NA"
         result_df.loc[idx] = [row_data.get(col, "NA") for col in REQUIRED_COLUMNS]
-
+        result_df = result_df.fillna("NA")
+        result_df = result_df.fillna("NA")
+        result_df = result_df.replace("nan", "NA")
+        result_df = result_df.replace("NaN", "NA")
     return result_df, {
         'total_values': len(result_df),
         'unique_upi_ids': len(unique_upi_ids),
         'unique_bank_accounts': len(unique_bank_accounts),
         'unique_websites': len(unique_websites)
     }
-
-
 # ============================================================
 # Helper function to extract clean display name
 # ============================================================
@@ -874,7 +873,6 @@ def get_clean_display_name(display_name):
         return "User"
     clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
     return clean_name if clean_name else display_name
-
 
 # ============================================================
 # LOGIN / LOGOUT
@@ -1060,10 +1058,10 @@ def scraping_tracker_stats():
         scam_platform_breakdown = {}
         for row in rows:
             st = (row.get("scam_type") or "Unknown").strip()
-            if not st or st in ("NA", "N/A", "nan", ""):
+            if not st or st in ("NA", "N/A", ""):
                 st = "Unknown"
             p = (row.get("platform") or "Unknown").strip()
-            if not p or p in ("NA", "N/A", "nan", ""):
+            if not p or p in ("NA", "N/A", ""):
                 p = "Unknown"
             scam_counts[st] = scam_counts.get(st, 0) + 1
             platform_counts[p] = platform_counts.get(p, 0) + 1
@@ -1456,9 +1454,9 @@ def tracker_stats():
                     status = (item.get('account_status') or 'Active').strip()
                     dept = (item.get('department') or 'Unknown').strip()
                     num_type = (item.get('number_type') or 'Unknown').strip()
-                    if not dept or dept in ('NA', 'N/A', 'nan', ''):
+                    if not dept or dept in ('NA', 'N/A', ''):
                         dept = 'Unknown'
-                    if not num_type or num_type in ('NA', 'N/A', 'nan', ''):
+                    if not num_type or num_type in ('NA', 'N/A', ''):
                         num_type = 'Unknown'
                     if status == 'Permanent Block':
                         pb_count += 1
@@ -1569,7 +1567,7 @@ def social_import():
                 pass
             v = str(value).strip()
             if col in DATE_COLUMNS:
-                if not v or v.upper() in ('NA', 'N/A', 'NAN', 'NAT', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.', ''):
+                if not v or v.upper() in ('NA', 'N/A', 'NAT', 'NONE', 'NULL', 'UNDEFINED', '-', 'N.A', 'N.A.', ''):
                     return None
                 if ' ' in v: v = v.split(' ')[0]
                 if 'T' in v: v = v.split('T')[0]
@@ -2142,26 +2140,37 @@ def check_duplicates():
 
 import urllib.request
 
+@app.route("/get-session-info", methods=["GET"])
+@login_required
+def get_session_info():
+    return jsonify({
+        "email":         session.get("email", ""),
+        "display_name":  session.get("display_name", ""),
+        "is_admin":      session.get("is_admin", False),
+        "allowed_depts": session.get("allowed_departments"),
+        "allowed_pages": session.get("allowed_pages", []),
+    })
+
 @app.route("/getDepartmentData", methods=["GET"])
-@login_required  
+@login_required
 def get_department_data_proxy():
     """Proxy for external MIS API to avoid CORS issues"""
     try:
-        user_mail = request.args.get("user_mail", "")
-        department = request.args.get("department", "")
-        role = request.args.get("role", "")
-        
+        user_mail  = session.get("email", "")
+        department = "Anti_Money_Laundering"
+        role       = "Team_Lead"
+
         external_url = (
             f"https://mis-iw3m.onrender.com/getDepartmentData"
             f"?user_mail={urllib.parse.quote(user_mail)}"
             f"&department={urllib.parse.quote(department)}"
             f"&role={urllib.parse.quote(role)}"
         )
-        
+
         req = urllib.request.Request(external_url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        
+
         return jsonify(data)
     except Exception as e:
         print(f"[MIS PROXY] Error: {e}")
@@ -3013,7 +3022,7 @@ def website_directory_import():
                 src = resolve_col(candidates)
                 val = str(row[src]).strip() if src else ""
                 if db_col in DATE_FIELDS:
-                    rec[db_col] = val if val and val.upper() not in ("NA","N/A","NAN","","NONE","NULL") else None
+                    rec[db_col] = val if val and val.upper() not in ("NA","N/A","","NONE","NULL") else None
                 else:
                     rec[db_col] = val if val else "NA"
             records.append(rec)
