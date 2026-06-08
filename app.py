@@ -31,7 +31,6 @@ def get_auth_supabase():
     key = os.environ.get("DASHBOARD_SUPABASE_KEY") or os.environ.get("SOCIAL_SUPABASE_KEY")
     return create_client(url, key)
 
-
 DEMO_ADMIN = {
     "id": 0,
     "email": "test123@gmail.com",
@@ -108,10 +107,8 @@ def log_activity(action_type, target_table=None, target_record_id=None,
 PER_PAGE = 100
 BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "sheet_mapping_config.json"
-
 EXCEL_FOLDER_PATH = BASE_DIR / "excel_data"
 EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
-
 BANK_NAME_MAPPING_PATH = EXCEL_FOLDER_PATH / "bank_name.xlsx"
 IFSC_MAPPING_PATH = EXCEL_FOLDER_PATH / "ifsc_mapping.xlsx"
 
@@ -231,8 +228,6 @@ def is_allowed_file(filename):
         return False
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
     return ext in ALLOWED_IMPORT_EXTENSIONS
-
-
 def read_data_file(file_path, file_ext):
     try:
         ext = file_ext.lower().lstrip('.')
@@ -278,8 +273,6 @@ def read_data_file(file_path, file_ext):
     except Exception as e:
         print(f"Error reading file {file_path}: {e}")
         raise
-
-
 def load_excel_data():
     global BANK_NAME_MAPPING, IFSC_MAPPING
     try:
@@ -319,7 +312,6 @@ def load_config():
     except Exception as e:
         print(f"Error loading config: {e}")
         return create_default_config()
-
 def create_default_config():
     default_config = {
         "sheet_mappings": {
@@ -378,8 +370,6 @@ def create_default_config():
     with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
         json.dump(default_config, f, indent=2)
     return default_config
-
-
 def get_sheet_headers(sheet_type):
     config = load_config()
     if not config:
@@ -388,8 +378,6 @@ def get_sheet_headers(sheet_type):
     if not sheet_config:
         return []
     return sheet_config.get('required_headers', [])
-
-
 def standardize_headers(headers, sheet_type):
     config = load_config()
     if not config:
@@ -480,8 +468,6 @@ def get_bank_name_from_handle(handle, ifsc_code=None):
         except Exception as e:
             print(f"Error in IFSC lookup for {ifsc_code}: {e}")
     return "NA"
-
-
 def extract_search_for_from_url(url):
     url_value = clean_value(url)
     if url_value == "NA":
@@ -507,14 +493,7 @@ def extract_search_for_from_url(url):
         return "Platform"
     except Exception:
         return "Platform"
-
-
 def lookup_origin_and_category_from_master(url):
-    """
-    Legacy single-row lookup — kept for compatibility.
-    Queries website_directory table in Supabase.
-    For bulk processing use bulk_lookup_origin_category() instead.
-    """
     url_value = clean_value(url)
     if url_value == "NA":
         return "NA", "NA"
@@ -550,19 +529,11 @@ def lookup_origin_and_category_from_master(url):
     except Exception as e:
         print(f"[WD Lookup] Error for {url}: {e}")
     return "NA", "NA"
-
-
 def bulk_lookup_origin_category(urls: list) -> dict:
-    """
-    Fetch origin+category for a list of URLs from website_directory in one pass.
-    Returns dict: { url_lower: (origin, category) }
-    Matching priority: exact url/final_url → domain fallback.
-    """
     result = {}
     unique_urls = [u for u in set(urls) if u and u.upper() not in ("NA", "N/A", "")]
     if not unique_urls:
         return result
-
     # Build domain index for fallback
     domain_map = {}
     for u in unique_urls:
@@ -589,11 +560,9 @@ def bulk_lookup_origin_category(urls: list) -> dict:
             if len(rows) < CHUNK:
                 break
             offset += CHUNK
-
         # Build lookup maps from DB
         url_exact   = {}   # url_lower → (origin, category)
         domain_db   = {}   # domain    → (origin, category)
-
         for row in all_rows:
             origin   = (row.get("origin")   or "NA").strip() or "NA"
             category = (row.get("category") or "NA").strip() or "NA"
@@ -609,7 +578,6 @@ def bulk_lookup_origin_category(urls: list) -> dict:
                                 domain_db[dom] = (origin, category)
                     except Exception:
                         pass
-
         # Match each requested URL
         for u in unique_urls:
             u_lower = u.lower().strip()
@@ -634,13 +602,9 @@ def bulk_lookup_origin_category(urls: list) -> dict:
                         result[u_lower] = domain_db[dom]
             except Exception:
                 pass
-
     except Exception as e:
         print(f"[bulk_lookup_origin_category] Error: {e}")
-
     return result
-
-
 def extract_case_time_and_date_from_npci_url(url):
     if not url or url == "NA":
         return "NA", "NA"
@@ -654,8 +618,6 @@ def extract_case_time_and_date_from_npci_url(url):
         return ist_dt.strftime("%Y-%m-%d %H:%M:%S"), ist_dt.strftime("%Y-%m-%d")
     except Exception:
         return "NA", "NA"
-
-
 def generate_screenshot_urls(screenshot_url):
     screenshot_value = clean_value(screenshot_url)
     if screenshot_value == "NA":
@@ -682,8 +644,6 @@ def generate_screenshot_urls(screenshot_url):
         return screenshot_value
     except Exception as e:
         return screenshot_value
-
-
 def extract_payment_gateway_name(upi_url, website_url):
     upi_url_value = clean_value(upi_url)
     website_url_value = clean_value(website_url)
@@ -713,7 +673,6 @@ def extract_payment_gateway_name(upi_url, website_url):
         return "NA" if upi_domain_clean == website_domain_clean else upi_domain
     except Exception as e:
         return "NA"
-
 def process_sheet_data(df, sheet_type):
     result_df = pd.DataFrame(columns=REQUIRED_COLUMNS)
     if df.empty:
@@ -724,7 +683,6 @@ def process_sheet_data(df, sheet_type):
     unique_upi_ids = set()
     unique_bank_accounts = set()
     unique_websites = set()
-
     # ── Pre-fetch origin/category for all website URLs in one bulk call ──
     _website_url_col = None
     for h in standardized_headers:
@@ -740,7 +698,6 @@ def process_sheet_data(df, sheet_type):
         _valid_urls = [u for u in _all_urls if u != "NA"]
         if _valid_urls:
             _wd_cache = bulk_lookup_origin_category(_valid_urls)
-
     for idx in range(len(df)):
         row_data = {col: "NA" for col in REQUIRED_COLUMNS}
         row_data['case_generated_time'] = "NA"
@@ -780,7 +737,6 @@ def process_sheet_data(df, sheet_type):
                 row_data['scam_type'] = cleaned_value
             elif std_header == "Category":
                 row_data['category_of_website'] = cleaned_value
-
         if sheet_type == 'upi':
             row_data.update({
                 'customer': "Mystery Shopping", 'package_name': "com.mysteryshopping",
@@ -818,7 +774,6 @@ def process_sheet_data(df, sheet_type):
                 row_data['origin'] = origin
             else:
                 row_data['origin'] = "NA"
-
         elif sheet_type == 'messaging':
             row_data.update({
                 'customer': "Mystery Shopping", 'package_name': "com.mysteryshopping",
@@ -830,7 +785,6 @@ def process_sheet_data(df, sheet_type):
                 'origin': "India"
             })
             row_data['upi_bank_account_wallet'] = "UPI" if row_data['upi_vpa'] != "NA" else "Bank Account"
-
         handle = extract_handle(row_data['upi_vpa'])
         row_data['handle'] = handle
         row_data['bank_name'] = get_bank_name_from_handle(handle, row_data['ifsc_code'])
@@ -873,7 +827,6 @@ def get_clean_display_name(display_name):
         return "User"
     clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
     return clean_name if clean_name else display_name
-
 # ============================================================
 # LOGIN / LOGOUT
 # ============================================================
@@ -911,7 +864,6 @@ def login():
 def logout():
     session.clear()
     return redirect("/login")
-
 # ============================================================
 # USER ACTIVITY LOG ROUTES
 # ============================================================
@@ -922,59 +874,82 @@ def get_user_activity_log():
         return jsonify({"success": False, "error": "Access denied."})
     try:
         client = get_auth_supabase()
-        is_admin = session.get("is_admin", False)
-        allowed_depts = session.get("allowed_departments")  # None = see all, list = restricted
- 
+        is_admin      = session.get("is_admin", False)
+        allowed_depts = session.get("allowed_departments")  # None = no dept restriction
+        allowed_pages = session.get("allowed_pages", [])
+
         resp = client.table("activity_logs") \
             .select("*") \
             .order("created_at", desc=True) \
             .limit(500) \
             .execute()
         all_logs = resp.data or []
- 
-        # Admins OR users with no dept restriction see everything
-        if is_admin or not allowed_depts:
-            logs = all_logs
-        else:
-            current_email = session.get("email", "")
- 
-            def _log_allowed(log):
-                # Always show the current user's own activity
+        PAGE_TABLE_MAP = {
+            "scraping":   "scrapping_data",
+            "social":     "social_media_accounts",
+            "investment": "BS_Investment_Scam",
+        }
+
+        # Admin — sab kuch dikhao (but still filter by allowed_pages if not superadmin)
+        if is_admin:
+            allowed_tables = set(PAGE_TABLE_MAP[p] for p in allowed_pages if p in PAGE_TABLE_MAP)
+            if "investment" in allowed_pages:
+                allowed_tables.add("website_directory")
+
+            def _admin_log_allowed(log):
+                target_table = log.get("target_table") or ""
+                return target_table in allowed_tables
+
+            logs = list(filter(_admin_log_allowed, all_logs))
+            return jsonify({"success": True, "logs": logs})
+
+        # Non-admin — allowed_pages ke basis pe tables set karo
+        allowed_tables = set()
+        for page in allowed_pages:
+            if page in PAGE_TABLE_MAP:
+                allowed_tables.add(PAGE_TABLE_MAP[page])
+        # website_directory sirf tab dikhao jab investment allow ho
+        if "investment" in allowed_pages or "website_directory" in allowed_pages:
+            allowed_tables.add("website_directory")
+
+        current_email = session.get("email", "")
+
+        def _log_allowed(log):
+            target_table = log.get("target_table") or ""
+            action_type  = log.get("action_type") or ""
+
+            # Agar table allowed nahi hai toh hide karo
+            if not target_table or target_table not in allowed_tables:
+                return False
+
+            # Department restriction bhi hai toh extra check
+            if allowed_depts and target_table == "social_media_accounts":
+                # Apni khud ki activity hamesha dikhao
                 if log.get("user_email") == current_email:
                     return True
- 
-                target_table = log.get("target_table", "")
-                action_type  = log.get("action_type", "")
- 
-                # ── social_media_accounts logs ──────────────────────────
-                if target_table == "social_media_accounts":
- 
-                    # Other users' import logs → always hide
-                    if action_type == "import":
-                        return False
- 
-                    if action_type == "field_update":
-                        extra = log.get("extra_info") or {}
-                        # supabase-py returns JSONB as dict, guard against raw string
-                        if isinstance(extra, str):
-                            try:
-                                import json as _j
-                                extra = _j.loads(extra)
-                            except Exception:
-                                extra = {}
- 
-                        dept = extra.get("department", "")
-                        if not dept:
-                            return False
- 
-                        return dept in allowed_depts
- 
-                    # Any other action type on social table → hide from restricted users
+                # Doosron ki import activity hide karo
+                if action_type == "import":
                     return False
-                return True
- 
-            logs = [l for l in all_logs if _log_allowed(l)]
- 
+                # Field update mein department check karo
+                if action_type == "field_update":
+                    extra = log.get("extra_info") or {}
+                    if isinstance(extra, str):
+                        try:
+                            import json as _j
+                            extra = _j.loads(extra)
+                        except Exception:
+                            extra = {}
+                    dept = extra.get("department", "")
+                    return bool(dept and dept in allowed_depts)
+                return False
+            return True
+        logs = list(filter(_log_allowed, all_logs))
+        print(f"[UAL DEBUG] allowed_pages={allowed_pages}")
+        print(f"[UAL DEBUG] allowed_tables={allowed_tables}")
+        print(f"[UAL DEBUG] total logs={len(all_logs)}, filtered={len(logs)}")
+        # Sample target_tables from all_logs
+        sample_tables = list(set(l.get("target_table") for l in all_logs[:20]))
+        print(f"[UAL DEBUG] sample target_tables={sample_tables}")
         return jsonify({"success": True, "logs": logs})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -1030,8 +1005,6 @@ def export_user_activity_log():
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/")
-
-
 # ============================================================
 # SCRAPING TRACKER STATS
 # ============================================================
@@ -1080,8 +1053,6 @@ def scraping_tracker_stats():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-
 # ============================================================
 # MAIN DASHBOARD ROUTE
 # ============================================================
@@ -1090,11 +1061,9 @@ def scraping_tracker_stats():
 def index():
     user = get_current_user()
     allowed_pages = session.get("allowed_pages", [])
-
     page_type = request.args.get("page", "").strip()
     if not page_type or (page_type not in allowed_pages and page_type != 'insights'):
         page_type = allowed_pages[0] if allowed_pages else "scraping"
-
     search_query = request.args.get("search", "").strip()
     scam_filter = request.args.get("scam_type", "").strip()
     platform_filter = request.args.get("platform", "").strip()
@@ -1102,24 +1071,20 @@ def index():
     date_to = request.args.get("date_to", "").strip()
     date_filter = request.args.get("date_filter", "").strip()
     page = int(request.args.get("page_num", 1))
-
     social_search = request.args.get("social_search", "").strip()
     social_platform = request.args.get("social_platform", "").strip()
     social_permanent_block = request.args.get("permanent_block", "").strip()
     social_status_filter = request.args.get("social_status", "").strip()
     social_department_filter = request.args.get("social_department", "").strip()
-
     inv_search = request.args.get("inv_search", "").strip()
     inv_scam_type = request.args.get("inv_scam_type", "").strip()
     inv_search_for = request.args.get("inv_search_for", "").strip()
     inv_wallet = request.args.get("inv_wallet", "").strip()
     inv_date_from = request.args.get("inv_date_from", "").strip()
     inv_date_to = request.args.get("inv_date_to", "").strip()
-
     items = []
     total_rows = 0
     total_pages = 1
-
     if page_type == "scraping":
         try:
             query = supabase.table("scrapping_data").select("*", count='exact')
@@ -1152,7 +1117,6 @@ def index():
             total_rows = 0
             total_pages = 1
             flash(f"Error fetching scraping data: {str(e)}", "error")
-
     elif page_type == "social":
         try:
             query = social_supabase.table("social_media_accounts").select("*", count='exact')
@@ -1197,7 +1161,6 @@ def index():
             total_rows = 0
             total_pages = 1
             flash(f"Error fetching social media data: {str(e)}", "error")
-
     elif page_type == "investment":
         try:
             query = supabase.table("BS_Investment_Scam").select("*", count='exact')
@@ -1236,10 +1199,8 @@ def index():
             total_rows = 0
             total_pages = 1
             flash(f"Error fetching BS Investment Scam data: {str(e)}", "error")
-
     # Get clean display name for template
     clean_display_name = get_clean_display_name(session.get("display_name", "User"))
-
     return render_template(
         "index.html",
         page_type=page_type,
@@ -1277,8 +1238,6 @@ def index():
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
     )
-
-
 # ============================================================
 # BS Investment Scam Tracker Stats
 # ============================================================
@@ -1407,8 +1366,6 @@ def investment_export():
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=investment")
-
-
 # ============================================================
 # TRACKER STATS
 # ============================================================
@@ -1594,7 +1551,6 @@ def social_import():
         flash(f"Import Error: {str(e)}", "error")
     return redirect("/?page=social")
 
-
 @app.route("/social-export", methods=["GET"])
 @login_required
 def social_export():
@@ -1632,7 +1588,6 @@ def social_export():
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=social")
 
-
 @app.route("/get-sheet-headers/<sheet_type>", methods=["GET"])
 @login_required
 def get_sheet_headers_route(sheet_type):
@@ -1643,7 +1598,6 @@ def get_sheet_headers_route(sheet_type):
         return jsonify({"success": True, "sheet_name": sheet_name, "headers": headers, "headers_count": len(headers)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 
 @app.route("/download-template/<sheet_type>", methods=["GET"])
 @login_required
@@ -1666,7 +1620,6 @@ def download_template(sheet_type):
     except Exception as e:
         flash(f"Error generating template: {str(e)}", "error")
         return redirect("/?page=sheet")
-
 
 @app.route("/preview-sheet", methods=["POST"])
 @login_required
@@ -1712,7 +1665,6 @@ def preview_sheet():
     except Exception as e:
         return jsonify({"success": False, "error": f"Error previewing sheet: {str(e)}"})
 
-
 @app.route("/generate-sheet", methods=["POST"])
 @login_required
 def generate_sheet():
@@ -1757,7 +1709,6 @@ def generate_sheet():
         flash(f"Error generating sheet: {str(e)}", "error")
         return redirect("/?page=sheet")
 
-
 @app.route("/get-excel-headers", methods=["GET"])
 @login_required
 def get_excel_headers():
@@ -1771,7 +1722,6 @@ def get_excel_headers():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
 @app.route("/get-ifsc-headers", methods=["GET"])
 @login_required
 def get_ifsc_headers():
@@ -1781,7 +1731,6 @@ def get_ifsc_headers():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
 @app.route("/reload-data", methods=["POST"])
 @login_required
 def reload_data():
@@ -1790,8 +1739,6 @@ def reload_data():
         return jsonify({"success": True, "message": f"Data reloaded! Bank: {len(BANK_NAME_MAPPING)}, IFSC: {len(IFSC_MAPPING)}"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
-
 # ============================================================
 # SCRAPING DATA IMPORT — with activity logging
 # ============================================================
@@ -1843,7 +1790,6 @@ def upload():
         flash(f"Import Error: {str(e)}", "error")
     return redirect("/?page=scraping")
 
-
 @app.route("/export")
 @login_required
 def export():
@@ -1891,7 +1837,6 @@ def export():
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=scraping")
 
-
 @app.route("/parse-raw-file", methods=["POST"])
 @login_required
 def parse_raw_file():
@@ -1916,7 +1861,6 @@ def parse_raw_file():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -1998,34 +1942,28 @@ def save_social_field():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-
 @app.route("/get-permanent-block-accounts", methods=["GET"])
 @login_required
 def get_permanent_block_accounts():
     try:
         search   = request.args.get("search",   "").strip()
         platform = request.args.get("platform", "").strip()
- 
         query = social_supabase.table("social_media_accounts") \
             .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform,department") \
             .eq("account_status", "Permanent Block")
- 
         # ── Department filter ───────────────────────────────────────────
         # Always enforce for non-admins; admins see all
         is_admin     = session.get("is_admin", False)
         allowed_depts = session.get("allowed_departments")  # None = unrestricted
- 
         if not is_admin and allowed_depts:
             if len(allowed_depts) == 1:
                 query = query.eq("department", allowed_depts[0])
             else:
                 query = query.in_("department", allowed_depts)
         # If is_admin OR allowed_depts is None → no department filter applied
- 
         # ── Platform filter ────────────────────────────────────────────
         if platform:
             query = query.eq("platform", platform)
- 
         # ── Search filter ──────────────────────────────────────────────
         if search:
             like_term = f"%{search}%"
@@ -2035,16 +1973,13 @@ def get_permanent_block_accounts():
                 f"login_device.ilike.{like_term},"
                 f"platform.ilike.{like_term}"
             )
- 
         query = query.order("id", desc=False)
         response = query.execute()
- 
         accounts = []
         for item in (response.data or []):
             b_date_str      = item.get("blocked_date")        or ""
             create_date_str = item.get("account_create_date") or ""
             active_duration = "N/A"
- 
             if b_date_str and create_date_str:
                 try:
                     for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%Y/%m/%d"):
@@ -2059,7 +1994,6 @@ def get_permanent_block_accounts():
                             continue
                 except Exception:
                     pass
- 
             accounts.append({
                 "id":              item.get("id"),
                 "owned_by":        item.get("owned_by")    or "N/A",
@@ -2070,7 +2004,6 @@ def get_permanent_block_accounts():
                 "blocked_date":    b_date_str              or "N/A",
                 "active_duration": active_duration,
             })
- 
         return jsonify({"success": True, "accounts": accounts, "count": len(accounts)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -2083,7 +2016,6 @@ def check_duplicates():
         entries = data.get("entries", [])
         if not entries:
             return jsonify({"success": False, "error": "No entries provided"})
-
         results = []
         for entry in entries:
             val = str(entry.get("value", "")).strip()
@@ -2101,7 +2033,6 @@ def check_duplicates():
                         .select("Id, Bank_account_number, Inserted_date, Scam_type, Input_user")\
                         .ilike("Bank_account_number", val)\
                         .limit(10).execute()
-
                 found = res.data or []
                 results.append({
                     "value": val,
@@ -2120,11 +2051,9 @@ def check_duplicates():
                     "status": "ERROR", "count": 0,
                     "error": str(e)
                 })
-
         total = len(results)
         duplicates = sum(1 for r in results if r["status"] == "DUPLICATE")
         new_entries = sum(1 for r in results if r["status"] == "NEW")
-
         return jsonify({
             "success": True,
             "results": results,
@@ -2159,18 +2088,15 @@ def get_department_data_proxy():
         user_mail  = session.get("email", "")
         department = "Anti_Money_Laundering"
         role       = "Team_Lead"
-
         external_url = (
             f"https://mis-iw3m.onrender.com/getDepartmentData"
             f"?user_mail={urllib.parse.quote(user_mail)}"
             f"&department={urllib.parse.quote(department)}"
             f"&role={urllib.parse.quote(role)}"
         )
-
         req = urllib.request.Request(external_url, headers={"User-Agent": "Mozilla/5.0"})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-
         return jsonify(data)
     except Exception as e:
         print(f"[MIS PROXY] Error: {e}")
@@ -2183,7 +2109,6 @@ def insert_social_record():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
-
         DATE_FIELDS = {'blocked_date', 'unblock_date', 'account_create_date', 'recharge_date', 'sim_buy_date'}
         ALLOWED_FIELDS = [
             'platform', 'department', 'owned_by', 'login_user', 'number',
@@ -2192,7 +2117,6 @@ def insert_social_record():
             'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
             'account_type', 'mail_id', 'account_id', 'password', 'page_name'
         ]
-
         record = {}
         for field in ALLOWED_FIELDS:
             val = str(data.get(field, '')).strip()
@@ -2200,11 +2124,9 @@ def insert_social_record():
                 record[field] = val if val and val.upper() not in ('NA', 'N/A', 'NONE', 'NULL', '') else None
             else:
                 record[field] = val if val else "NA"
-
         # platform is required
         if not record.get('platform') or record['platform'] == 'NA':
             return jsonify({"success": False, "error": "Platform is required"})
-
         # get next id
         try:
             max_id_resp = social_supabase.table("social_media_accounts") \
@@ -2212,7 +2134,6 @@ def insert_social_record():
             record['id'] = int(max_id_resp.data[0]['id']) + 1 if max_id_resp.data else 1
         except Exception:
             pass
-
         resp = social_supabase.table("social_media_accounts").insert(record).execute()
         if resp.data:
             inserted = resp.data[0]
@@ -2225,11 +2146,9 @@ def insert_social_record():
         return jsonify({"success": False, "error": "Insert failed"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 # ============================================================
 # ADD THIS ROUTE TO app.py  (paste before the if __name__ == "__main__": block)
 # ============================================================
-
 @app.route("/insert-scraping-record", methods=["POST"])
 @login_required
 def insert_scraping_record():
@@ -2237,11 +2156,9 @@ def insert_scraping_record():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
-
         rows = data.get("rows", [])
         if not rows:
             return jsonify({"success": False, "error": "No rows provided"})
-
         ALLOWED_FIELDS = [
             "name", "platform", "post_url", "chat_number", "group_name",
             "scam_type", "share_status", "screenshot",
@@ -2250,17 +2167,14 @@ def insert_scraping_record():
             "extra_field_1", "extra_field_2", "extra_field_3",
             "extra_field_4", "extra_field_5"
         ]
-
         records = []
         today = datetime.now().strftime("%Y-%m-%d")
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
         for row in rows:
             record = {}
             for field in ALLOWED_FIELDS:
                 val = str(row.get(field, "")).strip()
                 record[field] = val if val else "NA"
-
             # defaults
             if record.get("inserted_date") in ("", "NA"):
                 record["inserted_date"] = today
@@ -2277,11 +2191,8 @@ def insert_scraping_record():
             for ef in ["extra_field_1","extra_field_2","extra_field_3","extra_field_4","extra_field_5"]:
                 if record.get(ef) in ("", "NA"):
                     record[ef] = "NA"
-
             records.append(record)
-
         resp = supabase.table("scrapping_data").insert(records).execute()
-
         if resp.data:
             log_activity(
                 action_type="import",
@@ -2289,9 +2200,7 @@ def insert_scraping_record():
                 extra_info={"file_name": "manual_insert", "records_count": len(records)}
             )
             return jsonify({"success": True, "records": resp.data, "count": len(resp.data)})
-
         return jsonify({"success": False, "error": "Insert returned no data"})
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
@@ -2303,23 +2212,18 @@ def check_scraping_duplicates():
         entries = data.get("entries", [])
         if not entries:
             return jsonify({"success": True, "results": []})
-
         results = []
         for entry in entries:
             gn = str(entry.get("group_name", "")).strip()
             cn = str(entry.get("chat_number", "")).strip()
-
             # Dono NA hain toh skip
             gn_empty = not gn or gn.upper() in ("NA", "N/A", "")
             cn_empty = not cn or cn.upper() in ("NA", "N/A", "")
-
             if gn_empty and cn_empty:
                 results.append({"status": "NEW", "count": 0})
                 continue
-
             try:
                 found = []
-
                 if not gn_empty and not cn_empty:
                     # Dono available — AND match
                     res = supabase.table("scrapping_data") \
@@ -2328,7 +2232,6 @@ def check_scraping_duplicates():
                         .ilike("chat_number", cn) \
                         .limit(10).execute()
                     found = res.data or []
-
                 elif not gn_empty:
                     # Sirf group_name
                     res = supabase.table("scrapping_data") \
@@ -2336,7 +2239,6 @@ def check_scraping_duplicates():
                         .ilike("group_name", gn) \
                         .limit(10).execute()
                     found = res.data or []
-
                 elif not cn_empty:
                     # Sirf chat_number
                     res = supabase.table("scrapping_data") \
@@ -2344,7 +2246,6 @@ def check_scraping_duplicates():
                         .ilike("chat_number", cn) \
                         .limit(10).execute()
                     found = res.data or []
-
                 results.append({
                     "status": "DUPLICATE" if found else "NEW",
                     "count": len(found),
@@ -2352,9 +2253,7 @@ def check_scraping_duplicates():
                 })
             except Exception as e:
                 results.append({"status": "ERROR", "count": 0, "error": str(e)})
-
         return jsonify({"success": True, "results": results})
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
@@ -2364,15 +2263,12 @@ def check_chat_number():
     try:
         data = request.get_json()
         chat_number = str(data.get("chat_number", "")).strip()
-
         if not chat_number or chat_number.upper() in ("NA", "N/A", ""):
             return jsonify({"exists": False})
-
         res = supabase.table("scrapping_data") \
             .select("id, inserted_date, name") \
             .ilike("chat_number", chat_number) \
             .limit(5).execute()
-
         found = res.data or []
         return jsonify({
             "exists": len(found) > 0,
@@ -2380,7 +2276,6 @@ def check_chat_number():
             "first_seen": found[0].get("inserted_date") if found else None,
             "inserted_by": found[0].get("name") if found else None,
         })
-
     except Exception as e:
         return jsonify({"exists": False, "error": str(e)})
     
@@ -2392,7 +2287,6 @@ def scrapping_summary_data():
         date_from = request.args.get("date_from", "").strip()
         date_to   = request.args.get("date_to",   "").strip()
         date_on   = request.args.get("date_on",   "").strip()   # single date shortcut
-
         CHUNK = 1000
         all_rows = []
         offset = 0
@@ -2412,7 +2306,6 @@ def scrapping_summary_data():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         return jsonify({"success": True, "rows": all_rows, "total": len(all_rows)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -2424,15 +2317,12 @@ def update_share_status():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
-        
         raw_ids = data.get("ids", [])
         new_status = data.get("status", "").strip()
-        
         if not raw_ids:
             return jsonify({"success": False, "error": "No IDs provided"})
         if new_status not in ["Pending", "Shared"]:
             return jsonify({"success": False, "error": "Invalid status"})
-        
         # Clean & parse IDs — accept int or string
         clean_ids = []
         for item in raw_ids:
@@ -2440,18 +2330,14 @@ def update_share_status():
                 clean_ids.append(int(str(item).strip()))
             except (ValueError, TypeError):
                 continue
-        
         if not clean_ids:
             return jsonify({"success": False, "error": "No valid numeric IDs found"})
-        
         # Bulk update in Supabase
         resp = supabase.table("scrapping_data") \
             .update({"share_status": new_status}) \
             .in_("id", clean_ids) \
             .execute()
-        
         updated_count = len(resp.data) if resp.data else 0
-        
         log_activity(
             action_type="field_update",
             target_table="scrapping_data",
@@ -2460,7 +2346,6 @@ def update_share_status():
             new_value=new_status,
             extra_info={"ids": clean_ids, "count": updated_count}
         )
-        
         return jsonify({
             "success": True,
             "updated": updated_count,
@@ -2574,7 +2459,6 @@ def my_scraping_count():
         return jsonify({"success": True, "count": resp.count or 0})
     except Exception as e:
         return jsonify({"success": False, "count": 0, "error": str(e)})
-    
 # ============================================================
 # INSIGHTS — BS Investment Scam Analytics
 # ============================================================
@@ -2589,7 +2473,6 @@ def investment_insights_data():
         wallet      = request.args.get("wallet",      "").strip()
         input_user  = request.args.get("input_user",  "").strip()
         is_sm_search = search_for in ("__SM__", "SM Counts")
-
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
@@ -2612,9 +2495,7 @@ def investment_insights_data():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
-
         # ---------- unique UPI per date ----------
         upi_by_date = {}
         upi_set = set()
@@ -2646,7 +2527,6 @@ def investment_insights_data():
         for d in sorted(upi_by_date.keys()):
             seen_upis.update(upi_by_date[d])
             upi_series[d] = len(upi_by_date[d])
-
         def _trend_bucket(start_date, end_date):
             case_count = 0
             upis = set()
@@ -2667,7 +2547,6 @@ def investment_insights_data():
                 "upi": len(upis),
                 "bank": len(banks),
             }
-
         def _trend_series(start_date, end_date):
             buckets = {}
             current_date = start_date
@@ -2692,12 +2571,10 @@ def investment_insights_data():
                 "upi": [len(buckets[d]["upis"]) for d in ordered_dates],
                 "bank": [len(buckets[d]["banks"]) for d in ordered_dates],
             }
-
         def _trend_metric(current_value, previous_value):
             delta = current_value - previous_value
             pct = None if previous_value == 0 else round((delta / previous_value) * 100, 1)
             return {"current": current_value, "previous": previous_value, "delta": delta, "percent": pct}
-
         if dated_rows:
             trend_end = max(parsed_date for _, parsed_date in dated_rows)
             trend_start = trend_end - timedelta(days=29)
@@ -2722,7 +2599,6 @@ def investment_insights_data():
             "bank": _trend_metric(current_trend["bank"], previous_trend["bank"]),
             "series": _trend_series(trend_start, trend_end),
         }
-
         # ---------- user counts per date ----------
         user_by_date = {}
         for r in rows:
@@ -2733,13 +2609,11 @@ def investment_insights_data():
                 user_by_date[d] = {}
             user_by_date[d][user] = user_by_date[d].get(user, 0) + 1
         all_users = sorted({u for dmap in user_by_date.values() for u in dmap})
-
         # ---------- scam type counts ----------
         scam_counts = {}
         for r in rows:
             st = (r.get("scam_type") or "Unknown").strip() or "Unknown"
             scam_counts[st] = scam_counts.get(st, 0) + 1
-
         # ---------- search_for counts ----------
         sf_counts = {}
         for r in rows:
@@ -2799,7 +2673,6 @@ def investment_insights_data():
                 "unique_upi":  len(u_upi_set),
                 "unique_bank": len(u_bank_set),
             }
-
         return jsonify({
             "success": True,
             "total_rows": len(rows),
@@ -2829,7 +2702,6 @@ def investment_bank_data():
         wallet     = request.args.get("wallet",     "").strip()
         input_user = request.args.get("input_user", "").strip()
         is_sm_search = search_for in ("__SM__", "SM Counts")
-
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
@@ -2851,7 +2723,6 @@ def investment_bank_data():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         rows = [{k.lower(): v for k, v in r.items()} for r in all_rows]
         bank_counts = {}
         for r in rows:
@@ -2859,16 +2730,13 @@ def investment_bank_data():
             if not bn or bn.upper() in ("NA", "N/A", "") or bn.lower() == "unknown":
                 continue
             bank_counts[bn] = bank_counts.get(bn, 0) + 1
-
         sorted_banks = sorted(bank_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-
         monthly_counts = {}
         for r in rows:
             d = (r.get("inserted_date") or "")[:7]
             if not d:
                 continue
             monthly_counts[d] = monthly_counts.get(d, 0) + 1
-
         return jsonify({
             "success": True,
             "bank_counts": dict(sorted_banks),
@@ -2876,7 +2744,6 @@ def investment_bank_data():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-    
 # ============================================================
 # WEBSITE DIRECTORY — LIST / FILTER
 # ============================================================
@@ -2885,7 +2752,6 @@ def investment_bank_data():
 def website_directory():
     user = get_current_user()
     allowed_pages = session.get("allowed_pages", [])
-
     wd_search    = request.args.get("wd_search",   "").strip()
     wd_remark    = request.args.get("wd_remark",   "").strip()
     wd_category  = request.args.get("wd_category", "").strip()
@@ -2893,11 +2759,9 @@ def website_directory():
     wd_date_from = request.args.get("wd_date_from","").strip()
     wd_date_to   = request.args.get("wd_date_to",  "").strip()
     page = int(request.args.get("page_num", 1))
-
     items = []
     total_rows = 0
     total_pages = 1
-
     try:
         query = supabase.table("website_directory").select("*", count="exact")
         query = query.or_("remark.is.null,remark.eq.NA,remark.eq.,remark.eq.IPG")
@@ -2930,7 +2794,6 @@ def website_directory():
             query = query.gte("date", wd_date_from)
         if wd_date_to:
             query = query.lte("date", wd_date_to)
-
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -2940,7 +2803,6 @@ def website_directory():
         total_pages = max(1, math.ceil(total_rows / PER_PAGE))
     except Exception as e:
         flash(f"Error fetching website directory: {e}", "error")
-
     clean_display_name = get_clean_display_name(session.get("display_name", "User"))
     return render_template(
         "website_directory.html",
@@ -2975,7 +2837,6 @@ def website_directory_import():
     if not is_allowed_file(file.filename):
         flash("Unsupported file type.", "error")
         return redirect("/website-directory")
-
     try:
         filename = secure_filename(file.filename)
         temp_path = os.path.join(tempfile.gettempdir(), filename)
@@ -2984,7 +2845,6 @@ def website_directory_import():
         df = read_data_file(temp_path, file_ext)
         df.columns = df.columns.astype(str).str.strip()
         df = df.fillna("")
-
         COL_MAP = {
             "date":             ["date", "Date", "DATE"],
             "name":             ["name", "Name", "NAME"],
@@ -3003,7 +2863,6 @@ def website_directory_import():
             "automated_website":["automated_website", "Automated Website", "AutomatedWebsite", "automated"],
             "payment_gateway":  ["payment_gateway", "Payment Gateway", "PaymentGateway", "gateway"],
         }
-
         def resolve_col(target_cols):
             for c in target_cols:
                 if c in df.columns:
@@ -3013,7 +2872,6 @@ def website_directory_import():
                     if c.lower() == col.lower():
                         return col
             return None
-
         DATE_FIELDS = {"date"}
         records = []
         for _, row in df.iterrows():
@@ -3026,7 +2884,6 @@ def website_directory_import():
                 else:
                     rec[db_col] = val if val else "NA"
             records.append(rec)
-
         supabase.table("website_directory").insert(records).execute()
         log_activity(
             action_type="import",
@@ -3038,7 +2895,6 @@ def website_directory_import():
     except Exception as e:
         flash(f"Import Error: {e}", "error")
     return redirect("/website-directory")
-
 # ============================================================
 # WEBSITE DIRECTORY — EXPORT
 # ============================================================
@@ -3052,7 +2908,6 @@ def website_directory_export():
         wd_search_for = request.args.get("wd_search_for","").strip()
         wd_date_from  = request.args.get("wd_date_from", "").strip()
         wd_date_to    = request.args.get("wd_date_to",   "").strip()
-
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
@@ -3087,7 +2942,6 @@ def website_directory_export():
             if len(rows) < CHUNK:
                 break
             offset += CHUNK
-
         df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
         output = io.StringIO()
         df.to_csv(output, index=False, encoding="utf-8-sig")
@@ -3111,7 +2965,6 @@ def website_directory_tracker_stats():
     try:
         CHUNK = 1000
         all_rows, offset = [], 0
-
         # ── Fetch ALL rows first ──
         while True:
             resp = supabase.table("website_directory") \
@@ -3123,7 +2976,6 @@ def website_directory_tracker_stats():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         # ── Aggregation AFTER loop ──
         cat_counts        = {}
         sf_counts         = {}
@@ -3131,7 +2983,6 @@ def website_directory_tracker_stats():
         daily_counts      = {}
         user_total_counts = {}
         user_cat_counts   = {}
-
         for row in all_rows:
             cat  = (row.get("category")   or "Unknown").strip() or "Unknown"
             sf   = (row.get("search_for") or "Unknown").strip() or "Unknown"
@@ -3140,21 +2991,16 @@ def website_directory_tracker_stats():
             user = (row.get("name")       or "Unknown").strip() or "Unknown"
             if user.upper() in ("NA", "N/A", ""):
                 user = "Unknown"
-
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
             sf_counts[sf]   = sf_counts.get(sf,  0) + 1
-
             if rem and rem.upper() not in ("NA", "N/A", ""):
                 remark_counts[rem] = remark_counts.get(rem, 0) + 1
-
             if dt:
                 daily_counts[dt] = daily_counts.get(dt, 0) + 1
-
             user_total_counts[user] = user_total_counts.get(user, 0) + 1
             if user not in user_cat_counts:
                 user_cat_counts[user] = {}
             user_cat_counts[user][cat] = user_cat_counts[user].get(cat, 0) + 1
-
         return jsonify({
             "success": True,
             "total": len(all_rows),
@@ -3169,7 +3015,6 @@ def website_directory_tracker_stats():
             ),
             "user_cat_counts": user_cat_counts,
         })
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 # ============================================================
@@ -3182,7 +3027,6 @@ def website_directory_insert():
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"})
-
         ALLOWED = [
             "date","name","url","final_url","invitation_code","search_for",
             "group_app_name","number","email","login_id","password",
@@ -3195,7 +3039,6 @@ def website_directory_insert():
                 record[f] = val if val and val.upper() not in ("NA","N/A","") else None
             else:
                 record[f] = val if val else "NA"
-
         resp = supabase.table("website_directory").insert(record).execute()
         if resp.data:
             log_activity(
@@ -3235,7 +3078,6 @@ def website_directory_update():
                 record[f] = val  # Allow empty string for remark
             else:
                 record[f] = val if val else "NA"
-
         resp = supabase.table("website_directory").update(record).eq("id", rid).execute()
         if resp.data:
             log_activity(
@@ -3357,15 +3199,10 @@ def website_directory_template():
 @app.route("/website-directory-user-summary", methods=["GET"])
 @login_required
 def website_directory_user_summary():
-    """
-    Returns count of website_directory records grouped by name (user),
-    optionally filtered by date range.
-    """
     try:
         date_from = request.args.get("date_from", "").strip()
         date_to   = request.args.get("date_to",   "").strip()
         date_on   = request.args.get("date_on",   "").strip()
-
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
@@ -3383,7 +3220,6 @@ def website_directory_user_summary():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         user_counts = {}
         for row in all_rows:
             name = (row.get("name") or "Unknown").strip() or "Unknown"
@@ -3394,20 +3230,14 @@ def website_directory_user_summary():
         return jsonify({"success": True, "user_counts": user_counts, "total": len(all_rows)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-    
+
 @app.route("/website-directory-summary-stats", methods=["GET"])
 @login_required
 def website_directory_summary_stats():
-    """
-    Returns count of website_directory records grouped by category,
-    optionally filtered by date range (date column).
-    Used by Scrapping Summary → Category/Platform wise summary.
-    """
     try:
         date_from = request.args.get("date_from", "").strip()
         date_to   = request.args.get("date_to",   "").strip()
         date_on   = request.args.get("date_on",   "").strip()
-
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
@@ -3425,14 +3255,12 @@ def website_directory_summary_stats():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
-
         cat_counts = {}
         for row in all_rows:
             cat = (row.get("category") or "Unknown").strip() or "Unknown"
             if cat.upper() in ("NA", "N/A", ""):
                 cat = "Unknown"
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
-
         return jsonify({"success": True, "cat_counts": cat_counts, "total": len(all_rows)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
@@ -3462,16 +3290,13 @@ def social_search_ajax():
         status = request.args.get("status", "").strip()
         department = request.args.get("department", "").strip()
         permanent_block = request.args.get("permanent_block", "").strip()
-
         q = social_supabase.table("social_media_accounts").select("*", count='exact')
-
         allowed_depts = session.get("allowed_departments")
         if allowed_depts:
             if len(allowed_depts) == 1:
                 q = q.eq("department", allowed_depts[0])
             else:
                 q = q.in_("department", allowed_depts)
-
         if query:
             like_term = f"%{query}%"
             q = q.or_(
@@ -3502,28 +3327,19 @@ def social_search_ajax():
                 q = q.eq("account_status", status)
             else:
                 q = q.neq("account_status", "Permanent Block")
-
         q = q.order("id", desc=False).range(0, 999)
         resp = q.execute()
         items = [dict(row) for row in (resp.data or [])]
         total = resp.count or len(items)
-
         return jsonify({"success": True, "items": items, "total": total})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 # ============================================================
 # TOTAL NUMBERS — Public Read-Only API
 # ============================================================
-
 TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator"
 @app.route("/api/total-numbers", methods=["GET"])
 def api_total_numbers_list():
-    """
-    GET /api/total-numbers
-    Public read-only — no login required.
-    Returns all Total Numbers records (7 columns only).
-    Query params: department, account_status, number_type, sim_operator, search, page, per_page
-    """
     try:
         department     = request.args.get("department",     "").strip()
         account_status = request.args.get("account_status", "").strip()
@@ -3532,11 +3348,9 @@ def api_total_numbers_list():
         search         = request.args.get("search",         "").strip()
         page           = max(1, int(request.args.get("page",     1)))
         per_page       = min(500, max(1, int(request.args.get("per_page", 100))))
-
         query = social_supabase.table("social_media_accounts") \
             .select(TN_COLUMNS, count="exact") \
             .eq("platform", "Total Numbers")
-
         if department:
             query = query.eq("department", department)
         if account_status:
@@ -3556,15 +3370,12 @@ def api_total_numbers_list():
                 f"sim_operator.ilike.{lt},"
                 f"department.ilike.{lt}"
             )
-
         offset = (page - 1) * per_page
         resp   = query.order("id", desc=False) \
                       .range(offset, offset + per_page - 1) \
                       .execute()
-
         items      = resp.data or []
         total_rows = resp.count or 0
-
         return jsonify({
             "success":     True,
             "total":       total_rows,
@@ -3576,13 +3387,8 @@ def api_total_numbers_list():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @app.route("/api/total-numbers/<int:record_id>", methods=["GET"])
 def api_total_numbers_get(record_id):
-    """
-    GET /api/total-numbers/<id>
-    Public read-only — fetch single record by ID.
-    """
     try:
         resp = social_supabase.table("social_media_accounts") \
             .select(TN_COLUMNS) \
@@ -3590,46 +3396,33 @@ def api_total_numbers_get(record_id):
             .eq("platform", "Total Numbers") \
             .limit(1) \
             .execute()
-
         if not resp.data:
             return jsonify({"success": False, "error": "Record not found"}), 404
-
         return jsonify({"success": True, "record": resp.data[0]})
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @app.route("/api/total-numbers/stats", methods=["GET"])
 def api_total_numbers_stats():
-    """
-    GET /api/total-numbers/stats
-    Public read-only — summary counts by status, number_type, department, sim_operator.
-    """
     try:
         resp = social_supabase.table("social_media_accounts") \
             .select(TN_COLUMNS) \
             .eq("platform", "Total Numbers") \
             .execute()
-
         rows = resp.data or []
-
         status_counts   = {}
         num_type_counts = {}
         dept_counts     = {}
         sim_op_counts   = {}
-
         for r in rows:
             s  = (r.get("account_status") or "Unknown").strip()
             nt = (r.get("number_type")    or "Unknown").strip()
             d  = (r.get("department")     or "Unknown").strip()
             so = (r.get("sim_operator")   or "Unknown").strip()
-
             status_counts[s]   = status_counts.get(s,   0) + 1
             num_type_counts[nt] = num_type_counts.get(nt, 0) + 1
             dept_counts[d]     = dept_counts.get(d,     0) + 1
             sim_op_counts[so]  = sim_op_counts.get(so,  0) + 1
-
         return jsonify({
             "success":        True,
             "total":          len(rows),
@@ -3640,9 +3433,314 @@ def api_total_numbers_stats():
                 sorted(sim_op_counts.items(), key=lambda x: x[1], reverse=True)
             )
         })
-
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    
+# ============================================================
+# SCREENSHOT CAPTURE — Playwright-based
+# ============================================================
+import asyncio
+import base64
+import uuid as _uuid
+from pathlib import Path as _Path
+from io import BytesIO
+
+# Job store — in-memory (Render restart pe clear ho jaega, acceptable hai)
+_SC_JOBS = {}  # job_id -> {status, log, result, progress, total}
+
+def _sc_run_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64):
+    import threading
+    def _worker():
+        try:
+            asyncio.run(_sc_async_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64))
+        except Exception as e:
+            _SC_JOBS[job_id]['status'] = 'error'
+            _SC_JOBS[job_id]['log'].append(f'[FATAL] {str(e)}')
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+async def _sc_async_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64):
+    from playwright.async_api import async_playwright
+    from PIL import Image
+    import boto3, time, tempfile, os
+
+    job = _SC_JOBS[job_id]
+    job['status'] = 'running'
+    job['total'] = len(rows)
+    job['progress'] = 0
+    job['results'] = []
+
+    def log(msg):
+        job['log'].append(f'[{datetime.now().strftime("%H:%M:%S")}] {msg}')
+
+    log(f'Starting job — Platform: {platform}, Mode: {session_mode}, URLs: {len(rows)}')
+
+    # Decode URL bar image
+    urlbar_img = None
+    if urlbar_b64:
+        try:
+            urlbar_img = Image.open(BytesIO(base64.b64decode(urlbar_b64))).convert('RGBA')
+        except Exception as e:
+            log(f'URL bar image load failed: {e}')
+
+    def replace_url_text(urlbar_pil, url_text):
+        from PIL import ImageDraw, ImageFont
+        img = urlbar_pil.copy()
+        draw = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype('segoeui.ttf', 18)
+        except:
+            font = ImageFont.load_default()
+        draw.rectangle([(195, 10), (1680, 40)], fill=(237, 241, 250, 255))
+        draw.text((200, 16), url_text[:150], font=font, fill=(60, 60, 60, 255))
+        return img
+
+    def merge_vertical(top_pil, bottom_bytes):
+        top = top_pil.convert('RGBA')
+        bottom = Image.open(BytesIO(bottom_bytes)).convert('RGBA')
+        if top.width != bottom.width:
+            ratio = top.width / bottom.width
+            bottom = bottom.resize((top.width, int(bottom.height * ratio)))
+        result = Image.new('RGBA', (top.width, top.height + bottom.height))
+        result.paste(top, (0, 0))
+        result.paste(bottom, (0, top.height))
+        buf = BytesIO()
+        result.convert('RGB').save(buf, 'JPEG', quality=90)
+        return buf.getvalue()
+
+    def upload_s3(img_bytes, s3_creds):
+        try:
+            import boto3
+            s3 = boto3.client(
+                's3',
+                aws_access_key_id=s3_creds['key_id'],
+                aws_secret_access_key=s3_creds['secret'],
+                region_name='us-west-2'
+            )
+            ts = int(time.time())
+            uid = str(_uuid.uuid4())
+            date_str = datetime.today().strftime('%Y-%m-%d')
+            img_name = f'{ts}{uid}{date_str}.jpg'
+            s3_path = f"mFilterIt/{date_str}/{img_name}"
+            s3.put_object(
+                Bucket=s3_creds['bucket'],
+                Key=s3_path,
+                Body=img_bytes,
+                ContentType='image/jpeg'
+            )
+            return f"{s3_creds['cf_url']}/{s3_path}"
+        except Exception as e:
+            log(f'S3 upload error: {e}')
+            return None
+
+    async with async_playwright() as p:
+        launch_args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        headless = (browser_mode == 'Headless')
+        browser = await p.chromium.launch(headless=headless, args=launch_args)
+        context = await browser.new_context(viewport={'width': 1920, 'height': 1080})
+        page = await context.new_page()
+
+        log('Browser launched')
+
+        if wait_time > 0:
+            log(f'Waiting {wait_time}s before start...')
+            await asyncio.sleep(wait_time)
+
+        for i, row in enumerate(rows):
+            if job.get('stop_requested'):
+                log('Stop requested by user')
+                break
+
+            url = (row.get('Processed_URL') or row.get('Post_URL') or '').strip()
+            if not url:
+                log(f'Row {i+1}: Empty URL, skipping')
+                job['results'].append({'Post_URL': url, 'Processed_URL': '', 'S3_Screenshot_Link': ''})
+                continue
+
+            log(f'Processing ({i+1}/{len(rows)}): {url}')
+
+            try:
+                await page.goto(url, timeout=30000, wait_until='domcontentloaded')
+                zoom_js = f"document.body.style.zoom='{tab_size}%'"
+
+                if platform == 'Telegram' and session_mode == 'Login':
+                    await page.evaluate(zoom_js)
+                    # Click Web button
+                    try:
+                        await page.click('a.tgme_action_button_new', timeout=5000)
+                        log('Clicked Telegram Web button')
+                        await asyncio.sleep(3)
+                    except:
+                        pass
+                    # Click side panel
+                    try:
+                        await page.click('.ToggleBtn', timeout=3000)
+                        log('Clicked side panel')
+                        await asyncio.sleep(2)
+                    except:
+                        pass
+                    await page.evaluate(zoom_js)
+                    # Crop screenshot (left portion)
+                    screenshot_bytes = await page.screenshot(
+                        clip={'x': 500, 'y': 0, 'width': 1420, 'height': 1000}
+                    )
+                else:
+                    await page.evaluate(zoom_js)
+                    await asyncio.sleep(2)
+                    page_screenshot = await page.screenshot(full_page=False)
+                    current_url = page.url
+                    url_display = current_url.replace('https://', '').replace('http://', '').rstrip('/')[:150]
+
+                    if urlbar_img:
+                        url_bar_with_text = replace_url_text(urlbar_img, url_display)
+                        screenshot_bytes = merge_vertical(url_bar_with_text, page_screenshot)
+                    else:
+                        screenshot_bytes = page_screenshot
+
+                processed_url = page.url
+                s3_url = upload_s3(screenshot_bytes, s3_creds) or ''
+                log(f'Done ({i+1}): {s3_url or "Upload failed"}')
+
+                job['results'].append({
+                    'Post_URL': url,
+                    'Processed_URL': processed_url,
+                    'S3_Screenshot_Link': s3_url
+                })
+
+            except Exception as e:
+                log(f'Error on row {i+1}: {str(e)}')
+                job['results'].append({'Post_URL': url, 'Processed_URL': '', 'S3_Screenshot_Link': ''})
+
+            job['progress'] = i + 1
+            job['status'] = 'running'
+
+        await browser.close()
+
+    job['status'] = 'done'
+    log(f'Job complete — {len([r for r in job["results"] if r["S3_Screenshot_Link"]])} successful')
+
+
+@app.route('/screenshot-capture', methods=['GET'])
+@login_required
+def screenshot_capture():
+    if 'scraping' not in session.get('allowed_pages', []):
+        flash("Access denied.", "error")
+        return redirect("/")
+    user = get_current_user()
+    allowed_pages = session.get('allowed_pages', [])
+    clean_display_name = get_clean_display_name(session.get('display_name', 'User'))
+    return render_template(
+        'screenshot_capture.html',
+        current_user=user,
+        allowed_pages=allowed_pages,
+        display_name=session.get('display_name', 'User'),
+        clean_display_name=clean_display_name,
+        can_view_activity_log=session.get('can_view_activity_log', False),
+    )
+
+@app.route('/sc-start-job', methods=['POST'])
+@login_required
+def sc_start_job():
+    try:
+        platform      = request.form.get('platform', 'Facebook')
+        session_mode  = request.form.get('session_mode', 'Without Login')
+        browser_mode  = request.form.get('browser_mode', 'Headless')
+        tab_size      = int(request.form.get('tab_size', 100))
+        wait_time     = int(request.form.get('wait_time', 3))
+
+        file = request.files.get('file')
+        if not file or file.filename == '':
+            return jsonify({'success': False, 'error': 'No file uploaded'})
+
+        filename = secure_filename(file.filename)
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'csv'
+
+        import tempfile, os
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.' + ext)
+        file.save(tmp.name)
+        tmp.close()
+
+        df = read_data_file(tmp.name, ext)
+        os.unlink(tmp.name)
+
+        if 'Post_URL' not in df.columns:
+            return jsonify({'success': False, 'error': "File must have 'Post_URL' column"})
+
+        rows = df.fillna('').to_dict(orient='records')
+
+        # URL bar image
+        urlbar_b64 = None
+        urlbar_file = request.files.get('urlbar_image')
+        if urlbar_file and urlbar_file.filename:
+            urlbar_b64 = base64.b64encode(urlbar_file.read()).decode()
+            def _s3val(key, default):
+               v = request.form.get(key, '').strip()
+               return v if v else default
+
+        s3_creds = {
+            'key_id':  _s3val('s3_key_id',  os.environ.get('S3_KEY_ID', '')),
+            'secret':  _s3val('s3_secret',  os.environ.get('S3_SECRET', '')),
+            'bucket':  _s3val('s3_bucket',  os.environ.get('S3_BUCKET', 'mf-infringement-bucket-manual-social-media')),
+            'cf_url':  _s3val('s3_cf_url',  os.environ.get('S3_CF_URL', 'http://d13uxlm82x9iqw.cloudfront.net')),
+        }
+
+        job_id = str(_uuid.uuid4())[:8]
+        _SC_JOBS[job_id] = {
+            'status': 'queued', 'log': [], 'results': [],
+            'progress': 0, 'total': len(rows),
+            'stop_requested': False,
+            'started_at': datetime.now().isoformat(),
+        }
+
+        _sc_run_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64)
+
+        return jsonify({'success': True, 'job_id': job_id, 'total': len(rows)})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/sc-job-status/<job_id>', methods=['GET'])
+@login_required
+def sc_job_status(job_id):
+    job = _SC_JOBS.get(job_id)
+    if not job:
+        return jsonify({'success': False, 'error': 'Job not found'})
+    return jsonify({
+        'success':  True,
+        'status':   job['status'],
+        'progress': job['progress'],
+        'total':    job['total'],
+        'log':      job['log'][-50:],  # last 50 lines
+    })
+
+
+@app.route('/sc-stop-job/<job_id>', methods=['POST'])
+@login_required
+def sc_stop_job(job_id):
+    job = _SC_JOBS.get(job_id)
+    if job:
+        job['stop_requested'] = True
+    return jsonify({'success': True})
+
+
+@app.route('/sc-download-results/<job_id>', methods=['GET'])
+@login_required
+def sc_download_results(job_id):
+    job = _SC_JOBS.get(job_id)
+    if not job or not job.get('results'):
+        return jsonify({'success': False, 'error': 'No results'})
+    df = pd.DataFrame(job['results'])
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig')
+    output.seek(0)
+    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        download_name=f'screenshot_results_{ts}.csv',
+        as_attachment=True,
+        mimetype='text/csv'
+    )
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

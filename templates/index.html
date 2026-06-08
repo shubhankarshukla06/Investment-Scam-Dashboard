@@ -10,21 +10,28 @@
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
             body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
-            .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: 100px; padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
+            :root { --fixed-header-space: 100px; }
+            .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: var(--fixed-header-space); padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
             .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
-            .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; }
-            .logo { display: flex; flex-direction: column; gap: 0px; }
-            .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-            .logo h1 { font-size: 18px; color: #2c3e50; }
+            .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+            .logo { display: flex; flex-direction: column; justify-content: center; gap: 4px; flex: 1 1 auto; min-width: 0; }
+            .logo-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; min-width: 0; line-height: 1.15; }
+            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; margin: 0; font-weight: 600; margin-top: 2px; }
+            .logo h1 { font-size: 18px; line-height: 1.15; color: #2c3e50; white-space: nowrap; flex: 0 0 auto; }
             .header-username {
                 font-size: 12px;
+                line-height: 1.15;
                 color: #7f8c8d;
                 font-weight: 500;
                 border-left: 1.5px solid #dde3ed;
                 padding-left: 10px;
                 white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
             }
-            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; min-height: 16px; font-weight: 600; display: block; visibility: visible; }
+            .logo p { color: #7f8c8d; font-size: 12px; line-height: 1.2; margin: 0; font-weight: 600; }
+            .header-controls { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 0 0 auto; }
             .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; box-shadow: -2px -2px 6px rgba(0,0,0,0.12); }
             .dev-credit-footer span { color: #3498db; font-weight: 700; }
             .header-controls { display: flex; align-items: center; gap: 10px; }
@@ -709,7 +716,13 @@
             .upi-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: upiPulse 2s infinite; }
             @keyframes upiPulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{opacity:.7;box-shadow:0 0 0 4px rgba(34,197,94,0)} }
             @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } }
-            @media (max-width: 768px) { .container { padding-top: 120px; padding-bottom: 20px; } .header { flex-direction: column; gap: 10px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
+            @media (max-width: 900px) {
+            .header { align-items: flex-start; flex-direction: column; }
+            .header-controls { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
+            .logo-title-row { flex-wrap: wrap; }
+            .logo h1 { white-space: normal; }
+        }
+        @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
         </style>
     </head>
     <body>
@@ -827,10 +840,18 @@
                     </div>
                     <select id="ualPageFilter" onchange="filterUAL()">
                         <option value="">All Pages</option>
+                        {% if 'social' in allowed_pages %}
                         <option value="social_media_accounts">Social Media Accounts</option>
+                        {% endif %}
+                        {% if 'scraping' in allowed_pages %}
                         <option value="scrapping_data">Scrapping Data</option>
+                        {% endif %}
+                        {% if 'investment' in allowed_pages %}
                         <option value="BS_Investment_Scam">BS Investment Scam</option>
+                        {% endif %}
+                        {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
                         <option value="website_directory">Scam++ Website Directory</option>
+                        {% endif %}
                     </select>
                     <select id="ualActionFilter" onchange="filterUAL()">
                         <option value="">All Actions</option>
@@ -849,11 +870,13 @@
         <div class="fixed-header">
             <div class="header">
                 <div class="logo">
-                    <div class="logo-title-row">
-                        <h1>Scam Intelligence GUI</h1>
-                        <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
-                    </div>
-                    <p id="pageSubtitle">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <div style="min-width:0;">
+                            <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
+                                <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
+                                <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+                            </div>
+                            <p id="pageSubtitle" style="margin-top:2px;">
                         {% if page_type == 'scraping' %}Scrapping Data Management &amp; Filtering
                         {% elif page_type == 'sheet' %}Summary &amp; Sheet Generator
                         {% elif page_type == 'social' %}Social Media Accounts Management
@@ -862,7 +885,9 @@
                         {% else %}Dashboard{% endif %}
                     </p>
                 </div>
-                <div class="header-controls">
+            </div>
+        </div>
+        <div class="header-controls">
                     <div class="page-selector">
                             <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changePageFromWD(this.value)">
                             {% if 'scraping' in allowed_pages %}
@@ -883,6 +908,9 @@
                             {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
                             <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
                             {% endif %}
+                            {% if 'scraping' in allowed_pages %}
+                            <option value="screenshot_capture">Screenshot Capture GUI</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div class="header-actions">
@@ -894,7 +922,7 @@
                             <input type="hidden" name="date_from" value="{{ date_from }}">
                             <input type="hidden" name="date_to" value="{{ date_to }}">
                             <input type="hidden" name="share_status" value="{{ request.args.get('share_status', '') }}">
-                            <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
+                            <button type="submit" class="btn btn-primary" style="display:inline-flex;" onclick="showToast('Downloading Scraping Data...', false, false)"><i class="fas fa-file-export"></i> Export</button>
                         </form>
                         <button type="button" class="btn btn-warning" onclick="showScrapingTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
                         <form id="importForm" action="/upload" method="POST" enctype="multipart/form-data" style="display:inline;">
@@ -910,7 +938,7 @@
                         <form action="/social-export" method="GET" style="display:inline;">
                             <input type="hidden" name="social_search" value="{{ social_search }}">
                             <input type="hidden" name="social_platform" value="{{ social_platform }}">
-                            <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
+                            <button type="submit" class="btn btn-primary" onclick="showToast('Downloading Social Media Data...', false, false)"><i class="fas fa-file-export"></i> Export</button>
                         </form>
                         {% elif page_type == 'investment' %}
                         <button type="button" class="btn btn-warning" onclick="showInvestmentTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
@@ -921,7 +949,7 @@
                             <input type="hidden" name="inv_wallet" value="{{ inv_wallet }}">
                             <input type="hidden" name="inv_date_from" value="{{ inv_date_from }}">
                             <input type="hidden" name="inv_date_to" value="{{ inv_date_to }}">
-                            <button type="submit" class="btn btn-primary" onclick="showLoading()"><i class="fas fa-file-export"></i> Export</button>
+                            <button type="submit" class="btn btn-primary" onclick="showToast('Downloading Investment Data...', false, false)"><i class="fas fa-file-export"></i> Export</button>
                         </form>
                         {% endif %}
                         <button type="button" class="btn btn-outline" onclick="window.location.reload()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
@@ -2382,6 +2410,10 @@
                     window.location.href = '/website-directory';
                     return;
                 }
+                if (pageType === 'screenshot_capture') {
+                    window.location.href = '/screenshot-capture';
+                    return;
+                }
                 const url = new URL(window.location.href);
                 url.searchParams.set('page', pageType);
                 url.searchParams.delete('page_num');
@@ -3372,9 +3404,8 @@
                 const fileInput = document.getElementById('fileUpload');
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
-                showLoading();
+                showToast('Generating sheet, please wait...', false, false);
                 document.getElementById('sheetForm').submit();
-                setTimeout(hideLoading, 3000);
             }
             // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
             function onSummaryTypeChange() {
@@ -3665,7 +3696,6 @@
                     "Sheetal Dubey",
                     "Parul Satsangi",
                     "Honey Singhal",
-                    "Ananya Verma",
                     "Kakul Pal",
                     "Rozma Khan",
                     "Rishabh Yadav",
@@ -4864,27 +4894,21 @@
             document.getElementById('scrapInsertModal')?.addEventListener('click', e => {
                 if (e.target === document.getElementById('scrapInsertModal')) closeScrapInsertModal();
             });
-            function adjustContainerPadding() {
-                const header = document.querySelector('.fixed-header');
-                const container = document.querySelector('.container');
-                if (header && container) {
-                    const headerH = header.offsetHeight;
-                    container.style.paddingTop = (headerH + 10) + 'px';
-                    container.style.height = `calc(100vh - ${headerH}px)`;
-                    container.style.paddingBottom = '4px';
-                }
+            function syncFixedHeaderSpace(){
+                const header=document.querySelector('.fixed-header');
+                if(!header)return;
+                const space=Math.ceil(header.getBoundingClientRect().height+14);
+                document.documentElement.style.setProperty('--fixed-header-space', `${space}px`);
             }
-
-            document.fonts.ready.then(() => {
-                adjustContainerPadding();
-            });
-
-            window.addEventListener('resize', adjustContainerPadding);
-
-            if (window.ResizeObserver) {
-                new ResizeObserver(adjustContainerPadding).observe(
-                    document.querySelector('.fixed-header')
-                );
+            document.addEventListener('DOMContentLoaded', syncFixedHeaderSpace);
+            window.addEventListener('load', syncFixedHeaderSpace);
+            window.addEventListener('resize', syncFixedHeaderSpace);
+            if('ResizeObserver' in window){
+                const headerObserver=new ResizeObserver(syncFixedHeaderSpace);
+                document.addEventListener('DOMContentLoaded', ()=>{
+                    const header=document.querySelector('.fixed-header');
+                    if(header)headerObserver.observe(header);
+                });
             }
             // Load session info first, then init page-specific features
             loadSessionInfo().then(() => {
