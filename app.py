@@ -1709,6 +1709,227 @@ def generate_sheet():
         flash(f"Error generating sheet: {str(e)}", "error")
         return redirect("/?page=sheet")
 
+# ============================================================
+# BS Investment Scam Import
+# ============================================================
+BS_INVESTMENT_IMPORT_COLUMNS = [
+    "Id", "Bank_account_number", "Bank_name", "Upi_vpa", "Screenshot",
+    "Search_for", "Upi_bank_account_wallet", "Handle", "Payment_gateway_name",
+    "Scam_type", "Ifsc_code", "Upi_url", "Website_url", "Inserted_date",
+    "Input_user", "Web_contact_no", "Customer", "Package_name", "Channel_name",
+    "Ac_holder_name", "Platform", "Status", "Priority", "Flag", "Cessation",
+    "Reviewed_status", "Origin", "Category_of_website", "Screenshot_case_report_link",
+    "Payment_gateway_intermediate_url", "Neft_imps", "Transaction_method",
+    "Bank_branch_details", "Payment_gateway_url", "Reported_earlier",
+    "Approvd_status", "Approved_by", "Qc_remarks", "Inserted_datetime",
+    "Case_generated_time", "Upi_found_status", "Feature_type", "Approved_date",
+    "Video_url"
+]
+
+BS_INVESTMENT_IMPORT_ALIASES = {
+    "Bank_account_number": ["bank_account_number", "bank account number", "account_number", "account number", "acc_no", "acc no"],
+    "Bank_name": ["bank_name", "bank name"],
+    "Upi_vpa": ["upi_vpa", "upi vpa", "upi", "vpa"],
+    "Screenshot": ["screenshot", "image", "proof"],
+    "Search_for": ["search_for", "search for"],
+    "Upi_bank_account_wallet": ["upi_bank_account_wallet", "upi bank account wallet", "wallet", "payment type"],
+    "Handle": ["handle", "upi handle"],
+    "Payment_gateway_name": ["payment_gateway_name", "payment gateway name", "gateway name"],
+    "Scam_type": ["scam_type", "scam type", "type", "category"],
+    "Ifsc_code": ["ifsc_code", "ifsc code", "ifsc", "bank_code"],
+    "Upi_url": ["upi_url", "upi url"],
+    "Website_url": ["website_url", "website url", "url", "website"],
+    "Inserted_date": ["inserted_date", "inserted date", "date"],
+    "Input_user": ["input_user", "input user", "user", "username"],
+    "Web_contact_no": ["web_contact_no", "web contact no", "contact number", "phone", "mobile"],
+    "Customer": ["customer"],
+    "Package_name": ["package_name", "package name"],
+    "Channel_name": ["channel_name", "channel name"],
+    "Ac_holder_name": ["ac_holder_name", "account holder name", "account_holder", "holder_name", "customer name"],
+    "Platform": ["platform"],
+    "Status": ["status"],
+    "Priority": ["priority"],
+    "Flag": ["flag"],
+    "Cessation": ["cessation"],
+    "Reviewed_status": ["reviewed_status", "reviewed status"],
+    "Origin": ["origin"],
+    "Category_of_website": ["category_of_website", "category of website", "category"],
+    "Screenshot_case_report_link": ["screenshot_case_report_link", "screenshot case report link", "case report link"],
+    "Payment_gateway_intermediate_url": ["payment_gateway_intermediate_url", "payment gateway intermediate url"],
+    "Neft_imps": ["neft_imps", "neft imps"],
+    "Transaction_method": ["transaction_method", "transaction method", "payment method", "method"],
+    "Bank_branch_details": ["bank_branch_details", "bank branch details"],
+    "Payment_gateway_url": ["payment_gateway_url", "payment gateway url", "payment_url", "gateway"],
+    "Reported_earlier": ["reported_earlier", "reported earlier"],
+    "Approvd_status": ["approvd_status", "approved_status", "approved status"],
+    "Approved_by": ["approved_by", "approved by"],
+    "Qc_remarks": ["qc_remarks", "qc remarks"],
+    "Inserted_datetime": ["inserted_datetime", "inserted datetime"],
+    "Case_generated_time": ["case_generated_time", "case generated time"],
+    "Upi_found_status": ["upi_found_status", "upi found status"],
+    "Feature_type": ["feature_type", "feature type"],
+    "Approved_date": ["approved_date", "approved date"],
+    "Video_url": ["video_url", "video url"],
+}
+
+def normalize_import_header(value):
+    return re.sub(r'[^a-z0-9]+', ' ', str(value).lower()).strip()
+
+def find_import_column(df_columns, target_col):
+    normalized = {normalize_import_header(col): col for col in df_columns}
+    candidates = [target_col] + BS_INVESTMENT_IMPORT_ALIASES.get(target_col, [])
+    for candidate in candidates:
+        key = normalize_import_header(candidate)
+        if key in normalized:
+            return normalized[key]
+    return None
+
+def normalize_import_date(value, default_value=None):
+    cleaned = clean_value(value)
+    if cleaned == "NA":
+        return default_value if default_value is not None else "NA"
+    try:
+        parsed = pd.to_datetime(cleaned, errors='coerce')
+        if not pd.isna(parsed):
+            return parsed.strftime("%Y-%m-%d")
+    except Exception:
+        pass
+    return cleaned.split(" ")[0] if " " in cleaned else cleaned
+
+def normalize_import_datetime(value, default_value=None):
+    cleaned = clean_value(value)
+    if cleaned == "NA":
+        return default_value if default_value is not None else "NA"
+    try:
+        parsed = pd.to_datetime(cleaned, errors='coerce')
+        if not pd.isna(parsed):
+            return parsed.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        pass
+    return cleaned
+
+@app.route("/investment-import", methods=["POST"])
+@login_required
+def investment_import():
+    temp_path = None
+    try:
+        file = request.files.get("file")
+        if not file or file.filename == '':
+            flash("No file selected", "error")
+            return redirect("/?page=investment")
+        if not is_allowed_file(file.filename):
+            flash("Unsupported file type.", "error")
+            return redirect("/?page=investment")
+
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
+        df = read_data_file(temp_path, file_ext)
+        if df.empty:
+            flash("The uploaded file is empty", "error")
+            return redirect("/?page=investment")
+
+        df.columns = df.columns.astype(str).str.strip()
+        df = df.fillna('')
+        source_columns = list(df.columns)
+        column_lookup = {
+            target: find_import_column(source_columns, target)
+            for target in BS_INVESTMENT_IMPORT_COLUMNS
+            if target != "Id"
+        }
+        matched_columns = [col for col in column_lookup.values() if col]
+        if not matched_columns:
+            flash("Import Error: No matching investment column names found.", "error")
+            return redirect("/?page=investment")
+
+        try:
+            max_id_response = supabase.table("BS_Investment_Scam").select("Id").order("Id", desc=True).limit(1).execute()
+            next_id = int(max_id_response.data[0]["Id"]) + 1 if max_id_response.data else 1
+        except Exception:
+            next_id = 1
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        input_user_default = get_clean_display_name(session.get("display_name", "User"))
+        records = []
+
+        for i, (_, row) in enumerate(df.iterrows()):
+            record = {col: "NA" for col in BS_INVESTMENT_IMPORT_COLUMNS}
+            record["Id"] = next_id + i
+            for target_col, source_col in column_lookup.items():
+                if source_col:
+                    record[target_col] = clean_value(row[source_col])
+
+            record["Inserted_date"] = normalize_import_date(record.get("Inserted_date"), today)
+            record["Inserted_datetime"] = normalize_import_datetime(record.get("Inserted_datetime"), now_str)
+            if record["Input_user"] == "NA":
+                record["Input_user"] = input_user_default
+
+            if record["Screenshot"] != "NA":
+                case_time, screenshot_date = extract_case_time_and_date_from_npci_url(record["Screenshot"])
+                record["Screenshot"] = generate_screenshot_urls(record["Screenshot"])
+                if record["Case_generated_time"] == "NA":
+                    record["Case_generated_time"] = case_time
+                if record["Inserted_date"] == "NA" and screenshot_date != "NA":
+                    record["Inserted_date"] = screenshot_date
+                if record["Screenshot_case_report_link"] == "NA":
+                    record["Screenshot_case_report_link"] = record["Screenshot"]
+
+            if record["Handle"] == "NA":
+                record["Handle"] = extract_handle(record["Upi_vpa"])
+            if record["Bank_name"] == "NA":
+                record["Bank_name"] = get_bank_name_from_handle(record["Handle"], record["Ifsc_code"])
+            if record["Search_for"] == "NA":
+                record["Search_for"] = extract_search_for_from_url(record["Website_url"])
+            if record["Upi_bank_account_wallet"] == "NA":
+                record["Upi_bank_account_wallet"] = "UPI" if record["Upi_vpa"] != "NA" else ("Bank Account" if record["Bank_account_number"] != "NA" else "NA")
+            if record["Payment_gateway_url"] == "NA" and record["Upi_url"] != "NA":
+                record["Payment_gateway_url"] = record["Upi_url"]
+            if record["Payment_gateway_intermediate_url"] == "NA" and record["Payment_gateway_url"] != "NA":
+                record["Payment_gateway_intermediate_url"] = record["Payment_gateway_url"]
+            if record["Upi_url"] == "NA" and record["Payment_gateway_url"] != "NA":
+                record["Upi_url"] = record["Payment_gateway_url"]
+            if record["Payment_gateway_name"] == "NA":
+                record["Payment_gateway_name"] = extract_payment_gateway_name(record["Upi_url"], record["Website_url"])
+
+            defaults = {
+                "Customer": "Mystery Shopping",
+                "Package_name": "com.mysteryshopping",
+                "Channel_name": "Organic Search",
+                "Platform": "NA",
+                "Status": "Active",
+                "Priority": "High",
+                "Flag": "1",
+                "Cessation": "Open",
+                "Reviewed_status": "1",
+                "Neft_imps": "NA",
+                "Reported_earlier": "No",
+                "Approvd_status": "1",
+                "Feature_type": "BS Investment Scam",
+            }
+            for col, value in defaults.items():
+                if record[col] == "NA":
+                    record[col] = value
+
+            if record["Category_of_website"] == "NA" and record["Scam_type"] != "NA":
+                record["Category_of_website"] = record["Scam_type"]
+            records.append(record)
+
+        supabase.table("BS_Investment_Scam").insert(records).execute()
+        log_activity(
+            action_type="import",
+            target_table="BS_Investment_Scam",
+            extra_info={"file_name": filename, "records_count": len(records)}
+        )
+        flash(f"Investment file imported successfully! {len(records)} records added.", "success")
+    except Exception as e:
+        flash(f"Investment Import Error: {str(e)}", "error")
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
+    return redirect("/?page=investment")
+
 @app.route("/get-excel-headers", methods=["GET"])
 @login_required
 def get_excel_headers():
@@ -3444,8 +3665,6 @@ import base64
 import uuid as _uuid
 from pathlib import Path as _Path
 from io import BytesIO
-
-# Job store — in-memory (Render restart pe clear ho jaega, acceptable hai)
 _SC_JOBS = {}  # job_id -> {status, log, result, progress, total}
 
 def _sc_run_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64):

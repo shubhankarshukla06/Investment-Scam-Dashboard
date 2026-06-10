@@ -942,6 +942,10 @@
                         </form>
                         {% elif page_type == 'investment' %}
                         <button type="button" class="btn btn-warning" onclick="showInvestmentTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
+                        <form id="importFormInvestment" action="/investment-import" method="POST" enctype="multipart/form-data" style="display:inline;">
+                            <input type="file" name="file" id="fileInputInvestment" style="display:none;" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.xla,.xlam,.ods,.ots">
+                            <button type="button" class="btn btn-success" onclick="document.getElementById('fileInputInvestment').click()"><i class="fas fa-file-import"></i> Import</button>
+                        </form>
                         <form action="/investment-export" method="GET" style="display:inline;">
                             <input type="hidden" name="inv_search" value="{{ inv_search }}">
                             <input type="hidden" name="inv_scam_type" value="{{ inv_scam_type }}">
@@ -1180,9 +1184,9 @@
                                 </div>
                             </div>
                             <div class="sheet-maker-group">
-                                <label><i class="fas fa-download"></i> Generate Sheet</label>
+                                <label><i class="fas fa-download"></i> Generate Final Sheet</label>
                                 <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
-                                    <i class="fas fa-download"></i> Generate CSV
+                                    <i class="fas fa-download"></i> Generate CSV Excel File
                                 </button>
                             </div>
                         </div>
@@ -4599,6 +4603,9 @@
             });
             document.getElementById('fileInputSocial')?.addEventListener('change', function() {
                 if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
+            });
+            document.getElementById('fileInputInvestment')?.addEventListener('change', function() {
+                if (this.files.length) { showLoading(); document.getElementById('importFormInvestment').submit(); }
             });
             // USER ACTIVITY LOG JS
             let _ualAllLogs = [];

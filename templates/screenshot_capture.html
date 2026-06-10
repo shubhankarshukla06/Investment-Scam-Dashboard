@@ -278,7 +278,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
         <!-- Login warning -->
         <div class="note-box" id="loginNote" style="display:none;margin-top:10px;">
             <i class="fas fa-exclamation-triangle"></i>
-            <strong>Login Mode:</strong> Chrome profiles saved on your local machine are not available on the Render server.
+            <strong>Login Mode:</strong> Chrome profiles saved on your local machine are not available on the Render server.Please use the "Without Login" mode for now.
         </div>
 
         <!-- Manual URL textarea (shown below row when manual selected) -->
@@ -493,14 +493,14 @@ async function startJob() {
     // Validation
     if (_inputSource === 'file') {
         const fi = document.getElementById('inputFile');
-        if (!fi.files.length) { showToast('Pehle input file select karo!', 'err'); return; }
+        if (!fi.files.length) { showToast('Please select an input file!', 'err'); return; }
     } else {
         const lines = document.getElementById('manualUrls').value.split('\n').map(l=>l.trim()).filter(l=>l);
-        if (!lines.length) { showToast('Koi URL paste nahi kiya!', 'err'); return; }
+        if (!lines.length) { showToast('No URLs pasted!', 'err'); return; }
     }
 
     const fd = buildFormData();
-    if (!fd) { showToast('FormData build nahi hua, check karo!', 'err'); return; }
+    if (!fd) { showToast('Failed to build form data!', 'err'); return; }
 
     const startBtn = document.getElementById('startBtn');
     startBtn.disabled = true;
