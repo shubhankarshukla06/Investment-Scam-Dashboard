@@ -211,7 +211,6 @@ REQUIRED_COLUMNS = [
 SHEET_TYPES = {
     'upi': 'UPI_AML',
     'investment': 'Investment_Scam',
-    'messaging': 'Messaging_Channel'
 }
 BANK_NAME_MAPPING = {}
 IFSC_MAPPING = {}
@@ -317,7 +316,7 @@ def create_default_config():
         "sheet_mappings": {
             "upi": {
                 "name": "UPI (AML)",
-                "required_headers": ["UPI", "Screenshot", "Website URL", "Payment Gateway URL", "Transaction Method"],
+                "required_headers": ["UPI", "Screenshot", "Website URL", "Payment Gateway URL"],
                 "column_mapping": {
                     "UPI": ["upi_vpa", "upi"],
                     "Screenshot": ["screenshot", "image", "proof"],
@@ -329,7 +328,7 @@ def create_default_config():
             "investment": {
                 "name": "Investment Scam",
                 "required_headers": ["UPI", "Account Holder Name", "Bank Account Number", "IFSC Code",
-                                     "Website URL", "Payment Gateway URL", "Transaction Method",
+                                     "Website URL", "Payment Gateway URL",
                                      "Screenshot", "Contact Number", "Scam Type"],
                 "column_mapping": {
                     "UPI": ["upi_vpa", "upi"],
@@ -344,21 +343,6 @@ def create_default_config():
                     "Scam Type": ["scam_type", "type", "category"]
                 }
             },
-            "messaging": {
-                "name": "Messaging Channel",
-                "required_headers": ["UPI", "Account Holder Name", "Bank Account Number", "IFSC Code",
-                                     "Website URL", "Screenshot", "Transaction Method", "Category"],
-                "column_mapping": {
-                    "UPI": ["upi_vpa", "upi"],
-                    "Account Holder Name": ["ac_holder_name", "account_holder", "holder_name"],
-                    "Bank Account Number": ["bank_account_number", "account_number", "acc_no"],
-                    "IFSC Code": ["ifsc_code", "ifsc", "bank_code"],
-                    "Website URL": ["website_url", "url", "website"],
-                    "Screenshot": ["screenshot", "image", "proof"],
-                    "Transaction Method": ["transaction_method", "payment_method", "method"],
-                    "Category": ["category_of_website", "category", "type"]
-                }
-            }
         },
         "global_settings": {
             "date_format": "%Y-%m-%d",
@@ -414,9 +398,15 @@ def clean_value(value):
     if pd.isna(value) or value in ["NA", "", None, "null", "NULL", "None", "undefined"]:
         return "NA"
     value_str = str(value).strip()
-    # String ban jaane ke baad bhi check karo
     if value_str.lower() in ("nan", "none", "null", "na", "n/a", "undefined", ""):
         return "NA"
+    # .0 remove karo numeric strings se (e.g. "8815336405.0" -> "8815336405")
+    if value_str.endswith('.0'):
+        try:
+            int_val = int(float(value_str))
+            value_str = str(int_val)
+        except (ValueError, OverflowError):
+            pass
     value_str = ''.join(char for char in value_str if ord(char) < 0x10000)
     return value_str
 def extract_handle(upi_vpa):
@@ -744,7 +734,7 @@ def process_sheet_data(df, sheet_type):
                 'flag': "1", 'cessation': "Open", 'reviewed_status': "1",
                 'reported_earlier': "No", 'approvd_status': "1",
                 'feature_type': "BS Money Laundering", 'platform': "NA",
-                'neft_imps': "NA", 'bank_branch_details': "NA", 'scam_type': "NA"
+                'neft_imps': "NA", 'bank_branch_details': "NA", 'scam_type': "NA",'transaction_method': "NA"
             })
             row_data['upi_bank_account_wallet'] = "UPI" if row_data['upi_vpa'] != "NA" else "Bank Account"
             if row_data['website_url'] != "NA":
@@ -763,7 +753,7 @@ def process_sheet_data(df, sheet_type):
                 'flag': "1", 'cessation': "Open", 'reviewed_status': "1",
                 'reported_earlier': "No", 'approvd_status': "1",
                 'feature_type': "BS Investment Scam", 'platform': "NA",
-                'neft_imps': "NA", 'bank_branch_details': "NA"
+                'neft_imps': "NA", 'bank_branch_details': "NA",'transaction_method': "NA"
             })
             row_data['upi_bank_account_wallet'] = "UPI" if row_data['upi_vpa'] != "NA" else "Bank Account"
             if row_data['scam_type'] != "NA" and row_data['category_of_website'] == "NA":
@@ -774,17 +764,6 @@ def process_sheet_data(df, sheet_type):
                 row_data['origin'] = origin
             else:
                 row_data['origin'] = "NA"
-        elif sheet_type == 'messaging':
-            row_data.update({
-                'customer': "Mystery Shopping", 'package_name': "com.mysteryshopping",
-                'channel_name': "Messaging Channel Platforms", 'status': "Active",
-                'priority': "High", 'flag': "1", 'cessation': "Open",
-                'reviewed_status': "1", 'reported_earlier': "No", 'approvd_status': "1",
-                'feature_type': "BS Money Laundering", 'platform': "NA",
-                'neft_imps': "NA", 'bank_branch_details': "NA", 'scam_type': "NA",
-                'origin': "India"
-            })
-            row_data['upi_bank_account_wallet'] = "UPI" if row_data['upi_vpa'] != "NA" else "Bank Account"
         handle = extract_handle(row_data['upi_vpa'])
         row_data['handle'] = handle
         row_data['bank_name'] = get_bank_name_from_handle(handle, row_data['ifsc_code'])
@@ -3656,310 +3635,6 @@ def api_total_numbers_stats():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-    
-# ============================================================
-# SCREENSHOT CAPTURE — Playwright-based
-# ============================================================
-import asyncio
-import base64
-import uuid as _uuid
-from pathlib import Path as _Path
-from io import BytesIO
-_SC_JOBS = {}  # job_id -> {status, log, result, progress, total}
-
-def _sc_run_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64):
-    import threading
-    def _worker():
-        try:
-            asyncio.run(_sc_async_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64))
-        except Exception as e:
-            _SC_JOBS[job_id]['status'] = 'error'
-            _SC_JOBS[job_id]['log'].append(f'[FATAL] {str(e)}')
-    t = threading.Thread(target=_worker, daemon=True)
-    t.start()
-
-async def _sc_async_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64):
-    from playwright.async_api import async_playwright
-    from PIL import Image
-    import boto3, time, tempfile, os
-
-    job = _SC_JOBS[job_id]
-    job['status'] = 'running'
-    job['total'] = len(rows)
-    job['progress'] = 0
-    job['results'] = []
-
-    def log(msg):
-        job['log'].append(f'[{datetime.now().strftime("%H:%M:%S")}] {msg}')
-
-    log(f'Starting job — Platform: {platform}, Mode: {session_mode}, URLs: {len(rows)}')
-
-    # Decode URL bar image
-    urlbar_img = None
-    if urlbar_b64:
-        try:
-            urlbar_img = Image.open(BytesIO(base64.b64decode(urlbar_b64))).convert('RGBA')
-        except Exception as e:
-            log(f'URL bar image load failed: {e}')
-
-    def replace_url_text(urlbar_pil, url_text):
-        from PIL import ImageDraw, ImageFont
-        img = urlbar_pil.copy()
-        draw = ImageDraw.Draw(img)
-        try:
-            font = ImageFont.truetype('segoeui.ttf', 18)
-        except:
-            font = ImageFont.load_default()
-        draw.rectangle([(195, 10), (1680, 40)], fill=(237, 241, 250, 255))
-        draw.text((200, 16), url_text[:150], font=font, fill=(60, 60, 60, 255))
-        return img
-
-    def merge_vertical(top_pil, bottom_bytes):
-        top = top_pil.convert('RGBA')
-        bottom = Image.open(BytesIO(bottom_bytes)).convert('RGBA')
-        if top.width != bottom.width:
-            ratio = top.width / bottom.width
-            bottom = bottom.resize((top.width, int(bottom.height * ratio)))
-        result = Image.new('RGBA', (top.width, top.height + bottom.height))
-        result.paste(top, (0, 0))
-        result.paste(bottom, (0, top.height))
-        buf = BytesIO()
-        result.convert('RGB').save(buf, 'JPEG', quality=90)
-        return buf.getvalue()
-
-    def upload_s3(img_bytes, s3_creds):
-        try:
-            import boto3
-            s3 = boto3.client(
-                's3',
-                aws_access_key_id=s3_creds['key_id'],
-                aws_secret_access_key=s3_creds['secret'],
-                region_name='us-west-2'
-            )
-            ts = int(time.time())
-            uid = str(_uuid.uuid4())
-            date_str = datetime.today().strftime('%Y-%m-%d')
-            img_name = f'{ts}{uid}{date_str}.jpg'
-            s3_path = f"mFilterIt/{date_str}/{img_name}"
-            s3.put_object(
-                Bucket=s3_creds['bucket'],
-                Key=s3_path,
-                Body=img_bytes,
-                ContentType='image/jpeg'
-            )
-            return f"{s3_creds['cf_url']}/{s3_path}"
-        except Exception as e:
-            log(f'S3 upload error: {e}')
-            return None
-
-    async with async_playwright() as p:
-        launch_args = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
-        headless = (browser_mode == 'Headless')
-        browser = await p.chromium.launch(headless=headless, args=launch_args)
-        context = await browser.new_context(viewport={'width': 1920, 'height': 1080})
-        page = await context.new_page()
-
-        log('Browser launched')
-
-        if wait_time > 0:
-            log(f'Waiting {wait_time}s before start...')
-            await asyncio.sleep(wait_time)
-
-        for i, row in enumerate(rows):
-            if job.get('stop_requested'):
-                log('Stop requested by user')
-                break
-
-            url = (row.get('Processed_URL') or row.get('Post_URL') or '').strip()
-            if not url:
-                log(f'Row {i+1}: Empty URL, skipping')
-                job['results'].append({'Post_URL': url, 'Processed_URL': '', 'S3_Screenshot_Link': ''})
-                continue
-
-            log(f'Processing ({i+1}/{len(rows)}): {url}')
-
-            try:
-                await page.goto(url, timeout=30000, wait_until='domcontentloaded')
-                zoom_js = f"document.body.style.zoom='{tab_size}%'"
-
-                if platform == 'Telegram' and session_mode == 'Login':
-                    await page.evaluate(zoom_js)
-                    # Click Web button
-                    try:
-                        await page.click('a.tgme_action_button_new', timeout=5000)
-                        log('Clicked Telegram Web button')
-                        await asyncio.sleep(3)
-                    except:
-                        pass
-                    # Click side panel
-                    try:
-                        await page.click('.ToggleBtn', timeout=3000)
-                        log('Clicked side panel')
-                        await asyncio.sleep(2)
-                    except:
-                        pass
-                    await page.evaluate(zoom_js)
-                    # Crop screenshot (left portion)
-                    screenshot_bytes = await page.screenshot(
-                        clip={'x': 500, 'y': 0, 'width': 1420, 'height': 1000}
-                    )
-                else:
-                    await page.evaluate(zoom_js)
-                    await asyncio.sleep(2)
-                    page_screenshot = await page.screenshot(full_page=False)
-                    current_url = page.url
-                    url_display = current_url.replace('https://', '').replace('http://', '').rstrip('/')[:150]
-
-                    if urlbar_img:
-                        url_bar_with_text = replace_url_text(urlbar_img, url_display)
-                        screenshot_bytes = merge_vertical(url_bar_with_text, page_screenshot)
-                    else:
-                        screenshot_bytes = page_screenshot
-
-                processed_url = page.url
-                s3_url = upload_s3(screenshot_bytes, s3_creds) or ''
-                log(f'Done ({i+1}): {s3_url or "Upload failed"}')
-
-                job['results'].append({
-                    'Post_URL': url,
-                    'Processed_URL': processed_url,
-                    'S3_Screenshot_Link': s3_url
-                })
-
-            except Exception as e:
-                log(f'Error on row {i+1}: {str(e)}')
-                job['results'].append({'Post_URL': url, 'Processed_URL': '', 'S3_Screenshot_Link': ''})
-
-            job['progress'] = i + 1
-            job['status'] = 'running'
-
-        await browser.close()
-
-    job['status'] = 'done'
-    log(f'Job complete — {len([r for r in job["results"] if r["S3_Screenshot_Link"]])} successful')
-
-
-@app.route('/screenshot-capture', methods=['GET'])
-@login_required
-def screenshot_capture():
-    if 'scraping' not in session.get('allowed_pages', []):
-        flash("Access denied.", "error")
-        return redirect("/")
-    user = get_current_user()
-    allowed_pages = session.get('allowed_pages', [])
-    clean_display_name = get_clean_display_name(session.get('display_name', 'User'))
-    return render_template(
-        'screenshot_capture.html',
-        current_user=user,
-        allowed_pages=allowed_pages,
-        display_name=session.get('display_name', 'User'),
-        clean_display_name=clean_display_name,
-        can_view_activity_log=session.get('can_view_activity_log', False),
-    )
-
-@app.route('/sc-start-job', methods=['POST'])
-@login_required
-def sc_start_job():
-    try:
-        platform      = request.form.get('platform', 'Facebook')
-        session_mode  = request.form.get('session_mode', 'Without Login')
-        browser_mode  = request.form.get('browser_mode', 'Headless')
-        tab_size      = int(request.form.get('tab_size', 100))
-        wait_time     = int(request.form.get('wait_time', 3))
-
-        file = request.files.get('file')
-        if not file or file.filename == '':
-            return jsonify({'success': False, 'error': 'No file uploaded'})
-
-        filename = secure_filename(file.filename)
-        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'csv'
-
-        import tempfile, os
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.' + ext)
-        file.save(tmp.name)
-        tmp.close()
-
-        df = read_data_file(tmp.name, ext)
-        os.unlink(tmp.name)
-
-        if 'Post_URL' not in df.columns:
-            return jsonify({'success': False, 'error': "File must have 'Post_URL' column"})
-
-        rows = df.fillna('').to_dict(orient='records')
-
-        # URL bar image
-        urlbar_b64 = None
-        urlbar_file = request.files.get('urlbar_image')
-        if urlbar_file and urlbar_file.filename:
-            urlbar_b64 = base64.b64encode(urlbar_file.read()).decode()
-            def _s3val(key, default):
-               v = request.form.get(key, '').strip()
-               return v if v else default
-
-        s3_creds = {
-            'key_id':  _s3val('s3_key_id',  os.environ.get('S3_KEY_ID', '')),
-            'secret':  _s3val('s3_secret',  os.environ.get('S3_SECRET', '')),
-            'bucket':  _s3val('s3_bucket',  os.environ.get('S3_BUCKET', 'mf-infringement-bucket-manual-social-media')),
-            'cf_url':  _s3val('s3_cf_url',  os.environ.get('S3_CF_URL', 'http://d13uxlm82x9iqw.cloudfront.net')),
-        }
-
-        job_id = str(_uuid.uuid4())[:8]
-        _SC_JOBS[job_id] = {
-            'status': 'queued', 'log': [], 'results': [],
-            'progress': 0, 'total': len(rows),
-            'stop_requested': False,
-            'started_at': datetime.now().isoformat(),
-        }
-
-        _sc_run_job(job_id, platform, session_mode, browser_mode, tab_size, wait_time, rows, s3_creds, urlbar_b64)
-
-        return jsonify({'success': True, 'job_id': job_id, 'total': len(rows)})
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/sc-job-status/<job_id>', methods=['GET'])
-@login_required
-def sc_job_status(job_id):
-    job = _SC_JOBS.get(job_id)
-    if not job:
-        return jsonify({'success': False, 'error': 'Job not found'})
-    return jsonify({
-        'success':  True,
-        'status':   job['status'],
-        'progress': job['progress'],
-        'total':    job['total'],
-        'log':      job['log'][-50:],  # last 50 lines
-    })
-
-
-@app.route('/sc-stop-job/<job_id>', methods=['POST'])
-@login_required
-def sc_stop_job(job_id):
-    job = _SC_JOBS.get(job_id)
-    if job:
-        job['stop_requested'] = True
-    return jsonify({'success': True})
-
-
-@app.route('/sc-download-results/<job_id>', methods=['GET'])
-@login_required
-def sc_download_results(job_id):
-    job = _SC_JOBS.get(job_id)
-    if not job or not job.get('results'):
-        return jsonify({'success': False, 'error': 'No results'})
-    df = pd.DataFrame(job['results'])
-    output = io.StringIO()
-    df.to_csv(output, index=False, encoding='utf-8-sig')
-    output.seek(0)
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8-sig')),
-        download_name=f'screenshot_results_{ts}.csv',
-        as_attachment=True,
-        mimetype='text/csv'
-    )
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

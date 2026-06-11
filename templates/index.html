@@ -10,7 +10,7 @@
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
             body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
-            :root { --fixed-header-space: 100px; }
+            :root { --fixed-header-space: 72px; }
             .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: var(--fixed-header-space); padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
             .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
             .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -908,9 +908,6 @@
                             {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
                             <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
                             {% endif %}
-                            {% if 'scraping' in allowed_pages %}
-                            <option value="screenshot_capture">Screenshot Capture GUI</option>
-                            {% endif %}
                         </select>
                     </div>
                     <div class="header-actions">
@@ -1156,7 +1153,6 @@
                                     <option value="">-- Select Sheet Type --</option>
                                     <option value="upi">UPI (AML)</option>
                                     <option value="investment">Investment Scam</option>
-                                    <option value="messaging">Messaging Channel</option>
                                 </select>
                                 <div class="headers-display" id="headersDisplay">
                                     <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left:auto;font-weight:bold;"></span></div>
@@ -2171,7 +2167,7 @@
         </div><!-- end insights-page -->
         {% endif %}
         </div>
-        <div class="flash-container">
+        <div class="flash-container" style="position:fixed;top:12px;right:12px;z-index:1002;display:flex;flex-direction:column;gap:8px;">
             {% with messages = get_flashed_messages() %}
             {% if messages %}{% for message in messages %}
             <div class="flash-message"><i class="fas fa-check-circle" style="color:#2ecc71;"></i> {{ message }}</div>
@@ -2412,10 +2408,6 @@
             function changePageFromWD(pageType) {
                 if (pageType === 'website_directory') {
                     window.location.href = '/website-directory';
-                    return;
-                }
-                if (pageType === 'screenshot_capture') {
-                    window.location.href = '/screenshot-capture';
                     return;
                 }
                 const url = new URL(window.location.href);
@@ -4594,7 +4586,7 @@
             setTimeout(() => {
                 document.querySelectorAll('.flash-message').forEach(msg => {
                     msg.style.animation = 'slideIn 0.3s ease reverse forwards';
-                    setTimeout(() => { if (msg.parentNode) msg.remove(); }, 300);
+                    setTimeout(() => { if (msg.parentNode) { msg.remove(); syncFixedHeaderSpace(); } }, 300);
                 });
             }, 5000);
             // File input triggers
@@ -4904,11 +4896,25 @@
             function syncFixedHeaderSpace(){
                 const header=document.querySelector('.fixed-header');
                 if(!header)return;
-                const space=Math.ceil(header.getBoundingClientRect().height+14);
+                const h=header.getBoundingClientRect().height;
+                if(h<30||h>120)return;
+                const space=Math.ceil(h+14);
                 document.documentElement.style.setProperty('--fixed-header-space', `${space}px`);
             }
-            document.addEventListener('DOMContentLoaded', syncFixedHeaderSpace);
-            window.addEventListener('load', syncFixedHeaderSpace);
+            function syncWithRAF(){
+                requestAnimationFrame(()=>{
+                    syncFixedHeaderSpace();
+                    setTimeout(syncFixedHeaderSpace, 100);
+                    setTimeout(syncFixedHeaderSpace, 300);
+                });
+            }
+            syncWithRAF();
+            document.addEventListener('DOMContentLoaded', syncWithRAF);
+            window.addEventListener('load', ()=>{
+                syncWithRAF();
+                setTimeout(syncFixedHeaderSpace, 600);
+                setTimeout(syncFixedHeaderSpace, 1200);
+            });
             window.addEventListener('resize', syncFixedHeaderSpace);
             if('ResizeObserver' in window){
                 const headerObserver=new ResizeObserver(syncFixedHeaderSpace);

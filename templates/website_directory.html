@@ -30,7 +30,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .btn-danger:hover   { background:#c0392b; }
 .btn-purple   { background:#8e44ad; color:white; }
 .btn-purple:hover   { background:#6c3483; }
-:root { --fixed-header-space: 100px; }
+:root { --fixed-header-space: 72px; }
 .container { padding:10px 15px 30px; padding-top:var(--fixed-header-space); }
 /* Page Selector */
 .page-selector { display:flex; align-items:center; gap:6px; }
@@ -1970,7 +1970,7 @@ setTimeout(() => {
     document.querySelectorAll('.flash-message').forEach(m => {
         m.style.transition = 'opacity 0.3s';
         m.style.opacity = '0';
-        setTimeout(() => m.remove(), 300);
+        setTimeout(() => { m.remove(); syncFixedHeaderSpace(); }, 300);
     });
 }, 5000);
 /* ── INSERT MODAL TABS ──────────────────────────── */
@@ -2144,11 +2144,25 @@ async function submitInsBulk() {
 function syncFixedHeaderSpace(){
     const header=document.querySelector('.fixed-header');
     if(!header)return;
-    const space=Math.ceil(header.getBoundingClientRect().height+14);
+    const h=header.getBoundingClientRect().height;
+    if(h<30||h>120)return;
+    const space=Math.ceil(h+14);
     document.documentElement.style.setProperty('--fixed-header-space', `${space}px`);
 }
-document.addEventListener('DOMContentLoaded', syncFixedHeaderSpace);
-window.addEventListener('load', syncFixedHeaderSpace);
+function syncWithRAF(){
+    requestAnimationFrame(()=>{
+        syncFixedHeaderSpace();
+        setTimeout(syncFixedHeaderSpace, 100);
+        setTimeout(syncFixedHeaderSpace, 300);
+    });
+}
+syncWithRAF();
+document.addEventListener('DOMContentLoaded', syncWithRAF);
+window.addEventListener('load', ()=>{
+    syncWithRAF();
+    setTimeout(syncFixedHeaderSpace, 600);
+    setTimeout(syncFixedHeaderSpace, 1200);
+});
 window.addEventListener('resize', syncFixedHeaderSpace);
 if('ResizeObserver' in window){
     const headerObserver=new ResizeObserver(syncFixedHeaderSpace);
