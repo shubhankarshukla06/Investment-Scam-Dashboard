@@ -147,12 +147,13 @@ tr:hover { background:#f8fffe; }
         .ual-header h2 { font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px; }
         .ual-close { background: none; border: none; color: white; font-size: 18px; cursor: pointer; padding: 5px; border-radius: 4px; }
         .ual-close:hover { background: rgba(255,255,255,0.2); }
-        .ual-filters { display: flex; gap: 10px; padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; flex-wrap: wrap; align-items: center; flex-shrink: 0; }
+        .ual-filters { display: flex; gap: 10px; padding: 12px 16px; background: #f8f9fa; border-bottom: 1px solid #e9ecef; flex-wrap: nowrap; align-items: center; flex-shrink: 0; overflow-x: auto; }
+        .ual-filters > * { flex-shrink: 0; }
         .ual-search-wrap { position: relative; display: flex; align-items: center; }
         .ual-search-wrap i { position: absolute; left: 10px; color: #9ca3af; font-size: 13px; pointer-events: none; }
-        .ual-search-wrap input { padding: 7px 12px 7px 32px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; width: 260px; height: 34px; outline: none; }
+        .ual-search-wrap input { padding: 7px 12px 7px 32px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; height: 34px; outline: none; box-sizing: border-box; }
         .ual-search-wrap input:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
-        .ual-filters select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; height: 34px; min-width: 190px; outline: none; }
+        .ual-filters select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; height: 34px; min-width: 140px; outline: none; }
         .ual-filters select:focus { border-color: #6366f1; }
         .ual-clear-btn { padding: 6px 12px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; height: 34px; display: flex; align-items: center; gap: 5px; }
         .ual-clear-btn:hover { background: #c0392b; }
@@ -656,10 +657,13 @@ tr:hover { background:#f8fffe; }
             <button class="ual-close" onclick="closeUserActivityLog()"><i class="fas fa-times"></i></button>
         </div>
         <div class="ual-filters">
-            <div class="ual-search-wrap">
+            <div class="ual-search-wrap" style="width:180px;">
                 <i class="fas fa-search"></i>
-                <input type="text" id="ualSearch" placeholder="Search by user, field, value, record ID..." oninput="filterUAL()">
+                <input type="text" id="ualSearch" placeholder="Search..." oninput="filterUAL()" style="width:100%;">
             </div>
+            <input type="date" id="ualDateFrom" onchange="_loadUAL()" style="padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;outline:none;width:130px;" title="From Date">
+            <span style="font-size:11px;color:#7f8c8d;">to</span>
+            <input type="date" id="ualDateTo" onchange="_loadUAL()" style="padding:7px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;outline:none;width:130px;" title="To Date">
             <select id="ualPageFilter" onchange="filterUAL()">
                 <option value="">All Pages</option>
                 <option value="social_media_accounts">Social Media Accounts</option>
@@ -2184,7 +2188,12 @@ async function _loadUAL() {
     document.getElementById('ualBody').innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7f8c8d;"><div style="border:3px solid #f3f3f3;border-top:3px solid #6366f1;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div><p>Loading activity log...</p></div>';
     document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
     try {
-        const resp = await fetch('/get-user-activity-log');
+        const dateFrom = document.getElementById('ualDateFrom')?.value || '';
+        const dateTo   = document.getElementById('ualDateTo')?.value || '';
+        const params = new URLSearchParams();
+        if (dateFrom) params.set('date_from', dateFrom);
+        if (dateTo)   params.set('date_to', dateTo);
+        const resp = await fetch('/get-user-activity-log?' + params.toString());
         const data = await resp.json();
         if (data.success) { _ualAllLogs = data.logs; _renderUAL(_ualAllLogs); }
         else document.getElementById('ualBody').innerHTML = `<div class="ual-empty"><i class="fas fa-exclamation-circle"></i><p>Error: ${data.error}</p></div>`;
@@ -2211,7 +2220,9 @@ function clearUAL() {
     document.getElementById('ualSearch').value = '';
     document.getElementById('ualPageFilter').value = '';
     document.getElementById('ualActionFilter').value = '';
-    _renderUAL(_ualAllLogs);
+    document.getElementById('ualDateFrom').value = '';
+    document.getElementById('ualDateTo').value = '';
+    _loadUAL();
 }
 const _UAL_PAGE_LABEL = {
     'social_media_accounts': 'Social Media Accounts',

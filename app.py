@@ -663,6 +663,52 @@ def extract_payment_gateway_name(upi_url, website_url):
         return "NA" if upi_domain_clean == website_domain_clean else upi_domain
     except Exception as e:
         return "NA"
+def validate_input_columns(df, sheet_type):
+    """
+    Check ki uploaded file ke columns EXACTLY match karte hain
+    sheet ke 'required_headers' (Download Template) se.
+    Returns: (is_valid, missing_cols, extra_cols)
+    """
+    config = load_config()
+    sheet_config = config['sheet_mappings'].get(sheet_type, {})
+    required_headers = sheet_config.get('required_headers', [])
+    column_mapping = sheet_config.get('column_mapping', {})
+
+    header_aliases = {}
+    for target_col in required_headers:
+        aliases = set()
+        aliases.add(target_col.lower().strip())
+        for sc in column_mapping.get(target_col, []):
+            aliases.add(sc.lower().strip())
+        header_aliases[target_col] = aliases
+
+    input_cols_lower = [str(c).lower().strip() for c in df.columns]
+
+    missing_cols = []
+    for target_col, aliases in header_aliases.items():
+        found = any(
+            ic == alias or alias in ic or ic in alias
+            for ic in input_cols_lower
+            for alias in aliases
+        )
+        if not found:
+            missing_cols.append(target_col)
+
+    all_known_aliases = set()
+    for aliases in header_aliases.values():
+        all_known_aliases.update(aliases)
+
+    extra_cols = []
+    for col, col_lower in zip(df.columns, input_cols_lower):
+        matched = any(
+            col_lower == alias or alias in col_lower or col_lower in alias
+            for alias in all_known_aliases
+        )
+        if not matched:
+            extra_cols.append(str(col))
+
+    is_valid = (len(missing_cols) == 0 and len(extra_cols) == 0)
+    return is_valid, missing_cols, extra_cols
 def process_sheet_data(df, sheet_type):
     result_df = pd.DataFrame(columns=REQUIRED_COLUMNS)
     if df.empty:
@@ -857,11 +903,15 @@ def get_user_activity_log():
         allowed_depts = session.get("allowed_departments")  # None = no dept restriction
         allowed_pages = session.get("allowed_pages", [])
 
-        resp = client.table("activity_logs") \
-            .select("*") \
-            .order("created_at", desc=True) \
-            .limit(500) \
-            .execute()
+        ual_date_from = request.args.get("date_from", "").strip()
+        ual_date_to   = request.args.get("date_to", "").strip()
+
+        query = client.table("activity_logs").select("*")
+        if ual_date_from:
+            query = query.gte("created_at", ual_date_from + " 00:00:00")
+        if ual_date_to:
+            query = query.lte("created_at", ual_date_to + " 23:59:59")
+        resp = query.order("created_at", desc=True).limit(500).execute()
         all_logs = resp.data or []
         PAGE_TABLE_MAP = {
             "scraping":   "scrapping_data",
@@ -1620,6 +1670,21 @@ def preview_sheet():
             df = read_data_file(temp_path, file_ext)
             if df.empty:
                 return jsonify({"success": False, "error": "The uploaded file is empty"})
+
+            is_valid, missing_cols, extra_cols = validate_input_columns(df, sheet_type)
+            if not is_valid:
+                os.remove(temp_path)
+                error_parts = []
+                if missing_cols:
+                    error_parts.append(f"Missing column(s): {', '.join(missing_cols)}")
+                if extra_cols:
+                    error_parts.append(f"Extra/unexpected column(s): {', '.join(extra_cols)}")
+                return jsonify({
+                    "success": False,
+                    "error": "Uploaded file does not match the input template. " + " | ".join(error_parts) +
+                             ". Please use the Download Template option and upload the file in the same format."
+                })
+
             config = load_config()
             sheet_config = config['sheet_mappings'][sheet_type]
             result_df, preview_metrics = process_sheet_data(df, sheet_type)
@@ -1668,6 +1733,20 @@ def generate_sheet():
             if df.empty:
                 flash("The uploaded file is empty", "error")
                 return redirect("/?page=sheet")
+
+            is_valid, missing_cols, extra_cols = validate_input_columns(df, sheet_type)
+            if not is_valid:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                error_parts = []
+                if missing_cols:
+                    error_parts.append(f"Missing column(s): {', '.join(missing_cols)}")
+                if extra_cols:
+                    error_parts.append(f"Extra/unexpected column(s): {', '.join(extra_cols)}")
+                flash("Uploaded file does not match the input template. " + " | ".join(error_parts) +
+                      ". Please use the Download Template option and upload the file in the same format.", "error")
+                return redirect("/?page=sheet")
+
             result_df, _ = process_sheet_data(df, sheet_type)
             output = io.StringIO()
             result_df.to_csv(output, index=False, encoding='utf-8-sig')
