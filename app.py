@@ -2168,7 +2168,7 @@ def save_social_field():
             return jsonify({"success": False, "error": "Missing id or field"})
         EDITABLE_FIELDS = ['login_user', 'number', 'login_device', 'account_status',
                            'review_status', 'blocked_date', 'unblock_date', 'recharge_date',
-                           'full_name', 'account_create_date']
+                           'full_name', 'account_create_date','password']
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
         old_value = None
@@ -3714,6 +3714,25 @@ def api_total_numbers_stats():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+    
+@app.route("/social-download-template", methods=["GET"])
+@login_required
+def social_download_template():
+    headers = [
+        'owned_by', 'login_user', 'number', 'login_device', 'sim_inserted_device',
+        'account_status', 'review_status', 'number_type', 'blocked_date', 'unblock_date',
+        'account_create_date', 'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
+        'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform', 'department',
+    ]
+    out = io.StringIO()
+    csv.writer(out).writerow(headers)
+    out.seek(0)
+    return send_file(
+        io.BytesIO(out.getvalue().encode("utf-8-sig")),
+        download_name="Social_Media_Accounts_Template.csv",
+        as_attachment=True,
+        mimetype="text/csv"
+    )
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

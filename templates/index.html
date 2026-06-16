@@ -936,6 +936,9 @@
                             <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-import"></i> Import</button>
                         </form>
                         {% elif page_type == 'social' %}
+                        <a href="/social-download-template" class="btn btn-outline" title="Download Import Template">
+                            <i class="fas fa-file-download"></i> Template
+                        </a>
                         <form id="importFormSocial" action="/social-import" method="POST" enctype="multipart/form-data" style="display:inline;">
                             <input type="file" name="file" id="fileInputSocial" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                             <button type="button" class="btn btn-success" onclick="document.getElementById('fileInputSocial').click()"><i class="fas fa-file-import"></i> Import</button>
@@ -1480,14 +1483,14 @@
             <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
                 <div class="filters">
                     <div class="filters-header">
-                        <div style="display:flex;flex-direction:column;gap:4px;">
-                            <h2 style="font-size:12px;">Scam++ — Filter Data</h2>
-                            <span id="invLastDateBadge" style="display:none;font-size:11px;color:#7f8c8d;font-weight:500;">
-                                <i class="fas fa-calendar-check" style="color:#e67e22;"></i>
-                                Updated To: <strong id="invLastDateValue" style="color:#e67e22;"></strong>
+                        <h2 style="font-size:11px;color:#2c3e50;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Scam++ — Filter Data</h2>
+                        <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                            <span id="invLastDateBadge" style="display:none;align-items:center;gap:4px;background:#fff3e0;border:1px solid #ffcc80;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;color:#e65100;">
+                                <i class="fas fa-calendar-check"></i>
+                                Updated To: <strong id="invLastDateValue"></strong>
                             </span>
+                            <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
                         </div>
-                        <button type="button" class="clear-filters" onclick="clearInvestmentFilters()"><i class="fas fa-times"></i> Clear Filters</button>
                     </div>
                     <form method="GET" action="/" class="filters-grid" id="investmentFilterForm">
                         <input type="hidden" name="page" value="investment">
@@ -1640,9 +1643,9 @@
             {% if 'social' in allowed_pages %}
             <div class="page-content social-page {% if page_type == 'social' %}active{% endif %}">
                 <div class="filters">
-                    <div style="display:flex;flex-direction:column;gap:8px;">
-                        <h2 style="font-size:12px;color:#2c3e50;font-weight:600;">Social Media Accounts Management - Filter Data</h2>
-                        <form method="GET" action="/" id="socialFilterForm" style="display:flex;align-items:flex-end;gap:8px;flex-wrap:nowrap;width:100%;">
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <h2 style="font-size:11px;color:#2c3e50;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Social Media Accounts — Filter Data</h2>
+                        <form method="GET" action="/" id="socialFilterForm" style="display:flex;align-items:flex-end;gap:6px;flex-wrap:nowrap;width:100%;">
                             <input type="hidden" name="page" value="social">
                             <div style="display:flex;flex-direction:column;gap:3px;flex:1.4;min-width:160px;">
                                 <label style="font-size:11px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:4px;"><i class="fas fa-search"></i> Search</label>
@@ -1719,7 +1722,7 @@
                     <table id="socialMediaTable">
                         <thead>
                             <tr>
-                                <th class="edit-col-th" id="editColTh" style="display:none;"></th>
+                                <th class="edit-col-th" id="editColTh" style="display:none;">Action</th>
                                 <th data-col="id">ID</th>
                                 <th data-col="platform">Platform</th>
                                 <th data-col="department">Department</th>
@@ -2695,6 +2698,7 @@
                 { key: 'blocked_date',        label: 'Blocked Date',       type: 'date' },
                 { key: 'unblock_date',        label: 'Unblock Date',       type: 'date' },
                 { key: 'recharge_date',       label: 'Recharge Date',      type: 'date' },
+                { key: 'password',            label: 'Password',           type: 'text' },
             ];
             function openEditDrawer(event, row) {
                 event.stopPropagation();
@@ -2745,6 +2749,10 @@
                 document.getElementById('editDrawerOverlay').classList.remove('active');
                 _editDrawerCurrentId = null;
                 _editDrawerChanges = {};
+                const saveBtn = document.getElementById('editDrawerSaveBtn');
+                const delBtn  = document.getElementById('editDrawerDelBtn');
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes'; }
+                if (delBtn)  { delBtn.disabled  = false; delBtn.innerHTML  = '<i class="fas fa-trash"></i> Delete ID'; }
             }
             async function saveEditDrawer() {
                 if (!_editDrawerCurrentId) return;
@@ -6297,11 +6305,11 @@
                             closeEditDrawer();
                         } else {
                             showToast('Delete failed: ' + data.error, true);
-                            if (delBtn) { delBtn.disabled = false; delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete ID'; }
+                            closeEditDrawer();
                         }
                     } catch(e) {
                         showToast('Network error: ' + e.message, true);
-                        if (delBtn) { delBtn.disabled = false; delBtn.innerHTML = '<i class="fas fa-trash"></i> Delete ID'; }
+                        closeEditDrawer();
                     }
                 }
                 let _scrapEditCurrentId = null;
