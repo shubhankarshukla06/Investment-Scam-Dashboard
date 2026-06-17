@@ -917,6 +917,9 @@
                             {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
                             <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
                             {% endif %}
+                            {% if 'lunch' in allowed_pages %} 
+                            <option value="lunch_break"> Lunch Break Tracker</option>
+                            {% endif %}
                         </select>
                     </div>
                     <div class="header-actions">
@@ -936,7 +939,8 @@
                             <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-import"></i> Import</button>
                         </form>
                         {% elif page_type == 'social' %}
-                        <a href="/social-download-template" class="btn btn-outline" title="Download Import Template">
+                        <a href="#" class="btn btn-outline" title="Download Import Template"
+                            onclick="downloadSocialTemplate(); return false;">
                             <i class="fas fa-file-download"></i> Template
                         </a>
                         <form id="importFormSocial" action="/social-import" method="POST" enctype="multipart/form-data" style="display:inline;">
@@ -2193,13 +2197,13 @@
         <script>
             // ── Platform-specific column visibility ─────────────
             const PLATFORM_COLUMNS = {
-                'Facebook':       ['id','platform','department','login_user','number','login_device','account_status','account_type','mail_id','account_id','password','page_name'],
-                'Amazon':         ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','mail_id','account_id','password'],
-                'Instagram':      ['id','platform','department','login_user','number','login_device','account_status','mail_id','account_id','password'],
-                'Telegram':       ['id','platform','department','login_user','number','login_device','account_status','full_name'],
-                'WhatsApp':       ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','account_type'],
-                'Gmail Accounts': ['id','platform','department','login_user','account_status','mail_id','password'],
-                'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator'],
+                'Facebook':       ['id','platform','department','login_user','number','login_device','account_status','account_type','mail_id','account_id','password','page_name',,'review_status'],
+                'Amazon':         ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','mail_id','account_id','password','review_status'],
+                'Instagram':      ['id','platform','department','login_user','number','login_device','account_status','mail_id','account_id','password','review_status'],
+                'Telegram':       ['id','platform','department','login_user','number','login_device','account_status','full_name','review_status'],
+                'WhatsApp':       ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','account_type','review_status','recharge_date'],
+                'Gmail Accounts': ['id','platform','department','login_user','account_status','mail_id','password','full_name','review_status'],
+                'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator','review_status'],
             };
             const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
             function filterSocialColumns(platform) {
@@ -2420,6 +2424,10 @@
             function changePageFromWD(pageType) {
                 if (pageType === 'website_directory') {
                     window.location.href = '/website-directory';
+                    return;
+                }
+                if (pageType === 'lunch_break') {
+                    window.location.href = '/lunch-break';
                     return;
                 }
                 window.location.href = '/?page=' + pageType;
@@ -4941,6 +4949,11 @@
             document.getElementById('scrapInsertModal')?.addEventListener('click', e => {
                 if (e.target === document.getElementById('scrapInsertModal')) closeScrapInsertModal();
             });
+            function downloadSocialTemplate() {
+                const sel = document.getElementById('socialPlatformSelect');
+                const platform = sel ? sel.value : '';
+                window.location.href = '/social-download-template' + (platform ? '?platform=' + encodeURIComponent(platform) : '');
+            }
             function syncFixedHeaderSpace(){
                 const header=document.querySelector('.fixed-header');
                 if(!header)return;

@@ -160,6 +160,24 @@ DEPARTMENT_OPTIONS = [
     "AML", "Investment Scam", "ITC", "Infringement", "Chargeback"
 ]
 
+LUNCH_ALLOWED_USERS = {
+    "parul@pixeltruth.com": ["Parul Satsangi", "Sheetal Dubey", "Kakul Pal"],
+    # aur users add karo jaise chahiye
+}
+
+def can_access_lunch(user_session):
+    """Check if user can access lunch break tracker"""
+    allowed_pages = user_session.get("allowed_pages", [])
+    return "lunch" in allowed_pages
+
+ALL_EMPLOYEES = [
+    "Parul Satsangi",
+    "Honey Singhal",
+    "Kakul Pal",
+    "Rozma Khan",
+    "Rishabh Yadav",
+]
+
 PLATFORM_ACCOUNT_STATUS = {
     "Facebook": ["Active", "Block", "Restricted", "Permanent Block"],
     "Instagram": ["Active", "Block", "Permanent Block"],
@@ -3718,21 +3736,332 @@ def api_total_numbers_stats():
 @app.route("/social-download-template", methods=["GET"])
 @login_required
 def social_download_template():
-    headers = [
-        'owned_by', 'login_user', 'number', 'login_device', 'sim_inserted_device',
-        'account_status', 'review_status', 'number_type', 'blocked_date', 'unblock_date',
-        'account_create_date', 'sim_operator', 'full_name', 'recharge_date', 'sim_buy_date',
-        'account_type', 'mail_id', 'account_id', 'password', 'page_name', 'platform', 'department',
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.worksheet.datavalidation import DataValidation
+
+    platform = request.args.get("platform", "").strip()
+
+    PLATFORM_COLUMNS_MAP = {
+        'Facebook':       ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name','owned_by','platform','department'],
+        'Instagram':      ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','mail_id','account_id','password','owned_by','platform','department'],
+        'Telegram':       ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','owned_by','platform','department'],
+        'WhatsApp':       ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','owned_by','platform','department'],
+        'Amazon':         ['login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','owned_by','platform','department'],
+        'Gmail Accounts': ['login_user','number','account_status','review_status','blocked_date','unblock_date','account_create_date','full_name','mail_id','password','owned_by','platform','department'],
+        'Total Numbers':  ['owned_by','number','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblock_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','platform','department'],
+    }
+
+    ALL_HEADERS = [
+        'owned_by','login_user','number','login_device','sim_inserted_device',
+        'account_status','review_status','number_type','blocked_date','unblock_date',
+        'account_create_date','sim_operator','full_name','recharge_date','sim_buy_date',
+        'account_type','mail_id','account_id','password','page_name','platform','department',
     ]
-    out = io.StringIO()
-    csv.writer(out).writerow(headers)
-    out.seek(0)
+
+    PLATFORM_STATUS_OPTIONS = {
+        'Facebook':       ['Active','Block','Restricted','Permanent Block'],
+        'Instagram':      ['Active','Block','Permanent Block'],
+        'Telegram':       ['Active','Frozen','Permanent Block'],
+        'WhatsApp':       ['Active','Block','Permanent Block','Restricted'],
+        'Amazon':         ['Active','Block','Permanent Block'],
+        'Gmail Accounts': ['Active','Block','Permanent Block'],
+        'Total Numbers':  ['Active','Block','Permanent Block'],
+        '':               ['Active','Block','Restricted','Frozen','Permanent Block'],
+    }
+
+    REVIEW_STATUS_OPTIONS = ['NA','Send','Appeal Submit','Video Verification Done']
+
+    headers = PLATFORM_COLUMNS_MAP.get(platform, ALL_HEADERS)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Social Media Accounts"
+    for col_idx, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        ws.column_dimensions[cell.column_letter].width = max(15, len(header) + 4)
+
+    # Dropdowns — find column index for account_status and review_status
+    status_options = PLATFORM_STATUS_OPTIONS.get(platform, PLATFORM_STATUS_OPTIONS[''])
+    status_formula = '"' + ','.join(status_options) + '"'
+    review_formula = '"' + ','.join(REVIEW_STATUS_OPTIONS) + '"'
+
+    if 'account_status' in headers:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('account_status') + 1)
+        dv_status = DataValidation(
+            type="list",
+            formula1=status_formula,
+            allow_blank=True,
+            showDropDown=False
+        )
+        dv_status.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(dv_status)
+
+    if 'review_status' in headers:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('review_status') + 1)
+        dv_review = DataValidation(
+            type="list",
+            formula1=review_formula,
+            allow_blank=True,
+            showDropDown=False
+        )
+        dv_review.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(dv_review)
+
+    # If platform is fixed, pre-fill platform column
+    if platform and 'platform' in headers:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('platform') + 1)
+        plat_dv = DataValidation(
+            type="list",
+            formula1=f'"{platform}"',
+            allow_blank=False,
+            showDropDown=False
+        )
+        plat_dv.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(plat_dv)
+        for row in range(2, 6):
+            ws.cell(row=row, column=headers.index('platform') + 1, value=platform)
+
+    # number_type dropdown
+    if 'number_type' in headers:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('number_type') + 1)
+        dv_nt = DataValidation(
+            type="list",
+            formula1='"Prepaid,Postpaid,Disposable Number,NA"',
+            allow_blank=True,
+            showDropDown=False
+        )
+        dv_nt.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(dv_nt)
+
+    # platform dropdown (agar platform fix nahi hai toh saare options do)
+    if 'platform' in headers and not platform:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('platform') + 1)
+        all_platforms = 'Facebook,Instagram,Telegram,WhatsApp,Amazon,Gmail Accounts,Total Numbers'
+        dv_plat = DataValidation(
+            type="list",
+            formula1=f'"{all_platforms}"',
+            allow_blank=True,
+            showDropDown=False
+        )
+        dv_plat.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(dv_plat)
+
+    # department dropdown
+    if 'department' in headers:
+        col_letter = openpyxl.utils.get_column_letter(headers.index('department') + 1)
+        dv_dept = DataValidation(
+            type="list",
+            formula1='"AML,Investment Scam,ITC,Infringement,Chargeback"',
+            allow_blank=True,
+            showDropDown=False
+        )
+        dv_dept.sqref = f"{col_letter}2:{col_letter}1000"
+        ws.add_data_validation(dv_dept)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    platform_suffix = f"_{platform.replace(' ', '_')}" if platform else ""
+    filename = f"Social_Media_Accounts{platform_suffix}_Template.xlsx"
+
     return send_file(
-        io.BytesIO(out.getvalue().encode("utf-8-sig")),
-        download_name="Social_Media_Accounts_Template.csv",
+        output,
+        download_name=filename,
         as_attachment=True,
-        mimetype="text/csv"
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+
+# ============================================================
+# LUNCH BREAK TRACKER
+# ============================================================
+@app.route("/lunch-break", methods=["GET"])
+@login_required
+def lunch_break():
+    user = get_current_user()
+    is_admin = session.get("is_admin", False)
+    email = session.get("email", "")
+    allowed_pages = session.get("allowed_pages", [])
+
+    if not can_access_lunch(session):
+        flash("Access denied.", "error")
+        first_page = allowed_pages[0] if allowed_pages else "scraping"
+        return redirect(f"/?page={first_page}")
+
+    date_filter = request.args.get("date_filter", "").strip()
+    emp_filter  = request.args.get("emp_filter",  "").strip()
+
+    # Determine which employees this user can see/fill
+    if is_admin:
+        visible_employees = ALL_EMPLOYEES
+    elif "lunch" in allowed_pages:
+        # lunch page allowed hai toh LUNCH_ALLOWED_USERS se dekho
+        # agar wahan nahi hai toh apna naam hi dikhao
+        visible_employees = LUNCH_ALLOWED_USERS.get(email.lower(), [session.get("display_name", "").replace(r'\s*\(.*?\)\s*', '').strip()])
+    else:
+        visible_employees = []
+
+    try:
+        query = get_auth_supabase().table("lunch_breaks").select("*")
+        if not is_admin:
+            if not visible_employees:
+                items = []
+                total = 0
+            else:
+                query = query.in_("employee_name", visible_employees)
+        if date_filter:
+            query = query.eq("date", date_filter)
+        if emp_filter:
+            query = query.eq("employee_name", emp_filter)
+
+        resp = query.order("date", desc=True).order("id", desc=True).limit(500).execute()
+        items = resp.data or []
+        total = len(items)
+    except Exception as e:
+        items = []
+        total = 0
+        flash(f"Error: {e}", "error")
+
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
+
+    return render_template(
+        "lunch_break.html",
+        items=items,
+        total=total,
+        is_admin=is_admin,
+        visible_employees=visible_employees,
+        all_employees=ALL_EMPLOYEES,
+        date_filter=date_filter,
+        emp_filter=emp_filter,
+        current_user=user,
+        allowed_pages=allowed_pages,
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+        can_view_activity_log=session.get("can_view_activity_log", False),
+        current_user_email=session.get("email", ""),
+    )
+
+
+@app.route("/lunch-break/insert", methods=["POST"])
+@login_required
+def lunch_break_insert():
+    try:
+        data = request.get_json()
+        is_admin = session.get("is_admin", False)
+        email    = session.get("email", "")
+
+        employee_name = (data.get("employee_name") or "").strip()
+        date_val      = (data.get("date")          or "").strip()
+        start_time    = (data.get("lunch_start")   or "").strip()
+        end_time      = (data.get("lunch_end")     or "").strip()
+        remark        = (data.get("remark")        or "NA").strip()
+
+        if not employee_name or not date_val or not start_time or not end_time:
+            return jsonify({"success": False, "error": "All fields are required"})
+
+        # Permission check
+        if not is_admin:
+            if "lunch" not in session.get("allowed_pages", []):
+                return jsonify({"success": False, "error": "Lunch tracker access nahi hai"})
+            allowed = LUNCH_ALLOWED_USERS.get(email.lower(), [session.get("display_name", "").strip()])
+            if employee_name not in allowed:
+                return jsonify({"success": False, "error": "does not have permission to fill for this employee"})
+
+        # Calculate duration
+        try:
+            from datetime import datetime as dt
+            fmt = "%H:%M"
+            s = dt.strptime(start_time, fmt)
+            e = dt.strptime(end_time, fmt)
+            diff = e - s
+            total_mins = int(diff.total_seconds() / 60)
+            if total_mins < 0:
+                return jsonify({"success": False, "error": "End time cannot be before start time"})
+            hours   = total_mins // 60
+            minutes = total_mins % 60
+            duration_str = f"{hours}h {minutes}m" if hours else f"{minutes}m"
+        except Exception:
+            duration_str = "NA"
+
+        record = {
+            "date":                 date_val,
+            "employee_name":        employee_name,
+            "lunch_start":          start_time,
+            "lunch_end":            end_time,
+            "total_break_duration": duration_str,
+            "remark":               remark if remark else "NA",
+            "filled_by":            get_clean_display_name(session.get("display_name", "")),
+            "filled_by_email":      email,
+        }
+
+        resp = get_auth_supabase().table("lunch_breaks").insert(record).execute()
+        if resp.data:
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Insert failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/lunch-break/delete", methods=["POST"])
+@login_required
+def lunch_break_delete():
+    try:
+        data = request.get_json()
+        rid  = data.get("id")
+        is_admin = session.get("is_admin", False)
+        email    = session.get("email", "")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+
+        # Non-admin sirf apna fill kiya hua delete kar sakta hai
+        if not is_admin:
+            check = get_auth_supabase().table("lunch_breaks") \
+                .select("filled_by_email").eq("id", rid).limit(1).execute()
+            if not check.data or check.data[0].get("filled_by_email") != email:
+                return jsonify({"success": False, "error": "You do not have permission to delete this entry"})
+
+        get_auth_supabase().table("lunch_breaks").delete().eq("id", rid).execute()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/lunch-break/export", methods=["GET"])
+@login_required
+def lunch_break_export():
+    try:
+        is_admin    = session.get("is_admin", False)
+        email       = session.get("email", "")
+        date_filter = request.args.get("date_filter", "").strip()
+        emp_filter  = request.args.get("emp_filter",  "").strip()
+
+        query = get_auth_supabase().table("lunch_breaks").select("*")
+        if not is_admin:
+            allowed = LUNCH_ALLOWED_USERS.get(email.lower(), [])
+            if allowed:
+                query = query.in_("employee_name", allowed)
+        if date_filter:
+            query = query.eq("date", date_filter)
+        if emp_filter:
+            query = query.eq("employee_name", emp_filter)
+
+        resp = query.order("date", desc=False).execute()
+        rows = resp.data or []
+        df   = pd.DataFrame(rows) if rows else pd.DataFrame()
+        out  = io.StringIO()
+        df.to_csv(out, index=False, encoding="utf-8-sig")
+        out.seek(0)
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return send_file(
+            io.BytesIO(out.getvalue().encode("utf-8-sig")),
+            download_name=f"lunch_breaks_{ts}.csv",
+            as_attachment=True,
+            mimetype="text/csv"
+        )
+    except Exception as e:
+        flash(f"Export error: {e}", "error")
+        return redirect("/lunch-break")
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
