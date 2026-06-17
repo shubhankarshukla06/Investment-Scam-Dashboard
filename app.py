@@ -4003,6 +4003,54 @@ def lunch_break_insert():
         return jsonify({"success": False, "error": str(e)})
 
 
+@app.route("/lunch-break/update", methods=["POST"])
+@login_required
+def lunch_break_update():
+    try:
+        data = request.get_json()
+        rid      = data.get("id")
+        is_admin = session.get("is_admin", False)
+        email    = session.get("email", "")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+
+        # Non-admin sirf apna fill kiya hua edit kar sakta hai
+        if not is_admin:
+            check = get_auth_supabase().table("lunch_breaks") \
+                .select("filled_by_email").eq("id", rid).limit(1).execute()
+            if not check.data or check.data[0].get("filled_by_email") != email:
+                return jsonify({"success": False, "error": "Permission denied"})
+
+        from datetime import datetime as dt
+        start = data.get("lunch_start", "")
+        end   = data.get("lunch_end", "")
+        duration_str = "NA"
+        try:
+            fmt = "%H:%M"
+            s = dt.strptime(start, fmt)
+            e = dt.strptime(end, fmt)
+            diff_mins = int((e - s).total_seconds() / 60)
+            if diff_mins >= 0:
+                h, m = diff_mins // 60, diff_mins % 60
+                duration_str = f"{h}h {m}m" if h else f"{m}m"
+        except Exception:
+            pass
+
+        record = {
+            "date":                 data.get("date", ""),
+            "lunch_start":          start,
+            "lunch_end":            end,
+            "total_break_duration": duration_str,
+            "remark":               data.get("remark", "NA") or "NA",
+        }
+        resp = get_auth_supabase().table("lunch_breaks").update(record).eq("id", rid).execute()
+        if resp.data:
+            return jsonify({"success": True})
+        return jsonify({"success": False, "error": "Update failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
 @app.route("/lunch-break/delete", methods=["POST"])
 @login_required
 def lunch_break_delete():
