@@ -1380,17 +1380,24 @@
           vdRegenerateProgressLabel.textContent = stepLabel + (data.status === "stopping" ? " (stopping...)" : "");
           document.getElementById("vdRegenerateProgressBar").style.width = (data.phase === "extracting" ? 5 : pct) + "%";
           if (data.folder) {
-            document.getElementById("vdRegenerateProgressPath").textContent = `Saving to: ${data.folder}`;
+            document.getElementById("vdRegenerateProgressPath").textContent = "Processing on server...";
           }
           if (data.status === "done" || data.status === "stopped" || data.status === "error") {
             clearInterval(_regenPollTimer);
             vdRegenerateProgress.classList.add("d-none");
             _setRegenButtonsDisabled(false);
+            const finishedJobId = _activeRegenJobId;
             _activeRegenJobId = null;
-            let folderMsg = data.folder ? `Saved to: ${data.folder}` : "";
-            if (data.investment_sheet) folderMsg += ` | Investment Scam Final Sheet: ${data.investment_sheet}`;
-            if (data.status === "stopped") folderMsg += " - Stopped by user";
-            vdRegenerateFolderPath.textContent = folderMsg;
+            let links = [];
+            if (data.final_excel) {
+              links.push(`<a href="/download-regenerate-file/${finishedJobId}/final_excel" class="btn btn-sm btn-primary">Download Results (Excel)</a>`);
+            }
+            if (data.investment_sheet) {
+              links.push(`<a href="/download-regenerate-file/${finishedJobId}/investment_sheet" class="btn btn-sm btn-success">Download Investment Scam Final Sheet</a>`);
+            }
+            let folderMsg = links.length ? links.join(" &nbsp; ") : "No output file was generated.";
+            if (data.status === "stopped") folderMsg += " <span style='color:#e67e22;'>(Stopped by user)</span>";
+            vdRegenerateFolderPath.innerHTML = folderMsg;
             vdRegenerateResultsWrap.classList.remove("d-none");
             if (data.status === "error" && data.message) alert("Job error: " + data.message);
           }

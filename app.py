@@ -4099,8 +4099,9 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["phase"] = "extracting"
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        downloads_dir  = os.path.join(os.path.expanduser("~"), "Downloads")
-        session_folder = os.path.join(downloads_dir, f"Screenshots_{timestamp}")
+        regen_jobs_base = os.path.join(os.path.dirname(__file__), "regenerate_jobs")
+        os.makedirs(regen_jobs_base, exist_ok=True)
+        session_folder = os.path.join(regen_jobs_base, f"{job_id}_{timestamp}")
         images_folder  = os.path.join(session_folder, "Screenshots")
         os.makedirs(images_folder, exist_ok=True)
         with REGEN_JOBS_LOCK:
@@ -4508,6 +4509,26 @@ def bulk_regenerate_cases():
         return jsonify({"status": "success", "job_id": job_id})
     except Exception as exc:
         return jsonify({"status": "error", "message": str(exc)}), 500
+
+@app.route("/download-regenerate-file/<job_id>/<file_type>", methods=["GET"])
+@login_required
+def download_regenerate_file(job_id, file_type):
+    with REGEN_JOBS_LOCK:
+        job = REGEN_JOBS.get(job_id)
+    if not job:
+        return jsonify({"status": "error", "message": "Job not found"}), 404
+
+    allowed_types = {
+        "final_excel": job.get("final_excel"),
+        "investment_sheet": job.get("investment_sheet"),
+        "screenshot_excel": job.get("screenshot_excel"),
+    }
+    file_path = allowed_types.get(file_type)
+    if not file_path or not os.path.isfile(file_path):
+        return jsonify({"status": "error", "message": "File not available"}), 404
+
+    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+
 
 @app.route("/regenerate-job-status/<job_id>", methods=["GET"])
 @login_required
