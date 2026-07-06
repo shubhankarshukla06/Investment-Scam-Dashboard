@@ -718,11 +718,17 @@ tr:hover { background:#f8fffe; }
                     {% if 'investment' in allowed_pages %}
                     <option value="investment">BS Investment Scam</option>
                     {% endif %}
-                    {% if 'investment' in allowed_pages %}
+                    {% if 'insights' in allowed_pages %}
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
-                    {% if 'investment' in allowed_pages or 'website_directory' in allowed_pages %}
+                    {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory" selected>Scam++ Website Directory</option>
+                    {% endif %}
+                    {% if 'lunch' in allowed_pages %}
+                    <option value="lunch_break">Lunch Break Tracker</option>
+                    {% endif %}
+                    {% if 'case_report' in allowed_pages %}
+                    <option value="case_report">Case Report Generator</option>
                     {% endif %}
                 </select>
             </div>
@@ -1171,6 +1177,16 @@ async function checkSingleUrlDuplicate(url, inputId, statusId) {
 function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
 function changePageFromWD(pageType) {
     if (pageType === 'website_directory') return;
+    if (pageType === 'lunch_break') {
+        showLoading();
+        window.location.href = '/lunch-break';
+        return;
+    }
+    if (pageType === 'case_report') {
+        showLoading();
+        window.location.href = '/case-report';
+        return;
+    }
     showLoading();
     window.location.href = '/?page=' + pageType;
 }

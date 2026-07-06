@@ -15,6 +15,25 @@ import re
 import csv
 from urllib.parse import urlparse
 from functools import wraps
+from utils.pdf_generator import generate_pdf
+from utils.aws_upload import upload_pdf, delete_from_s3
+from utils.filename_generator import generate_filename
+import time
+import fitz  # PyMuPDF — pip install pymupdf
+import pytesseract  # pip install pytesseract
+from PIL import Image
+import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import traceback
+import uuid
+import threading
 
 load_dotenv()
 
@@ -450,10 +469,7 @@ def get_bank_name_from_handle(handle, ifsc_code=None):
             if key in handle_lower or handle_lower in key:
                 return value
         common_mappings = {
-            'okaxis': 'Axis Bank', 'okicici': 'ICICI Bank', 'okhdfc': 'HDFC Bank',
-            'axisbank': 'Axis Bank', 'icici': 'ICICI Bank', 'hdfc': 'HDFC Bank',
-            'sbi': 'State Bank of India', 'ybl': 'Yes Bank',
-            'paytm': 'Paytm Payments Bank', 'phonepe': 'Yes Bank (PhonePe)'
+            'okaxis': 'NA'
         }
         for pattern, bank_name in common_mappings.items():
             if pattern in handle_lower:
@@ -871,6 +887,19 @@ def get_clean_display_name(display_name):
         return "User"
     clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
     return clean_name if clean_name else display_name
+
+def redirect_to_allowed_page(allowed_pages):
+    """Allowed_pages ke first entry ke hisaab se sahi URL pe redirect karta hai."""
+    if not allowed_pages:
+        return redirect("/login")
+    first_page = allowed_pages[0]
+    if first_page == "website_directory":
+        return redirect("/website-directory")
+    if first_page == "lunch":
+        return redirect("/lunch-break")
+    if first_page == "case_report":
+        return redirect("/case-report")
+    return redirect(f"/?page={first_page}")
 # ============================================================
 # LOGIN / LOGOUT
 # ============================================================
@@ -941,7 +970,7 @@ def get_user_activity_log():
         # Admin — sab kuch dikhao (but still filter by allowed_pages if not superadmin)
         if is_admin:
             allowed_tables = set(PAGE_TABLE_MAP[p] for p in allowed_pages if p in PAGE_TABLE_MAP)
-            if "investment" in allowed_pages:
+            if "website_directory" in allowed_pages:
                 allowed_tables.add("website_directory")
 
             def _admin_log_allowed(log):
@@ -957,7 +986,7 @@ def get_user_activity_log():
             if page in PAGE_TABLE_MAP:
                 allowed_tables.add(PAGE_TABLE_MAP[page])
         # website_directory sirf tab dikhao jab investment allow ho
-        if "investment" in allowed_pages or "website_directory" in allowed_pages:
+        if "website_directory" in allowed_pages:
             allowed_tables.add("website_directory")
 
         current_email = session.get("email", "")
@@ -1110,7 +1139,7 @@ def index():
     user = get_current_user()
     allowed_pages = session.get("allowed_pages", [])
     page_type = request.args.get("page", "").strip()
-    if not page_type or (page_type not in allowed_pages and page_type != 'insights'):
+    if not page_type or page_type not in allowed_pages:
         page_type = allowed_pages[0] if allowed_pages else "scraping"
     search_query = request.args.get("search", "").strip()
     scam_filter = request.args.get("scam_type", "").strip()
@@ -2608,50 +2637,6 @@ def scrapping_summary_data():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
-@app.route("/update-share-status", methods=["POST"])
-@login_required
-def update_share_status():
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({"success": False, "error": "No data provided"})
-        raw_ids = data.get("ids", [])
-        new_status = data.get("status", "").strip()
-        if not raw_ids:
-            return jsonify({"success": False, "error": "No IDs provided"})
-        if new_status not in ["Pending", "Shared"]:
-            return jsonify({"success": False, "error": "Invalid status"})
-        # Clean & parse IDs — accept int or string
-        clean_ids = []
-        for item in raw_ids:
-            try:
-                clean_ids.append(int(str(item).strip()))
-            except (ValueError, TypeError):
-                continue
-        if not clean_ids:
-            return jsonify({"success": False, "error": "No valid numeric IDs found"})
-        # Bulk update in Supabase
-        resp = supabase.table("scrapping_data") \
-            .update({"share_status": new_status}) \
-            .in_("id", clean_ids) \
-            .execute()
-        updated_count = len(resp.data) if resp.data else 0
-        log_activity(
-            action_type="field_update",
-            target_table="scrapping_data",
-            field_name="share_status",
-            old_value="(bulk)",
-            new_value=new_status,
-            extra_info={"ids": clean_ids, "count": updated_count}
-        )
-        return jsonify({
-            "success": True,
-            "updated": updated_count,
-            "ids_submitted": len(clean_ids)
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
-    
 @app.route("/delete-social-record", methods=["POST"])
 @login_required
 def delete_social_record():
@@ -2763,6 +2748,8 @@ def my_scraping_count():
 @app.route("/investment-insights-data", methods=["GET"])
 @login_required
 def investment_insights_data():
+    if "insights" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
     try:
         date_from   = request.args.get("date_from",   "").strip()
         date_to     = request.args.get("date_to",     "").strip()
@@ -2776,7 +2763,7 @@ def investment_insights_data():
         while True:
             q = supabase.table("BS_Investment_Scam").select(
                 "Inserted_date,Input_user,Search_for,Scam_type,"
-                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number,Web_contact_no"
+                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number,Web_contact_no,Bank_name"
             )
             if date_from:  q = q.gte("Inserted_date", date_from)
             if date_to:    q = q.lte("Inserted_date", date_to)
@@ -2927,6 +2914,19 @@ def investment_insights_data():
         for key in list(sf_counts.keys()):
             if key.lower() == "whatsapp" and key != "WhatsApp":
                 sf_counts["WhatsApp"] = sf_counts.get("WhatsApp", 0) + sf_counts.pop(key)
+        # ---------- bank name counts (merged in from /investment-bank-data) ----------
+        bank_counts = {}
+        monthly_counts = {}
+        for r in rows:
+            bn = (r.get("bank_name") or "").strip()
+            if bn and bn.upper() not in ("NA", "N/A", "") and bn.lower() != "unknown":
+                bank_counts[bn] = bank_counts.get(bn, 0) + 1
+            d7 = (r.get("inserted_date") or "")[:7]
+            if d7:
+                monthly_counts[d7] = monthly_counts.get(d7, 0) + 1
+        sorted_banks = dict(sorted(bank_counts.items(), key=lambda x: x[1], reverse=True)[:10])
+        monthly_counts = {k: monthly_counts[k] for k in sorted(monthly_counts)}
+
         # ── Average daily cases ──────────────────────────────
         active_dates = [d for d in user_by_date.keys() if d]
         if active_dates:
@@ -2985,10 +2985,16 @@ def investment_insights_data():
             "sf_counts":    sf_counts,
             "user_stats":   user_stats,
             "all_input_users": sorted(list({(r.get("input_user") or "Unknown").strip() for r in rows if r.get("input_user")})),
+            "bank_counts": sorted_banks,
+            "monthly_counts": monthly_counts,
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-    
+
+# NOTE: /investment-bank-data ab bhi maujood hai backward-compat ke liye,
+# lekin dashboard isko alag se call nahi karta — bank_counts/monthly_counts
+# ab /investment-insights-data ke response mein hi bundled aate hain, jisse
+# har dashboard load pe full-table Supabase scan 2 se ghatkar 1 ho gaya hai.
 @app.route("/investment-bank-data", methods=["GET"])
 @login_required
 def investment_bank_data():
@@ -3050,6 +3056,9 @@ def investment_bank_data():
 def website_directory():
     user = get_current_user()
     allowed_pages = session.get("allowed_pages", [])
+    if "website_directory" not in allowed_pages:
+        flash("You don't have access to Website Directory.", "error")
+        return redirect_to_allowed_page(allowed_pages)
     wd_search    = request.args.get("wd_search",   "").strip()
     wd_remark    = request.args.get("wd_remark",   "").strip()
     wd_category  = request.args.get("wd_category", "").strip()
@@ -3357,7 +3366,7 @@ def website_directory_update():
         if not data:
             return jsonify({"success": False, "error": "No data"})
         rid = data.get("id")
-        if not rid:
+        if rid is None:
             return jsonify({"success": False, "error": "No ID"})
 
         ALLOWED = [
@@ -3636,6 +3645,911 @@ def social_search_ajax():
 # TOTAL NUMBERS — Public Read-Only API
 # ============================================================
 TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator"
+
+# ============================================================
+# CASE REPORT GENERATOR ROUTES
+# ============================================================
+
+CASE_REPORT_UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
+CASE_REPORT_REPORTS_FOLDER = os.path.join(os.path.dirname(__file__), "generated_reports")
+os.makedirs(CASE_REPORT_UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(CASE_REPORT_REPORTS_FOLDER, exist_ok=True)
+CASE_REPORT_ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
+
+# ============================================================
+# AML GUI — BULK REGENERATE CASES (headless Selenium + OCR captcha)
+# ============================================================
+pytesseract.pytesseract.tesseract_cmd = os.environ.get(
+    "TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+)
+
+AML_LOGIN_URL  = "https://aml-gui.chargebackzero.com/index.php"
+AML_REPORT_URL = "https://aml-gui.chargebackzero.com/report_generation/index_mfilter.php"
+AML_USERNAME = os.environ.get("AML_USERNAME", "EmpShubhankarShukla icuser")
+AML_PASSWORD = os.environ.get("AML_PASSWORD", "Shukla@678")
+
+# TODO: DevTools se AML login page pe jaakar in XPaths ko verify/update karo
+AML_USERNAME_INPUT_XPATH = "/html/body/div/div/div/div/div/form/div[1]/input"
+AML_PASSWORD_INPUT_XPATH = "/html/body/div/div/div/div/div/form/div[2]/input"
+AML_CAPTCHA_IMG_XPATH    = "//img[contains(@id,'captcha') or contains(@src,'captcha')]"
+AML_CAPTCHA_INPUT_XPATH  = "//input[contains(@name,'captcha') or contains(@id,'captcha')]"
+AML_LOGIN_BUTTON_XPATH   = "/html/body/div/div/div/div/div/form/button"
+
+AML_TITLE1_XPATH       = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[1]"
+AML_INPUT1_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[2]"
+AML_DESCRIPTION1_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[3]/textarea"
+AML_ADD_MORE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[2]/button"
+AML_TITLE2_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[4]/div/input"
+AML_DESCRIPTION2_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[6]/textarea"
+AML_GENERATE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[1]/button"
+AML_RESULT_LINK_XPATH      = "/html/body/a[2]"
+AML_RESULT_LINKS_ALL_XPATH = "//a[contains(@href,'.pdf')]"
+
+def case_report_allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in CASE_REPORT_ALLOWED_EXT
+
+def case_report_clean_up(*paths):
+    for path in paths:
+        try:
+            if path and os.path.exists(path):
+                os.remove(path)
+        except OSError as exc:
+            print(f"[CASE_REPORT] Could not remove temp file {path}: {exc}")
+
+# ============================================================
+# AML GUI BULK REGENERATE — HELPERS
+# ============================================================
+def extract_screenshots_from_pdf(pdf_path, output_dir, prefix=None):
+    """PDF ke har page se screenshots ko top-to-bottom order mein
+    sequentially extract karta hai.
+
+    IMPORTANT: ReportLab kabhi-kabhi ek hi image (xref) ko page pe 2 alag
+    positions pe reuse kar deta hai. Isliye page.get_images() se milne
+    wale unique xrefs ke bajaye, har xref ke SAARE placements
+    (get_image_rects()) ko alag screenshot maana jaata hai — taaki 1 page
+    pe 2 SS hone par dono hi extract hon.
+
+    'prefix' diya ho (jab saare reports ek hi SHARED folder mein extract ho
+    rahe hon) to filenames "<prefix>_1.png", "<prefix>_2.png"... banti hain
+    taaki alag-alag reports ke screenshots collide na karein.
+    """
+    saved_paths = []
+    doc = fitz.open(pdf_path)
+    counter = 1
+    for page_index in range(len(doc)):
+        page = doc[page_index]
+        images = page.get_images(full=True)
+        if not images:
+            continue
+
+        placement_entries = []  # (y0, x0, xref) — ek entry per placement
+        for img in images:
+            xref = img[0]
+            try:
+                rects = page.get_image_rects(xref)
+            except Exception:
+                rects = []
+            if not rects:
+                placement_entries.append((0, 0, xref))
+                continue
+            for rect in rects:
+                placement_entries.append((rect.y0, rect.x0, xref))
+
+        placement_entries.sort(key=lambda e: (e[0], e[1]))
+
+        for _, _, xref in placement_entries:
+            base_img = doc.extract_image(xref)
+            ext = base_img.get("ext", "png")
+            img_bytes = base_img.get("image")
+            filename = f"{prefix}_{counter}.{ext}" if prefix else f"{counter}.{ext}"
+            out_path = os.path.join(output_dir, filename)
+            with open(out_path, "wb") as f:
+                f.write(img_bytes)
+            saved_paths.append(out_path)
+            counter += 1
+    doc.close()
+    return saved_paths
+
+def download_and_extract_report_images(report, output_dir, prefix=None):
+    """PDF download karke uske screenshots ko output_dir mein extract karta hai.
+    Shared folder mein filename collision se bachne ke liye 'prefix'
+    (usually report_id) diya jaata hai."""
+    pdf_url = report.get("pdf_url")
+    temp_pdf_path = os.path.join(tempfile.gettempdir(), f"report_{report.get('id')}_{int(time.time())}.pdf")
+
+    resp = requests.get(pdf_url, timeout=30)
+    resp.raise_for_status()
+    with open(temp_pdf_path, "wb") as f:
+        f.write(resp.content)
+
+    image_paths = extract_screenshots_from_pdf(temp_pdf_path, output_dir, prefix=prefix)
+    case_report_clean_up(temp_pdf_path)
+    return image_paths
+def aml_get_captcha_text(captcha_element):
+    png = captcha_element.screenshot_as_png
+    img = Image.open(io.BytesIO(png)).convert("L")
+    # Captcha ke letters hamesha lowercase hote hain — whitelist se uppercase
+    # hataya taaki Tesseract 'l' ko 'I' ya 'o' ko 'O' jaisi galat uppercase
+    # guess na kare. Result ko bhi force-lowercase kar diya, extra safety ke liye.
+    text = pytesseract.image_to_string(
+        img,
+        config="--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyz0123456789"
+    ).strip()
+    return text.lower()
+def aml_build_driver():
+    options = ChromeOptions()
+    # Regenerate process ab hamesha headless hi chalta hai — koi visible
+    # Chrome window nahi khulta.
+    options.add_argument("--headless=new")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--remote-debugging-port=0")
+    # Unique profile dir per run — avoids "user data directory already in use" crashes
+    unique_profile = os.path.join(tempfile.gettempdir(), f"chrome_profile_{uuid.uuid4().hex}")
+    options.add_argument(f"--user-data-dir={unique_profile}")
+
+    try:
+        # Auto-downloads/matches the chromedriver version to the installed Chrome browser
+        service = ChromeService(ChromeDriverManager().install())
+        return webdriver.Chrome(service=service, options=options)
+    except Exception as exc:
+        print(f"[AML DRIVER] webdriver-manager failed, falling back to system chromedriver: {exc}")
+        return webdriver.Chrome(options=options)
+
+
+def aml_login(driver, max_captcha_attempts=5):
+    wait = WebDriverWait(driver, 20)
+    driver.get(AML_LOGIN_URL)
+
+    for attempt in range(1, max_captcha_attempts + 1):
+        try:
+            username_field = wait.until(EC.presence_of_element_located((By.XPATH, AML_USERNAME_INPUT_XPATH)))
+            username_field.clear()
+            username_field.send_keys(AML_USERNAME)
+
+            password_field = driver.find_element(By.XPATH, AML_PASSWORD_INPUT_XPATH)
+            password_field.clear()
+            password_field.send_keys(AML_PASSWORD)
+
+            captcha_img = wait.until(EC.presence_of_element_located((By.XPATH, AML_CAPTCHA_IMG_XPATH)))
+            captcha_text = aml_get_captcha_text(captcha_img)
+            print(f"[AML LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
+
+            if not captcha_text:
+                print("[AML LOGIN] Captcha OCR returned empty text — retrying with a fresh page.")
+                driver.get(AML_LOGIN_URL)
+                time.sleep(1)
+                continue
+
+            captcha_field = driver.find_element(By.XPATH, AML_CAPTCHA_INPUT_XPATH)
+            captcha_field.clear()
+            captcha_field.send_keys(captcha_text)
+
+            login_btn = driver.find_element(By.XPATH, AML_LOGIN_BUTTON_XPATH)
+            login_btn.click()
+            time.sleep(3)
+
+            # Login form (username field) abhi bhi page pe hai ya nahi — yehi
+            # asli success/fail signal hai. URL-based check bharosemand nahi tha
+            # (login page ka URL khud hi "index.php" hai, "login" word nahi hai,
+            # isliye purana check galat-positive "Success" de raha tha).
+            try:
+                driver.find_element(By.XPATH, AML_USERNAME_INPUT_XPATH)
+                login_form_still_present = True
+            except NoSuchElementException:
+                login_form_still_present = False
+
+            if not login_form_still_present:
+                print("[AML LOGIN] Success:", driver.current_url)
+                return True
+
+            print(f"[AML LOGIN] Attempt {attempt} failed — login form still visible (wrong captcha?). Retrying.")
+            driver.get(AML_LOGIN_URL)
+            time.sleep(1)
+
+        except TimeoutException:
+            print(f"[AML LOGIN] Attempt {attempt} timed out waiting for login elements — retrying.")
+            driver.get(AML_LOGIN_URL)
+            time.sleep(1)
+            continue
+
+    print("[AML LOGIN] Failed after retries.")
+    return False
+def aml_submit_chunk(driver, title_text, input_text, description_text, image_chunk):
+    """image_chunk: list of 1-4 image paths (sequence maintained). Returns extracted new PDF URL/text."""
+    wait = WebDriverWait(driver, 20)
+    if len(image_chunk) < 1:
+        return None
+
+    try:
+        _ = driver.current_url  # session health check — crashes here if browser already dead
+    except Exception as exc:
+        raise RuntimeError(f"Chrome session is dead before submission: {exc}")
+
+    driver.get(AML_REPORT_URL)
+
+    try:
+        left_img = wait.until(EC.presence_of_element_located((By.NAME, "left_image[]")))
+    except TimeoutException:
+        debug_id = uuid.uuid4().hex[:8]
+        debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        screenshot_path = os.path.join(debug_dir, f"debug_leftimg_{debug_id}.png")
+        html_path = os.path.join(debug_dir, f"debug_leftimg_{debug_id}.html")
+        try:
+            driver.save_screenshot(screenshot_path)
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+        except Exception as dbg_exc:
+            print(f"[AML SUBMIT] Could not save debug artifacts: {dbg_exc}")
+        raise RuntimeError(
+            f"'left_image[]' field not found on report generation page "
+            f"(current URL: {driver.current_url}). Ho sakta hai session login page "
+            f"pe redirect ho gaya ho, ya field name/URL badal gaya ho. Debug "
+            f"screenshot/HTML id={debug_id} saved in {debug_dir}"
+        )
+    left_img.send_keys(image_chunk[0])
+
+    if len(image_chunk) >= 2:
+        right_img = driver.find_element(By.NAME, "right_image[]")
+        right_img.send_keys(image_chunk[1])
+
+    title1 = driver.find_element(By.XPATH, AML_TITLE1_XPATH)
+    title1.clear()
+    title1.send_keys(title_text)
+
+    input_field = driver.find_element(By.XPATH, AML_INPUT1_XPATH)
+    input_field.clear()
+    input_field.send_keys(input_text)
+
+    description1 = driver.find_element(By.XPATH, AML_DESCRIPTION1_XPATH)
+    description1.clear()
+    description1.send_keys(description_text)
+
+    if len(image_chunk) > 2:
+        add_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_ADD_MORE_BTN_XPATH)))
+        driver.execute_script("arguments[0].click();", add_btn)
+        time.sleep(2)
+
+        title2 = wait.until(EC.presence_of_element_located((By.XPATH, AML_TITLE2_XPATH)))
+        title2.clear()
+        title2.send_keys(title_text)
+
+        description2 = driver.find_element(By.XPATH, AML_DESCRIPTION2_XPATH)
+        description2.clear()
+        description2.send_keys(description_text)
+
+        left_img2 = driver.find_elements(By.NAME, "left_image[]")[1]
+        left_img2.send_keys(image_chunk[2])
+
+        if len(image_chunk) == 4:
+            right_img2 = driver.find_elements(By.NAME, "right_image[]")[1]
+            right_img2.send_keys(image_chunk[3])
+
+    generate_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_GENERATE_BTN_XPATH)))
+    generate_btn.click()
+    long_wait = WebDriverWait(driver, 40)  # PDF generation can take longer than 20s
+    npci_href = None
+    all_links = None
+
+    # Generate ke baad portal teen links deta hai (mfilterit / npci / without_header
+    # style variants — generate_screenshot_urls() ki tarah). "Regenerate Cases"
+    # (basic) results sheet mein sirf NPCI link chahiye, lekin "Regenerate with
+    # Final Sheet" wali Investment Scam sheet mein teeno links (comma-separated)
+    # chahiye — isliye dono yahin collect kar rahe hain.
+    try:
+        long_wait.until(EC.presence_of_element_located((By.XPATH, AML_RESULT_LINKS_ALL_XPATH)))
+        anchors = driver.find_elements(By.XPATH, AML_RESULT_LINKS_ALL_XPATH)
+        seen = set()
+        hrefs = []
+        for a in anchors:
+            href = (a.get_attribute("href") or "").strip()
+            if href and href not in seen:
+                seen.add(href)
+                hrefs.append(href)
+
+        # Investment Scam Final Sheet ke liye fixed sequence chahiye:
+        # mfilterit -> npci -> without_header
+        def _link_sort_key(href):
+            h = href.lower()
+            if "mfilterit" in h:
+                return 0
+            if "npci" in h:
+                return 1
+            if "without_header" in h:
+                return 2
+            return 3
+        hrefs.sort(key=_link_sort_key)
+
+        for href in hrefs:
+            if "npci" in href.lower():
+                npci_href = href
+                break
+        if hrefs:
+            all_links = ",".join(hrefs)
+    except TimeoutException:
+        pass  # try fallbacks below before giving up
+
+    result_text = npci_href or (all_links.split(",")[0] if all_links else None)
+
+    # ── Fallback: old single-anchor XPath, agar link markup badal jaaye ──
+    if not result_text:
+        try:
+            result_text = driver.find_element(By.XPATH, AML_RESULT_LINK_XPATH).text
+            all_links = all_links or result_text
+        except Exception:
+            pass
+
+    # ── Fallback 2: save screenshot + HTML so we can see what actually rendered ──
+    if not result_text:
+        debug_id = uuid.uuid4().hex[:8]
+        debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
+        os.makedirs(debug_dir, exist_ok=True)
+        screenshot_path = os.path.join(debug_dir, f"debug_{debug_id}.png")
+        html_path = os.path.join(debug_dir, f"debug_{debug_id}.html")
+        try:
+            driver.save_screenshot(screenshot_path)
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print(f"[AML SUBMIT] Result link not found. Debug saved:\n  {screenshot_path}\n  {html_path}\n  Current URL: {driver.current_url}")
+        except Exception as dbg_exc:
+            print(f"[AML SUBMIT] Could not save debug artifacts: {dbg_exc}")
+        raise RuntimeError(
+            f"Result link not found after Generate click (current URL: {driver.current_url}). "
+            f"Debug screenshot/HTML saved with id={debug_id} in {debug_dir}"
+        )
+
+    return {"npci": result_text, "all": all_links or result_text}
+def aml_strip_scheme(url):
+    """Scheme (https://, http://) hata ke sirf domain/handle deta hai —
+    Input field mein koi bhi '/' (path ya trailing slash) na jaaye."""
+    if not url:
+        return url
+    stripped = url.replace("https://", "").replace("http://", "").strip()
+    # Agar path/query hai (domain ke baad koi '/'), to sirf domain rakho
+    if "/" in stripped:
+        stripped = stripped.split("/", 1)[0]
+    return stripped.rstrip("/")
+def aml_chunk_list(lst, size):
+    for i in range(0, len(lst), size):
+        yield lst[i:i + size]
+
+# ============================================================
+# BULK REGENERATE — background job tracking (Stop button support)
+# ============================================================
+REGEN_JOBS = {}
+REGEN_JOBS_LOCK = threading.Lock()
+
+def _build_investment_sheet_row(report, screenshot_links, input_user):
+    """Ek regenerated report se Investment Scam sheet ki ek row banata hai —
+    naye teeno PDF links (comma-separated) screenshot/screenshot_case_report_link
+    mein jaate hain."""
+    row_data = {col: "NA" for col in REQUIRED_COLUMNS}
+
+    upi_vpa              = clean_value(report.get("upi_vpa"))
+    bank_account_number  = clean_value(report.get("bank_account_number"))
+    website_url          = clean_value(report.get("source_url"))
+    payment_gateway_url  = clean_value(report.get("payment_gateway_url"))
+    ifsc_code            = clean_value(report.get("ifsc_code"))
+    ac_holder_name       = clean_value(report.get("ac_holder_name"))
+    scam_type            = clean_value(report.get("scam_type"))
+    search_for_val       = clean_value(report.get("search_for"))
+    chat_number          = clean_value(report.get("chat_number"))
+    screenshot_val       = clean_value(screenshot_links)
+
+    row_data['upi_vpa']              = upi_vpa
+    row_data['bank_account_number']  = bank_account_number
+    row_data['website_url']          = website_url
+    row_data['payment_gateway_url']  = payment_gateway_url
+    row_data['ifsc_code']            = ifsc_code
+    row_data['ac_holder_name']       = ac_holder_name
+    row_data['scam_type']            = scam_type
+    row_data['web_contact_no']       = chat_number
+    row_data['screenshot']                    = screenshot_val
+    row_data['screenshot_case_report_link']   = screenshot_val
+
+    handle = extract_handle(upi_vpa)
+    row_data['handle']    = handle
+    row_data['bank_name'] = get_bank_name_from_handle(handle, ifsc_code)
+    row_data['search_for'] = search_for_val if search_for_val != "NA" else extract_search_for_from_url(website_url)
+    row_data['upi_bank_account_wallet'] = "UPI" if upi_vpa != "NA" else ("Bank Account" if bank_account_number != "NA" else "NA")
+
+    origin, category = lookup_origin_and_category_from_master(website_url)
+    row_data['origin'] = origin
+    row_data['category_of_website'] = category if category != "NA" else scam_type
+
+    if payment_gateway_url != "NA":
+        row_data['payment_gateway_intermediate_url'] = payment_gateway_url
+        row_data['upi_url'] = payment_gateway_url
+        row_data['payment_gateway_name'] = extract_payment_gateway_name(payment_gateway_url, website_url)
+    else:
+        row_data['payment_gateway_intermediate_url'] = "NA"
+        row_data['upi_url'] = "NA"
+        row_data['payment_gateway_name'] = "NA"
+
+    now = datetime.now()
+    row_data['inserted_date']       = now.strftime("%Y-%m-%d")
+    row_data['case_generated_time'] = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    row_data.update({
+        'customer': "Mystery Shopping", 'package_name': "com.mysteryshopping",
+        'channel_name': "Organic Search", 'status': "Active", 'priority': "High",
+        'flag': "1", 'cessation': "Open", 'reviewed_status': "1",
+        'reported_earlier': "No", 'approvd_status': "1",
+        'feature_type': "BS Investment Scam", 'platform': "NA",
+        'neft_imps': "NA", 'bank_branch_details': "NA", 'transaction_method': "NA",
+    })
+
+    return {col: row_data.get(col, "NA") for col in REQUIRED_COLUMNS}
+
+
+def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
+    """Background thread — actual regenerate ka kaam yahi karta hai,
+    stop_event check karte hue taaki beech mein rok sakein."""
+    with REGEN_JOBS_LOCK:
+        job = REGEN_JOBS.get(job_id)
+    if not job:
+        return
+    stop_event = job["stop_event"]
+
+    try:
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["phase"] = "extracting"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        downloads_dir  = os.path.join(os.path.expanduser("~"), "Downloads")
+        session_folder = os.path.join(downloads_dir, f"Screenshots_{timestamp}")
+        images_folder  = os.path.join(session_folder, "Screenshots")
+        os.makedirs(images_folder, exist_ok=True)
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["folder"] = session_folder
+
+        report_cache = {}
+        report_screenshot_paths = {}
+        screenshot_rows = []
+        for report_id in report_ids:
+            if stop_event.is_set():
+                break
+            resp = supabase.table("reports").select("*").eq("id", report_id).execute()
+            if not resp.data:
+                continue
+            report = resp.data[0]
+            report_cache[report_id] = report
+            try:
+                image_paths = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
+            except Exception as exc:
+                report_screenshot_paths[report_id] = []
+                screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
+                continue
+            report_screenshot_paths[report_id] = image_paths
+            row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
+            for idx, p in enumerate(image_paths, start=1):
+                row[f"screenshot_path_{idx}"] = p
+            screenshot_rows.append(row)
+
+        screenshot_excel_path = os.path.join(session_folder, "screenshot_paths.xlsx")
+        pd.DataFrame(screenshot_rows).to_excel(screenshot_excel_path, index=False)
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["screenshot_excel"] = screenshot_excel_path
+
+        if stop_event.is_set():
+            with REGEN_JOBS_LOCK:
+                REGEN_JOBS[job_id]["status"] = "stopped"
+                REGEN_JOBS[job_id]["message"] = "Stopped before login."
+            return
+
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["phase"] = "regenerating"
+
+        driver = aml_build_driver()
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["driver"] = driver
+
+        final_rows = []
+        investment_sheet_rows = []
+        try:
+            if not aml_login(driver):
+                with REGEN_JOBS_LOCK:
+                    REGEN_JOBS[job_id]["status"]  = "error"
+                    REGEN_JOBS[job_id]["message"] = "AML GUI login failed"
+                return
+
+            for report_id in report_ids:
+                if stop_event.is_set():
+                    with REGEN_JOBS_LOCK:
+                        REGEN_JOBS[job_id]["results"].append({
+                            "id": report_id, "old_pdf_url": None, "new_pdf_url": None,
+                            "source_url": None, "status": "Stopped by user"
+                        })
+                    break
+
+                report = report_cache.get(report_id)
+                if not report:
+                    row_result = {"id": report_id, "old_pdf_url": None, "new_pdf_url": None, "source_url": None, "status": "Report not found"}
+                    with REGEN_JOBS_LOCK:
+                        REGEN_JOBS[job_id]["results"].append(row_result)
+                        REGEN_JOBS[job_id]["completed"] += 1
+                    final_rows.append(row_result)
+                    continue
+
+                paths_for_report = report_screenshot_paths.get(report_id) or []
+                if not paths_for_report:
+                    row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
+                    with REGEN_JOBS_LOCK:
+                        REGEN_JOBS[job_id]["results"].append(row_result)
+                        REGEN_JOBS[job_id]["completed"] += 1
+                    final_rows.append(row_result)
+                    continue
+
+                source_url = report.get("source_url") or "NA"
+                title_text = source_url
+                description_text = source_url
+                input_text = aml_strip_scheme(source_url)
+                new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
+                new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
+                status = "Success"
+                try:
+                    chunks = list(aml_chunk_list(paths_for_report, 4))
+                    chunk_results = []
+                    for chunk in chunks:
+                        if stop_event.is_set():
+                            status = "Stopped by user"
+                            break
+                        chunk_result = aml_submit_chunk(driver, title_text, input_text, description_text, chunk)
+                        if chunk_result:
+                            chunk_results.append(chunk_result)
+                    if status != "Stopped by user":
+                        if chunk_results:
+                            # Har chunk ek alag AML report submission hai (portal max 4/submission
+                            # allow karta hai) — pehle sirf last_result rakha jaata tha jisse
+                            # 4+ screenshots wale reports mein pehle wale chunks ke links kho jaate
+                            # the. Ab saare chunks ke links combine karke rakhte hain.
+                            npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
+                            all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
+                            new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
+                            new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
+                        else:
+                            new_pdf_url = "Failed"
+                            status = "No result returned"
+                except Exception as exc:
+                    tb_text = traceback.format_exc()
+                    print(f"[BULK REGENERATE] report_id={report_id} failed:\n{tb_text}")
+                    err_msg = str(exc).strip() or type(exc).__name__
+                    status = f"Error: {err_msg}"
+                    try:
+                        _ = driver.current_url
+                    except Exception:
+                        print("[BULK REGENERATE] Chrome session crashed — restarting driver.")
+                        try:
+                            driver.quit()
+                        except Exception:
+                            pass
+                        driver = aml_build_driver()
+                        with REGEN_JOBS_LOCK:
+                            REGEN_JOBS[job_id]["driver"] = driver
+                        if not aml_login(driver):
+                            status = f"{status} | Driver restart + re-login failed"
+
+                row_result = {
+                    "id": report.get("id"),
+                    "old_pdf_url": report.get("pdf_url"),
+                    "new_pdf_url": new_pdf_url,
+                    "source_url": report.get("source_url"),
+                    "status": status,
+                }
+                with REGEN_JOBS_LOCK:
+                    REGEN_JOBS[job_id]["results"].append(row_result)
+                    REGEN_JOBS[job_id]["completed"] += 1
+                final_rows.append(row_result)
+                if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
+                    investment_sheet_rows.append(
+                        _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
+                    )
+        finally:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+        FINAL_RESULT_COLUMNS = ["id", "old_pdf_url", "new_pdf_url", "source_url", "status"]
+        final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
+        pd.DataFrame(final_rows, columns=FINAL_RESULT_COLUMNS).to_excel(final_excel_path, index=False)
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["final_excel"] = final_excel_path
+
+        if mode == "investment_sheet":
+            inv_path = os.path.join(session_folder, f"Investment_Scam_Final_Sheet_{timestamp}.csv")
+            inv_df = pd.DataFrame(investment_sheet_rows, columns=REQUIRED_COLUMNS) if investment_sheet_rows else pd.DataFrame(columns=REQUIRED_COLUMNS)
+            inv_df.to_csv(inv_path, index=False, encoding='utf-8-sig')
+            with REGEN_JOBS_LOCK:
+                REGEN_JOBS[job_id]["investment_sheet"] = inv_path
+
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["status"] = "stopped" if stop_event.is_set() else "done"
+            REGEN_JOBS[job_id]["driver"] = None
+    except Exception as exc:
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["status"]  = "error"
+            REGEN_JOBS[job_id]["message"] = str(exc)
+            REGEN_JOBS[job_id]["driver"]  = None
+
+@app.route("/case-report", methods=["GET"])
+@login_required
+def case_report_page():
+    allowed_pages = session.get("allowed_pages", [])
+    if "case_report" not in allowed_pages:
+        flash("You don't have access to Case Report Generator.", "error")
+        return redirect_to_allowed_page(allowed_pages)
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
+    return render_template(
+        "case_report.html",
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+        allowed_pages=allowed_pages,
+    )
+
+@app.route("/generate-case-report", methods=["POST"])
+@login_required
+def generate_case_report():
+    source_url = request.form.get("source_url", "").strip()
+    if not source_url:
+        return jsonify({"status": "error", "message": "Website URL is required."}), 400
+
+    transaction_type = request.form.get("transaction_type", "").strip().lower()
+    if transaction_type not in ("upi", "bank"):
+        return jsonify({"status": "error", "message": "Please select UPI or Bank Account."}), 400
+
+    # ── Common flat columns — same set used for both UPI and Bank Account ──
+    upi_vpa              = "NA"
+    payment_gateway_url   = "NA"
+    bank_account_number   = "NA"
+    ifsc_code             = "NA"
+    ac_holder_name        = "NA"
+    search_for            = "NA"
+    scam_type             = "NA"
+    chat_number           = "NA"
+
+    if transaction_type == "upi":
+        upi_vpa             = request.form.get("upi_vpa", "").strip()
+        payment_gateway_url = request.form.get("payment_gateway_url", "").strip()
+        scam_type           = request.form.get("scam_type", "").strip()
+        search_for           = request.form.get("search_for", "").strip() or "NA"
+        chat_number          = request.form.get("chat_number", "").strip() or "NA"
+        if not (upi_vpa and source_url and payment_gateway_url and scam_type):
+            return jsonify({"status": "error", "message": "Please fill all required UPI fields."}), 400
+    else:  # bank
+        bank_account_number = request.form.get("bank_account_number", "").strip()
+        ifsc_code            = request.form.get("ifsc_code", "").strip()
+        ac_holder_name        = request.form.get("ac_holder_name", "").strip()
+        search_for            = request.form.get("search_for", "").strip()
+        scam_type             = request.form.get("scam_type", "").strip()
+        chat_number           = request.form.get("chat_number", "").strip() or "NA"
+        if not (bank_account_number and ifsc_code and ac_holder_name and source_url and search_for and scam_type):
+            return jsonify({"status": "error", "message": "Please fill all required Bank Account fields."}), 400
+
+    screenshot_files = request.files.getlist("screenshots[]")
+    if not screenshot_files or all(f.filename == "" for f in screenshot_files):
+        return jsonify({"status": "error", "message": "At least one screenshot is required."}), 400
+
+    saved_image_paths = []
+    for f in screenshot_files:
+        if f.filename == "":
+            continue
+        if not case_report_allowed_file(f.filename):
+            return jsonify({
+                "status": "error",
+                "message": f"'{f.filename}' is not a supported image type. Use PNG, JPG, JPEG, or WEBP."
+            }), 400
+        safe_name = secure_filename(f.filename)
+        dest = os.path.join(CASE_REPORT_UPLOAD_FOLDER, safe_name)
+        counter = 1
+        base, ext = os.path.splitext(dest)
+        while os.path.exists(dest):
+            dest = f"{base}_{counter}{ext}"
+            counter += 1
+        f.save(dest)
+        saved_image_paths.append(dest)
+
+    if not saved_image_paths:
+        return jsonify({"status": "error", "message": "No valid screenshots were uploaded."}), 400
+
+    pdf_filename = generate_filename(source_url)
+    local_pdf_path = os.path.join(CASE_REPORT_REPORTS_FOLDER, pdf_filename)
+
+    try:
+        total_pages = generate_pdf(
+            source_url=source_url,
+            image_paths=saved_image_paths,
+            output_path=local_pdf_path,
+        )
+        pdf_url = upload_pdf(local_pdf_path)
+
+        file_size = os.path.getsize(local_pdf_path)
+        input_user = get_clean_display_name(session.get("display_name", "User"))
+
+        supabase.table("reports").insert({
+            "filename": pdf_filename,
+            "source_url": source_url,
+            "pdf_url": pdf_url,
+            "total_pages": total_pages,
+            "file_size": file_size,
+            "upi_vpa": upi_vpa,
+            "payment_gateway_url": payment_gateway_url,
+            "bank_account_number": bank_account_number,
+            "ifsc_code": ifsc_code,
+            "ac_holder_name": ac_holder_name,
+            "search_for": search_for,
+            "scam_type": scam_type,
+            "chat_number": chat_number,
+            "input_user": input_user,
+        }).execute()
+
+        return jsonify({
+            "status": "success",
+            "pdf_url": pdf_url,
+            "filename": pdf_filename,
+            "pages": total_pages,
+        })
+    except Exception as exc:
+        print(f"[CASE_REPORT] Generation failed: {exc}")
+        return jsonify({"status": "error", "message": str(exc)}), 500
+    finally:
+        case_report_clean_up(*saved_image_paths, local_pdf_path)
+
+@app.route("/case-reports-list", methods=["GET"])
+@login_required
+def case_reports_list():
+    try:
+        current_user = get_clean_display_name(session.get("display_name", "User"))
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to", "").strip()
+
+        # ── Total count (all-time, unfiltered) for this user ──
+        total_resp = supabase.table("reports") \
+            .select("id", count="exact") \
+            .eq("input_user", current_user) \
+            .execute()
+        total_count = total_resp.count or 0
+
+        query = supabase.table("reports").select(
+            "id,source_url,pdf_url,upi_vpa,payment_gateway_url,bank_account_number,"
+            "ifsc_code,ac_holder_name,search_for,scam_type,chat_number,input_user,created_at",
+            count="exact"
+        ).eq("input_user", current_user)
+
+        if date_from:
+            query = query.gte("created_at", f"{date_from}T00:00:00")
+        if date_to:
+            try:
+                next_day = (datetime.strptime(date_to, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+                query = query.lt("created_at", f"{next_day}T00:00:00")
+            except ValueError:
+                query = query.lte("created_at", f"{date_to}T23:59:59")
+
+        response = query.order("created_at", desc=True).execute()
+        filtered_rows = response.data or []
+        filtered_count = response.count if response.count is not None else len(filtered_rows)
+
+        return jsonify({
+            "status": "success",
+            "reports": filtered_rows,
+            "total_count": total_count,
+            "filtered_count": filtered_count,
+        })
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+@app.route("/delete-case-report/<report_id>", methods=["DELETE"])
+@login_required
+def delete_case_report(report_id):
+    try:
+        resp = supabase.table("reports").select("filename,input_user").eq("id", report_id).execute()
+        if not resp.data:
+            return jsonify({"status": "error", "message": "Report not found."}), 404
+        record = resp.data[0]
+        current_user = get_clean_display_name(session.get("display_name", "User"))
+        # User apna hi data delete kar sake — kisi aur ka report delete na ho
+        if not session.get("is_admin", False) and record.get("input_user") != current_user:
+            return jsonify({"status": "error", "message": "You can only delete your own reports."}), 403
+        filename = record["filename"]
+        try:
+            delete_from_s3(filename)
+        except Exception as s3_exc:
+            print(f"[CASE_REPORT] S3 delete warning: {s3_exc}")
+        supabase.table("reports").delete().eq("id", report_id).execute()
+        return jsonify({"status": "success", "message": f"Report {report_id} deleted."})
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+# ============================================================
+# AML GUI — BULK REGENERATE CASES (Steps 1-4 workflow)
+# ============================================================
+@app.route("/bulk-regenerate-cases", methods=["POST"])
+@login_required
+def bulk_regenerate_cases():
+    
+    try:
+        data = request.get_json(silent=True) or {}
+        report_ids = data.get("report_ids", [])
+        mode = data.get("mode", "basic")
+        if mode not in ("basic", "investment_sheet"):
+            mode = "basic"
+        if not report_ids:
+            return jsonify({"status": "error", "message": "No report_ids provided"}), 400
+
+        job_id = uuid.uuid4().hex
+        input_user = get_clean_display_name(session.get("display_name", "User"))
+
+        with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id] = {
+                "status": "running",
+                "phase": "queued",
+                "total": len(report_ids),
+                "completed": 0,
+                "results": [],
+                "folder": None,
+                "screenshot_excel": None,
+                "final_excel": None,
+                "investment_sheet": None,
+                "message": None,
+                "stop_event": threading.Event(),
+                "driver": None,
+            }
+
+        thread = threading.Thread(
+            target=_run_bulk_regenerate_job,
+            args=(job_id, list(report_ids), mode, input_user),
+            daemon=True
+        )
+        thread.start()
+
+        return jsonify({"status": "success", "job_id": job_id})
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+@app.route("/regenerate-job-status/<job_id>", methods=["GET"])
+@login_required
+def regenerate_job_status(job_id):
+    with REGEN_JOBS_LOCK:
+        job = REGEN_JOBS.get(job_id)
+        if not job:
+            return jsonify({"status": "error", "message": "Job not found"}), 404
+        return jsonify({
+            "status": job["status"],
+            "phase": job.get("phase"),
+            "total": job["total"],
+            "completed": job["completed"],
+            "results": job["results"],
+            "folder": job["folder"],
+            "screenshot_excel": job["screenshot_excel"],
+            "final_excel": job["final_excel"],
+            "investment_sheet": job["investment_sheet"],
+            "message": job["message"],
+        })
+
+
+@app.route("/stop-regenerate-job/<job_id>", methods=["POST"])
+@login_required
+def stop_regenerate_job(job_id):
+    with REGEN_JOBS_LOCK:
+        job = REGEN_JOBS.get(job_id)
+        if not job:
+            return jsonify({"status": "error", "message": "Job not found"}), 404
+        job["stop_event"].set()
+        if job["status"] == "running":
+            job["status"] = "stopping"
+        drv = job.get("driver")
+    if drv:
+        try:
+            drv.quit()
+        except Exception:
+            pass
+    return jsonify({"status": "success", "message": "Stop signal sent"})
+
+# ============================================================
+
 @app.route("/api/total-numbers", methods=["GET"])
 def api_total_numbers_list():
     try:
@@ -3884,13 +4798,12 @@ def lunch_break():
     is_admin = session.get("is_admin", False)
     email = session.get("email", "")
     allowed_pages = session.get("allowed_pages", [])
-
     if not can_access_lunch(session):
         flash("Access denied.", "error")
-        first_page = allowed_pages[0] if allowed_pages else "scraping"
-        return redirect(f"/?page={first_page}")
+        return redirect_to_allowed_page(allowed_pages)
 
-    date_filter = request.args.get("date_filter", "").strip()
+    date_from = request.args.get("date_from", "").strip()
+    date_to   = request.args.get("date_to",   "").strip()
     emp_filter  = request.args.get("emp_filter",  "").strip()
 
     # Determine which employees this user can see/fill
@@ -3911,8 +4824,10 @@ def lunch_break():
                 total = 0
             else:
                 query = query.in_("employee_name", visible_employees)
-        if date_filter:
-            query = query.eq("date", date_filter)
+        if date_from:
+            query = query.gte("date", date_from)
+        if date_to:
+            query = query.lte("date", date_to)
         if emp_filter:
             query = query.eq("employee_name", emp_filter)
 
@@ -3933,7 +4848,8 @@ def lunch_break():
         is_admin=is_admin,
         visible_employees=visible_employees,
         all_employees=ALL_EMPLOYEES,
-        date_filter=date_filter,
+        date_from=date_from,
+        date_to=date_to,
         emp_filter=emp_filter,
         current_user=user,
         allowed_pages=allowed_pages,
@@ -4082,7 +4998,8 @@ def lunch_break_export():
     try:
         is_admin    = session.get("is_admin", False)
         email       = session.get("email", "")
-        date_filter = request.args.get("date_filter", "").strip()
+        date_from = request.args.get("date_from", "").strip()
+        date_to   = request.args.get("date_to",   "").strip()
         emp_filter  = request.args.get("emp_filter",  "").strip()
 
         query = get_auth_supabase().table("lunch_breaks").select("*")
@@ -4090,8 +5007,10 @@ def lunch_break_export():
             allowed = LUNCH_ALLOWED_USERS.get(email.lower(), [])
             if allowed:
                 query = query.in_("employee_name", allowed)
-        if date_filter:
-            query = query.eq("date", date_filter)
+        if date_from:
+            query = query.gte("date", date_from)
+        if date_to:
+            query = query.lte("date", date_to)
         if emp_filter:
             query = query.eq("employee_name", emp_filter)
 

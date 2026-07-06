@@ -29,7 +29,6 @@
         .btn-outline:hover { background: #f0f7ff; }
         .btn-warning { background: #f39c12; color: white; }
         .btn-warning:hover { background: #e67e22; }
-
         .dev-credit-footer { position: fixed; bottom: 0; right: 0; z-index: 1001; background: #2c3e50; color: #bdc3c7; font-size: 11px; font-weight: 500; padding: 5px 14px; border-top-left-radius: 6px; white-space: nowrap; }
         .dev-credit-footer span { color: #3498db; font-weight: 700; }
 
@@ -63,21 +62,17 @@
         tbody td { padding: 9px 14px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
         tbody tr:hover { background: #f8f9ff; }
         tbody tr:last-child td { border-bottom: none; }
-
         .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
         .badge-green  { background: #e8f8f0; color: #1e8449; border: 1px solid #a9dfbf; }
         .badge-red    { background: #fde8e8; color: #c0392b; border: 1px solid #fbc7c7; }
         .badge-orange { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
         .badge-blue   { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
-
         .duration-badge { background: #f3e5f5; color: #6c3483; border: 1px solid #ce93d8; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
         .duration-over  { background: #fde8e8; color: #c0392b; border-color: #fbc7c7; }
-
         .del-btn { background: none; border: none; color: #e74c3c; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; transition: background 0.15s; }
         .del-btn:hover { background: #fff0f0; }
         .edit-btn { background: none; border: none; color: #3498db; cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 12px; transition: background 0.15s; }
         .edit-btn:hover { background: #ebf5fb; }
-
         .empty-state { text-align: center; padding: 60px 20px; color: #95a5a6; }
         .empty-state i { font-size: 48px; display: block; margin-bottom: 14px; color: #dde3ed; }
 
@@ -103,7 +98,6 @@
         .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .modal-footer { padding: 14px 20px; background: #f8f9fa; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
         .duration-preview { font-size: 12px; font-weight: 700; color: #6c3483; background: #f3e5f5; border: 1px solid #ce93d8; padding: 4px 12px; border-radius: 20px; display: none; }
-
         /* ── TOAST ── */
         .toast { position: fixed; bottom: 20px; right: 14px; background: #2c3e50; color: white; padding: 9px 18px; border-radius: 6px; font-size: 12px; z-index: 3000; box-shadow: 0 4px 12px rgba(0,0,0,0.18); animation: fadeUp 0.3s; }
         .toast.success { background: #2ecc71; }
@@ -113,12 +107,10 @@
         .page-select:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
         .page-selector { display: flex; align-items: center; gap: 6px; }
         .header-controls { display: flex; align-items: center; gap: 8px; flex-wrap: nowrap; }
-
         .over-limit { color: #e74c3c; font-weight: 700; }
     </style>
 </head>
 <body>
-
 <!-- Fixed Header -->
 <div class="fixed-header">
     <div class="header">
@@ -148,11 +140,14 @@
                     {% if 'investment' in allowed_pages %}
                     <option value="investment">BS Investment Scam</option>
                     {% endif %}
-                    {% if 'investment' in allowed_pages %}
+                    {% if 'insights' in allowed_pages %}
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
-                    {% if 'investment' in allowed_pages %}
+                    {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory">Scam++ Website Directory</option>
+                    {% endif %}
+                    {% if 'case_report' in allowed_pages %}
+                    <option value="case_report">Case Report Generator</option>
                     {% endif %}
                      {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break" selected> Lunch Break Tracker</option>
@@ -164,7 +159,7 @@
                 <i class="fas fa-plus"></i> Add Entry
             </button>
             {% endif %}
-            <a href="/lunch-break/export?date_filter={{ date_filter }}&emp_filter={{ emp_filter }}" class="btn btn-primary">
+            <a href="/lunch-break/export?date_from={{ date_from }}&date_to={{ date_to }}&emp_filter={{ emp_filter }}" class="btn btn-primary">
                 <i class="fas fa-file-export"></i> Export CSV
             </a>
             <button class="btn btn-outline" onclick="window.location.reload()" title="Refresh">
@@ -176,9 +171,7 @@
         </div>
     </div>
 </div>
-
 <div class="container">
-
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages() %}
     {% if messages %}{% for msg in messages %}
@@ -187,7 +180,6 @@
     </div>
     {% endfor %}{% endif %}
     {% endwith %}
-
     <!-- Stat Cards -->
     <div class="stat-cards">
         <div class="stat-card blue">
@@ -211,12 +203,15 @@
             <div class="sub">Entries</div>
         </div>
     </div>
-
     <!-- Filter Bar -->
     <div class="filter-bar">
         <div class="filter-group">
-            <label><i class="fas fa-calendar-alt"></i> Date</label>
-            <input type="date" id="filterDate" value="{{ date_filter }}" onchange="applyFilters()">
+            <label><i class="fas fa-calendar-alt"></i> Date From</label>
+            <input type="date" id="filterDateFrom" value="{{ date_from }}" onchange="applyFilters()">
+        </div>
+        <div class="filter-group">
+            <label><i class="fas fa-calendar-alt"></i> Date To</label>
+            <input type="date" id="filterDateTo" value="{{ date_to }}" onchange="applyFilters()">
         </div>
         <div class="filter-group">
             <label><i class="fas fa-user"></i> Employee</label>
@@ -247,7 +242,6 @@
         </div>
         {% endif %}
     </div>
-
     <!-- Table -->
     <div class="table-wrap">
         <table id="lunchTable">
@@ -320,7 +314,6 @@
         </table>
     </div>
 </div>
-
 <!-- Insert Modal -->
 <div class="modal-overlay" id="insertModal">
     <div class="modal-box">
@@ -369,7 +362,6 @@
         </div>
     </div>
 </div>
-
 <!-- Delete Confirm Modal -->
 <div class="modal-overlay" id="deleteModal">
     <div class="modal-box" style="max-width:380px;">
@@ -434,9 +426,7 @@
         </div>
     </div>
 </div>
-
 <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
-
 <script>
     // ── Render time badges + duration from data attributes ────────
     function fmt12(timeStr) {
@@ -466,9 +456,11 @@
         const durCell = tr.querySelector('.cell-dur');
         if (s && e) {
             const mins = calcMins(s, e);
-            if (mins > 0) {
+            if (mins >= 0) {
                 const over = mins > 30;
                 durCell.innerHTML = `<span class="duration-badge${over ? ' duration-over' : ''}"><i class="fas fa-hourglass-half" style="font-size:9px;"></i> ${durStr(mins)}</span>`;
+            } else {
+                durCell.innerHTML = `<span class="duration-badge duration-over"><i class="fas fa-exclamation-triangle" style="font-size:9px;"></i> Invalid</span>`;
             }
         }
     });
@@ -482,9 +474,9 @@
             const emp = tr.cells[2]?.textContent?.trim();
             if (emp) empSet.add(emp);
             const durCell = tr.cells[5]?.textContent?.trim();
-            if (durCell && durCell !== '—') {
+            if (durCell && durCell !== '—' && !durCell.toLowerCase().includes('invalid')) {
                 const mins = parseDurationToMins(durCell);
-                if (mins > 0) { totalMins += mins; count++; if (mins > 30) overCount++; }
+                if (mins >= 0) { totalMins += mins; count++; if (mins > 30) overCount++; }
             }
         });
         document.getElementById('statTotal').textContent     = rows.length;
@@ -504,10 +496,12 @@
 
     // ── Filters ───────────────────────────────────────────────────
     function applyFilters() {
-        const date = document.getElementById('filterDate').value;
+        const dateFrom = document.getElementById('filterDateFrom').value;
+        const dateTo   = document.getElementById('filterDateTo').value;
         const emp  = document.getElementById('filterEmp').value;
         const params = new URLSearchParams();
-        if (date) params.set('date_filter', date);
+        if (dateFrom) params.set('date_from', dateFrom);
+        if (dateTo)   params.set('date_to', dateTo);
         if (emp)  params.set('emp_filter', emp);
         window.location.href = '/lunch-break?' + params.toString();
     }
@@ -587,7 +581,7 @@
         }
     }
 
-    // ── Delete ────────────────────────────────────────────────────
+    // ── Delete ───────────────
     let _deleteId = null;
     function deleteEntry(id) {
         _deleteId = id;
@@ -598,17 +592,21 @@
         _deleteId = null;
     }
     async function confirmDelete() {
-        if (!_deleteId) return;
+        if (_deleteId === null || _deleteId === undefined) {
+            showToast('No entry selected to delete.', 'error');
+            return;
+        }
+        const idToDelete = _deleteId;
         closeDeleteModal();
         try {
             const resp = await fetch('/lunch-break/delete', {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ id: _deleteId })
+                body: JSON.stringify({ id: idToDelete })
             });
             const data = await resp.json();
             if (data.success) {
-                const row = document.getElementById('row-' + _deleteId);
+                const row = document.getElementById('row-' + idToDelete);
                 if (row) { row.style.opacity='0'; row.style.transition='opacity 0.3s'; setTimeout(()=>row.remove(),300); }
                 showToast('Entry deleted!', 'success');
             } else {
@@ -715,6 +713,10 @@
     function changeLunchPage(pageType) {
         if (pageType === 'website_directory') {
             window.location.href = '/website-directory';
+            return;
+        }
+        if (pageType === 'case_report') {
+            window.location.href = '/case-report';
             return;
         }
         if (pageType === 'lunch_break') return;

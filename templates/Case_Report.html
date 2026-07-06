@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Scam Intelligence GUI</title>
+  <link rel="icon" type="image/png" href="/static/favicon.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+    body { background:#f5f7fa; color:#333; min-height:100vh; }
+    /* ── Fixed Header ── */
+    .fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#f5f7fa; padding:12px 15px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
+    .header { background:white; border-radius:8px; padding:12px 15px; box-shadow:0 1px 8px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; }
+    .logo h1 { font-size:18px; color:#2c3e50; }
+    .logo p { color:#7f8c8d; font-size:12px; margin-top:2px; font-weight:600; }
+    .header-icon { width:38px; height:38px; border-radius:8px; background:linear-gradient(135deg,#27ae60,#1e8449); display:flex; align-items:center; justify-content:center; color:white; font-size:17px; flex-shrink:0; }
+    .header-username { font-size:12px; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
+    .container { padding:10px 24px 40px; padding-top:110px; max-width:100%; margin:0 auto; }
+    /* ── Cards ── */
+    .card { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); margin-bottom:14px; }
+    .card-body { padding:22px 24px; }
+    /* ── Section labels ── */
+    .field-label { font-size:12px; font-weight:700; color:#2c3e50; text-transform:uppercase; letter-spacing:0.4px; display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+    .field-label i { color:#27ae60; }
+    .field-label .req { color:#e74c3c; }
+    /* ── Input ── */
+    .input-wrap { position:relative; }
+    .input-wrap i.in-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#95a5a6; font-size:13px; }
+    .input-wrap input, .input-wrap select {
+      width:100%; padding:9px 12px 9px 32px; border:1.5px solid #e2e8f0; border-radius:6px;
+      font-size:13px; height:38px; outline:none; background:white; color:#2c3e50;
+    }
+    .input-wrap input:focus, .input-wrap select:focus { border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.15); }
+    .form-text-err { font-size:11px; color:#e74c3c; margin-top:5px; font-weight:600; }
+    /* ── Screenshot slots ── */
+    .ss-slot { background:#f8f9fa; border:1px solid #e9ecef; border-radius:8px; padding:12px 14px 10px; position:relative; }
+    .ss-slot + .ss-slot { margin-top:10px; }
+    .slot-pair { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .slot-half { display:flex; flex-direction:column; gap:6px; }
+    .slot-half .choose-side { display:flex; align-items:center; gap:8px; }
+    .btn-choose { font-size:11px; font-weight:700; padding:5px 12px; border-radius:5px; border:1.5px solid #3498db; background:white; color:#3498db; cursor:pointer; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+    .btn-choose:hover { background:#ebf5fb; }
+    .chosen-name { font-size:.75rem; color:#7f8c8d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px; }
+    .paste-area { border:1.5px dashed #c8d3df; border-radius:6px; min-height:100px; padding:8px; font-size:.78rem; color:#95a5a6; cursor:pointer; position:relative; background:#fff; display:flex; align-items:center; justify-content:center; text-align:center; transition:border-color .15s; outline:none; }
+    .paste-area:focus { border-color:#27ae60; background:#f0fff4; }
+    .paste-area.drag-over { border-color:#27ae60; background:#f0fff4; }
+    .paste-area img.paste-preview { max-width:100%; max-height:120px; object-fit:contain; border-radius:4px; }
+    .paste-clear { position:absolute; top:3px; right:5px; font-size:.72rem; color:#e74c3c; cursor:pointer; display:none; background:none; border:none; padding:0; line-height:1; }
+    .paste-area.has-image .paste-clear { display:inline; }
+    .slot-remove { position:absolute; top:8px; right:10px; background:none; border:none; color:#bbb; font-size:1rem; cursor:pointer; line-height:1; padding:0; z-index:2; }
+    .slot-remove:hover { color:#e74c3c; }
+    /* ── Buttons ── */
+    .btn { padding:8px 16px; border:none; border-radius:6px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-size:13px; transition:all 0.2s; white-space:nowrap; height:38px; }
+    .btn-primary  { background:#3498db; color:white; }
+    .btn-primary:hover  { background:#2980b9; }
+    .btn-success  { background:#2ecc71; color:white; }
+    .btn-success:hover  { background:#27ae60; }
+    .btn-outline  { background:white; color:#3498db; border:1.5px solid #3498db; }
+    .btn-outline:hover  { background:#f0f7ff; }
+    .btn-outline-secondary { background:white; color:#7f8c8d; border:1.5px solid #ddd; }
+    .btn-outline-secondary:hover { background:#f5f7fa; }
+    .btn-danger { background:#e74c3c; color:white; text-decoration:none; }
+    .btn-danger:hover { background:#c0392b; }
+    .btn-generate { background:linear-gradient(135deg,#27ae60,#1e8449); color:white; }
+    .btn-generate:hover { background:linear-gradient(135deg,#229954,#196f3d); }
+    #addMoreBtn { font-size:12px; height:32px; padding:6px 14px; }
+    /* ── Page dropdown (top-left header) ── */
+    .page-selector { display:flex; align-items:center; gap:6px; }
+    .page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:180px; height:34px; }
+    .page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
+    /* ── Transaction-by toggle ── */
+    .tx-toggle-wrap { margin-top:6px; }
+    .tx-toggle { display:flex; border-radius:6px; overflow:hidden; border:1px solid #d8dee4; }
+    .tx-toggle button {
+      flex:1; border:none; background:#9aa3ad; color:white; padding:11px 10px;
+      font-size:13px; font-weight:700; cursor:pointer; transition:background .15s;
+    }
+    .tx-toggle button + button { border-left:1px solid rgba(255,255,255,0.25); }
+    .tx-toggle button:hover { background:#838d97; }
+    .tx-toggle button.active { background:#34495e; }
+    /* ── Field grid ── */
+    .field-grid { display:grid; grid-template-columns:repeat(5, 1fr); gap:14px 16px; margin-top:16px; }
+    .field-grid .field-item { display:flex; flex-direction:column; }
+    .field-grid label { font-size:12.5px; font-weight:700; color:#2c3e50; margin-bottom:6px; }
+    .field-grid label .req { color:#e74c3c; }
+    .field-grid input, .field-grid select {
+      width:100%; padding:9px 12px; border:1.5px solid #e2e8f0; border-radius:6px;
+      font-size:13px; height:38px; outline:none; background:white; color:#2c3e50;
+    }
+    .field-grid input:focus, .field-grid select:focus { border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.15); }
+    .field-grid input::placeholder { color:#a7b0ba; }
+    /* ── Progress card ── */
+    .progress-track { height:8px; border-radius:999px; background:#eef1f4; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,#27ae60,#2ecc71); border-radius:999px; transition:width .3s; }
+    .spinner-sm { border:3px solid #eef1f4; border-top:3px solid #27ae60; border-radius:50%; width:18px; height:18px; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    /* ── Result / Error cards ── */
+    .result-card { border:1px solid #a9dfbf; }
+    .error-card { border:1px solid #fbc7c7; }
+    .url-pill { background:#f0fff4; border:1px solid #a9dfbf; border-radius:6px; padding:8px 12px; display:flex; align-items:center; gap:8px; font-size:12px; }
+    .url-pill-label { font-weight:700; color:#1e8449; text-transform:uppercase; font-size:10px; letter-spacing:.5px; flex-shrink:0; }
+    .url-pill-value { color:#2c3e50; font-family:monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .badge-step { font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe; }
+    /* ── View Data table ── */
+    .vd-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .vd-table th, .vd-table td { padding:8px 10px; border-bottom:1px solid #eef1f4; text-align:left; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+    .vd-table th { background:#f8f9fa; color:#2c3e50; font-weight:700; position:sticky; top:0; }
+    .vd-table tr:hover td { background:#f8fbff; }
+    .footer-note { text-align:center; padding:18px; color:#95a5a6; font-size:11px; }
+    .d-none { display:none !important; }
+    .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; }
+    .dev-credit-footer span { color:#3498db; font-weight:700; }
+    /* ── Modal (View Data popup) ── */
+    .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.72); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+    .modal-overlay.active { display:flex; }
+    .modal-box { background:white; border-radius:12px; width:100%; max-width:520px; overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,0.25); animation:modalIn 0.25s cubic-bezier(0.34,1.2,0.64,1); }
+    @keyframes modalIn { from { transform:scale(0.93) translateY(-10px); opacity:0; } to { transform:scale(1) translateY(0); opacity:1; } }
+    .modal-header { background:linear-gradient(135deg,#27ae60,#1e8449); color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; }
+    .modal-header h2 { font-size:15px; margin:0; display:flex; align-items:center; gap:8px; }
+    .modal-close { background:none; border:none; color:white; font-size:18px; cursor:pointer; padding:4px 8px; border-radius:4px; line-height:1; }
+    .modal-close:hover { background:rgba(255,255,255,0.2); }
+
+    @media (max-width: 1100px) {
+      .field-grid { grid-template-columns:repeat(3, 1fr); }
+    }
+    @media (max-width: 800px) {
+      .field-grid { grid-template-columns:repeat(2, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .slot-pair { grid-template-columns:1fr; }
+      .header { flex-direction:column; align-items:flex-start; }
+      .field-grid { grid-template-columns:1fr; }
+      .tx-toggle { flex-wrap:wrap; }
+      .tx-toggle button { flex:1 1 50%; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- FIXED HEADER -->
+  <div class="fixed-header">
+    <div class="header">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="header-icon"><i class="fas fa-file-pdf"></i></div>
+        <div class="logo">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <h1>Case Report Generator</h1>
+            <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+          </div>
+          <p>Generate PDF reports</p>
+        </div>
+      </div>
+      <div class="header-controls" style="display:flex;align-items:center;gap:8px;">
+        <div class="page-selector">
+          <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changeCaseReportPage(this.value)">
+            {% if 'scraping' in allowed_pages %}
+            <option value="scraping">Scraping Data</option>
+            {% endif %}
+            {% if 'sheet' in allowed_pages %}
+            <option value="sheet">Summary &amp; Sheet Generator</option>
+            {% endif %}
+            {% if 'social' in allowed_pages %}
+            <option value="social">Social Media Accounts</option>
+            {% endif %}
+            {% if 'investment' in allowed_pages %}
+            <option value="investment">BS Investment Scam</option>
+            {% endif %}
+            {% if 'insights' in allowed_pages %}
+            <option value="insights">Scam++ Dashboard</option>
+            {% endif %}
+            {% if 'website_directory' in allowed_pages %}
+            <option value="website_directory">Scam++ Website Directory</option>
+            {% endif %}
+            {% if 'lunch' in allowed_pages %}
+            <option value="lunch_break">Lunch Break Tracker</option>
+            {% endif %}
+            {% if 'case_report' in allowed_pages %}
+            <option value="case_report" selected>Case Report Generator</option>
+            {% endif %}
+          </select>
+        </div>
+        <button id="commonDetailsBtn" type="button" class="btn btn-outline-secondary" style="height:34px;font-size:12px;">
+          <i class="fas fa-layer-group"></i> <span id="commonDetailsBtnLabel">Common Details</span>
+        </button>
+        <button id="viewDataBtn" type="button" class="btn btn-outline-secondary" style="height:34px;font-size:12px;">
+          <i class="fas fa-table"></i> View Data
+        </button>
+        <button class="btn btn-outline" onclick="window.location.reload()" title="Refresh" style="height:34px;">
+          <i class="fas fa-sync-alt"></i>
+        </button>
+        <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;">
+          <i class="fas fa-sign-out-alt"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+  <!-- MAIN -->
+  <div class="container">
+    <!-- VIEW DATA POPUP MODAL -->
+    <div class="modal-overlay" id="viewDataModal">
+      <div class="modal-box" style="max-width:1550px; width:97%;">
+        <div class="modal-header">
+          <h2 style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <span><i class="fas fa-table"></i> Case Reports Data</span>
+            <span id="vdCountDisplay" style="font-size:11px;font-weight:700;color:white;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.35);border-radius:20px;padding:4px 12px;display:inline-flex;gap:12px;">
+              <span>Total: <span id="vdTotalCount">0</span></span>
+              <span>Showing: <span id="vdFilteredCount">0</span></span>
+            </span>
+          </h2>
+          <button class="modal-close" id="closeViewDataBtn"><i class="fas fa-times"></i></button>
+        </div>
+        <div style="padding:20px; max-height:85vh; overflow:auto;">
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:14px;">
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;">
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#2c3e50;display:block;margin-bottom:4px;">Date From</label>
+                <input type="date" id="vdDateFrom" style="height:34px;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;" />
+              </div>
+              <div>
+                <label style="font-size:11px;font-weight:700;color:#2c3e50;display:block;margin-bottom:4px;">Date To</label>
+                <input type="date" id="vdDateTo" style="height:34px;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;" />
+              </div>
+              <button id="vdDateApplyBtn" type="button" class="btn btn-outline" style="height:34px;font-size:12px;">
+                <i class="fas fa-filter"></i> Apply
+              </button>
+              <button id="vdDateClearBtn" type="button" class="btn btn-outline-secondary" style="height:34px;font-size:12px;">
+                <i class="fas fa-times"></i> Clear
+              </button>
+              <button id="vdSelectAllBtn" type="button" class="btn btn-outline-secondary" style="height:34px;font-size:12px;">
+                <i class="fas fa-check-square"></i> Select All
+              </button>
+              <button id="vdBulkDeleteBtn" type="button" class="btn btn-danger" style="height:34px;font-size:12px;" onclick="bulkDeleteSelectedReports()">
+                <i class="fas fa-trash"></i> Delete Selected
+              </button>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="vdRegenerateBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;" onclick="runRegenerate('basic')">
+                <i class="fas fa-sync-alt"></i> Regenerate Cases
+              </button>
+              <button id="vdRegenerateFinalSheetBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;background:#27ae60;" onclick="runRegenerate('investment_sheet')">
+                <i class="fas fa-file-excel"></i> Regenerate Cases with Final Sheet
+              </button>
+              <button id="vdExportBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;">
+                <i class="fas fa-download"></i> Export CSV
+              </button>
+            </div>
+          </div>
+          <div id="vdRegenerateProgress" class="d-none" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;background:#f8f9fa;border:1px solid #e9ecef;border-radius:6px;padding:12px 14px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="spinner-sm"></div>
+              <span id="vdRegenerateProgressLabel" style="font-size:12.5px;font-weight:600;color:#2c3e50;">Regenerating selected cases…</span>
+              <button type="button" id="vdRegenerateStopBtn" onclick="stopRegenerateJob()" style="margin-left:auto;background:#e74c3c;color:white;border:none;padding:6px 14px;border-radius:5px;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-stop-circle"></i> Stop
+              </button>
+            </div>
+            <div id="vdRegenerateProgressPath" style="font-size:11px;color:#7f8c8d;font-family:monospace;word-break:break-all;"></div>
+            <div class="progress-track"><div id="vdRegenerateProgressBar" class="progress-fill" style="width:0%"></div></div>
+          </div>
+          <div id="vdRegenerateResultsWrap" class="d-none" style="margin-bottom:16px;border:1px solid #a9dfbf;background:#f0fff4;border-radius:8px;padding:14px;">
+            <div style="font-weight:700;font-size:13px;color:#1e8449;margin-bottom:8px;"><i class="fas fa-check-circle"></i> Regeneration Complete</div>
+            <div id="vdRegenerateFolderPath" style="font-size:11.5px;color:#2c3e50;font-family:monospace;word-break:break-all;"></div>
+          </div>
+          <div id="viewDataTableWrap" style="overflow-x:auto;">
+            <p style="font-size:12.5px;color:#7f8c8d;">Loading…</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <!-- Screenshot Slots -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <div class="field-label" style="margin-bottom:0;"><i class="fas fa-images"></i> Screenshots <span class="req">*</span></div>
+          <button id="addMoreBtn" type="button" class="btn btn-outline-secondary" style="height:32px;font-size:12px;padding:6px 14px;">
+            <i class="fas fa-plus-circle"></i> Add More
+          </button>
+        </div>
+        <div id="slotsContainer"></div>
+        <div id="ssError" class="form-text-err d-none" style="margin-top:6px;">At least one screenshot is required.</div>
+      </div>
+    </div>
+    <!-- COMMON DETAILS BULK PANEL -->
+    <div id="commonDetailsPanel" class="card d-none">
+      <div class="card-body">
+        <div class="field-label"><i class="fas fa-layer-group"></i> Common Details — Bulk UPI Reports</div>
+        <p style="font-size:11.5px;color:#95a5a6;margin:-4px 0 14px;">Fill these once, paste multiple UPI IDs below, and generate a separate report for each — reusing the same screenshots.</p>
+        <div class="field-grid" style="margin-top:0;">
+          <div class="field-item">
+            <label>Website URL <span class="req">*</span></label>
+            <input type="text" id="cdWebsiteUrl" placeholder="Website URL" />
+          </div>
+          <div class="field-item">
+            <label>Payment Gateway URL <span class="req">*</span></label>
+            <input type="text" id="cdGatewayUrl" placeholder="Payment Gateway URL" />
+          </div>
+          <div class="field-item">
+            <label>Scam Type <span class="req">*</span></label>
+            <select id="cdScamType" onchange="updateScamTypeOtherVisibility('cd')">
+              <option value="">Select Scam Type</option>
+              <option>Investment Scam</option>
+              <option>Job Scam</option>
+              <option>Subscription Scam</option>
+              <option>Carding Scam</option>
+              <option>Shopping Scam</option>
+              <option>Loan Scam</option>
+              <option>Currency Exchange Scam</option>
+              <option>Fake Account Selling Scam</option>
+              <option>Digital Currency Scam</option>
+              <option>Fake Website Scam</option>
+              <option>Government Scheme Scam</option>
+              <option>LPG Booking Scam</option>
+              <option value="__other__">Other (specify)</option>
+            </select>
+            <input type="text" id="cdScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
+          </div>
+          <div class="field-item">
+            <label>Search For <span style="color:#95a5a6;font-weight:500;">(auto-detected)</span></label>
+            <input type="text" id="cdSearchFor" placeholder="Auto-detected from Website URL" readonly style="background:#f8f9fa;cursor:not-allowed;" />
+          </div>
+          <div class="field-item">
+            <label>Chat Number <span style="color:#95a5a6;font-weight:500;">(common for all)</span></label>
+            <input type="text" id="cdChatNumber" placeholder="Chat Number (optional)" />
+          </div>
+        </div>
+        <div style="margin-top:18px;">
+          <div class="field-label"><i class="fas fa-list"></i> Bulk UPI / VPA IDs <span class="req">*</span></div>
+          <textarea id="bulkUpiList" rows="6" placeholder="test@okaxis&#10;test2@ybl&#10;test3@paytm" style="width:100%;font-family:monospace;font-size:12.5px;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:6px;resize:vertical;outline:none;color:#2c3e50;"></textarea>
+          <div id="bulkUpiCount" style="font-size:11.5px;color:#95a5a6;margin-top:6px;">One UPI per line.</div>
+          <div id="cdError" class="form-text-err d-none" style="margin-top:6px;"></div>
+        </div>
+        <div style="margin-top:18px;">
+          <button id="generateAllBtn" type="button" class="btn btn-generate">
+            <i class="fas fa-layer-group"></i> Generate All Reports
+          </button>
+        </div>
+        <div id="bulkResultsWrap" class="d-none" style="margin-top:18px;border-top:1px solid #eef1f4;padding-top:14px;">
+          <div class="field-label" style="margin-bottom:8px;"><i class="fas fa-list-check"></i> Bulk Generation Results</div>
+          <div id="bulkResultsList" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <!-- Transaction By Toggle -->
+        <div id="singleTxSection">
+        <div class="tx-toggle-wrap" style="margin-top:24px;">
+          <div class="field-label"><i class="fas fa-exchange-alt"></i> Transaction By <span class="req">*</span></div>
+          <div class="tx-toggle">
+            <button type="button" id="btnUpi" class="tx-type-btn" data-type="upi">UPI</button>
+            <button type="button" id="btnBank" class="tx-type-btn" data-type="bank">Bank Account</button>
+          </div>
+          <div id="txTypeError" class="form-text-err d-none">Please select a transaction type.</div>
+        </div>
+        <!-- ===================== UPI FIELDS ===================== -->
+        <div id="upiFields" class="field-grid d-none">
+          <div class="field-item">
+            <label>UPI / VPA ID <span class="req">*</span></label>
+            <input type="text" id="upiVpa" placeholder="example@upi" />
+          </div>
+          <div class="field-item">
+            <label>Website URL <span class="req">*</span></label>
+            <input type="text" id="upiWebsiteUrl" placeholder="Website URL" />
+          </div>
+          <div class="field-item">
+            <label>Payment Gateway URL <span class="req">*</span></label>
+            <input type="text" id="upiGatewayUrl" placeholder="Payment Gateway URL" />
+          </div>
+          <div class="field-item">
+            <label>Scam Type <span class="req">*</span></label>
+            <select id="upiScamType" onchange="updateScamTypeOtherVisibility('upi')">
+              <option value="">Select Scam Type</option>
+              <option>Investment Scam</option>
+              <option>Job Scam</option>
+              <option>Subscription Scam</option>
+              <option>Carding Scam</option>
+              <option>Shopping Scam</option>
+              <option>Loan Scam</option>
+              <option>Currency Exchange Scam</option>
+              <option>Fake Account Selling Scam</option>
+              <option>Digital Currency Scam</option>
+              <option>Fake Website Scam</option>
+              <option>Government Scheme Scam</option>
+              <option>LPG Booking Scam</option>
+              <option value="__other__">Other (specify)</option>
+            </select>
+            <input type="text" id="upiScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
+          </div>
+          <div class="field-item">
+            <label>Search For <span style="color:#95a5a6;font-weight:500;">(auto-detected)</span></label>
+            <input type="text" id="upiSearchFor" placeholder="Auto-detected from Website URL" readonly style="background:#f8f9fa;cursor:not-allowed;" />
+          </div>
+          <div class="field-item">
+            <label>Chat Number</label>
+            <input type="text" id="upiChatNumber" placeholder="Chat Number (optional)" />
+          </div>
+        </div>
+
+        <!-- ===================== BANK ACCOUNT FIELDS ===================== -->
+        <div id="bankFields" class="field-grid d-none">
+          <div class="field-item">
+            <label>Bank Account Number <span class="req">*</span></label>
+            <input type="text" id="bankAccountNumber" placeholder="Bank Account Number" />
+          </div>
+          <div class="field-item">
+            <label>IFSC CODE <span class="req">*</span></label>
+            <input type="text" id="bankIfsc" placeholder="IFSC CODE" />
+          </div>
+          <div class="field-item">
+            <label>A/C Holder Name <span class="req">*</span></label>
+            <input type="text" id="bankHolderName" placeholder="A/C Holder Name" />
+          </div>
+          <div class="field-item">
+            <label>Website URL <span class="req">*</span></label>
+            <input type="text" id="bankWebsiteUrl" placeholder="Website URL" />
+          </div>
+          <div class="field-item">
+            <label>Search For <span style="color:#95a5a6;font-weight:500;">(auto-detected)</span></label>
+            <input type="text" id="bankSearchFor" placeholder="Auto-detected from Website URL" readonly style="background:#f8f9fa;cursor:not-allowed;" />
+          </div>
+          <div class="field-item">
+            <label>Scam Type <span class="req">*</span></label>
+            <select id="bankScamType" onchange="updateScamTypeOtherVisibility('bank')">
+              <option value="">Select Scam Type</option>
+              <option>Investment Scam</option>
+              <option>Job Scam</option>
+              <option>Subscription Scam</option>
+              <option>Carding Scam</option>
+              <option>Shopping Scam</option>
+              <option>Loan Scam</option>
+              <option>Currency Exchange Scam</option>
+              <option>Fake Account Selling Scam</option>
+              <option>Digital Currency Scam</option>
+              <option>Fake Website Scam</option>
+              <option>Government Scheme Scam</option>
+              <option>LPG Booking Scam</option>
+              <option value="__other__">Other (specify)</option>
+            </select>
+            <input type="text" id="bankScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
+          </div>
+          <div class="field-item">
+            <label>Chat Number</label>
+            <input type="text" id="bankChatNumber" placeholder="Chat Number (optional)" />
+          </div>
+        </div>
+        <!-- Actions -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;">
+          <button id="generateBtn" type="button" class="btn btn-generate">
+            <i class="fas fa-file-upload"></i> Generate Report
+          </button>
+          <button id="resetBtn" type="button" class="btn btn-outline-secondary">
+            <i class="fas fa-undo"></i> Reset
+          </button>
+        </div>
+        </div>
+        <!-- /singleTxSection -->
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div id="progressSection" class="card d-none">
+      <div class="card-body">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div class="spinner-sm"></div>
+          <span id="progressLabel" style="font-weight:700;color:#2c3e50;font-size:13px;">Generating report…</span>
+        </div>
+        <div class="progress-track"><div id="progressBar" class="progress-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <!-- RESULT -->
+    <div id="resultSection" class="card result-card d-none">
+      <div class="card-body">
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;">
+          <div style="color:#27ae60;font-size:22px;"><i class="fas fa-check-circle"></i></div>
+          <div>
+            <h3 style="font-size:15px;color:#2c3e50;margin-bottom:2px;">Report Generated!</h3>
+            <p id="resultMeta" style="color:#7f8c8d;font-size:12px;">—</p>
+          </div>
+        </div>
+        <div class="url-pill" style="margin-bottom:12px;">
+          <span class="url-pill-label">PDF URL</span>
+          <span id="resultUrl" class="url-pill-value"></span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          <button id="copyBtn" class="btn btn-outline-secondary" style="height:32px;font-size:12px;">
+            <i class="fas fa-copy"></i> Copy URL
+          </button>
+          <button id="openBtn" class="btn btn-generate" style="height:32px;font-size:12px;">
+            <i class="fas fa-external-link-alt"></i> Open Report
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ERROR -->
+    <div id="errorSection" class="card error-card d-none">
+      <div class="card-body">
+        <div style="display:flex;align-items:flex-start;gap:12px;">
+          <div style="color:#e74c3c;font-size:22px;"><i class="fas fa-exclamation-triangle"></i></div>
+          <div>
+            <h3 style="font-size:14px;color:#2c3e50;margin-bottom:2px;">Something went wrong</h3>
+            <p id="errorMsg" style="color:#7f8c8d;font-size:12px;">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+  <script>
+    // ── State ────────────────────────
+    let slotCounter = 0;
+    const slots = {};
+    let currentTxType = null; // 'upi' or 'bank'
+    const slotsContainer  = document.getElementById("slotsContainer");
+    const addMoreBtn      = document.getElementById("addMoreBtn");
+    const generateBtn     = document.getElementById("generateBtn");
+    const resetBtn        = document.getElementById("resetBtn");
+    const progressSection = document.getElementById("progressSection");
+    const progressBar     = document.getElementById("progressBar");
+    const progressLabel   = document.getElementById("progressLabel");
+    const resultSection   = document.getElementById("resultSection");
+    const resultMeta      = document.getElementById("resultMeta");
+    const resultUrlEl     = document.getElementById("resultUrl");
+    const copyBtn         = document.getElementById("copyBtn");
+    const openBtn         = document.getElementById("openBtn");
+    const errorSection    = document.getElementById("errorSection");
+    const errorMsg        = document.getElementById("errorMsg");
+    const btnUpi   = document.getElementById("btnUpi");
+    const btnBank  = document.getElementById("btnBank");
+    const upiFields  = document.getElementById("upiFields");
+    const bankFields = document.getElementById("bankFields");
+    const txTypeError = document.getElementById("txTypeError");
+
+    // ── Search For auto-detect (mirrors backend extract_search_for_from_url) ──
+    const PLATFORM_DOMAINS = {
+      't.me': 'Telegram', 'wa.me': 'WhatsApp',
+      'chat.whatsapp.com': 'WhatsApp', 'facebook.com': 'Facebook',
+      'instagram.com': 'Instagram', 'telegram.org': 'Telegram',
+      'web.telegram.org': 'Telegram', 'telegram.me': 'Telegram',
+      'threads.com': 'Thread', 'youtube.com': 'YouTube', 'x.com': 'X'
+    };
+
+    function extractSearchForFromUrl(rawUrl) {
+      const val = (rawUrl || "").trim();
+      if (!val) return "Web";
+      try {
+        const withProto = /^https?:\/\//i.test(val) ? val : "http://" + val;
+        const u = new URL(withProto);
+        const domain = u.hostname.toLowerCase();
+        const domainNoWww = domain.startsWith("www.") ? domain.slice(4) : domain;
+        if (PLATFORM_DOMAINS[domain]) return PLATFORM_DOMAINS[domain];
+        if (PLATFORM_DOMAINS[domainNoWww]) return PLATFORM_DOMAINS[domainNoWww];
+        return "Web";
+      } catch (e) {
+        return "Web";
+      }
+    }
+    function updateScamTypeOtherVisibility(scope) {
+      const select = document.getElementById(scope + "ScamType");
+      const otherInput = document.getElementById(scope + "ScamTypeOther");
+      if (!select || !otherInput) return;
+      if (select.value === "__other__") {
+        otherInput.classList.remove("d-none");
+      } else {
+        otherInput.classList.add("d-none");
+        otherInput.value = "";
+      }
+    }
+
+    function getEffectiveScamType(scope) {
+      const select = document.getElementById(scope + "ScamType");
+      if (!select) return "";
+      if (select.value === "__other__") {
+        const otherInput = document.getElementById(scope + "ScamTypeOther");
+        return otherInput ? otherInput.value.trim() : "";
+      }
+      return select.value.trim();
+    }
+
+    const upiWebsiteUrlEl = document.getElementById("upiWebsiteUrl");
+    const upiSearchForEl  = document.getElementById("upiSearchFor");
+    function updateUpiSearchFor() {
+      upiSearchForEl.value = extractSearchForFromUrl(upiWebsiteUrlEl.value);
+    }
+    upiWebsiteUrlEl.addEventListener("input", updateUpiSearchFor);
+    upiWebsiteUrlEl.addEventListener("blur", updateUpiSearchFor);
+    const bankWebsiteUrlEl = document.getElementById("bankWebsiteUrl");
+    const bankSearchForEl  = document.getElementById("bankSearchFor");
+    function updateBankSearchFor() {
+      bankSearchForEl.value = extractSearchForFromUrl(bankWebsiteUrlEl.value);
+    }
+    bankWebsiteUrlEl.addEventListener("input", updateBankSearchFor);
+    bankWebsiteUrlEl.addEventListener("blur", updateBankSearchFor);
+    // ── Common Details panel toggle ──
+    const commonDetailsBtn      = document.getElementById("commonDetailsBtn");
+    const commonDetailsBtnLabel = document.getElementById("commonDetailsBtnLabel");
+    const commonDetailsPanel    = document.getElementById("commonDetailsPanel");
+    const singleTxSection       = document.getElementById("singleTxSection");
+    commonDetailsBtn.addEventListener("click", () => {
+      const isOpening = commonDetailsPanel.classList.contains("d-none");
+      commonDetailsPanel.classList.toggle("d-none", !isOpening);
+      singleTxSection.classList.toggle("d-none", isOpening);
+      if (isOpening) {
+        commonDetailsBtn.classList.remove("btn-outline-secondary");
+        commonDetailsBtn.classList.add("btn-success");
+        commonDetailsBtnLabel.textContent = "Common Details (ON)";
+      } else {
+        commonDetailsBtn.classList.remove("btn-success");
+        commonDetailsBtn.classList.add("btn-outline-secondary");
+        commonDetailsBtnLabel.textContent = "Common Details";
+      }
+    });
+
+    // ── Common Details — Search For auto-detect ──
+    const cdWebsiteUrlEl = document.getElementById("cdWebsiteUrl");
+    const cdSearchForEl  = document.getElementById("cdSearchFor");
+    function updateCdSearchFor() {
+      cdSearchForEl.value = extractSearchForFromUrl(cdWebsiteUrlEl.value);
+    }
+    cdWebsiteUrlEl.addEventListener("input", updateCdSearchFor);
+    cdWebsiteUrlEl.addEventListener("blur", updateCdSearchFor);
+
+    // ── Bulk UPI textarea line counter ──
+    const bulkUpiListEl  = document.getElementById("bulkUpiList");
+    const bulkUpiCountEl = document.getElementById("bulkUpiCount");
+    function getBulkUpiLines() {
+      return bulkUpiListEl.value
+        .split("\n")
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+    }
+    bulkUpiListEl.addEventListener("input", () => {
+      const n = getBulkUpiLines().length;
+      bulkUpiCountEl.textContent = n === 0
+        ? "One UPI per line."
+        : `${n} UPI ID${n > 1 ? "s" : ""} detected — ${n} report${n > 1 ? "s" : ""} will be generated.`;
+    });
+
+    // ── Bulk generation ──
+    const generateAllBtn  = document.getElementById("generateAllBtn");
+    const cdErrorEl       = document.getElementById("cdError");
+    const bulkResultsWrap = document.getElementById("bulkResultsWrap");
+    const bulkResultsList = document.getElementById("bulkResultsList");
+
+    function addBulkResultRow(upi) {
+      const row = document.createElement("div");
+      row.style.cssText = "display:flex;align-items:center;gap:8px;border:1px solid #eef1f4;border-radius:6px;padding:7px 10px;";
+      row.innerHTML = `
+        <i class="fas fa-circle-notch fa-spin" style="color:#95a5a6;width:14px;"></i>
+        <span style="font-weight:600;color:#2c3e50;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${upi}</span>
+        <span class="bulk-row-status" style="color:#7f8c8d;">Generating…</span>
+        <span class="bulk-row-link" style="margin-left:auto;"></span>
+      `;
+      bulkResultsList.appendChild(row);
+      return row;
+    }
+
+    function markBulkRowSuccess(row, data) {
+      row.querySelector("i").className = "fas fa-check-circle";
+      row.querySelector("i").style.color = "#27ae60";
+      row.querySelector(".bulk-row-status").textContent = `${data.filename} · ${data.pages} page(s)`;
+      const linkSpan = row.querySelector(".bulk-row-link");
+      linkSpan.innerHTML = `<a href="${data.pdf_url}" target="_blank" style="color:#3498db;font-weight:600;text-decoration:none;">Open <i class="fas fa-external-link-alt" style="font-size:10px;"></i></a>`;
+    }
+
+    function markBulkRowError(row, message) {
+      row.querySelector("i").className = "fas fa-times-circle";
+      row.querySelector("i").style.color = "#e74c3c";
+      const statusEl = row.querySelector(".bulk-row-status");
+      statusEl.textContent = message || "Failed";
+      statusEl.style.color = "#e74c3c";
+    }
+    generateAllBtn.addEventListener("click", async () => {
+      cdErrorEl.classList.add("d-none");
+      clearFieldErrors();
+      const websiteUrl = cdWebsiteUrlEl.value.trim();
+      const gatewayUrl = document.getElementById("cdGatewayUrl").value.trim();
+      const scamTypeSelect = document.getElementById("cdScamType");
+      const scamTypeOther  = document.getElementById("cdScamTypeOther");
+      const scamType   = getEffectiveScamType("cd");
+      const searchFor  = cdSearchForEl.value.trim() || "NA";
+      const chatNumber = document.getElementById("cdChatNumber").value.trim();
+      let valid = true;
+      if (!websiteUrl) { markInvalid(cdWebsiteUrlEl); valid = false; }
+      if (!gatewayUrl) { markInvalid(document.getElementById("cdGatewayUrl")); valid = false; }
+      if (!scamTypeSelect.value.trim())   { markInvalid(scamTypeSelect);   valid = false; }
+      if (scamTypeSelect.value === "__other__" && !scamType) { markInvalid(scamTypeOther); valid = false; }
+      const upiLines = getBulkUpiLines();
+      if (upiLines.length === 0) {
+        cdErrorEl.textContent = "Please paste at least one UPI ID.";
+        cdErrorEl.classList.remove("d-none");
+        valid = false;
+      }
+      const files = getCollectedScreenshotFiles();
+      if (files.length === 0) {
+        cdErrorEl.textContent = "At least one screenshot is required.";
+        cdErrorEl.classList.remove("d-none");
+        valid = false;
+      }
+      if (!valid) return;
+      bulkResultsList.innerHTML = "";
+      bulkResultsWrap.classList.remove("d-none");
+      bulkResultsWrap.scrollIntoView({ behavior: "smooth", block: "center" });
+      generateAllBtn.disabled = true;
+      generateAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…';
+      for (const upi of upiLines) {
+        const row = addBulkResultRow(upi);
+        const fd = new FormData();
+        fd.append("source_url", websiteUrl);
+        fd.append("transaction_type", "upi");
+        fd.append("upi_vpa", upi);
+        fd.append("website_url", websiteUrl);
+        fd.append("payment_gateway_url", gatewayUrl);
+        fd.append("scam_type", scamType);
+        fd.append("search_for", searchFor);
+        fd.append("chat_number", chatNumber);
+        files.forEach(f => fd.append("screenshots[]", f, f.name || "screenshot.png"));
+        try {
+          const res  = await fetch("/generate-case-report", { method: "POST", body: fd });
+          const data = await res.json();
+          if (data.status === "success") {
+            markBulkRowSuccess(row, data);
+          } else {
+            markBulkRowError(row, data.message || "Unknown error.");
+          }
+        } catch (err) {
+          markBulkRowError(row, "Network error: " + err.message);
+        }
+      }
+      generateAllBtn.disabled = false;
+      generateAllBtn.innerHTML = '<i class="fas fa-layer-group"></i> Generate All Reports';
+      // Poora batch generate hone ke baad (loop complete hote hi) — screenshots
+      // aur common details fields ko bhi fresh reset karo, taaki purana data
+      // agli entry ke liye reh na jaaye.
+      resetFormFieldsOnly();
+      cdWebsiteUrlEl.value = "";
+      document.getElementById("cdGatewayUrl").value = "";
+      document.getElementById("cdScamType").value = "";
+      document.getElementById("cdScamTypeOther").value = "";
+      document.getElementById("cdScamTypeOther").classList.add("d-none");
+      cdSearchForEl.value = "";
+      document.getElementById("cdChatNumber").value = "";
+      bulkUpiListEl.value = "";
+      bulkUpiCountEl.textContent = "One UPI per line.";
+    });
+
+    // ── Transaction type toggle ──
+    function selectTxType(type) {
+      currentTxType = type;
+      txTypeError.classList.add("d-none");
+      if (type === "upi") {
+        btnUpi.classList.add("active");
+        btnBank.classList.remove("active");
+        upiFields.classList.remove("d-none");
+        bankFields.classList.add("d-none");
+      } else {
+        btnBank.classList.add("active");
+        btnUpi.classList.remove("active");
+        bankFields.classList.remove("d-none");
+        upiFields.classList.add("d-none");
+      }
+    }
+    btnUpi.addEventListener("click", () => selectTxType("upi"));
+    btnBank.addEventListener("click", () => selectTxType("bank"));
+
+    // ── Screenshot slot logic ──
+    function createSlot() {
+      const id = ++slotCounter;
+      slots[id] = { fileA: null, pasteFileA: null, fileB: null, pasteFileB: null };
+      const wrap = document.createElement("div");
+      wrap.className = "ss-slot";
+      wrap.setAttribute("data-slot-id", id);
+      wrap.innerHTML = `
+        <button class="slot-remove" type="button" title="Remove row"><i class="fas fa-times"></i></button>
+        <div class="slot-pair">
+          <div class="slot-half">
+            <div class="choose-side">
+              <label class="btn-choose" for="fileA_${id}"><i class="fas fa-folder-open"></i> Choose</label>
+              <input type="file" id="fileA_${id}" class="d-none" accept="image/png,image/jpeg,image/jpg,image/webp" />
+              <span class="chosen-name" id="nameA_${id}">No file</span>
+            </div>
+            <div class="paste-area" id="pasteA_${id}" tabindex="0">
+              <span>Paste / drop screenshot 1</span>
+              <button type="button" class="paste-clear" id="clearA_${id}">&#x2715;</button>
+            </div>
+          </div>
+          <div class="slot-half">
+            <div class="choose-side">
+              <label class="btn-choose" for="fileB_${id}"><i class="fas fa-folder-open"></i> Choose</label>
+              <input type="file" id="fileB_${id}" class="d-none" accept="image/png,image/jpeg,image/jpg,image/webp" />
+              <span class="chosen-name" id="nameB_${id}">No file</span>
+            </div>
+            <div class="paste-area" id="pasteB_${id}" tabindex="0">
+              <span>Paste / drop screenshot 2</span>
+              <button type="button" class="paste-clear" id="clearB_${id}">&#x2715;</button>
+            </div>
+          </div>
+        </div>
+      `;
+      slotsContainer.appendChild(wrap);
+      wrap.querySelector(".slot-remove").addEventListener("click", () => {
+        wrap.remove();
+        delete slots[id];
+      });
+      bindSide(id, "A", 1);
+      bindSide(id, "B", 2);
+    }
+
+    function bindSide(id, side, num) {
+      const fileEl  = document.getElementById(`file${side}_${id}`);
+      const nameEl  = document.getElementById(`name${side}_${id}`);
+      const pasteEl = document.getElementById(`paste${side}_${id}`);
+      const clearEl = document.getElementById(`clear${side}_${id}`);
+      fileEl.addEventListener("change", () => {
+        const file = fileEl.files[0];
+        if (!file) return;
+        slots[id][`file${side}`]      = file;
+        slots[id][`pasteFile${side}`] = null;
+        nameEl.textContent = file.name;
+        renderPreview(id, side, num, URL.createObjectURL(file), pasteEl);
+      });
+      pasteEl.addEventListener("click", (e) => {
+        if (e.target === clearEl) return;
+        pasteEl.focus();
+      });
+      pasteEl.addEventListener("paste", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const items = Array.from(e.clipboardData.items || []);
+        const imgItem = items.find(it => it.type.startsWith("image/"));
+        if (imgItem) {
+          const file = imgItem.getAsFile();
+          if (file) applyFile(id, side, num, file, nameEl, pasteEl);
+        }
+      });
+      pasteEl.addEventListener("dragover", (e) => { e.preventDefault(); pasteEl.classList.add("drag-over"); });
+      pasteEl.addEventListener("dragleave", () => pasteEl.classList.remove("drag-over"));
+      pasteEl.addEventListener("drop", (e) => {
+        e.preventDefault();
+        pasteEl.classList.remove("drag-over");
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith("image/")) applyFile(id, side, num, file, nameEl, pasteEl);
+      });
+      clearEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        slots[id][`file${side}`]      = null;
+        slots[id][`pasteFile${side}`] = null;
+        nameEl.textContent = "No file";
+        pasteEl.classList.remove("has-image");
+        pasteEl.innerHTML = `
+          <span>Paste / drop screenshot ${num}</span>
+          <button type="button" class="paste-clear" id="clear${side}_${id}">&#x2715;</button>
+        `;
+        document.getElementById(`clear${side}_${id}`).addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          slots[id][`file${side}`]      = null;
+          slots[id][`pasteFile${side}`] = null;
+          nameEl.textContent = "No file";
+          pasteEl.classList.remove("has-image");
+        });
+      });
+    }
+
+    function applyFile(id, side, num, file, nameEl, pasteEl) {
+      slots[id][`file${side}`]      = null;
+      slots[id][`pasteFile${side}`] = file;
+      nameEl.textContent = file.name || "Pasted";
+      renderPreview(id, side, num, URL.createObjectURL(file), pasteEl);
+    }
+
+    function renderPreview(id, side, num, url, pasteEl) {
+      pasteEl.classList.add("has-image");
+      pasteEl.innerHTML = `
+        <img class="paste-preview" src="${url}" alt="ss ${num}" />
+        <button type="button" class="paste-clear" id="clear${side}_${id}">&#x2715;</button>
+      `;
+      const clearEl = document.getElementById(`clear${side}_${id}`);
+      const nameEl  = document.getElementById(`name${side}_${id}`);
+      clearEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        slots[id][`file${side}`]      = null;
+        slots[id][`pasteFile${side}`] = null;
+        nameEl.textContent = "No file";
+        pasteEl.classList.remove("has-image");
+        pasteEl.innerHTML = `
+          <span>Paste / drop screenshot ${num}</span>
+          <button type="button" class="paste-clear" id="clear${side}_${id}">&#x2715;</button>
+        `;
+      });
+    }
+    addMoreBtn.addEventListener("click", createSlot);
+    function resetFormFieldsOnly() {
+      slotsContainer.innerHTML = "";
+      Object.keys(slots).forEach(k => delete slots[k]);
+      slotCounter = 0;
+      createSlot();
+      // reset transaction type fields
+      currentTxType = null;
+      btnUpi.classList.remove("active");
+      btnBank.classList.remove("active");
+      upiFields.classList.add("d-none");
+      bankFields.classList.add("d-none");
+      document.querySelectorAll("#upiFields input, #upiFields select").forEach(el => el.value = "");
+      document.querySelectorAll("#bankFields input, #bankFields select").forEach(el => el.value = "");
+      txTypeError.classList.add("d-none");
+      clearFieldErrors();
+      selectTxType("upi");
+      updateScamTypeOtherVisibility("upi");
+      updateScamTypeOtherVisibility("bank");
+    }
+    resetBtn.addEventListener("click", () => {
+      resetFormFieldsOnly();
+      hideAll();
+    });
+
+    function hideAll() {
+      [progressSection, resultSection, errorSection].forEach(el => el.classList.add("d-none"));
+    }
+
+    function clearFieldErrors() {
+      document.querySelectorAll(".field-grid input, .field-grid select").forEach(el => {
+        el.style.borderColor = "#e2e8f0";
+      });
+    }
+    function markInvalid(el) {
+      el.style.borderColor = "#e74c3c";
+    }
+
+    function getCollectedScreenshotFiles() {
+      const files = [];
+      slotsContainer.querySelectorAll(".ss-slot").forEach(slotEl => {
+        const id = slotEl.getAttribute("data-slot-id");
+        const s  = slots[id];
+        if (!s) return;
+        const fA = s.fileA || s.pasteFileA;
+        const fB = s.fileB || s.pasteFileB;
+        if (fA) files.push(fA);
+        if (fB) files.push(fB);
+      });
+      return files;
+    }
+
+    generateBtn.addEventListener("click", async () => {
+      hideAll();
+      clearFieldErrors();
+      const files = getCollectedScreenshotFiles();
+      const ssErr = document.getElementById("ssError");
+      if (files.length === 0) {
+        ssErr.classList.remove("d-none");
+        return;
+      }
+      ssErr.classList.add("d-none");
+      // ── Transaction type validation ──
+      if (!currentTxType) {
+        txTypeError.classList.remove("d-none");
+        return;
+      }
+      txTypeError.classList.add("d-none");
+      let txPayload = { transaction_type: currentTxType };
+      let valid = true;
+      if (currentTxType === "upi") {
+        const upiVpa       = document.getElementById("upiVpa");
+        const websiteUrl   = document.getElementById("upiWebsiteUrl");
+        const gatewayUrl   = document.getElementById("upiGatewayUrl");
+        const scamType     = document.getElementById("upiScamType");
+        const scamTypeOther= document.getElementById("upiScamTypeOther");
+        const searchFor    = document.getElementById("upiSearchFor");
+        const chatNumber   = document.getElementById("upiChatNumber");
+        const effectiveScamType = getEffectiveScamType("upi");
+        if (!upiVpa.value.trim())     { markInvalid(upiVpa);     valid = false; }
+        if (!websiteUrl.value.trim()) { markInvalid(websiteUrl); valid = false; }
+        if (!gatewayUrl.value.trim()) { markInvalid(gatewayUrl); valid = false; }
+        if (!scamType.value.trim())   { markInvalid(scamType);   valid = false; }
+        if (scamType.value === "__other__" && !effectiveScamType) { markInvalid(scamTypeOther); valid = false; }
+        txPayload.upi_vpa            = upiVpa.value.trim();
+        txPayload.website_url        = websiteUrl.value.trim();
+        txPayload.payment_gateway_url= gatewayUrl.value.trim();
+        txPayload.scam_type          = effectiveScamType;
+        txPayload.search_for         = searchFor.value.trim() || "NA";
+        txPayload.chat_number        = chatNumber.value.trim();
+      } else {
+        const accNo        = document.getElementById("bankAccountNumber");
+        const ifsc          = document.getElementById("bankIfsc");
+        const holderName    = document.getElementById("bankHolderName");
+        const websiteUrl     = document.getElementById("bankWebsiteUrl");
+        const searchFor      = document.getElementById("bankSearchFor");
+        const scamType       = document.getElementById("bankScamType");
+        const scamTypeOther  = document.getElementById("bankScamTypeOther");
+        const chatNumber     = document.getElementById("bankChatNumber");
+        const effectiveScamType = getEffectiveScamType("bank");
+        if (!accNo.value.trim())       { markInvalid(accNo);       valid = false; }
+        if (!ifsc.value.trim())         { markInvalid(ifsc);         valid = false; }
+        if (!holderName.value.trim())   { markInvalid(holderName);   valid = false; }
+        if (!websiteUrl.value.trim())   { markInvalid(websiteUrl);   valid = false; }
+        if (!searchFor.value.trim())    { markInvalid(searchFor);    valid = false; }
+        if (!scamType.value.trim())     { markInvalid(scamType);     valid = false; }
+        if (scamType.value === "__other__" && !effectiveScamType) { markInvalid(scamTypeOther); valid = false; }
+        txPayload.bank_account_number = accNo.value.trim();
+        txPayload.ifsc_code           = ifsc.value.trim();
+        txPayload.ac_holder_name      = holderName.value.trim();
+        txPayload.website_url         = websiteUrl.value.trim();
+        txPayload.search_for          = searchFor.value.trim();
+        txPayload.scam_type           = effectiveScamType;
+        txPayload.chat_number         = chatNumber.value.trim();
+      }
+      if (!valid) {
+        return; // red borders show which fields are missing
+      }
+      const sourceUrlValue = txPayload.website_url || "";
+      if (!sourceUrlValue) {
+        errorMsg.textContent = "Website URL is required to generate the report.";
+        errorSection.classList.remove("d-none");
+        return;
+      }
+      progressSection.classList.remove("d-none");
+      progressSection.scrollIntoView({ behavior: "smooth", block: "center" });
+      animateProgress();
+      const fd = new FormData();
+      fd.append("source_url", sourceUrlValue);
+      files.forEach(f => fd.append("screenshots[]", f, f.name || "screenshot.png"));
+      Object.keys(txPayload).forEach(key => fd.append(key, txPayload[key]));
+      try {
+        const res  = await fetch("/generate-case-report", { method: "POST", body: fd });
+        const data = await res.json();
+        clearInterval(_progTimer);
+        progressSection.classList.add("d-none");
+        if (data.status === "success") {
+          const pdfUrl = data.pdf_url || "";
+          resultMeta.textContent  = `${data.filename}  ·  ${data.pages} page(s)`;
+          resultUrlEl.textContent = pdfUrl;
+          resultSection.classList.remove("d-none");
+          copyBtn.onclick = () => {
+            navigator.clipboard.writeText(pdfUrl);
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy URL', 2000);
+          };
+          openBtn.onclick = () => window.open(pdfUrl, "_blank");
+          // Report ban gaya — agla report fresh form se bhara jaaye, purani
+          // details persist nahi honi chahiye.
+          resetFormFieldsOnly();
+        } else {
+          errorMsg.textContent = data.message || "Unknown error.";
+          errorSection.classList.remove("d-none");
+        }
+      } catch (err) {
+        clearInterval(_progTimer);
+        progressSection.classList.add("d-none");
+        errorMsg.textContent = "Network error: " + err.message;
+        errorSection.classList.remove("d-none");
+      }
+    });
+    let _progTimer = null;
+    function animateProgress() {
+      let pct = 5;
+      progressBar.style.width = pct + "%";
+      progressLabel.textContent = "Uploading screenshots…";
+      clearInterval(_progTimer);
+      _progTimer = setInterval(() => {
+        if (pct < 40)      { pct += 5; progressLabel.textContent = "Uploading screenshots…"; }
+        else if (pct < 70) { pct += 3; progressLabel.textContent = "Generating PDF…"; }
+        else if (pct < 88) { pct += 1; progressLabel.textContent = "Uploading to cloud…"; }
+        progressBar.style.width = Math.min(pct, 90) + "%";
+      }, 400);
+    }
+    // ── View Data popup (restricted server-side to the logged-in user) ──
+    const VIEW_DATA_COLUMNS = [
+      { key: "created_at",          label: "Created At" },
+      { key: "source_url",          label: "Source URL" },
+      { key: "pdf_url",             label: "PDF URL" },
+      { key: "upi_vpa",             label: "UPI VPA" },
+      { key: "payment_gateway_url", label: "Payment Gateway URL" },
+      { key: "bank_account_number", label: "Bank Account Number" },
+      { key: "ifsc_code",           label: "IFSC Code" },
+      { key: "ac_holder_name",      label: "A/C Holder Name" },
+      { key: "search_for",          label: "Search For" },
+      { key: "scam_type",           label: "Scam Type" },
+      { key: "chat_number",         label: "Chat Number" },
+    ];
+    const viewDataBtn       = document.getElementById("viewDataBtn");
+    const closeViewDataBtn  = document.getElementById("closeViewDataBtn");
+    const viewDataModal     = document.getElementById("viewDataModal");
+    const viewDataTableWrap = document.getElementById("viewDataTableWrap");
+    const vdExportBtn       = document.getElementById("vdExportBtn");
+    let _allReports = [];
+    const VD_COPYABLE_KEYS = ["source_url", "pdf_url", "upi_vpa"];
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str === undefined || str === null ? "" : String(str);
+      return div.innerHTML;
+    }
+    const VD_LINK_KEYS = ["source_url", "pdf_url"];
+
+    function renderViewDataTable(rows) {
+      if (!rows || rows.length === 0) {
+        viewDataTableWrap.innerHTML = '<p style="font-size:12.5px;color:#7f8c8d;">No data found.</p>';
+        return;
+      }
+      let html = '<table class="vd-table"><thead><tr>';
+      html += `<th style="width:34px;"><input type="checkbox" id="vdSelectAllCheckbox" title="Select All" /></th>`;
+      VIEW_DATA_COLUMNS.forEach(col => html += `<th>${col.label}</th>`);
+      html += `<th style="width:60px;">Action</th>`;
+      html += '</tr></thead><tbody>';
+      rows.forEach(row => {
+        html += '<tr>';
+        html += `<td><input type="checkbox" class="vd-row-checkbox" data-report-id="${row.id}" /></td>`;
+        VIEW_DATA_COLUMNS.forEach(col => {
+          let val = row[col.key] || "NA";
+          if (col.key === "created_at" && val !== "NA") {
+            // Sirf date dikhao (time hata do) — "2026-07-02T15:05:18..." -> "2026-07-02"
+            val = String(val).split("T")[0].split(" ")[0];
+          }
+          if (VD_COPYABLE_KEYS.includes(col.key) && val !== "NA") {
+            const isLink = VD_LINK_KEYS.includes(col.key);
+            const valueHtml = isLink
+              ? `<a href="${escapeHtml(val)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(val)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;display:inline-block;color:#3498db;text-decoration:none;">${escapeHtml(val)}</a>`
+              : `<span title="${escapeHtml(val)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;display:inline-block;">${escapeHtml(val)}</span>`;
+            html += `<td style="overflow:visible;">
+              <span style="display:inline-flex;align-items:center;gap:6px;max-width:100%;">
+                ${valueHtml}
+                <button type="button" class="vd-copy-btn" data-copy-value="${escapeHtml(val)}" title="Copy" style="border:none;background:none;color:#3498db;cursor:pointer;font-size:11px;padding:2px 4px;flex-shrink:0;">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </span>
+            </td>`;
+          } else {
+            html += `<td title="${escapeHtml(val)}">${escapeHtml(val)}</td>`;
+          }
+        });
+        html += `<td style="text-align:center;"><button type="button" class="vd-delete-btn" data-report-id="${row.id}" title="Delete" style="border:none;background:none;color:#e74c3c;cursor:pointer;font-size:13px;padding:4px 6px;"><i class="fas fa-trash"></i></button></td>`;
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      viewDataTableWrap.innerHTML = html;
+      viewDataTableWrap.querySelectorAll(".vd-copy-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const value = btn.getAttribute("data-copy-value");
+          navigator.clipboard.writeText(value).then(() => {
+            const icon = btn.querySelector("i");
+            icon.className = "fas fa-check";
+            btn.style.color = "#27ae60";
+            setTimeout(() => {
+              icon.className = "fas fa-copy";
+              btn.style.color = "#3498db";
+            }, 1200);
+          });
+        });
+      });
+      viewDataTableWrap.querySelectorAll(".vd-delete-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const reportId = btn.getAttribute("data-report-id");
+          deleteReport(reportId, btn);
+        });
+      });
+      const selectAllCb = document.getElementById("vdSelectAllCheckbox");
+      if (selectAllCb) {
+        selectAllCb.addEventListener("change", () => {
+          viewDataTableWrap.querySelectorAll(".vd-row-checkbox").forEach(cb => {
+            cb.checked = selectAllCb.checked;
+          });
+        });
+      }
+    }
+    async function loadViewData() {
+      viewDataTableWrap.innerHTML = '<p style="font-size:12.5px;color:#7f8c8d;">Loading…</p>';
+      try {
+        const dateFrom = document.getElementById("vdDateFrom").value;
+        const dateTo   = document.getElementById("vdDateTo").value;
+        const params = new URLSearchParams();
+        if (dateFrom) params.append("date_from", dateFrom);
+        if (dateTo)   params.append("date_to", dateTo);
+        // Backend automatically restricts results to the current logged-in user
+        const res  = await fetch("/case-reports-list?" + params.toString());
+        const data = await res.json();
+        if (data.status !== "success" || !data.reports) {
+          viewDataTableWrap.innerHTML = '<p style="font-size:12.5px;color:#7f8c8d;">No data found.</p>';
+          document.getElementById("vdTotalCount").textContent = data.total_count ?? 0;
+          document.getElementById("vdFilteredCount").textContent = 0;
+          return;
+        }
+        _allReports = data.reports;
+        document.getElementById("vdTotalCount").textContent = data.total_count ?? 0;
+        document.getElementById("vdFilteredCount").textContent = data.filtered_count ?? _allReports.length;
+        renderViewDataTable(_allReports);
+      } catch (err) {
+        viewDataTableWrap.innerHTML = `<p style="font-size:12.5px;color:#e74c3c;">Error loading data: ${err.message}</p>`;
+      }
+    }
+    async function deleteReport(reportId, btnEl) {
+      if (!reportId) return;
+      if (!confirm("Are you sure you want to permanently delete this report? This cannot be undone.")) return;
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      }
+      try {
+        const res  = await fetch(`/delete-case-report/${reportId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.status === "success") {
+          _allReports = _allReports.filter(r => String(r.id) !== String(reportId));
+          renderViewDataTable(_allReports);
+          document.getElementById("vdFilteredCount").textContent = _allReports.length;
+          const totalEl = document.getElementById("vdTotalCount");
+          totalEl.textContent = Math.max(0, (parseInt(totalEl.textContent, 10) || 0) - 1);
+        } else {
+          alert("Delete failed: " + (data.message || "Unknown error"));
+          if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = '<i class="fas fa-trash"></i>';
+          }
+        }
+      } catch (err) {
+        alert("Network error: " + err.message);
+        if (btnEl) {
+          btnEl.disabled = false;
+          btnEl.innerHTML = '<i class="fas fa-trash"></i>';
+        }
+      }
+    }
+    async function bulkDeleteSelectedReports() {
+      const selectedIds = getSelectedReportIds();
+      if (selectedIds.length === 0) {
+        alert("Please select at least one record (use the checkboxes or Select All) to delete.");
+        return;
+      }
+      if (!confirm(`Are you sure you want to permanently delete ${selectedIds.length} selected report(s)? This cannot be undone.`)) return;
+      const bulkDeleteBtn = document.getElementById("vdBulkDeleteBtn");
+      if (bulkDeleteBtn) {
+        bulkDeleteBtn.disabled = true;
+        bulkDeleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+      }
+      let deletedCount = 0;
+      let failedCount = 0;
+      for (const reportId of selectedIds) {
+        try {
+          const res  = await fetch(`/delete-case-report/${reportId}`, { method: "DELETE" });
+          const data = await res.json();
+          if (data.status === "success") {
+            deletedCount++;
+            _allReports = _allReports.filter(r => String(r.id) !== String(reportId));
+          } else {
+            failedCount++;
+          }
+        } catch (err) {
+          failedCount++;
+        }
+      }
+      renderViewDataTable(_allReports);
+      document.getElementById("vdFilteredCount").textContent = _allReports.length;
+      const totalEl = document.getElementById("vdTotalCount");
+      totalEl.textContent = Math.max(0, (parseInt(totalEl.textContent, 10) || 0) - deletedCount);
+      if (bulkDeleteBtn) {
+        bulkDeleteBtn.disabled = false;
+        bulkDeleteBtn.innerHTML = '<i class="fas fa-trash"></i> Delete Selected';
+      }
+      alert(`Deleted ${deletedCount} report(s).` + (failedCount ? ` ${failedCount} failed.` : ""));
+    }
+    vdExportBtn.addEventListener("click", () => {
+      if (!_allReports.length) { alert("No data to export."); return; }
+      const headers = VIEW_DATA_COLUMNS.map(c => c.label);
+      const csvLines = [headers.join(",")];
+      _allReports.forEach(row => {
+        const line = VIEW_DATA_COLUMNS.map(col => {
+          let val = row[col.key] !== undefined && row[col.key] !== null ? String(row[col.key]) : "NA";
+          val = '"' + val.replace(/"/g, '""') + '"';
+          return val;
+        }).join(",");
+        csvLines.push(line);
+      });
+      const csvContent = "\uFEFF" + csvLines.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      const ts   = new Date().toISOString().replace(/[:.]/g, "-");
+      a.href = url;
+      a.download = `case_reports_${ts}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+    function getSelectedReportIds() {
+      const ids = [];
+      viewDataTableWrap.querySelectorAll(".vd-row-checkbox:checked").forEach(cb => {
+        const rid = cb.getAttribute("data-report-id");
+        if (rid) ids.push(rid);
+      });
+      return ids;
+    }
+    document.getElementById("vdDateApplyBtn").addEventListener("click", () => {
+      loadViewData();
+    });
+    document.getElementById("vdDateClearBtn").addEventListener("click", () => {
+      document.getElementById("vdDateFrom").value = "";
+      document.getElementById("vdDateTo").value = "";
+      loadViewData();
+    });
+    // Date choose karte hi auto-apply — Apply button dabane ki zaroorat nahi
+    document.getElementById("vdDateFrom").addEventListener("change", () => {
+      loadViewData();
+    });
+    document.getElementById("vdDateTo").addEventListener("change", () => {
+      loadViewData();
+    });
+    document.getElementById("vdSelectAllBtn").addEventListener("click", () => {
+      viewDataTableWrap.querySelectorAll(".vd-row-checkbox").forEach(cb => { cb.checked = true; });
+      const headerCb = document.getElementById("vdSelectAllCheckbox");
+      if (headerCb) headerCb.checked = true;
+    });
+    const vdRegenerateProgress      = document.getElementById("vdRegenerateProgress");
+    const vdRegenerateProgressLabel = document.getElementById("vdRegenerateProgressLabel");
+    const vdRegenerateResultsWrap   = document.getElementById("vdRegenerateResultsWrap");
+    const vdRegenerateFolderPath    = document.getElementById("vdRegenerateFolderPath");
+    let _activeRegenJobId = null;
+    let _regenPollTimer   = null;
+    function _setRegenButtonsDisabled(disabled) {
+      const b1 = document.getElementById("vdRegenerateBtn");
+      const b2 = document.getElementById("vdRegenerateFinalSheetBtn");
+      if (b1) b1.disabled = disabled;
+      if (b2) b2.disabled = disabled;
+    }
+    async function runRegenerate(mode) {
+      const selectedIds = getSelectedReportIds();
+      if (selectedIds.length === 0) {
+        alert("Please select at least one record (use the checkboxes or Select All) to regenerate.");
+        return;
+      }
+      vdRegenerateResultsWrap.classList.add("d-none");
+      vdRegenerateProgress.classList.remove("d-none");
+      vdRegenerateProgressLabel.textContent = `Step 1/2: Extracting screenshots for ${selectedIds.length} selected case(s)...`;
+      document.getElementById("vdRegenerateProgressPath").textContent = "";
+      document.getElementById("vdRegenerateProgressBar").style.width = "0%";
+      _setRegenButtonsDisabled(true);
+      const stopBtn = document.getElementById("vdRegenerateStopBtn");
+      if (stopBtn) {
+        stopBtn.disabled = false;
+        stopBtn.style.display = "flex";
+        stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop';
+      }
+      try {
+        const res  = await fetch("/bulk-regenerate-cases", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ report_ids: selectedIds, mode: mode })
+        });
+        const data = await res.json();
+        if (data.status !== "success" || !data.job_id) {
+          vdRegenerateProgress.classList.add("d-none");
+          _setRegenButtonsDisabled(false);
+          alert("Regenerate failed to start: " + (data.message || "Unknown error"));
+          return;
+        }
+        _activeRegenJobId = data.job_id;
+        _pollRegenerateJob();
+      } catch (err) {
+        vdRegenerateProgress.classList.add("d-none");
+        _setRegenButtonsDisabled(false);
+        alert("Network error: " + err.message);
+      }
+    }
+    function _pollRegenerateJob() {
+      if (_regenPollTimer) clearInterval(_regenPollTimer);
+      _regenPollTimer = setInterval(async () => {
+        if (!_activeRegenJobId) { clearInterval(_regenPollTimer); return; }
+        try {
+          const res  = await fetch(`/regenerate-job-status/${_activeRegenJobId}`);
+          const data = await res.json();
+          const total     = data.total || 0;
+          const completed = data.completed || 0;
+          const pct       = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+          let stepLabel = "";
+          if (data.phase === "extracting") {
+            stepLabel = "Step 1/2: Extracting screenshots from PDFs...";
+          } else if (data.phase === "regenerating") {
+            stepLabel = `Step 2/2: Regenerating cases... ${completed}/${total} done`;
+          } else {
+            stepLabel = `Regenerating... ${completed}/${total} done`;
+          }
+          vdRegenerateProgressLabel.textContent = stepLabel + (data.status === "stopping" ? " (stopping...)" : "");
+          document.getElementById("vdRegenerateProgressBar").style.width = (data.phase === "extracting" ? 5 : pct) + "%";
+          if (data.folder) {
+            document.getElementById("vdRegenerateProgressPath").textContent = `Saving to: ${data.folder}`;
+          }
+          if (data.status === "done" || data.status === "stopped" || data.status === "error") {
+            clearInterval(_regenPollTimer);
+            vdRegenerateProgress.classList.add("d-none");
+            _setRegenButtonsDisabled(false);
+            _activeRegenJobId = null;
+            let folderMsg = data.folder ? `Saved to: ${data.folder}` : "";
+            if (data.investment_sheet) folderMsg += ` | Investment Scam Final Sheet: ${data.investment_sheet}`;
+            if (data.status === "stopped") folderMsg += " - Stopped by user";
+            vdRegenerateFolderPath.textContent = folderMsg;
+            vdRegenerateResultsWrap.classList.remove("d-none");
+            if (data.status === "error" && data.message) alert("Job error: " + data.message);
+          }
+        } catch (err) {
+        }
+      }, 1500);
+    }
+    async function stopRegenerateJob() {
+      if (!_activeRegenJobId) return;
+      const stopBtn = document.getElementById("vdRegenerateStopBtn");
+      if (stopBtn) {
+        stopBtn.disabled = true;
+        stopBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping…';
+      }
+      try {
+        await fetch(`/stop-regenerate-job/${_activeRegenJobId}`, { method: "POST" });
+        vdRegenerateProgressLabel.textContent = "Stopping… finishing current case, please wait.";
+      } catch (err) {
+        alert("Could not send stop signal: " + err.message);
+        if (stopBtn) {
+          stopBtn.disabled = false;
+          stopBtn.innerHTML = '<i class="fas fa-stop-circle"></i> Stop';
+        }
+      }
+    }
+    viewDataBtn.addEventListener("click", () => {
+      viewDataModal.classList.add("active");
+      const dateFromEl = document.getElementById("vdDateFrom");
+      const dateToEl    = document.getElementById("vdDateTo");
+      // Pehli baar open hone par by default AAJ ki date filter lagao
+      if (!dateFromEl.value && !dateToEl.value) {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        dateFromEl.value = todayStr;
+        dateToEl.value   = todayStr;
+      }
+      loadViewData();
+    });
+    closeViewDataBtn.addEventListener("click", () => {
+      viewDataModal.classList.remove("active");
+    });
+    viewDataModal.addEventListener("click", (e) => {
+      if (e.target === viewDataModal) viewDataModal.classList.remove("active");
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") viewDataModal.classList.remove("active");
+    });
+
+    // ── Page navigation ───────────────────────────────────────────
+    function changeCaseReportPage(pageType) {
+      if (pageType === 'website_directory') {
+        window.location.href = '/website-directory';
+        return;
+      }
+      if (pageType === 'lunch_break') {
+        window.location.href = '/lunch-break';
+        return;
+      }
+      if (pageType === 'case_report') return;
+      window.location.href = '/?page=' + pageType;
+    }
+    createSlot();
+    selectTxType("upi"); // default UPI section open
+    function syncContainerPadding() {
+      const headerEl = document.querySelector(".fixed-header");
+      const containerEl = document.querySelector(".container");
+      if (headerEl && containerEl) {
+        const headerHeight = headerEl.offsetHeight;
+        containerEl.style.paddingTop = (headerHeight + 15) + "px";
+      }
+    }
+    syncContainerPadding();
+    window.addEventListener("load", syncContainerPadding);
+    window.addEventListener("resize", syncContainerPadding);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(syncContainerPadding);
+    }
+    setTimeout(syncContainerPadding, 300);
+    setTimeout(syncContainerPadding, 800);
+  </script>
+</body>
+</html>
