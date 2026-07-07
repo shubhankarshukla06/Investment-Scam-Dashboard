@@ -17,4 +17,4 @@ COPY . .
 
 ENV PORT=8080
 
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "--workers", "1", "--timeout", "600", "--graceful-timeout", "30", "app:app"]
