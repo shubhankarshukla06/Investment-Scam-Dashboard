@@ -253,6 +253,7 @@
                     <th>Lunch Start</th>
                     <th>Lunch End</th>
                     <th>Total Break Duration</th>
+                    <th>Over 30 Min</th>
                     <th>Remark</th>
                     <th>Filled By</th>
                     <th>Action</th>
@@ -275,6 +276,7 @@
                     <td class="cell-start">—</td>
                     <td class="cell-end">—</td>
                     <td class="cell-dur">—</td>
+                    <td class="cell-overtime">—</td>
                     <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ item.remark or '' }}">
                         {% if item.remark and item.remark != 'NA' %}
                         <span style="font-size:11px;color:#555;">{{ item.remark }}</span>
@@ -295,7 +297,7 @@
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="9">
+                    <td colspan="10">
                         <div class="empty-state">
                             <i class="fas fa-utensils"></i>
                             <strong style="font-size:14px;color:#2c3e50;display:block;margin-bottom:6px;">No lunch break entries found</strong>
@@ -339,10 +341,18 @@
                 <div class="modal-field">
                     <label><i class="fas fa-play"></i> Lunch Start Time <span style="color:#e74c3c;">*</span></label>
                     <input type="time" id="insStart" oninput="calcDuration()">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
+                        <input type="checkbox" id="insStartNow" onchange="toggleCurrentTime('insStart','insStartNow')" style="width:14px;height:14px;cursor:pointer;">
+                        Use Current Time
+                    </label>
                 </div>
                 <div class="modal-field">
                     <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#e74c3c;">*</span></label>
                     <input type="time" id="insEnd" oninput="calcDuration()">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
+                        <input type="checkbox" id="insEndNow" onchange="toggleCurrentTime('insEnd','insEndNow')" style="width:14px;height:14px;cursor:pointer;">
+                        Use Current Time
+                    </label>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:-4px;">
@@ -454,13 +464,21 @@
         const endCell = tr.querySelector('.cell-end');
         if (e) endCell.innerHTML = `<span class="badge badge-orange"><i class="fas fa-stop" style="font-size:9px;"></i> ${fmt12(e)}</span>`;
         const durCell = tr.querySelector('.cell-dur');
+        const overCell = tr.querySelector('.cell-overtime');
         if (s && e) {
             const mins = calcMins(s, e);
             if (mins >= 0) {
                 const over = mins > 30;
                 durCell.innerHTML = `<span class="duration-badge${over ? ' duration-over' : ''}"><i class="fas fa-hourglass-half" style="font-size:9px;"></i> ${durStr(mins)}</span>`;
+                if (over) {
+                    const extra = mins - 30;
+                    overCell.innerHTML = `<span class="badge badge-red"><i class="fas fa-exclamation-circle" style="font-size:9px;"></i> Extra ${extra} Min.</span>`;
+                } else {
+                    overCell.innerHTML = `<span class="badge badge-green"><i class="fas fa-check-circle" style="font-size:9px;"></i> On Time</span>`;
+                }
             } else {
                 durCell.innerHTML = `<span class="duration-badge duration-over"><i class="fas fa-exclamation-triangle" style="font-size:9px;"></i> Invalid</span>`;
+                overCell.innerHTML = `<span style="color:#95a5a6;">—</span>`;
             }
         }
     });
@@ -510,6 +528,37 @@
     }
 
     // ── Insert Modal ──────────────────────────────────────────────
+    let _liveTimeTimers = {};
+    function toggleCurrentTime(inputId, checkboxId) {
+        const checkbox = document.getElementById(checkboxId);
+        const input = document.getElementById(inputId);
+        if (checkbox.checked) {
+            input.readOnly = true;
+            input.style.background = '#f0f7ff';
+            input.style.cursor = 'not-allowed';
+            _updateLiveTime(inputId);
+            if (_liveTimeTimers[inputId]) clearInterval(_liveTimeTimers[inputId]);
+            _liveTimeTimers[inputId] = setInterval(() => _updateLiveTime(inputId), 1000);
+        } else {
+            if (_liveTimeTimers[inputId]) { clearInterval(_liveTimeTimers[inputId]); delete _liveTimeTimers[inputId]; }
+            input.readOnly = false;
+            input.style.background = '';
+            input.style.cursor = '';
+        }
+    }
+    function _updateLiveTime(inputId) {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.value = `${hh}:${mm}`;
+        if (inputId === 'insStart' || inputId === 'insEnd') calcDuration();
+    }
+    function _resetLiveTimers() {
+        Object.keys(_liveTimeTimers).forEach(id => clearInterval(_liveTimeTimers[id]));
+        _liveTimeTimers = {};
+    }
     function openInsertModal() {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('insDate').value = today;
@@ -518,11 +567,19 @@
         document.getElementById('insEnd').value = '';
         document.getElementById('insRemark').value = '';
         document.getElementById('durationPreview').style.display = 'none';
+        document.getElementById('insStartNow').checked = false;
+        document.getElementById('insEndNow').checked = false;
+        document.getElementById('insStart').readOnly = false;
+        document.getElementById('insEnd').readOnly = false;
+        document.getElementById('insStart').style.background = '';
+        document.getElementById('insEnd').style.background = '';
+        _resetLiveTimers();
         document.getElementById('insertModal').classList.add('active');
         setTimeout(() => document.getElementById('insEmployee').focus(), 100);
     }
     function closeInsertModal() {
         document.getElementById('insertModal').classList.remove('active');
+        _resetLiveTimers();
     }
 
     function calcDuration() {

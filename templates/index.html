@@ -820,6 +820,48 @@
                 </div>
             </div>
         </div>
+        <div id="upiCheckerModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:2000;justify-content:center;align-items:center;padding:20px;">
+            <div style="background:white;border-radius:12px;width:100%;max-width:900px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,0.25);">
+                <div style="background:linear-gradient(135deg,#8e44ad,#6c3483);color:white;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;">
+                    <h2 style="font-size:16px;margin:0;display:flex;align-items:center;gap:8px;"><i class="fas fa-check-double"></i> UPI Validity Checker</h2>
+                    <button onclick="closeUpiCheckerModal()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;"><i class="fas fa-times"></i></button>
+                </div>
+                <div style="padding:14px 20px;background:#f8f9fa;border-bottom:1px solid #eee;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:220px;">
+                        <label style="font-size:11px;font-weight:700;color:#7f8c8d;">Payment Number(s) — up to 3, comma separated</label>
+                        <input type="text" id="upiCheckNumber" placeholder="e.g. 9876543210, 9123456780" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;height:36px;outline:none;">
+                    </div>
+                    <div style="flex:1;min-width:180px;">
+                        <label style="font-size:11px;font-weight:700;color:#7f8c8d;">Custom Handles (comma separated, optional)</label>
+                        <input type="text" id="upiCheckCustomHandles" placeholder="e.g. hdfc,axisbank" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;height:36px;outline:none;">
+                    </div>
+                    <button id="upiCheckRunBtn" onclick="runUpiCheck()" style="padding:8px 18px;background:#8e44ad;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;height:36px;display:flex;align-items:center;gap:6px;">
+                        <i class="fas fa-search"></i> Check
+                    </button>
+                    <button id="upiCheckExportBtn" onclick="exportUpiCheckResults()" style="display:none;padding:8px 18px;background:#2ecc71;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;height:36px;align-items:center;gap:6px;">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                </div>
+                <div id="upiCheckCurrentBar" style="display:none;padding:8px 20px;background:#ede7f6;border-bottom:1px solid #d1c4e9;font-size:12px;font-weight:600;color:#4527a0;flex-direction:column;gap:6px;">
+                    <div id="upiCheckCurrentLines" style="display:flex;flex-direction:column;gap:5px;"></div>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span id="upiCheckProgressVal" style="color:#7f8c8d;font-weight:600;"></span>
+                        <button onclick="stopUpiCheck()" style="margin-left:auto;padding:3px 10px;background:#e74c3c;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;">
+                            <i class="fas fa-stop"></i> Stop All
+                        </button>
+                    </div>
+                </div>
+                <div id="upiCheckSummary" style="display:none;padding:10px 20px;background:#f3e5f5;border-bottom:1px solid #e1bee7;font-size:12px;font-weight:600;color:#4a148c;">
+                    <span id="upiCheckSummaryText"></span>
+                </div>
+                <div id="upiCheckBody" style="padding:20px;overflow-y:auto;flex-grow:1;">
+                    <div style="text-align:center;padding:40px;color:#95a5a6;">
+                        <i class="fas fa-mobile-alt" style="font-size:32px;display:block;margin-bottom:10px;"></i>
+                        <p style="font-size:14px;">Enter a payment number and click "Check" to verify UPI handles.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!-- Confirmation Modal -->
         <div class="confirmation-modal" id="confirmationModal">
             <div class="confirmation-content">
@@ -958,6 +1000,9 @@
                         </form>
                         {% elif page_type == 'investment' %}
                         <button type="button" class="btn btn-warning" onclick="showInvestmentTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
+                        <button type="button" class="btn" style="background:#8e44ad;color:white;" onclick="openUpiCheckerModal()">
+                            <i class="fas fa-check-double"></i> UPI Checker
+                        </button>
                         <form id="importFormInvestment" action="/investment-import" method="POST" enctype="multipart/form-data" style="display:inline;">
                             <input type="file" name="file" id="fileInputInvestment" style="display:none;" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.xla,.xlam,.ods,.ots">
                             <button type="button" class="btn btn-success" onclick="document.getElementById('fileInputInvestment').click()"><i class="fas fa-file-import"></i> Import</button>
@@ -2202,8 +2247,8 @@
                 'Facebook':       ['id','platform','department','login_user','number','login_device','account_status','account_type','mail_id','account_id','password','page_name',,'review_status'],
                 'Amazon':         ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','mail_id','account_id','password','review_status'],
                 'Instagram':      ['id','platform','department','login_user','number','login_device','account_status','mail_id','account_id','password','review_status'],
-                'Telegram':       ['id','platform','department','login_user','number','login_device','account_status','full_name','review_status'],
-                'WhatsApp':       ['id','platform','department','login_user','number','login_device','account_status','number_type','full_name','account_type','review_status','recharge_date'],
+                'Telegram':       ['id','platform','department','login_user','number','login_device','sim_inserted_device','account_status','full_name','review_status'],
+                'WhatsApp':       ['id','platform','department','login_user','number','login_device','sim_inserted_device','blocked_date','unblocked_date','account_status','number_type','full_name','account_type','review_status','recharge_date'],
                 'Gmail Accounts': ['id','platform','department','login_user','account_status','mail_id','password','full_name','review_status'],
                 'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator','review_status'],
             };
@@ -7579,6 +7624,183 @@
                 document.getElementById('insightsInputUser')?.addEventListener('change', function() {
                         loadInsightsData();
                 });
+                function openUpiCheckerModal() {
+                    document.getElementById('upiCheckerModal').style.display = 'flex';
+                }
+                function closeUpiCheckerModal() {
+                    document.getElementById('upiCheckerModal').style.display = 'none';
+                }
+                let _upiCheckJobId = null;
+                let _upiCheckPollTimer = null;
+
+                async function runUpiCheck() {
+                    const rawInput = document.getElementById('upiCheckNumber').value.trim();
+                    const numbers = [...new Set(rawInput.split(',').map(n => n.trim()).filter(n => n))];
+                    const customRaw = document.getElementById('upiCheckCustomHandles').value.trim();
+                    const custom_handles = customRaw ? customRaw.split(',').map(h => h.trim()).filter(h => h) : [];
+
+                    if (!numbers.length) { showToast('Please enter at least one mobile number', true); return; }
+                    if (numbers.length > 3) { showToast('You can check up to 3 numbers at a time. Only the first 3 will be used.', true); }
+                    const finalNumbers = numbers.slice(0, 3);
+
+                    if (_upiCheckPollTimer) { clearInterval(_upiCheckPollTimer); _upiCheckPollTimer = null; }
+                    _upiCheckJobId = null;
+
+                    const btn = document.getElementById('upiCheckRunBtn');
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
+                    document.getElementById('upiCheckBody').innerHTML = `<div style="text-align:center;padding:40px;color:#7f8c8d;">
+                        <div style="width:32px;height:32px;border:3px solid #f0f0f0;border-top:3px solid #8e44ad;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;"></div>
+                        Starting check for ${finalNumbers.length} number(s)...
+                    </div>`;
+                    document.getElementById('upiCheckSummary').style.display = 'none';
+                    document.getElementById('upiCheckCurrentBar').style.display = 'none';
+                    document.getElementById('upiCheckExportBtn').style.display = 'none';
+
+                    try {
+                        const resp = await fetch('/start-upi-check', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ numbers: finalNumbers, custom_handles })
+                        });
+                        const data = await resp.json();
+                        if (!data.success) {
+                            showToast('Error: ' + data.error, true);
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-search"></i> Check';
+                            return;
+                        }
+                        _upiCheckJobId = data.job_id;
+                        document.getElementById('upiCheckCurrentBar').style.display = 'flex';
+                        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+                        _upiCheckPollTimer = setInterval(_pollUpiCheckStatus, 1200);
+                        _pollUpiCheckStatus();
+                    } catch (e) {
+                        showToast('Network error: ' + e.message, true);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fas fa-search"></i> Check';
+                    }
+                }
+
+                function stopUpiCheck() {
+                    if (!_upiCheckJobId) return;
+                    fetch(`/stop-upi-check/${_upiCheckJobId}`, { method: 'POST' }).catch(() => {});
+                    showToast('Stop signal sent...', false, false);
+                }
+
+                async function _pollUpiCheckStatus() {
+                    if (!_upiCheckJobId) return;
+                    try {
+                        const resp = await fetch(`/upi-check-status/${_upiCheckJobId}`);
+                        const data = await resp.json();
+                        if (!data.success) return;
+
+                        const linesEl = document.getElementById('upiCheckCurrentLines');
+                        const progressVal = document.getElementById('upiCheckProgressVal');
+                        if (linesEl && data.numbers && data.current) {
+                            linesEl.innerHTML = data.numbers.map(num => {
+                                const cur = data.current[num];
+                                const isDone = !cur && (data.status === 'done' || data.status === 'stopped');
+                                return `<div style="display:flex;align-items:center;gap:8px;">
+                                    ${cur ? '<div style="width:11px;height:11px;border:2px solid #d1c4e9;border-top:2px solid #4527a0;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>' : (isDone ? '<i class="fas fa-check-circle" style="color:#27ae60;font-size:12px;"></i>' : '<i class="fas fa-hourglass-half" style="color:#95a5a6;font-size:11px;"></i>')}
+                                    <strong style="min-width:100px;">${num}:</strong>
+                                    <span style="font-family:monospace;color:${cur ? '#4527a0' : '#95a5a6'};">${cur || (isDone ? 'Done' : 'Waiting...')}</span>
+                                </div>`;
+                            }).join('');
+                        }
+                        if (progressVal) progressVal.textContent = data.total ? `Overall: ${data.completed} / ${data.total}` : '';
+
+                        _renderUpiCheckResults(data.results);
+
+                        if (data.status === 'done' || data.status === 'stopped') {
+                            clearInterval(_upiCheckPollTimer);
+                            _upiCheckPollTimer = null;
+                            document.getElementById('upiCheckCurrentBar').style.display = 'none';
+                            const btn = document.getElementById('upiCheckRunBtn');
+                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-search"></i> Check';
+                            if (data.status === 'stopped') showToast('UPI check stopped', false, false);
+                            else showToast('UPI check complete!', false, true);
+                            document.getElementById('upiCheckExportBtn').style.display = data.results.length ? 'flex' : 'none';
+                        }
+                    } catch (e) {
+                        console.error('UPI poll error:', e);
+                    }
+                }
+
+                function exportUpiCheckResults() {
+                    if (!_upiCheckJobId) { showToast('No results to export', true); return; }
+                    window.location.href = `/export-upi-check/${_upiCheckJobId}`;
+                }
+
+                function _renderUpiCheckResults(results) {
+                    const summaryEl = document.getElementById('upiCheckSummary');
+                    const summaryText = document.getElementById('upiCheckSummaryText');
+                    if (!results.length) {
+                        summaryEl.style.display = 'none';
+                        return;
+                    }
+                    const valid = results.filter(r => r.normalized === 'Valid').length;
+                    const invalid = results.filter(r => r.normalized === 'Invalid').length;
+                    const unknown = results.filter(r => r.normalized === 'Unknown').length;
+                    const errored = results.filter(r => r.normalized === 'Error').length;
+                    const alreadyReported = results.filter(r => r.already_reported).length;
+                    const newValid = results.filter(r => r.normalized === 'Valid' && !r.already_reported).length;
+
+                    summaryEl.style.display = 'flex';
+                    summaryText.innerHTML = `
+                        <i class="fas fa-chart-pie"></i>
+                        Checked: <strong>${results.length}</strong> &nbsp;|&nbsp;
+                        <span style="color:#1e8449;">Valid: ${valid}</span> &nbsp;|&nbsp;
+                        <span style="color:#c0392b;">Invalid: ${invalid}</span> &nbsp;|&nbsp;
+                        <span style="color:#7f8c8d;">Unknown: ${unknown}</span> &nbsp;|&nbsp;
+                        <span style="color:#e67e22;">Errors: ${errored}</span> &nbsp;|&nbsp;
+                        <span style="color:#e67e22;">Already Reported: ${alreadyReported}</span> &nbsp;|&nbsp;
+                        <span style="color:#2980b9;font-weight:700;">New Valid: ${newValid}</span>
+                    `;
+
+                    const body = document.getElementById('upiCheckBody');
+                    let rows = results.map(r => {
+                        const isValid = r.normalized === 'Valid';
+                        const isInvalid = r.normalized === 'Invalid';
+                        const isError = r.normalized === 'Error';
+                        const badge = isValid
+                            ? `<span style="background:#e8f8f0;color:#1e8449;border:1px solid #a9dfbf;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">VALID</span>`
+                            : isInvalid
+                            ? `<span style="background:#fde8e8;color:#c0392b;border:1px solid #fbc7c7;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">INVALID</span>`
+                            : isError
+                            ? `<span style="background:#fef9e7;color:#b7950b;border:1px solid #f9e79f;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;" title="${r.status}">ERROR</span>`
+                            : `<span style="background:#f8f9fa;color:#7f8c8d;border:1px solid #ddd;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;">UNKNOWN</span>`;
+                        let reportedBadge = '';
+                        if (isValid && r.already_reported) {
+                            reportedBadge = `<span style="background:#c8f7c5;color:#1e7e1e;border:1px solid #8fd98c;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">✓ Valid and Reported UPI (${r.report_count}x) — ${r.report_user||''}</span>`;
+                        } else if (isValid && !r.already_reported) {
+                            reportedBadge = `<span style="background:#d6eaf8;color:#1a5276;border:1px solid #aed6f1;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Valid and Not Reported Yet</span>`;
+                        } else if (isInvalid) {
+                            reportedBadge = `<span style="background:#ffc9c9;color:#a12626;border:1px solid #ff9d9d;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Invalid UPI</span>`;
+                        }
+                        const rowBg = (isValid && r.already_reported) ? '#eafcea' : (isInvalid ? '#fff0f0' : (isValid ? '#f0fff4' : ''));
+                        return `<tr style="background:${rowBg};border-bottom:1px solid #eee;">
+                            <td style="padding:7px 10px;font-size:11px;font-weight:600;color:#4527a0;white-space:nowrap;">${r.number || '—'}</td>
+                            <td style="padding:7px 10px;font-family:monospace;font-size:12px;">${r.upi}</td>
+                            <td style="padding:7px 10px;font-size:11px;color:#555;">${r.handle}</td>
+                            <td style="padding:7px 10px;">${badge}</td>
+                            <td style="padding:7px 10px;">${reportedBadge}</td>
+                        </tr>`;
+                    }).join('');
+                    body.innerHTML = `<div style="overflow-x:auto;">
+                        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                            <thead><tr style="background:#f8f9fa;position:sticky;top:0;">
+                                <th style="padding:8px 10px;text-align:left;">Number</th>
+                                <th style="padding:8px 10px;text-align:left;">UPI ID</th>
+                                <th style="padding:8px 10px;text-align:left;">Handle</th>
+                                <th style="padding:8px 10px;text-align:left;">Status</th>
+                                <th style="padding:8px 10px;text-align:left;">BS Investment Scam Status</th>
+                            </tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                    </div>`;
+                }
                 </script>
             <div id="scrapInsertModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.78);z-index:2000;justify-content:center;align-items:center;padding:20px;">
                 <div id="scrapInsertDrawer" style="background:white;width:100%;max-width:1100px;height:92vh;border-radius:12px;display:flex;flex-direction:column;box-shadow:0 10px 48px rgba(0,0,0,0.28);animation:scrapModalIn 0.28s cubic-bezier(0.34,1.2,0.64,1);overflow:hidden;">

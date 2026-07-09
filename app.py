@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, render_template_string, request, redirect, flash, send_file, jsonify, session
 import pandas as pd
 import io
@@ -2334,6 +2335,293 @@ def get_permanent_block_accounts():
         return jsonify({"success": True, "accounts": accounts, "count": len(accounts)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+# ============================================================
+# UPI VALIDITY CHECKER (integrated from Tampermonkey script)
+# Background job + live progress + export
+# ============================================================
+UPI_CHECK_API_URL = "https://upi-api-new.onrender.com/check_upi"
+
+DEFAULT_UPI_HANDLES = [
+    "airtel", "apl", "freecharge", "ikwik", "mbk", "mbkns", "naviaxis",
+    "okbizaxis", "ptaxis", "pthdfc", "ptsbi", "ptyes", "slc", "upi",
+    "yapl", "kotakbank", "jupiter", "icici", "mbank", "jupiteraxis",
+    "axl", "ibl", "ybl", "fam", "mairtel", "jio"
+]
+# Sirf inhi handles ko -1 se -7 tak suffix milta hai
+SUFFIX_UPI_HANDLES = ["axl", "ibl", "ybl"]
+
+UPI_CHECK_JOBS = {}
+UPI_CHECK_JOBS_LOCK = threading.Lock()
+MAX_UPI_NUMBERS_PER_JOB = 3
+
+def build_upi_candidates(number, custom_handles=None):
+    custom_handles = custom_handles or []
+    candidates = []
+    for h in DEFAULT_UPI_HANDLES:
+        candidates.append(f"{number}@{h}")
+        if h in SUFFIX_UPI_HANDLES:
+            for i in range(1, 8):
+                candidates.append(f"{number}-{i}@{h}")
+    for h in custom_handles:
+        h = str(h).strip().lower()
+        if h:
+            candidates.append(f"{number}@{h}")
+    return candidates
+
+def verify_upi_external(upi, retries=2):
+    """Per-number sequential + retry + longer timeout — too much parallel
+    hammering on the free Render API caused failures that silently became
+    'Unknown'."""
+    last_err = None
+    for attempt in range(retries + 1):
+        try:
+            resp = requests.post(
+                UPI_CHECK_API_URL,
+                json={"upi": upi},
+                headers={"Content-Type": "application/json"},
+                timeout=30
+            )
+            if resp.status_code != 200:
+                last_err = f"HTTP {resp.status_code}"
+                time.sleep(1.5)
+                continue
+            data = resp.json()
+            status = (
+                data.get("status") or data.get("Status")
+                or data.get("result") or data.get("message")
+                or json.dumps(data)
+            )
+            return str(status), None
+        except Exception as e:
+            last_err = str(e)
+            time.sleep(1.5)
+            continue
+    return None, last_err or "request failed"
+
+def _run_upi_check_worker(job_id, number, custom_handles):
+    """Ek number ke saare candidates ko sequentially check karta hai.
+    Multiple numbers alag-alag threads mein parallel chalte hain, lekin har
+    number ke andar requests sequential rehti hain (API overload avoid)."""
+    candidates = build_upi_candidates(number, custom_handles)
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+        if not job:
+            return
+        job["total"] += len(candidates)
+
+    for upi in candidates:
+        with UPI_CHECK_JOBS_LOCK:
+            job = UPI_CHECK_JOBS.get(job_id)
+            if not job or job.get("stop"):
+                if job:
+                    job["current"][number] = None
+                return
+            job["current"][number] = upi
+
+        status_text, error = verify_upi_external(upi)
+        if error and not status_text:
+            status_text = f"Error: {error}"
+            normalized = "Error"
+        else:
+            t = (status_text or "").lower()
+            if "invalid" in t or "not" in t:
+                normalized = "Invalid"
+            elif "valid" in t:
+                normalized = "Valid"
+            else:
+                normalized = "Unknown"
+
+        result = {
+            "number": number,
+            "upi": upi,
+            "handle": upi.split("@")[1] if "@" in upi else "",
+            "status": status_text,
+            "normalized": normalized,
+            "already_reported": False,
+            "report_count": 0,
+            "report_ids": [],
+            "report_dates": [],
+            "report_user": None,
+        }
+
+        if normalized == "Valid":
+            try:
+                resp = supabase.table("BS_Investment_Scam") \
+                    .select("Id,Upi_vpa,Inserted_date,Scam_type,Input_user") \
+                    .ilike("Upi_vpa", upi) \
+                    .limit(10).execute()
+                found = resp.data or []
+                result["already_reported"] = len(found) > 0
+                result["report_count"] = len(found)
+                result["report_ids"] = [str(x.get("Id")) for x in found]
+                result["report_dates"] = [x.get("Inserted_date") for x in found]
+                result["report_user"] = found[0].get("Input_user") if found else None
+            except Exception as e:
+                print(f"[UPI CHECK] duplicate lookup error for {upi}: {e}")
+
+        with UPI_CHECK_JOBS_LOCK:
+            job = UPI_CHECK_JOBS.get(job_id)
+            if not job:
+                return
+            job["results"].append(result)
+            job["completed"] += 1
+
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+        if job:
+            job["current"][number] = None
+
+def _run_upi_check_job(job_id, numbers, custom_handles):
+    threads = []
+    for number in numbers:
+        t = threading.Thread(
+            target=_run_upi_check_worker,
+            args=(job_id, number, custom_handles),
+            daemon=True
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+        if job:
+            job["status"] = "stopped" if job.get("stop") else "done"
+
+@app.route("/start-upi-check", methods=["POST"])
+@login_required
+def start_upi_check():
+    try:
+        data = request.get_json() or {}
+        # Backward compatible: single "number" ya "numbers" array dono chalega
+        raw_numbers = data.get("numbers")
+        if not raw_numbers:
+            single = str(data.get("number", "")).strip()
+            raw_numbers = [single] if single else []
+        numbers = []
+        for n in raw_numbers:
+            n = str(n).strip()
+            if n and n not in numbers:
+                numbers.append(n)
+        numbers = numbers[:MAX_UPI_NUMBERS_PER_JOB]
+        custom_handles = data.get("custom_handles", []) or []
+        if not numbers:
+            return jsonify({"success": False, "error": "At least one mobile number is required"})
+
+        job_id = uuid.uuid4().hex
+        with UPI_CHECK_JOBS_LOCK:
+            UPI_CHECK_JOBS[job_id] = {
+                "status": "running",
+                "total": 0,
+                "completed": 0,
+                "current": {n: None for n in numbers},
+                "results": [],
+                "numbers": numbers,
+                "stop": False,
+            }
+        thread = threading.Thread(
+            target=_run_upi_check_job,
+            args=(job_id, numbers, custom_handles),
+            daemon=True
+        )
+        thread.start()
+        return jsonify({"success": True, "job_id": job_id})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/upi-check-status/<job_id>", methods=["GET"])
+@login_required
+def upi_check_status(job_id):
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+        if not job:
+            return jsonify({"success": False, "error": "Job not found"})
+        return jsonify({
+            "success": True,
+            "status": job["status"],
+            "total": job["total"],
+            "completed": job["completed"],
+            "current": job["current"],
+            "numbers": job["numbers"],
+            "results": job["results"],
+        })
+
+@app.route("/stop-upi-check/<job_id>", methods=["POST"])
+@login_required
+def stop_upi_check(job_id):
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+        if job:
+            job["stop"] = True
+    return jsonify({"success": True})
+
+@app.route("/export-upi-check/<job_id>", methods=["GET"])
+@login_required
+def export_upi_check(job_id):
+    import openpyxl
+    from openpyxl.styles import PatternFill, Font
+    with UPI_CHECK_JOBS_LOCK:
+        job = UPI_CHECK_JOBS.get(job_id)
+    if not job:
+        return jsonify({"success": False, "error": "Job not found"}), 404
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "UPI Check Results"
+    headers = ["Number", "UPI ID", "Status", "Already Reported", "Report Count", "Report Dates"]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    blue        = PatternFill(start_color="FFD6EAF8", end_color="FFD6EAF8", fill_type="solid")
+    light_green = PatternFill(start_color="FFC8F7C5", end_color="FFC8F7C5", fill_type="solid")
+    light_red   = PatternFill(start_color="FFFFC9C9", end_color="FFFFC9C9", fill_type="solid")
+
+    for r in job["results"]:
+        is_valid = r["normalized"] == "Valid"
+        is_invalid = r["normalized"] == "Invalid"
+        is_reported = bool(r.get("already_reported"))
+
+        if is_valid and is_reported:
+            already_reported_text = "Valid and Reported UPI"
+        elif is_valid and not is_reported:
+            already_reported_text = "Valid and Not Reported Yet"
+        elif is_invalid:
+            already_reported_text = "Invalid UPI"
+        else:
+            already_reported_text = "No"
+
+        row = [
+            r.get("number", ""), r["upi"], r["status"],
+            already_reported_text,
+            r.get("report_count", 0),
+            ", ".join([str(d) for d in (r.get("report_dates") or []) if d]),
+        ]
+        ws.append(row)
+        excel_row = ws.max_row
+        if is_valid and is_reported:
+            ws.cell(row=excel_row, column=4).fill = light_green
+        elif is_valid and not is_reported:
+            ws.cell(row=excel_row, column=4).fill = blue
+        elif is_invalid:
+            ws.cell(row=excel_row, column=4).fill = light_red
+
+    for col in ws.columns:
+        max_len = max((len(str(c.value)) for c in col if c.value), default=10)
+        ws.column_dimensions[col[0].column_letter].width = min(max(max_len + 2, 12), 45)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    numbers_str = "_".join(job.get("numbers", ["upi"]))
+    return send_file(
+        output,
+        download_name=f"upi_check_{numbers_str}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+        as_attachment=True,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 @app.route("/check-duplicates", methods=["POST"])
 @login_required
