@@ -35,6 +35,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
 import uuid
 import threading
+import shutil
 
 load_dotenv()
 
@@ -3947,9 +3948,43 @@ CASE_REPORT_ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
 # ============================================================
 # AML GUI — BULK REGENERATE CASES (headless Selenium + OCR captcha)
 # ============================================================
-pytesseract.pytesseract.tesseract_cmd = os.environ.get(
-    "TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-)
+def configure_tesseract_cmd():
+    """Configure Tesseract portably.
+
+    Priority:
+    1. TESSERACT_CMD env var
+    2. tesseract available in system PATH
+    3. Common Windows install paths
+    4. Common Linux path for Render/Docker
+    """
+    candidates = []
+
+    env_cmd = os.environ.get("TESSERACT_CMD")
+    if env_cmd:
+        candidates.append(env_cmd)
+
+    path_cmd = shutil.which("tesseract")
+    if path_cmd:
+        candidates.append(path_cmd)
+
+    candidates.extend([
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+        "/usr/bin/tesseract",
+        "/usr/local/bin/tesseract",
+    ])
+
+    for cmd in candidates:
+        if cmd and os.path.exists(cmd):
+            pytesseract.pytesseract.tesseract_cmd = cmd
+            return cmd
+
+    # Last fallback: let pytesseract try PATH and produce a clear error if missing.
+    pytesseract.pytesseract.tesseract_cmd = "tesseract"
+    return "tesseract"
+
+TESSERACT_CMD_RESOLVED = configure_tesseract_cmd()
+print(f"[TESSERACT] command={TESSERACT_CMD_RESOLVED}", flush=True)
 
 AML_LOGIN_URL  = "https://aml-gui.chargebackzero.com/index.php"
 AML_REPORT_URL = "https://aml-gui.chargebackzero.com/report_generation/index_mfilter.php"
@@ -3972,6 +4007,8 @@ AML_DESCRIPTION2_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div
 AML_GENERATE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[1]/button"
 AML_RESULT_LINK_XPATH      = "/html/body/a[2]"
 AML_RESULT_LINKS_ALL_XPATH = "//a[contains(@href,'.pdf')]"
+MAX_BULK_REGENERATE_REPORTS = 100
+MAX_IMAGES_PER_REGENERATED_PDF = 10
 
 def case_report_allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in CASE_REPORT_ALLOWED_EXT
@@ -4027,12 +4064,17 @@ def extract_screenshots_from_pdf(pdf_path, output_dir, prefix=None):
 
         for _, _, xref in placement_entries:
             base_img = doc.extract_image(xref)
-            ext = base_img.get("ext", "png")
             img_bytes = base_img.get("image")
-            filename = f"{prefix}_{counter}.{ext}" if prefix else f"{counter}.{ext}"
+            filename = f"{prefix}_{counter}.png" if prefix else f"{counter}.png"
             out_path = os.path.join(output_dir, filename)
-            with open(out_path, "wb") as f:
-                f.write(img_bytes)
+            try:
+                with Image.open(io.BytesIO(img_bytes)) as img:
+                    if img.mode not in ("RGB", "RGBA"):
+                        img = img.convert("RGB")
+                    img.save(out_path, format="PNG")
+            except Exception:
+                with open(out_path, "wb") as f:
+                    f.write(img_bytes)
             saved_paths.append(out_path)
             counter += 1
     doc.close()
@@ -4053,17 +4095,214 @@ def download_and_extract_report_images(report, output_dir, prefix=None):
     image_paths = extract_screenshots_from_pdf(temp_pdf_path, output_dir, prefix=prefix)
     case_report_clean_up(temp_pdf_path)
     return image_paths
-def aml_get_captcha_text(captcha_element):
-    png = captcha_element.screenshot_as_png
-    img = Image.open(io.BytesIO(png)).convert("L")
-    # Captcha ke letters hamesha lowercase hote hain — whitelist se uppercase
-    # hataya taaki Tesseract 'l' ko 'I' ya 'o' ko 'O' jaisi galat uppercase
-    # guess na kare. Result ko bhi force-lowercase kar diya, extra safety ke liye.
+_DDDDOCR_ENGINE = None
+_DDDDOCR_LOCK = threading.Lock()
+
+
+def aml_clean_captcha_text(text):
+    return re.sub(r"[^a-zA-Z0-9]", "", text or "").lower()
+
+
+def aml_get_captcha_text_with_tesseract(captcha_bytes):
+    img = Image.open(io.BytesIO(captcha_bytes)).convert("L")
+    if img.width and img.height:
+        img = img.resize((img.width * 5, img.height * 5))
     text = pytesseract.image_to_string(
         img,
-        config="--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyz0123456789"
+        config="--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     ).strip()
-    return text.lower()
+    return aml_clean_captcha_text(text)
+
+
+def aml_get_captcha_text_with_ddddocr(captcha_bytes):
+    """Tesseract-free captcha OCR fallback using the pure Python package ddddocr.
+
+    ddddocr is loaded lazily so normal app startup does not fail if the package is
+    absent. Add it to requirements.txt on Render Python runtime.
+    """
+    global _DDDDOCR_ENGINE
+    with _DDDDOCR_LOCK:
+        if _DDDDOCR_ENGINE is None:
+            import ddddocr
+            _DDDDOCR_ENGINE = ddddocr.DdddOcr(show_ad=False)
+    text = _DDDDOCR_ENGINE.classification(captcha_bytes)
+    return aml_clean_captcha_text(text)
+
+
+def aml_get_captcha_text_from_bytes(captcha_bytes):
+    """Captcha OCR helper for direct HTTP captcha.
+
+    Auto mode:
+    - If Tesseract binary is actually available, try it first.
+    - If Tesseract is missing on Render Python runtime, use ddddocr fallback.
+    Env override: AML_OCR_ENGINE=tesseract or AML_OCR_ENGINE=ddddocr.
+    """
+    engine = os.environ.get("AML_OCR_ENGINE", "auto").strip().lower()
+    tesseract_available = bool(shutil.which("tesseract")) or (
+        TESSERACT_CMD_RESOLVED not in ("tesseract", None) and os.path.exists(TESSERACT_CMD_RESOLVED)
+    )
+
+    engines = []
+    if engine == "tesseract":
+        engines = ["tesseract"]
+    elif engine in ("ddddocr", "dddocr"):
+        engines = ["ddddocr"]
+    elif tesseract_available:
+        engines = ["tesseract", "ddddocr"]
+    else:
+        engines = ["ddddocr", "tesseract"]
+
+    last_error = None
+    for candidate in engines:
+        try:
+            if candidate == "tesseract":
+                captcha_text = aml_get_captcha_text_with_tesseract(captcha_bytes)
+            else:
+                captcha_text = aml_get_captcha_text_with_ddddocr(captcha_bytes)
+            if captcha_text:
+                print(f"[AML OCR] engine={candidate} text_len={len(captcha_text)}", flush=True)
+                return captcha_text
+        except Exception as exc:
+            last_error = exc
+            print(f"[AML OCR] engine={candidate} failed: {exc}", flush=True)
+
+    if last_error:
+        raise last_error
+    return ""
+
+
+def aml_get_captcha_text(captcha_element):
+    # Backward-compatible helper for the old Selenium path.
+    return aml_get_captcha_text_from_bytes(captcha_element.screenshot_as_png)
+
+
+def aml_extract_pdf_links_from_html(html_text, base_url):
+    """Extract generated PDF links from AML response HTML/JSON/JS/plain text.
+
+    AML's upload endpoint may return links as anchors, plain URLs, escaped JSON
+    strings, or JavaScript snippets. Keep extraction broad but still limited to
+    PDF-like URLs/paths.
+    """
+    raw = html_text or ""
+    candidates = []
+
+    def _add(value):
+        if not value:
+            return
+        value = value.strip().strip('"\'`<> )(')
+        if not value:
+            return
+        value = value.replace("\\/", "/")
+        value = value.replace("&amp;", "&")
+        value = urllib.parse.unquote(value)
+        # Trim common trailing punctuation that can appear in JS/JSON snippets.
+        value = re.sub(r"[;,'\")\]}]+$", "", value)
+        if ".pdf" not in value.lower():
+            return
+        # If a broad relative regex catches a domain-style value without scheme,
+        # normalize it as absolute instead of urljoining it under /report_generation/.
+        if not re.match(r"^[a-z][a-z0-9+.-]*://", value, flags=re.IGNORECASE):
+            if re.match(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}/", value):
+                value = "https://" + value
+        basename = value.rsplit("/", 1)[-1]
+        if "/" not in value and any(c.rsplit("/", 1)[-1] == basename for c in candidates):
+            return
+        candidates.append(value)
+
+    # 1) Standard anchors / attributes.
+    for match in re.findall(r"(?:href|src|data-url|url)\s*=\s*[\"']([^\"']+\.pdf[^\"']*)[\"']", raw, flags=re.IGNORECASE):
+        _add(match)
+
+    # 2) Absolute URLs anywhere in the response, including JSON/JS strings.
+    for match in re.findall(r"https?:\\?/\\?/[^\s\"'<>]+?\.pdf[^\s\"'<>]*", raw, flags=re.IGNORECASE):
+        _add(match)
+
+    # 3) Relative PDF paths anywhere in the response.
+    for match in re.findall(r"(?:\.\./|\./|/)?[A-Za-z0-9_./%+-]+\.pdf[^\s\"'<>]*", raw, flags=re.IGNORECASE):
+        _add(match)
+
+    hrefs = []
+    seen = set()
+    seen_basenames = set()
+    for candidate in candidates:
+        absolute = urllib.parse.urljoin(base_url, candidate)
+        basename = absolute.rsplit("/", 1)[-1].lower()
+        if absolute not in seen and basename not in seen_basenames:
+            seen.add(absolute)
+            seen_basenames.add(basename)
+            hrefs.append(absolute)
+
+    def _link_sort_key(href):
+        h = href.lower()
+        if "mfilterit" in h:
+            return 0
+        if "npci" in h:
+            return 1
+        if "without_header" in h:
+            return 2
+        return 3
+
+    hrefs.sort(key=_link_sort_key)
+    return hrefs
+
+
+def aml_login_requests(max_captcha_attempts=5):
+    """Login to AML GUI without launching Chrome. Returns authenticated requests.Session."""
+    session_obj = requests.Session()
+    session_obj.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "Referer": AML_LOGIN_URL,
+    })
+
+    for attempt in range(1, max_captcha_attempts + 1):
+        login_page = session_obj.get(AML_LOGIN_URL, timeout=30)
+        login_page.raise_for_status()
+
+        captcha_src_match = re.search(
+            r"<img[^>]+src=[\"']([^\"']*captcha[^\"']*)[\"']",
+            login_page.text,
+            flags=re.IGNORECASE,
+        )
+        captcha_src = captcha_src_match.group(1) if captcha_src_match else "captcha.php"
+        captcha_url = urllib.parse.urljoin(AML_LOGIN_URL, captcha_src)
+        captcha_resp = session_obj.get(captcha_url, timeout=30)
+        captcha_resp.raise_for_status()
+        captcha_text = aml_get_captcha_text_from_bytes(captcha_resp.content)
+        print(f"[AML HTTP LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
+
+        if not captcha_text:
+            time.sleep(1)
+            continue
+
+        payload = {
+            "usernamee": AML_USERNAME,
+            "passwordd": AML_PASSWORD,
+            "inputcustomer": os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
+            "inputplatform": os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
+            "rememberr": "1",
+            "captcha": captcha_text,
+            "sub": "Sign in",
+        }
+        login_resp = session_obj.post(AML_LOGIN_URL, data=payload, timeout=30, allow_redirects=True)
+        login_resp.raise_for_status()
+
+        # Same success signal as Selenium flow: login form should disappear.
+        if re.search(r"name=[\"']usernamee[\"']", login_resp.text, flags=re.IGNORECASE):
+            print(f"[AML HTTP LOGIN] Attempt {attempt} failed — login form still visible. Retrying.")
+            time.sleep(1)
+            continue
+
+        report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
+        report_page.raise_for_status()
+        if re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
+            print("[AML HTTP LOGIN] Success")
+            return session_obj
+
+        print(f"[AML HTTP LOGIN] Attempt {attempt} failed — report form not available. Retrying.")
+        time.sleep(1)
+
+    raise RuntimeError("AML GUI HTTP login failed after captcha retries")
 def aml_build_driver():
     options = ChromeOptions()
     # Regenerate process ab hamesha headless hi chalta hai — koi visible
@@ -4291,6 +4530,115 @@ def aml_submit_chunk(driver, title_text, input_text, description_text, image_chu
         )
 
     return {"npci": result_text, "all": all_links or result_text}
+
+
+def aml_submit_chunk_requests(session_obj, title_text, input_text, description_text, image_chunk):
+    """Submit one AML regenerate chunk without Selenium/Chromium.
+
+    image_chunk: list of 1-4 image paths. Returns the same shape as aml_submit_chunk():
+    {"npci": <npci-link>, "all": <comma-separated-links>}.
+    """
+    if len(image_chunk) < 1:
+        return None
+
+    report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
+    report_page.raise_for_status()
+    if not re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
+        raise RuntimeError("AML report form not available. Session may have expired or login failed.")
+
+    upload_url = urllib.parse.urljoin(AML_REPORT_URL, "ajaxUpload_mfilter.php")
+    data = [
+        ("title[]", title_text),
+        ("input", input_text),
+        ("description[]", description_text),
+        ("generate_pdf", ""),
+    ]
+    files = []
+    opened_files = []
+    try:
+        upload_debug = []
+
+        def _attach(field_name, file_path):
+            # Use the same extracted PNG path/file for regenerate upload.
+            # The extractor above guarantees .png filenames.
+            fh = open(file_path, "rb")
+            opened_files.append(fh)
+            filename = os.path.basename(file_path)
+            file_size = os.path.getsize(file_path)
+            try:
+                with Image.open(file_path) as img:
+                    image_format = img.format
+                    image_size = f"{img.width}x{img.height}"
+            except Exception:
+                image_format = "unknown"
+                image_size = "unknown"
+            upload_debug.append(f"{field_name}={filename}:{file_size}B:{image_format}:{image_size}")
+            files.append((field_name, (filename, fh, "image/png")))
+
+        def _attach_empty(field_name):
+            # Browser submits an empty multipart part for file inputs left blank.
+            # This matters for 1/3-image cases where right_image[] exists in the form
+            # but the user has not selected a file.
+            upload_debug.append(f"{field_name}=EMPTY")
+            files.append((field_name, ("", io.BytesIO(b""), "application/octet-stream")))
+
+        # AML form has two image columns per row: left_image[] + right_image[].
+        # The portal's Add More UI creates more rows. In direct HTTP we mimic that
+        # by repeating title[]/description[] and file fields for every image pair.
+        for row_index in range(0, len(image_chunk), 2):
+            if row_index > 0:
+                data.append(("title[]", title_text))
+                data.append(("description[]", description_text))
+
+            _attach("left_image[]", image_chunk[row_index])
+            if row_index + 1 < len(image_chunk):
+                _attach("right_image[]", image_chunk[row_index + 1])
+            else:
+                _attach_empty("right_image[]")
+
+        print(f"[AML HTTP SUBMIT] Uploading files: {'; '.join(upload_debug)}", flush=True)
+        resp = session_obj.post(
+            upload_url,
+            data=data,
+            files=files,
+            timeout=90,
+            allow_redirects=True,
+            headers={"Referer": AML_REPORT_URL},
+        )
+        resp.raise_for_status()
+        hrefs = aml_extract_pdf_links_from_html(resp.text, upload_url)
+        if not hrefs:
+            debug_id = uuid.uuid4().hex[:8]
+            debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
+            os.makedirs(debug_dir, exist_ok=True)
+            html_path = os.path.join(debug_dir, f"http_debug_{debug_id}.html")
+            try:
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(resp.text)
+            except Exception as dbg_exc:
+                print(f"[AML HTTP SUBMIT] Could not save debug HTML: {dbg_exc}")
+            response_tail = (resp.text or "")[-1200:].replace("\n", " ").replace("\r", " ")
+            print(
+                f"[AML HTTP SUBMIT] No PDF link parsed. status={resp.status_code} "
+                f"url={resp.url} content_type={resp.headers.get('content-type')} "
+                f"debug_id={debug_id} response_tail={response_tail}",
+                flush=True,
+            )
+            raise RuntimeError(f"Result PDF link not found in AML HTTP response. Debug HTML id={debug_id} saved in {debug_dir}")
+
+        npci_href = None
+        for href in hrefs:
+            if "npci" in href.lower():
+                npci_href = href
+                break
+        all_links = ",".join(hrefs)
+        return {"npci": npci_href or hrefs[0], "all": all_links}
+    finally:
+        for fh in opened_files:
+            try:
+                fh.close()
+            except Exception:
+                pass
 def aml_strip_scheme(url):
     """Scheme (https://, http://) hata ke sirf domain/handle deta hai —
     Input field mein koi bhi '/' (path ya trailing slash) na jaaye."""
@@ -4432,115 +4780,95 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["phase"] = "regenerating"
 
-        driver = aml_build_driver()
+        aml_session = aml_login_requests()
         with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["driver"] = driver
+            REGEN_JOBS[job_id]["driver"] = None  # Requests-based flow does not launch Chrome.
 
         final_rows = []
         investment_sheet_rows = []
-        try:
-            if not aml_login(driver):
+        for report_id in report_ids:
+            if stop_event.is_set():
                 with REGEN_JOBS_LOCK:
-                    REGEN_JOBS[job_id]["status"]  = "error"
-                    REGEN_JOBS[job_id]["message"] = "AML GUI login failed"
-                return
+                    REGEN_JOBS[job_id]["results"].append({
+                        "id": report_id, "old_pdf_url": None, "new_pdf_url": None,
+                        "source_url": None, "status": "Stopped by user"
+                    })
+                break
 
-            for report_id in report_ids:
-                if stop_event.is_set():
-                    with REGEN_JOBS_LOCK:
-                        REGEN_JOBS[job_id]["results"].append({
-                            "id": report_id, "old_pdf_url": None, "new_pdf_url": None,
-                            "source_url": None, "status": "Stopped by user"
-                        })
-                    break
-
-                report = report_cache.get(report_id)
-                if not report:
-                    row_result = {"id": report_id, "old_pdf_url": None, "new_pdf_url": None, "source_url": None, "status": "Report not found"}
-                    with REGEN_JOBS_LOCK:
-                        REGEN_JOBS[job_id]["results"].append(row_result)
-                        REGEN_JOBS[job_id]["completed"] += 1
-                    final_rows.append(row_result)
-                    continue
-
-                paths_for_report = report_screenshot_paths.get(report_id) or []
-                if not paths_for_report:
-                    row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
-                    with REGEN_JOBS_LOCK:
-                        REGEN_JOBS[job_id]["results"].append(row_result)
-                        REGEN_JOBS[job_id]["completed"] += 1
-                    final_rows.append(row_result)
-                    continue
-
-                source_url = report.get("source_url") or "NA"
-                title_text = source_url
-                description_text = source_url
-                input_text = aml_strip_scheme(source_url)
-                new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
-                new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
-                status = "Success"
-                try:
-                    chunks = list(aml_chunk_list(paths_for_report, 4))
-                    chunk_results = []
-                    for chunk in chunks:
-                        if stop_event.is_set():
-                            status = "Stopped by user"
-                            break
-                        chunk_result = aml_submit_chunk(driver, title_text, input_text, description_text, chunk)
-                        if chunk_result:
-                            chunk_results.append(chunk_result)
-                    if status != "Stopped by user":
-                        if chunk_results:
-                            # Har chunk ek alag AML report submission hai (portal max 4/submission
-                            # allow karta hai) — pehle sirf last_result rakha jaata tha jisse
-                            # 4+ screenshots wale reports mein pehle wale chunks ke links kho jaate
-                            # the. Ab saare chunks ke links combine karke rakhte hain.
-                            npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
-                            all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
-                            new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
-                            new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
-                        else:
-                            new_pdf_url = "Failed"
-                            status = "No result returned"
-                except Exception as exc:
-                    tb_text = traceback.format_exc()
-                    print(f"[BULK REGENERATE] report_id={report_id} failed:\n{tb_text}")
-                    err_msg = str(exc).strip() or type(exc).__name__
-                    status = f"Error: {err_msg}"
-                    try:
-                        _ = driver.current_url
-                    except Exception:
-                        print("[BULK REGENERATE] Chrome session crashed — restarting driver.")
-                        try:
-                            driver.quit()
-                        except Exception:
-                            pass
-                        driver = aml_build_driver()
-                        with REGEN_JOBS_LOCK:
-                            REGEN_JOBS[job_id]["driver"] = driver
-                        if not aml_login(driver):
-                            status = f"{status} | Driver restart + re-login failed"
-
-                row_result = {
-                    "id": report.get("id"),
-                    "old_pdf_url": report.get("pdf_url"),
-                    "new_pdf_url": new_pdf_url,
-                    "source_url": report.get("source_url"),
-                    "status": status,
-                }
+            report = report_cache.get(report_id)
+            if not report:
+                row_result = {"id": report_id, "old_pdf_url": None, "new_pdf_url": None, "source_url": None, "status": "Report not found"}
                 with REGEN_JOBS_LOCK:
                     REGEN_JOBS[job_id]["results"].append(row_result)
                     REGEN_JOBS[job_id]["completed"] += 1
                 final_rows.append(row_result)
-                if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
-                    investment_sheet_rows.append(
-                        _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
-                    )
-        finally:
+                continue
+
+            paths_for_report = report_screenshot_paths.get(report_id) or []
+            if not paths_for_report:
+                row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
+                with REGEN_JOBS_LOCK:
+                    REGEN_JOBS[job_id]["results"].append(row_result)
+                    REGEN_JOBS[job_id]["completed"] += 1
+                final_rows.append(row_result)
+                continue
+
+            source_url = report.get("source_url") or "NA"
+            title_text = source_url
+            description_text = source_url
+            input_text = aml_strip_scheme(source_url)
+            new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
+            new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
+            status = "Success"
             try:
-                driver.quit()
-            except Exception:
-                pass
+                # Submit up to MAX_IMAGES_PER_REGENERATED_PDF screenshots in one AML request
+                # so one old PDF maps to one new PDF whenever the old PDF has up to 10 images.
+                chunks = list(aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF))
+                chunk_results = []
+                for chunk in chunks:
+                    if stop_event.is_set():
+                        status = "Stopped by user"
+                        break
+                    chunk_result = aml_submit_chunk_requests(aml_session, title_text, input_text, description_text, chunk)
+                    if chunk_result:
+                        chunk_results.append(chunk_result)
+                if status != "Stopped by user":
+                    if chunk_results:
+                        # Har chunk ek alag AML report submission hai (portal max 4/submission
+                        # allow karta hai) — saare chunks ke links combine karke rakhte hain.
+                        npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
+                        all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
+                        new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
+                        new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
+                    else:
+                        new_pdf_url = "Failed"
+                        status = "No result returned"
+            except Exception as exc:
+                tb_text = traceback.format_exc()
+                print(f"[BULK REGENERATE] report_id={report_id} failed:\n{tb_text}")
+                err_msg = str(exc).strip() or type(exc).__name__
+                status = f"Error: {err_msg}"
+                # Session/captcha can expire; re-login once so remaining reports can continue.
+                try:
+                    aml_session = aml_login_requests()
+                except Exception as login_exc:
+                    status = f"{status} | HTTP re-login failed: {str(login_exc).strip() or type(login_exc).__name__}"
+
+            row_result = {
+                "id": report.get("id"),
+                "old_pdf_url": report.get("pdf_url"),
+                "new_pdf_url": new_pdf_url,
+                "source_url": report.get("source_url"),
+                "status": status,
+            }
+            with REGEN_JOBS_LOCK:
+                REGEN_JOBS[job_id]["results"].append(row_result)
+                REGEN_JOBS[job_id]["completed"] += 1
+            final_rows.append(row_result)
+            if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
+                investment_sheet_rows.append(
+                    _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
+                )
 
         FINAL_RESULT_COLUMNS = ["id", "old_pdf_url", "new_pdf_url", "source_url", "status"]
         final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
@@ -4767,6 +5095,11 @@ def bulk_regenerate_cases():
             mode = "basic"
         if not report_ids:
             return jsonify({"status": "error", "message": "No report_ids provided"}), 400
+        if len(report_ids) > MAX_BULK_REGENERATE_REPORTS:
+            return jsonify({
+                "status": "error",
+                "message": f"Maximum {MAX_BULK_REGENERATE_REPORTS} reports can be regenerated in one batch."
+            }), 400
 
         job_id = uuid.uuid4().hex
         input_user = get_clean_display_name(session.get("display_name", "User"))
