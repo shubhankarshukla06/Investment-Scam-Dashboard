@@ -3998,7 +3998,7 @@ AML_DESCRIPTION2_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div
 AML_GENERATE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[1]/button"
 AML_RESULT_LINK_XPATH      = "/html/body/a[2]"
 AML_RESULT_LINKS_ALL_XPATH = "//a[contains(@href,'.pdf')]"
-MAX_BULK_REGENERATE_REPORTS = 100
+MAX_BULK_REGENERATE_REPORTS = 70
 MAX_IMAGES_PER_REGENERATED_PDF = 10
 
 def case_report_allowed_file(filename):
@@ -4634,6 +4634,55 @@ def aml_chunk_list(lst, size):
 REGEN_JOBS = {}
 REGEN_JOBS_LOCK = threading.Lock()
 
+def _regen_job_response(job):
+    return {
+        "status": job["status"],
+        "phase": job.get("phase"),
+        "total": job["total"],
+        "completed": job["completed"],
+        "results": job["results"],
+        "folder": job["folder"],
+        "screenshot_excel": job["screenshot_excel"],
+        "final_excel": job["final_excel"],
+        "investment_sheet": job["investment_sheet"],
+        "message": job["message"],
+    }
+
+
+def _write_regen_job_snapshot(job_id):
+    with REGEN_JOBS_LOCK:
+        job = REGEN_JOBS.get(job_id)
+        if not job or not job.get("folder"):
+            return
+        snapshot = _regen_job_response(job)
+
+    try:
+        folder = Path(snapshot["folder"])
+        folder.mkdir(parents=True, exist_ok=True)
+        with open(folder / "job_status.json", "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        print(f"[BULK REGENERATE] Could not save job snapshot {job_id}: {exc}", flush=True)
+
+
+def _load_regen_job_snapshot(job_id):
+    try:
+        regen_jobs_base = Path(__file__).parent / "regenerate_jobs"
+        candidates = list(regen_jobs_base.glob(f"{job_id}_*/job_status.json"))
+        if not candidates:
+            return None
+        latest = max(candidates, key=lambda p: p.stat().st_mtime)
+        with open(latest, "r", encoding="utf-8") as f:
+            snapshot = json.load(f)
+        if snapshot.get("status") in ("running", "stopping"):
+            snapshot["status"] = "error"
+            snapshot["message"] = snapshot.get("message") or "Server restarted while this job was running. Completed progress was restored from disk."
+        return snapshot
+    except Exception as exc:
+        print(f"[BULK REGENERATE] Could not load job snapshot {job_id}: {exc}", flush=True)
+        return None
+
+
 def _build_investment_sheet_row(report, screenshot_links, input_user):
     """Ek regenerated report se Investment Scam sheet ki ek row banata hai —
     naye teeno PDF links (comma-separated) screenshot/screenshot_case_report_link
@@ -4717,50 +4766,21 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
         os.makedirs(images_folder, exist_ok=True)
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["folder"] = session_folder
+        _write_regen_job_snapshot(job_id)
 
-        report_cache = {}
-        report_screenshot_paths = {}
         screenshot_rows = []
-        for report_id in report_ids:
-            if stop_event.is_set():
-                break
-            resp = supabase.table("reports").select("*").eq("id", report_id).execute()
-            if not resp.data:
-                continue
-            report = resp.data[0]
-            report_cache[report_id] = report
-            try:
-                image_paths = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
-            except Exception as exc:
-                report_screenshot_paths[report_id] = []
-                screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
-                continue
-            report_screenshot_paths[report_id] = image_paths
-            row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
-            for idx, p in enumerate(image_paths, start=1):
-                row[f"screenshot_path_{idx}"] = p
-            screenshot_rows.append(row)
-
+        final_rows = []
+        investment_sheet_rows = []
         screenshot_excel_path = os.path.join(session_folder, "screenshot_paths.xlsx")
-        pd.DataFrame(screenshot_rows).to_excel(screenshot_excel_path, index=False)
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["screenshot_excel"] = screenshot_excel_path
-
-        if stop_event.is_set():
-            with REGEN_JOBS_LOCK:
-                REGEN_JOBS[job_id]["status"] = "stopped"
-                REGEN_JOBS[job_id]["message"] = "Stopped before login."
-            return
-
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["phase"] = "regenerating"
+        final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
+        inv_path = os.path.join(session_folder, f"Investment_Scam_Final_Sheet_{timestamp}.csv")
 
         aml_session = aml_login_requests()
         with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["phase"] = "regenerating"
             REGEN_JOBS[job_id]["driver"] = None  # Requests-based flow does not launch Chrome.
+        _write_regen_job_snapshot(job_id)
 
-        final_rows = []
-        investment_sheet_rows = []
         for report_id in report_ids:
             if stop_event.is_set():
                 with REGEN_JOBS_LOCK:
@@ -4768,24 +4788,40 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                         "id": report_id, "old_pdf_url": None, "new_pdf_url": None,
                         "source_url": None, "status": "Stopped by user"
                     })
+                    REGEN_JOBS[job_id]["completed"] += 1
+                _write_regen_job_snapshot(job_id)
                 break
 
-            report = report_cache.get(report_id)
-            if not report:
+            resp = supabase.table("reports").select("*").eq("id", report_id).execute()
+            if not resp.data:
                 row_result = {"id": report_id, "old_pdf_url": None, "new_pdf_url": None, "source_url": None, "status": "Report not found"}
                 with REGEN_JOBS_LOCK:
                     REGEN_JOBS[job_id]["results"].append(row_result)
                     REGEN_JOBS[job_id]["completed"] += 1
                 final_rows.append(row_result)
+                _write_regen_job_snapshot(job_id)
                 continue
 
-            paths_for_report = report_screenshot_paths.get(report_id) or []
+            report = resp.data[0]
+            try:
+                paths_for_report = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
+            except Exception as exc:
+                paths_for_report = []
+                screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
+
+            if paths_for_report:
+                screenshot_row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
+                for idx, p in enumerate(paths_for_report, start=1):
+                    screenshot_row[f"screenshot_path_{idx}"] = p
+                screenshot_rows.append(screenshot_row)
+
             if not paths_for_report:
                 row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
                 with REGEN_JOBS_LOCK:
                     REGEN_JOBS[job_id]["results"].append(row_result)
                     REGEN_JOBS[job_id]["completed"] += 1
                 final_rows.append(row_result)
+                _write_regen_job_snapshot(job_id)
                 continue
 
             source_url = report.get("source_url") or "NA"
@@ -4798,9 +4834,8 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
             try:
                 # Submit up to MAX_IMAGES_PER_REGENERATED_PDF screenshots in one AML request
                 # so one old PDF maps to one new PDF whenever the old PDF has up to 10 images.
-                chunks = list(aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF))
                 chunk_results = []
-                for chunk in chunks:
+                for chunk in aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF):
                     if stop_event.is_set():
                         status = "Stopped by user"
                         break
@@ -4844,28 +4879,33 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                 investment_sheet_rows.append(
                     _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
                 )
+            _write_regen_job_snapshot(job_id)
 
         FINAL_RESULT_COLUMNS = ["id", "old_pdf_url", "new_pdf_url", "source_url", "status"]
-        final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
         pd.DataFrame(final_rows, columns=FINAL_RESULT_COLUMNS).to_excel(final_excel_path, index=False)
+        pd.DataFrame(screenshot_rows).to_excel(screenshot_excel_path, index=False)
         with REGEN_JOBS_LOCK:
+            REGEN_JOBS[job_id]["screenshot_excel"] = screenshot_excel_path
             REGEN_JOBS[job_id]["final_excel"] = final_excel_path
+        _write_regen_job_snapshot(job_id)
 
         if mode == "investment_sheet":
-            inv_path = os.path.join(session_folder, f"Investment_Scam_Final_Sheet_{timestamp}.csv")
             inv_df = pd.DataFrame(investment_sheet_rows, columns=REQUIRED_COLUMNS) if investment_sheet_rows else pd.DataFrame(columns=REQUIRED_COLUMNS)
             inv_df.to_csv(inv_path, index=False, encoding='utf-8-sig')
             with REGEN_JOBS_LOCK:
                 REGEN_JOBS[job_id]["investment_sheet"] = inv_path
+            _write_regen_job_snapshot(job_id)
 
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["status"] = "stopped" if stop_event.is_set() else "done"
             REGEN_JOBS[job_id]["driver"] = None
+        _write_regen_job_snapshot(job_id)
     except Exception as exc:
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["status"]  = "error"
             REGEN_JOBS[job_id]["message"] = str(exc)
             REGEN_JOBS[job_id]["driver"]  = None
+        _write_regen_job_snapshot(job_id)
 
 @app.route("/case-report", methods=["GET"])
 @login_required
@@ -5111,13 +5151,16 @@ def bulk_regenerate_cases():
 def download_regenerate_file(job_id, file_type):
     with REGEN_JOBS_LOCK:
         job = REGEN_JOBS.get(job_id)
-    if not job:
+        job_data = _regen_job_response(job) if job else None
+    if not job_data:
+        job_data = _load_regen_job_snapshot(job_id)
+    if not job_data:
         return jsonify({"status": "error", "message": "Job not found"}), 404
 
     allowed_types = {
-        "final_excel": job.get("final_excel"),
-        "investment_sheet": job.get("investment_sheet"),
-        "screenshot_excel": job.get("screenshot_excel"),
+        "final_excel": job_data.get("final_excel"),
+        "investment_sheet": job_data.get("investment_sheet"),
+        "screenshot_excel": job_data.get("screenshot_excel"),
     }
     file_path = allowed_types.get(file_type)
     if not file_path or not os.path.isfile(file_path):
@@ -5131,20 +5174,12 @@ def download_regenerate_file(job_id, file_type):
 def regenerate_job_status(job_id):
     with REGEN_JOBS_LOCK:
         job = REGEN_JOBS.get(job_id)
-        if not job:
-            return jsonify({"status": "error", "message": "Job not found"}), 404
-        return jsonify({
-            "status": job["status"],
-            "phase": job.get("phase"),
-            "total": job["total"],
-            "completed": job["completed"],
-            "results": job["results"],
-            "folder": job["folder"],
-            "screenshot_excel": job["screenshot_excel"],
-            "final_excel": job["final_excel"],
-            "investment_sheet": job["investment_sheet"],
-            "message": job["message"],
-        })
+        job_data = _regen_job_response(job) if job else None
+    if not job_data:
+        job_data = _load_regen_job_snapshot(job_id)
+    if not job_data:
+        return jsonify({"status": "error", "message": "Job not found"}), 404
+    return jsonify(job_data)
 
 
 @app.route("/stop-regenerate-job/<job_id>", methods=["POST"])
