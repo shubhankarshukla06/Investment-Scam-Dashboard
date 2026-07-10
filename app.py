@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from flask import Flask, render_template, render_template_string, request, redirect, flash, send_file, jsonify, session
+from flask import Flask, render_template, render_template_string, request, redirect, flash, send_file, jsonify, session, Response, stream_with_context
 import pandas as pd
 import io
 import math
@@ -1398,6 +1398,49 @@ def investment_last_date():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+def _csv_text(rows, fieldnames, include_bom=False, include_header=False):
+    output = io.StringIO(newline="")
+    if include_bom:
+        output.write("\ufeff")
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    if include_header:
+        writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()
+
+
+def _stream_supabase_csv(build_query, order_column, download_name, chunk_size=1000):
+    def generate():
+        offset = 0
+        fieldnames = None
+
+        while True:
+            resp = build_query().order(order_column, desc=False).range(offset, offset + chunk_size - 1).execute()
+            rows = resp.data or []
+
+            if rows:
+                if fieldnames is None:
+                    fieldnames = list(rows[0].keys())
+                    yield _csv_text(rows, fieldnames, include_bom=True, include_header=True)
+                else:
+                    yield _csv_text(rows, fieldnames)
+
+            if len(rows) < chunk_size:
+                break
+            offset += chunk_size
+
+        if fieldnames is None:
+            yield "\ufeff"
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename={download_name}",
+            "Cache-Control": "no-cache",
+        },
+    )
+
 # ============================================================
 # BS Investment Scam Export
 # ============================================================
@@ -1411,37 +1454,21 @@ def investment_export():
         inv_wallet = request.args.get("inv_wallet", "").strip()
         inv_date_from = request.args.get("inv_date_from", "").strip()
         inv_date_to = request.args.get("inv_date_to", "").strip()
-        CHUNK = 1000
-        all_rows = []
-        offset = 0
-        while True:
-            def _build_inv_query():
-                q = supabase.table("BS_Investment_Scam").select("*")
-                if inv_search:
-                    like_term = f"%{inv_search}%"
-                    q = q.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
-                if inv_scam_type: q = q.eq("Scam_type", inv_scam_type)
-                if inv_search_for: q = q.eq("Search_for", inv_search_for)
-                if inv_wallet: q = q.eq("Upi_bank_account_wallet", inv_wallet)
-                if inv_date_from: q = q.gte("Inserted_date", inv_date_from)
-                if inv_date_to: q = q.lte("Inserted_date", inv_date_to)
-                return q
-            chunk_resp = _build_inv_query().order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
-            rows = chunk_resp.data or []
-            all_rows.extend(rows)
-            if len(rows) < CHUNK:
-                break
-            offset += CHUNK
-        df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
-        output = io.StringIO()
-        df.to_csv(output, index=False, encoding='utf-8-sig')
-        output.seek(0)
+
+        def _build_inv_query():
+            q = supabase.table("BS_Investment_Scam").select("*")
+            if inv_search:
+                like_term = f"%{inv_search}%"
+                q = q.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
+            if inv_scam_type: q = q.eq("Scam_type", inv_scam_type)
+            if inv_search_for: q = q.eq("Search_for", inv_search_for)
+            if inv_wallet: q = q.eq("Upi_bank_account_wallet", inv_wallet)
+            if inv_date_from: q = q.gte("Inserted_date", inv_date_from)
+            if inv_date_to: q = q.lte("Inserted_date", inv_date_to)
+            return q
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return send_file(
-            io.BytesIO(output.getvalue().encode('utf-8-sig')),
-            download_name=f"bs_investment_scam_{timestamp}.csv",
-            as_attachment=True, mimetype="text/csv"
-        )
+        return _stream_supabase_csv(_build_inv_query, "Id", f"bs_investment_scam_{timestamp}.csv")
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=investment")
@@ -1637,32 +1664,26 @@ def social_export():
         social_search = request.args.get("social_search", "").strip()
         social_platform = request.args.get("social_platform", "").strip()
         social_permanent_block = request.args.get("permanent_block", "").strip()
-        query = social_supabase.table("social_media_accounts").select("*")
-        allowed_depts = session.get("allowed_departments")
-        if allowed_depts:
-            if len(allowed_depts) == 1:
-                query = query.eq("department", allowed_depts[0])
-            else:
-                query = query.in_("department", allowed_depts)
-        if social_search:
-            like_term = f"%{social_search}%"
-            query = query.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term}")
-        if social_platform and social_platform not in ["", "All Platforms"]:
-            query = query.eq("platform", social_platform)
-        if social_permanent_block == "true":
-            query = query.eq("account_status", "Permanent Block")
-        query = query.order("id", desc=False)
-        response = query.execute()
-        df = pd.DataFrame(response.data)
-        output = io.StringIO()
-        df.to_csv(output, index=False, encoding='utf-8-sig')
-        output.seek(0)
+
+        def _build_social_query():
+            q = social_supabase.table("social_media_accounts").select("*")
+            allowed_depts = session.get("allowed_departments")
+            if allowed_depts:
+                if len(allowed_depts) == 1:
+                    q = q.eq("department", allowed_depts[0])
+                else:
+                    q = q.in_("department", allowed_depts)
+            if social_search:
+                like_term = f"%{social_search}%"
+                q = q.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term}")
+            if social_platform and social_platform not in ["", "All Platforms"]:
+                q = q.eq("platform", social_platform)
+            if social_permanent_block == "true":
+                q = q.eq("account_status", "Permanent Block")
+            return q
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return send_file(
-            io.BytesIO(output.getvalue().encode('utf-8-sig')),
-            download_name=f"social_media_accounts_{timestamp}.csv",
-            as_attachment=True, mimetype="text/csv"
-        )
+        return _stream_supabase_csv(_build_social_query, "id", f"social_media_accounts_{timestamp}.csv")
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=social")
@@ -2130,38 +2151,22 @@ def export():
         date_from = request.args.get("date_from", "").strip()
         date_to = request.args.get("date_to", "").strip()
         share_status_filter = request.args.get("share_status", "").strip()
-        CHUNK = 1000
-        all_rows = []
-        offset = 0
-        while True:
-            def _build_query():
-                q = supabase.table("scrapping_data").select("*")
-                if search_query:
-                    like_term = f"%{search_query}%"
-                    q = q.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
-                if scam_filter: q = q.eq("scam_type", scam_filter)
-                if platform_filter: q = q.eq("platform", platform_filter)
-                if date_from: q = q.gte("inserted_date", date_from)
-                if date_to: q = q.lte("inserted_date", date_to)
-                if date_filter and not date_from and not date_to: q = q.eq("inserted_date", date_filter)
-                if share_status_filter: q = q.eq("share_status", share_status_filter)
-                return q
-            chunk_resp = _build_query().order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
-            rows = chunk_resp.data or []
-            all_rows.extend(rows)
-            if len(rows) < CHUNK:
-                break
-            offset += CHUNK
-        df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
-        output = io.StringIO()
-        df.to_csv(output, index=False, encoding='utf-8-sig')
-        output.seek(0)
+
+        def _build_query():
+            q = supabase.table("scrapping_data").select("*")
+            if search_query:
+                like_term = f"%{search_query}%"
+                q = q.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
+            if scam_filter: q = q.eq("scam_type", scam_filter)
+            if platform_filter: q = q.eq("platform", platform_filter)
+            if date_from: q = q.gte("inserted_date", date_from)
+            if date_to: q = q.lte("inserted_date", date_to)
+            if date_filter and not date_from and not date_to: q = q.eq("inserted_date", date_filter)
+            if share_status_filter: q = q.eq("share_status", share_status_filter)
+            return q
+
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return send_file(
-            io.BytesIO(output.getvalue().encode('utf-8-sig')),
-            download_name=f"scam_reports_{timestamp}.csv",
-            as_attachment=True, mimetype="text/csv"
-        )
+        return _stream_supabase_csv(_build_query, "id", f"scam_reports_{timestamp}.csv")
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=scraping")
@@ -3504,9 +3509,8 @@ def website_directory_export():
         wd_search_for = request.args.get("wd_search_for","").strip()
         wd_date_from  = request.args.get("wd_date_from", "").strip()
         wd_date_to    = request.args.get("wd_date_to",   "").strip()
-        CHUNK = 1000
-        all_rows, offset = [], 0
-        while True:
+
+        def _build_wd_query():
             q = supabase.table("website_directory").select("*")
             if wd_search:
                 lt = f"%{wd_search}%"
@@ -3532,23 +3536,10 @@ def website_directory_export():
             if wd_search_for:q = q.eq("search_for",    wd_search_for)
             if wd_date_from: q = q.gte("date",          wd_date_from)
             if wd_date_to:   q = q.lte("date",          wd_date_to)
-            chunk = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
-            rows = chunk.data or []
-            all_rows.extend(rows)
-            if len(rows) < CHUNK:
-                break
-            offset += CHUNK
-        df = pd.DataFrame(all_rows) if all_rows else pd.DataFrame()
-        output = io.StringIO()
-        df.to_csv(output, index=False, encoding="utf-8-sig")
-        output.seek(0)
+            return q
+
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return send_file(
-            io.BytesIO(output.getvalue().encode("utf-8-sig")),
-            download_name=f"website_directory_{ts}.csv",
-            as_attachment=True,
-            mimetype="text/csv"
-        )
+        return _stream_supabase_csv(_build_wd_query, "id", f"website_directory_{ts}.csv")
     except Exception as e:
         flash(f"Export Error: {e}", "error")
         return redirect("/website-directory")
