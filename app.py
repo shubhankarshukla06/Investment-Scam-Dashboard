@@ -4025,19 +4025,6 @@ def case_report_clean_up(*paths):
 # AML GUI BULK REGENERATE — HELPERS
 # ============================================================
 def extract_screenshots_from_pdf(pdf_path, output_dir, prefix=None):
-    """PDF ke har page se screenshots ko top-to-bottom order mein
-    sequentially extract karta hai.
-
-    IMPORTANT: ReportLab kabhi-kabhi ek hi image (xref) ko page pe 2 alag
-    positions pe reuse kar deta hai. Isliye page.get_images() se milne
-    wale unique xrefs ke bajaye, har xref ke SAARE placements
-    (get_image_rects()) ko alag screenshot maana jaata hai — taaki 1 page
-    pe 2 SS hone par dono hi extract hon.
-
-    'prefix' diya ho (jab saare reports ek hi SHARED folder mein extract ho
-    rahe hon) to filenames "<prefix>_1.png", "<prefix>_2.png"... banti hain
-    taaki alag-alag reports ke screenshots collide na karein.
-    """
     saved_paths = []
     doc = fitz.open(pdf_path)
     counter = 1
@@ -4081,9 +4068,6 @@ def extract_screenshots_from_pdf(pdf_path, output_dir, prefix=None):
     return saved_paths
 
 def download_and_extract_report_images(report, output_dir, prefix=None):
-    """PDF download karke uske screenshots ko output_dir mein extract karta hai.
-    Shared folder mein filename collision se bachne ke liye 'prefix'
-    (usually report_id) diya jaata hai."""
     pdf_url = report.get("pdf_url")
     temp_pdf_path = os.path.join(tempfile.gettempdir(), f"report_{report.get('id')}_{int(time.time())}.pdf")
 

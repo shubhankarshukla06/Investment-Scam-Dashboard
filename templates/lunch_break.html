@@ -140,11 +140,11 @@
                     {% if 'investment' in allowed_pages %}
                     <option value="investment">BS Investment Scam</option>
                     {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <option value="insights">Scam++ Dashboard</option>
-                    {% endif %}
                     {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory">Scam++ Website Directory</option>
+                    {% endif %}
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
                     <option value="case_report">Case Report Generator</option>
@@ -413,10 +413,18 @@
                 <div class="modal-field">
                     <label><i class="fas fa-play"></i> Lunch Start Time <span style="color:#e74c3c;">*</span></label>
                     <input type="time" id="editStart" oninput="calcEditDuration()">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
+                        <input type="checkbox" id="editStartNow" onchange="toggleCurrentTime('editStart','editStartNow')" style="width:14px;height:14px;cursor:pointer;">
+                        Use Current Time
+                    </label>
                 </div>
                 <div class="modal-field">
                     <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#e74c3c;">*</span></label>
                     <input type="time" id="editEnd" oninput="calcEditDuration()">
+                    <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
+                        <input type="checkbox" id="editEndNow" onchange="toggleCurrentTime('editEnd','editEndNow')" style="width:14px;height:14px;cursor:pointer;">
+                        Use Current Time
+                    </label>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;margin-top:-4px;">
@@ -554,6 +562,7 @@
         if (!input) return;
         input.value = `${hh}:${mm}`;
         if (inputId === 'insStart' || inputId === 'insEnd') calcDuration();
+        if (inputId === 'editStart' || inputId === 'editEnd') calcEditDuration();
     }
     function _resetLiveTimers() {
         Object.keys(_liveTimeTimers).forEach(id => clearInterval(_liveTimeTimers[id]));
@@ -682,11 +691,21 @@
         document.getElementById('editEnd').value      = end;
         document.getElementById('editRemark').value   = (remark === 'NA' || remark === 'None') ? '' : remark;
         document.getElementById('editDurationPreview').style.display = 'none';
+        document.getElementById('editStartNow').checked = false;
+        document.getElementById('editEndNow').checked = false;
+        document.getElementById('editStart').readOnly = false;
+        document.getElementById('editEnd').readOnly = false;
+        document.getElementById('editStart').style.background = '';
+        document.getElementById('editEnd').style.background = '';
+        if (_liveTimeTimers['editStart']) { clearInterval(_liveTimeTimers['editStart']); delete _liveTimeTimers['editStart']; }
+        if (_liveTimeTimers['editEnd']) { clearInterval(_liveTimeTimers['editEnd']); delete _liveTimeTimers['editEnd']; }
         calcEditDuration();
         document.getElementById('editModal').classList.add('active');
     }
     function closeEditModal() {
         document.getElementById('editModal').classList.remove('active');
+        if (_liveTimeTimers['editStart']) { clearInterval(_liveTimeTimers['editStart']); delete _liveTimeTimers['editStart']; }
+        if (_liveTimeTimers['editEnd']) { clearInterval(_liveTimeTimers['editEnd']); delete _liveTimeTimers['editEnd']; }
     }
     function calcEditDuration() {
         const s = document.getElementById('editStart').value;

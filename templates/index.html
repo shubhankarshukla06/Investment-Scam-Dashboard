@@ -953,14 +953,14 @@
                             {% if 'investment' in allowed_pages %}
                             <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>BS Investment Scam</option>
                             {% endif %}
+                            {% if 'website_directory' in allowed_pages %}
+                            <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
+                            {% endif %}
                             {% if 'insights' in allowed_pages %}
                             <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Scam++ Dashboard</option>
                             {% endif %}
                             {% if 'case_report' in allowed_pages %}
                             <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>Case Report Generator</option>
-                            {% endif %}
-                            {% if 'website_directory' in allowed_pages %}
-                            <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
                             {% endif %}
                             {% if 'lunch' in allowed_pages %} 
                             <option value="lunch_break"> Lunch Break Tracker</option>

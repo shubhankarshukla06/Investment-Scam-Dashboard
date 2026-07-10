@@ -6,8 +6,10 @@ from reportlab.platypus import (
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import os
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def generate_pdf(source_url: str, image_paths: list[str], output_path: str) -> int:
@@ -55,7 +57,7 @@ def generate_pdf(source_url: str, image_paths: list[str], output_path: str) -> i
         fontName="Helvetica-Bold",
     )
 
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
     HEADER_H = 1.6 * cm
     FOOTER_H = 1.0 * cm
     GAP      = 0.6 * cm   # small gap between SS1 and SS2
