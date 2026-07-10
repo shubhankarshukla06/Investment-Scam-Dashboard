@@ -4062,10 +4062,12 @@ def download_and_extract_report_images(report, output_dir, prefix=None):
     pdf_url = report.get("pdf_url")
     temp_pdf_path = os.path.join(tempfile.gettempdir(), f"report_{report.get('id')}_{int(time.time())}.pdf")
 
-    resp = requests.get(pdf_url, timeout=30)
+    resp = requests.get(pdf_url, timeout=30, stream=True)
     resp.raise_for_status()
     with open(temp_pdf_path, "wb") as f:
-        f.write(resp.content)
+        for chunk in resp.iter_content(chunk_size=1024 * 256):
+            if chunk:
+                f.write(chunk)
 
     image_paths = extract_screenshots_from_pdf(temp_pdf_path, output_dir, prefix=prefix)
     case_report_clean_up(temp_pdf_path)
@@ -4683,6 +4685,15 @@ def _load_regen_job_snapshot(job_id):
         return None
 
 
+def _cleanup_paths(paths):
+    for path in paths or []:
+        try:
+            if path and os.path.isfile(path):
+                os.remove(path)
+        except Exception as exc:
+            print(f"[CLEANUP] Could not remove {path}: {exc}", flush=True)
+
+
 def _build_investment_sheet_row(report, screenshot_links, input_user):
     """Ek regenerated report se Investment Scam sheet ki ek row banata hai —
     naye teeno PDF links (comma-separated) screenshot/screenshot_case_report_link
@@ -4792,6 +4803,7 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                 _write_regen_job_snapshot(job_id)
                 break
 
+            paths_for_report = []
             resp = supabase.table("reports").select("*").eq("id", report_id).execute()
             if not resp.data:
                 row_result = {"id": report_id, "old_pdf_url": None, "new_pdf_url": None, "source_url": None, "status": "Report not found"}
@@ -4804,82 +4816,85 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
 
             report = resp.data[0]
             try:
-                paths_for_report = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
-            except Exception as exc:
-                paths_for_report = []
-                screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
+                try:
+                    paths_for_report = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
+                except Exception as exc:
+                    paths_for_report = []
+                    screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
 
-            if paths_for_report:
-                screenshot_row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
-                for idx, p in enumerate(paths_for_report, start=1):
-                    screenshot_row[f"screenshot_path_{idx}"] = p
-                screenshot_rows.append(screenshot_row)
+                if paths_for_report:
+                    screenshot_row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
+                    for idx, p in enumerate(paths_for_report, start=1):
+                        screenshot_row[f"screenshot_path_{idx}"] = p
+                    screenshot_rows.append(screenshot_row)
 
-            if not paths_for_report:
-                row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
+                if not paths_for_report:
+                    row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
+                    with REGEN_JOBS_LOCK:
+                        REGEN_JOBS[job_id]["results"].append(row_result)
+                        REGEN_JOBS[job_id]["completed"] += 1
+                    final_rows.append(row_result)
+                    _write_regen_job_snapshot(job_id)
+                    continue
+
+                source_url = report.get("source_url") or "NA"
+                title_text = source_url
+                description_text = source_url
+                input_text = aml_strip_scheme(source_url)
+                new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
+                new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
+                status = "Success"
+                try:
+                    # Submit up to MAX_IMAGES_PER_REGENERATED_PDF screenshots in one AML request
+                    # so one old PDF maps to one new PDF whenever the old PDF has up to 10 images.
+                    chunk_results = []
+                    for chunk in aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF):
+                        if stop_event.is_set():
+                            status = "Stopped by user"
+                            break
+                        chunk_result = aml_submit_chunk_requests(aml_session, title_text, input_text, description_text, chunk)
+                        if chunk_result:
+                            chunk_results.append(chunk_result)
+                    if status != "Stopped by user":
+                        if chunk_results:
+                            # Har chunk ek alag AML report submission hai (portal max 4/submission
+                            # allow karta hai) — saare chunks ke links combine karke rakhte hain.
+                            npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
+                            all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
+                            new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
+                            new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
+                        else:
+                            new_pdf_url = "Failed"
+                            status = "No result returned"
+                except Exception as exc:
+                    tb_text = traceback.format_exc()
+                    print(f"[BULK REGENERATE] report_id={report_id} failed:\n{tb_text}")
+                    err_msg = str(exc).strip() or type(exc).__name__
+                    status = f"Error: {err_msg}"
+                    # Session/captcha can expire; re-login once so remaining reports can continue.
+                    try:
+                        aml_session = aml_login_requests()
+                    except Exception as login_exc:
+                        status = f"{status} | HTTP re-login failed: {str(login_exc).strip() or type(login_exc).__name__}"
+
+                row_result = {
+                    "id": report.get("id"),
+                    "old_pdf_url": report.get("pdf_url"),
+                    "new_pdf_url": new_pdf_url,
+                    "source_url": report.get("source_url"),
+                    "status": status,
+                }
                 with REGEN_JOBS_LOCK:
                     REGEN_JOBS[job_id]["results"].append(row_result)
                     REGEN_JOBS[job_id]["completed"] += 1
                 final_rows.append(row_result)
+                if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
+                    investment_sheet_rows.append(
+                        _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
+                    )
                 _write_regen_job_snapshot(job_id)
-                continue
-
-            source_url = report.get("source_url") or "NA"
-            title_text = source_url
-            description_text = source_url
-            input_text = aml_strip_scheme(source_url)
-            new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
-            new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
-            status = "Success"
-            try:
-                # Submit up to MAX_IMAGES_PER_REGENERATED_PDF screenshots in one AML request
-                # so one old PDF maps to one new PDF whenever the old PDF has up to 10 images.
-                chunk_results = []
-                for chunk in aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF):
-                    if stop_event.is_set():
-                        status = "Stopped by user"
-                        break
-                    chunk_result = aml_submit_chunk_requests(aml_session, title_text, input_text, description_text, chunk)
-                    if chunk_result:
-                        chunk_results.append(chunk_result)
-                if status != "Stopped by user":
-                    if chunk_results:
-                        # Har chunk ek alag AML report submission hai (portal max 4/submission
-                        # allow karta hai) — saare chunks ke links combine karke rakhte hain.
-                        npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
-                        all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
-                        new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
-                        new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
-                    else:
-                        new_pdf_url = "Failed"
-                        status = "No result returned"
-            except Exception as exc:
-                tb_text = traceback.format_exc()
-                print(f"[BULK REGENERATE] report_id={report_id} failed:\n{tb_text}")
-                err_msg = str(exc).strip() or type(exc).__name__
-                status = f"Error: {err_msg}"
-                # Session/captcha can expire; re-login once so remaining reports can continue.
-                try:
-                    aml_session = aml_login_requests()
-                except Exception as login_exc:
-                    status = f"{status} | HTTP re-login failed: {str(login_exc).strip() or type(login_exc).__name__}"
-
-            row_result = {
-                "id": report.get("id"),
-                "old_pdf_url": report.get("pdf_url"),
-                "new_pdf_url": new_pdf_url,
-                "source_url": report.get("source_url"),
-                "status": status,
-            }
-            with REGEN_JOBS_LOCK:
-                REGEN_JOBS[job_id]["results"].append(row_result)
-                REGEN_JOBS[job_id]["completed"] += 1
-            final_rows.append(row_result)
-            if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
-                investment_sheet_rows.append(
-                    _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
-                )
-            _write_regen_job_snapshot(job_id)
+            finally:
+                _cleanup_paths(paths_for_report)
 
         FINAL_RESULT_COLUMNS = ["id", "old_pdf_url", "new_pdf_url", "source_url", "status"]
         pd.DataFrame(final_rows, columns=FINAL_RESULT_COLUMNS).to_excel(final_excel_path, index=False)
