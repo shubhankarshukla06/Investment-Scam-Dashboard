@@ -1094,9 +1094,13 @@ def scraping_tracker_stats():
         CHUNK = 1000
         rows = []
         offset = 0
+        is_admin = session.get("is_admin", False)
+        current_clean_name = get_clean_display_name(session.get("display_name", ""))
         while True:
-            resp = supabase.table("scrapping_data") \
-                .select("scam_type,platform") \
+            _q = supabase.table("scrapping_data").select("scam_type,platform")
+            if not is_admin:
+                _q = _q.eq("name", current_clean_name)
+            resp = _q \
                 .order("id", desc=False) \
                 .range(offset, offset + CHUNK - 1) \
                 .execute()
@@ -1167,6 +1171,9 @@ def index():
     if page_type == "scraping":
         try:
             query = supabase.table("scrapping_data").select("*", count='exact')
+            if not session.get("is_admin", False):
+                current_clean_name = get_clean_display_name(session.get("display_name", ""))
+                query = query.eq("name", current_clean_name)
             if search_query:
                 like_term = f"%{search_query}%"
                 query = query.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
@@ -2154,6 +2161,9 @@ def export():
 
         def _build_query():
             q = supabase.table("scrapping_data").select("*")
+            if not session.get("is_admin", False):
+                current_clean_name = get_clean_display_name(session.get("display_name", ""))
+                q = q.eq("name", current_clean_name)
             if search_query:
                 like_term = f"%{search_query}%"
                 q = q.or_(f"name.ilike.{like_term},platform.ilike.{like_term},post_url.ilike.{like_term},chat_number.ilike.{like_term},group_name.ilike.{like_term},chat_link.ilike.{like_term},scam_type.ilike.{like_term}")
