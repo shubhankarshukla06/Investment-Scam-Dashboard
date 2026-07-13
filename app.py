@@ -181,11 +181,6 @@ DEPARTMENT_OPTIONS = [
     "AML", "Investment Scam", "ITC", "Infringement", "Chargeback"
 ]
 
-LUNCH_ALLOWED_USERS = {
-    "parul@pixeltruth.com": ["Parul Satsangi", "Sheetal Dubey", "Kakul Pal"],
-    # aur users add karo jaise chahiye
-}
-
 def can_access_lunch(user_session):
     """Check if user can access lunch break tracker"""
     allowed_pages = user_session.get("allowed_pages", [])
@@ -2738,6 +2733,8 @@ def get_department_data_proxy():
 @login_required
 def insert_social_record():
     try:
+        if "social" not in session.get("allowed_pages", []):
+            return jsonify({"success": False, "error": "Social page access nahi hai"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
@@ -2785,6 +2782,8 @@ def insert_social_record():
 @login_required
 def insert_scraping_record():
     try:
+        if "scraping" not in session.get("allowed_pages", []):
+            return jsonify({"success": False, "error": "Scraping page access nahi hai"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
@@ -2807,6 +2806,7 @@ def insert_scraping_record():
             for field in ALLOWED_FIELDS:
                 val = str(row.get(field, "")).strip()
                 record[field] = val if val else "NA"
+            record["name"] = get_clean_display_name(session.get("display_name", "User"))
             # defaults
             if record.get("inserted_date") in ("", "NA"):
                 record["inserted_date"] = today
@@ -3622,6 +3622,8 @@ def website_directory_tracker_stats():
 @login_required
 def website_directory_insert():
     try:
+        if "website_directory" not in session.get("allowed_pages", []):
+            return jsonify({"success": False, "error": "Website directory access nahi hai"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"})
@@ -5474,7 +5476,6 @@ def social_download_template():
 def lunch_break():
     user = get_current_user()
     is_admin = session.get("is_admin", False)
-    email = session.get("email", "")
     allowed_pages = session.get("allowed_pages", [])
     if not can_access_lunch(session):
         flash("Access denied.", "error")
@@ -5484,24 +5485,11 @@ def lunch_break():
     date_to   = request.args.get("date_to",   "").strip()
     emp_filter  = request.args.get("emp_filter",  "").strip()
 
-    # Determine which employees this user can see/fill
-    if is_admin:
-        visible_employees = ALL_EMPLOYEES
-    elif "lunch" in allowed_pages:
-        # lunch page allowed hai toh LUNCH_ALLOWED_USERS se dekho
-        # agar wahan nahi hai toh apna naam hi dikhao
-        visible_employees = LUNCH_ALLOWED_USERS.get(email.lower(), [session.get("display_name", "").replace(r'\s*\(.*?\)\s*', '').strip()])
-    else:
-        visible_employees = []
+    # Lunch page access means the user can see and fill lunch for everyone.
+    visible_employees = ALL_EMPLOYEES if "lunch" in allowed_pages else []
 
     try:
         query = get_auth_supabase().table("lunch_breaks").select("*")
-        if not is_admin:
-            if not visible_employees:
-                items = []
-                total = 0
-            else:
-                query = query.in_("employee_name", visible_employees)
         if date_from:
             query = query.gte("date", date_from)
         if date_to:
@@ -5543,8 +5531,8 @@ def lunch_break():
 def lunch_break_insert():
     try:
         data = request.get_json()
-        is_admin = session.get("is_admin", False)
         email    = session.get("email", "")
+        allowed_pages = session.get("allowed_pages", [])
 
         employee_name = (data.get("employee_name") or "").strip()
         date_val      = (data.get("date")          or "").strip()
@@ -5555,13 +5543,10 @@ def lunch_break_insert():
         if not employee_name or not date_val or not start_time or not end_time:
             return jsonify({"success": False, "error": "All fields are required"})
 
-        # Permission check
-        if not is_admin:
-            if "lunch" not in session.get("allowed_pages", []):
-                return jsonify({"success": False, "error": "Lunch tracker access nahi hai"})
-            allowed = LUNCH_ALLOWED_USERS.get(email.lower(), [session.get("display_name", "").strip()])
-            if employee_name not in allowed:
-                return jsonify({"success": False, "error": "does not have permission to fill for this employee"})
+        if "lunch" not in allowed_pages:
+            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
+        if employee_name not in ALL_EMPLOYEES:
+            return jsonify({"success": False, "error": "Invalid employee name"})
 
         # Calculate duration
         try:
@@ -5604,17 +5589,12 @@ def lunch_break_update():
     try:
         data = request.get_json()
         rid      = data.get("id")
-        is_admin = session.get("is_admin", False)
-        email    = session.get("email", "")
+        allowed_pages = session.get("allowed_pages", [])
         if not rid:
             return jsonify({"success": False, "error": "No ID"})
 
-        # Non-admin sirf apna fill kiya hua edit kar sakta hai
-        if not is_admin:
-            check = get_auth_supabase().table("lunch_breaks") \
-                .select("filled_by_email").eq("id", rid).limit(1).execute()
-            if not check.data or check.data[0].get("filled_by_email") != email:
-                return jsonify({"success": False, "error": "Permission denied"})
+        if "lunch" not in allowed_pages:
+            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
 
         from datetime import datetime as dt
         start = data.get("lunch_start", "")
@@ -5652,17 +5632,12 @@ def lunch_break_delete():
     try:
         data = request.get_json()
         rid  = data.get("id")
-        is_admin = session.get("is_admin", False)
-        email    = session.get("email", "")
+        allowed_pages = session.get("allowed_pages", [])
         if not rid:
             return jsonify({"success": False, "error": "No ID"})
 
-        # Non-admin sirf apna fill kiya hua delete kar sakta hai
-        if not is_admin:
-            check = get_auth_supabase().table("lunch_breaks") \
-                .select("filled_by_email").eq("id", rid).limit(1).execute()
-            if not check.data or check.data[0].get("filled_by_email") != email:
-                return jsonify({"success": False, "error": "You do not have permission to delete this entry"})
+        if "lunch" not in allowed_pages:
+            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
 
         get_auth_supabase().table("lunch_breaks").delete().eq("id", rid).execute()
         return jsonify({"success": True})
@@ -5674,17 +5649,16 @@ def lunch_break_delete():
 @login_required
 def lunch_break_export():
     try:
-        is_admin    = session.get("is_admin", False)
-        email       = session.get("email", "")
+        allowed_pages = session.get("allowed_pages", [])
         date_from = request.args.get("date_from", "").strip()
         date_to   = request.args.get("date_to",   "").strip()
         emp_filter  = request.args.get("emp_filter",  "").strip()
 
+        if "lunch" not in allowed_pages:
+            flash("Access denied.", "error")
+            return redirect_to_allowed_page(allowed_pages)
+
         query = get_auth_supabase().table("lunch_breaks").select("*")
-        if not is_admin:
-            allowed = LUNCH_ALLOWED_USERS.get(email.lower(), [])
-            if allowed:
-                query = query.in_("employee_name", allowed)
         if date_from:
             query = query.gte("date", date_from)
         if date_to:
