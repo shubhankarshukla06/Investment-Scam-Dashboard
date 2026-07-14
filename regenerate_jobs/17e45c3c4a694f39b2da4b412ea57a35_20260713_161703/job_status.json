@@ -1,0 +1,12 @@
+{
+  "status": "error",
+  "phase": "extracting",
+  "total": 49,
+  "completed": 0,
+  "results": [],
+  "folder": "c:\\Users\\Acer\\OneDrive - Pixeltruth\\Code_Hub\\Testing_Code\\regenerate_jobs\\17e45c3c4a694f39b2da4b412ea57a35_20260713_161703",
+  "screenshot_excel": null,
+  "final_excel": null,
+  "investment_sheet": null,
+  "message": "HTTPSConnectionPool(host='aml-gui.chargebackzero.com', port=443): Max retries exceeded with url: /index.php (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x000001A6C947ED50>: Failed to establish a new connection: [Errno 11001] getaddrinfo failed'))"
+}

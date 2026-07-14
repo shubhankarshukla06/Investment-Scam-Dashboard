@@ -336,7 +336,7 @@
                     </label>
                 </div>
                 <div class="modal-field">
-                    <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#e74c3c;">*</span></label>
+                    <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#7f8c8d;text-transform:none;letter-spacing:0;">(optional)</span></label>
                     <input type="time" id="insEnd" oninput="calcDuration()">
                     <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
                         <input type="checkbox" id="insEndNow" onchange="toggleCurrentTime('insEnd','insEndNow')" style="width:14px;height:14px;cursor:pointer;">
@@ -408,7 +408,7 @@
                     </label>
                 </div>
                 <div class="modal-field">
-                    <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#e74c3c;">*</span></label>
+                    <label><i class="fas fa-stop"></i> Lunch End Time <span style="color:#7f8c8d;text-transform:none;letter-spacing:0;">(optional)</span></label>
                     <input type="time" id="editEnd" oninput="calcEditDuration()">
                     <label style="display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#7f8c8d;text-transform:none;letter-spacing:0;margin-top:3px;cursor:pointer;">
                         <input type="checkbox" id="editEndNow" onchange="toggleCurrentTime('editEnd','editEndNow')" style="width:14px;height:14px;cursor:pointer;">
@@ -608,8 +608,8 @@
         const start    = document.getElementById('insStart').value;
         const end      = document.getElementById('insEnd').value;
         const remark   = document.getElementById('insRemark').value.trim();
-        if (!date || !emp || !start || !end) {
-            showToast('Please fill all required fields.', 'error'); return;
+        if (!date || !emp || !start) {
+            showToast('Please fill date, employee name and start time.', 'error'); return;
         }
         const btn = document.getElementById('insertSubmitBtn');
         btn.disabled = true;

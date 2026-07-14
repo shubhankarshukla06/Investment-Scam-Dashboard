@@ -1245,7 +1245,10 @@ def index():
             flash(f"Error fetching social media data: {str(e)}", "error")
     elif page_type == "investment":
         try:
-            query = supabase.table("BS_Investment_Scam").select("*", count='exact')
+            if inv_search:
+                query = supabase.table("BS_Investment_Scam").select("*")
+            else:
+                query = supabase.table("BS_Investment_Scam").select("*", count='exact')
             if inv_search:
                 like_term = f"%{inv_search}%"
                 query = query.or_(
@@ -1272,8 +1275,12 @@ def index():
             response = query.execute()
             raw = response.data or []
             items = [{k.lower(): v for k, v in row.items()} for row in raw]
-            total_rows = response.count or 0
-            total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
+            if inv_search:
+                total_rows = offset + len(raw)
+                total_pages = page + 1 if len(raw) == PER_PAGE else max(1, page)
+            else:
+                total_rows = response.count or 0
+                total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
             print(f"[DEBUG] Investment items: {len(items)}, total: {total_rows}")
         except Exception as e:
             print(f"[DEBUG] Investment error: {e}")
@@ -5540,35 +5547,36 @@ def lunch_break_insert():
         end_time      = (data.get("lunch_end")     or "").strip()
         remark        = (data.get("remark")        or "NA").strip()
 
-        if not employee_name or not date_val or not start_time or not end_time:
-            return jsonify({"success": False, "error": "All fields are required"})
+        if not employee_name or not date_val or not start_time:
+            return jsonify({"success": False, "error": "Date, employee name and start time are required"})
 
         if "lunch" not in allowed_pages:
             return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
         if employee_name not in ALL_EMPLOYEES:
             return jsonify({"success": False, "error": "Invalid employee name"})
 
-        # Calculate duration
-        try:
-            from datetime import datetime as dt
-            fmt = "%H:%M"
-            s = dt.strptime(start_time, fmt)
-            e = dt.strptime(end_time, fmt)
-            diff = e - s
-            total_mins = int(diff.total_seconds() / 60)
-            if total_mins < 0:
-                return jsonify({"success": False, "error": "End time cannot be before start time"})
-            hours   = total_mins // 60
-            minutes = total_mins % 60
-            duration_str = f"{hours}h {minutes}m" if hours else f"{minutes}m"
-        except Exception:
-            duration_str = "NA"
+        duration_str = "NA"
+        if end_time:
+            try:
+                from datetime import datetime as dt
+                fmt = "%H:%M"
+                s = dt.strptime(start_time, fmt)
+                e = dt.strptime(end_time, fmt)
+                diff = e - s
+                total_mins = int(diff.total_seconds() / 60)
+                if total_mins < 0:
+                    return jsonify({"success": False, "error": "End time cannot be before start time"})
+                hours   = total_mins // 60
+                minutes = total_mins % 60
+                duration_str = f"{hours}h {minutes}m" if hours else f"{minutes}m"
+            except Exception:
+                duration_str = "NA"
 
         record = {
             "date":                 date_val,
             "employee_name":        employee_name,
             "lunch_start":          start_time,
-            "lunch_end":            end_time,
+            "lunch_end":            end_time or None,
             "total_break_duration": duration_str,
             "remark":               remark if remark else "NA",
             "filled_by":            get_clean_display_name(session.get("display_name", "")),
