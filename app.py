@@ -188,7 +188,6 @@ def can_access_lunch(user_session):
 
 ALL_EMPLOYEES = [
     "Parul Satsangi",
-    "Honey Singhal",
     "Kakul Pal",
     "Rozma Khan",
     "Rishabh Yadav",
