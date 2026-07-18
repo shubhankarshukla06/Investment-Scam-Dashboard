@@ -721,6 +721,9 @@ tr:hover { background:#f8fffe; }
                     {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory" selected>Scam++ Website Directory</option>
                     {% endif %}
+                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+                    <option value="allotment">Scam++ Website Allotment</option>
+                    {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <option value="insights">Scam++ Dashboard</option>
                     {% endif %}
@@ -1185,6 +1188,11 @@ function changePageFromWD(pageType) {
     if (pageType === 'case_report') {
         showLoading();
         window.location.href = '/case-report';
+        return;
+    }
+    if (pageType === 'allotment') {
+        showLoading();
+        window.location.href = '/scam-website-allotment';
         return;
     }
     showLoading();

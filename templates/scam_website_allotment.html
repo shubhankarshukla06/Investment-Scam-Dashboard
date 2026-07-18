@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scam++ Website Allotment</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    :root{ --fixed-header-space: 92px; }
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    body { background:#f4f6f8; color:#2c3e50; }
+    .fixed-header { position:fixed; top:0; left:0; right:0; z-index:100; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .header { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; flex-wrap:wrap; gap:10px; }
+    .header h1 { font-size:18px; color:#2c3e50; }
+    .header p { font-size:11px; color:#7f8c8d; }
+    .header-username { font-size:11px; color:#7f8c8d; margin-left:8px; }
+    .header-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .page-selector { display:flex; align-items:center; gap:6px; }
+    .page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:#fff; cursor:pointer; min-width:200px; height:34px; }
+    .page-select:focus { outline:none; border-color:#2c3e50; }
+    .btn { padding:5px 12px; border:none; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; height:32px; display:inline-flex; align-items:center; gap:6px; color:#fff; text-decoration:none; }
+    .btn-primary { background:#3498db; }
+    .btn-success { background:#27ae60; }
+    .btn-warning { background:#f39c12; }
+    .btn-danger  { background:#e74c3c; }
+    .btn-outline { background:#ecf0f1; color:#2c3e50; border:1px solid #ddd; }
+    .container { padding-top: calc(var(--fixed-header-space) + 4px); padding-left:20px; padding-right:20px; padding-bottom:40px; }
+    .flash-message { padding:10px 16px; border-radius:6px; margin-bottom:12px; background:#eafaf1; font-size:13px; display:flex; align-items:center; gap:8px; }
+    .flash-message.error { background:#fdecea; }
+    .filters { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
+    .filters-header h2 { font-size:15px; display:flex; align-items:center; gap:8px; }
+    .filters-grid { display:grid; grid-template-columns:1.1fr 1.1fr 1fr 1fr 1fr auto; gap:10px; align-items:end; }
+    .filter-group label { font-size:11px; font-weight:600; color:#555; display:flex; align-items:center; gap:5px; margin-bottom:4px; }
+    .filter-group input, .filter-group select { width:100%; padding:7px 9px; border:1px solid #ddd; border-radius:6px; font-size:12px; height:34px; }
+    .search-box { position:relative; }
+    .search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#95a5a6; font-size:12px; }
+    .search-box input { padding-left:26px; }
+    .clear-btn { background:#95a5a6; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; height:34px; display:flex; align-items:center; gap:5px; }
+    .filter-actions { display:flex; gap:8px; align-items:end; }
+    .table-wrap { background:#fff; border-radius:8px; overflow-x:auto; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    thead th { background:#2c3e50; color:#fff; text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; }
+    tbody td { padding:9px 12px; border-bottom:1px solid #eee; white-space:nowrap; max-width:240px; overflow:hidden; text-overflow:ellipsis; }
+    tbody tr:hover { background:#f8f9fa; }
+    .copy-cell { cursor:pointer; }
+    .copy-cell:hover { color:#2980b9; }
+    .website-link { color:#2980b9; text-decoration:none; }
+    .website-link:hover { text-decoration:underline; }
+    .copy-field { display:inline-flex; align-items:center; gap:6px; max-width:100%; }
+    .copy-field-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .copy-icon-btn { border:none; background:#ecf0f1; color:#2c3e50; border-radius:4px; width:22px; height:22px; flex-shrink:0; cursor:pointer; font-size:10px; display:inline-flex; align-items:center; justify-content:center; }
+    .copy-icon-btn:hover { background:#3498db; color:#fff; }
+    .target-completed-banner { background:linear-gradient(135deg,#27ae60,#2ecc71); color:#fff; padding:12px 16px; border-radius:8px; margin-bottom:12px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:10px; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
+    .target-completed-banner-mini { background:linear-gradient(135deg,#27ae60,#2ecc71); color:#fff; padding:5px 12px; border-radius:20px; font-size:11.5px; font-weight:600; display:flex; align-items:center; gap:6px; box-shadow:0 1px 3px rgba(0,0,0,0.12); white-space:nowrap; }
+    .empty-state { text-align:center; padding:50px 20px; color:#95a5a6; }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:10px; padding:14px; }
+    .pagination button { padding:6px 12px; border:1px solid #ddd; background:#fff; border-radius:5px; cursor:pointer; font-size:12px; }
+    .pagination button:disabled { opacity:0.4; cursor:not-allowed; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay.active { display:flex; }
+    .modal-content { background:#fff; border-radius:10px; width:95%; max-width:1100px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:#2c3e50; color:#fff; }
+    .modal-header h2 { font-size:16px; display:flex; align-items:center; gap:8px; }
+    .modal-close { background:none; border:none; color:#fff; font-size:16px; cursor:pointer; }
+    .modal-body { padding:16px 20px; overflow-y:auto; flex:1; }
+    .modal-footer { padding:12px 20px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; align-items:center; }
+    .toast { position:fixed; bottom:24px; right:24px; background:#2c3e50; color:#fff; padding:10px 18px; border-radius:6px; font-size:13px; z-index:400; display:none; }
+    .toast.ok { background:#27ae60; }
+    .toast.err { background:#e74c3c; }
+    .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); z-index:500; display:none; align-items:center; justify-content:center; }
+    .loading-overlay.active { display:flex; }
+    .spinner { border:3px solid #f3f3f3; border-top:3px solid #2c3e50; border-radius:50%; width:32px; height:32px; animation:spin 1s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .tracker-tabs { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+    .tracker-tabs button { padding:6px 14px; border:1px solid #ddd; background:#fff; border-radius:20px; font-size:12px; cursor:pointer; font-weight:600; }
+    .tracker-tabs button.active { background:#2c3e50; color:#fff; border-color:#2c3e50; }
+    .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+    .bar-label { width:170px; font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .bar-track { flex:1; background:#ecf0f1; border-radius:6px; height:18px; overflow:hidden; }
+    .bar-fill { background:#3498db; height:100%; border-radius:6px; }
+    .bar-count { width:40px; text-align:right; font-size:12px; font-weight:700; }
+    .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; }
+    .dev-credit-footer span { color:#3498db; font-weight:700; }
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- Fixed Header -->
+<div class="fixed-header">
+    <div class="header">
+        <div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
+                <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
+                <span class="header-username" style="font-weight:700;"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+            </div>
+            <p style="margin-top:2px;font-weight:700;">Scam++ Website Allotment</p>
+        </div>
+        <div class="header-actions">
+            <div class="page-selector">
+                <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changeAllotmentPage(this.value)">
+                    {% if 'scraping' in allowed_pages %}
+                    <option value="scraping">Scraping Data</option>
+                    {% endif %}
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    {% endif %}
+                    {% if 'social' in allowed_pages %}
+                    <option value="social">Social Media Accounts</option>
+                    {% endif %}
+                    {% if 'investment' in allowed_pages %}
+                    <option value="investment">BS Investment Scam</option>
+                    {% endif %}
+                    {% if 'website_directory' in allowed_pages %}
+                    <option value="website_directory">Scam++ Website Directory</option>
+                    {% endif %}
+                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+                    <option value="allotment" selected>Scam++ Website Allotment</option>
+                    {% endif %}
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights">Scam++ Dashboard</option>
+                    {% endif %}
+                    {% if 'case_report' in allowed_pages %}
+                    <option value="case_report">Case Report Generator</option>
+                    {% endif %}
+                    {% if 'lunch' in allowed_pages %}
+                    <option value="lunch_break">Lunch Break Tracker</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            {% if is_admin_allot %}
+            <!-- Website Allot (admin only) -->
+            <button type="button" class="btn btn-success" onclick="openAllotModal()">
+                <i class="fas fa-user-plus"></i> Website Allot
+            </button>
+            {% endif %}
+            <!-- Export -->
+            <form action="/scam-website-allotment-export" method="GET" style="display:inline;" id="exportForm">
+                <input type="hidden" name="sa_search"     value="{{ sa_search }}">
+                <input type="hidden" name="sa_category"   value="{{ sa_category }}">
+                <input type="hidden" name="sa_search_for" value="{{ sa_search_for }}">
+                <input type="hidden" name="sa_remark"     value="{{ sa_remark }}">
+                <input type="hidden" name="sa_date_from"  value="{{ sa_date_from }}">
+                <input type="hidden" name="sa_date_to"    value="{{ sa_date_to }}">
+                <button type="submit" class="btn btn-primary" onclick="showToast('Downloading Allotment Sheet...', '')">
+                    <i class="fas fa-file-export"></i> Export
+                </button>
+            </form>
+
+            <!-- Refresh -->
+            <button type="button" class="btn btn-outline" onclick="window.location.reload()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+
+            <!-- Logout -->
+            <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+    <div class="flash-message {% if category == 'error' %}error{% endif %}">
+        <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
+        {{ message }}
+    </div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filters-header">
+            <h2><i class="fas fa-filter" style="color:#2c3e50;"></i> Filter Website Allotment</h2>
+            <span class="target-completed-banner-mini" id="targetCompletedBanner" style="{% if not target_completed %}display:none;{% endif %}">
+                <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}! You've successfully completed your target.Keep up the consistency! 🎉
+            </span>
+        </div>
+        <form method="GET" action="/scam-website-allotment" id="filterForm">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label><i class="fas fa-tags"></i> Category</label>
+                    <select name="sa_category" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        {% for cat in wd_category_options %}
+                        <option value="{{ cat }}" {% if sa_category == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-mobile-alt"></i> Search For</label>
+                    <select name="sa_search_for" onchange="this.form.submit()">
+                        <option value="">All</option>
+                        {% for sf in wd_search_for_options %}
+                        <option value="{{ sf }}" {% if sa_search_for == sf %}selected{% endif %}>{{ sf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-flag"></i> Remark</label>
+                    <select name="sa_remark" onchange="this.form.submit()">
+                        <option value="">All</option>
+                        <option value="PENDING" {% if sa_remark == 'PENDING' %}selected{% endif %}>Pending (No Remark)</option>
+                        {% for rm in allotment_remark_options %}
+                        <option value="{{ rm }}" {% if sa_remark == rm %}selected{% endif %}>{{ rm }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> Date From</label>
+                    <input type="date" id="saDateFrom" name="sa_date_from" value="{{ sa_date_from }}" onchange="this.form.submit()">
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-calendar"></i> Date To</label>
+                    <input type="date" id="saDateTo" name="sa_date_to" value="{{ sa_date_to }}" onchange="this.form.submit()">
+                </div>
+                <div class="filter-group filter-actions">
+                    <button type="submit" class="btn btn-primary" style="height:34px;">
+                        <i class="fas fa-search"></i> Apply
+                    </button>
+                    <button type="button" class="clear-btn" onclick="window.location.href='/scam-website-allotment'">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Allotted To</th>
+                    <th>Website</th>
+                    <th>Login ID</th>
+                    <th>Password</th>
+                    <th>Remark</th>
+                    <th>Search For</th>
+                    <th>Category</th>
+                    {% if is_admin_allot %}
+                    <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr data-allot-id="{{ item.id }}" data-allot-json='{{ item | tojson | safe }}'>
+                    <td>
+                        {% if item.get('allotted_at') and item['allotted_at'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;font-weight:600;color:#2c3e50;">{{ item['allotted_at'].split('T')[0] }}</span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('alloted_user_name') and item['alloted_user_name'] not in ['NA','N/A','',None] %}
+                        {{ item['alloted_user_name'].split('(')[0].strip() }}
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if item.final_url %}
+                        <a href="{{ item.final_url if item.final_url.startswith('http') else 'https://' + item.final_url }}" target="_blank" rel="noopener" class="website-link" title="{{ item.final_url }}">{{ item.final_url }}</a>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if item.login_id and item.login_id not in ['NA','N/A','',None] %}
+                        <span class="copy-field"><span class="copy-field-text">{{ item.login_id }}</span><button type="button" class="copy-icon-btn" onclick="copyText('{{ item.login_id }}', 'Login ID')" title="Copy Login ID"><i class="fas fa-copy"></i></button></span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        {% if item.password and item.password not in ['NA','N/A','',None] %}
+                        <span class="copy-field"><span class="copy-field-text">{{ item.password }}</span><button type="button" class="copy-icon-btn" onclick="copyText('{{ item.password }}', 'Password')" title="Copy Password"><i class="fas fa-copy"></i></button></span>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <select class="allot-remark-select" id="remarkSelect_{{ item.id }}" style="padding:4px 6px;border:1px solid #ddd;border-radius:5px;font-size:11px;min-width:170px;">
+                                {% if not item.remark or item.remark|upper in ['NA', 'N/A'] %}
+                                <option value="" selected hidden>-- Select --</option>
+                                {% endif %}
+                                <option value="Found On GUI" {% if item.remark == 'Found On GUI' %}selected{% endif %}>Found On GUI</option>
+                                <option value="Website Not Working" {% if item.remark == 'Website Not Working' %}selected{% endif %}>Website Not Working</option>
+                                <option value="OTP-Based Login" {% if item.remark == 'OTP-Based Login' %}selected{% endif %}>OTP-Based Login</option>
+                                <option value="UPI Not Available" {% if item.remark == 'UPI Not Available' %}selected{% endif %}>UPI Not Available</option>
+                                <option value="System Under Maintenance" {% if item.remark == 'System Under Maintenance' %}selected{% endif %}>System Under Maintenance</option>
+                                <option value="Login Issues" {% if item.remark == 'Login Issues' %}selected{% endif %}>Login Issues</option>
+                                <option value="Payment Processing Error" {% if item.remark == 'Payment Processing Error' %}selected{% endif %}>Payment Processing Error</option>
+                                <option value="Deposit Section Issues" {% if item.remark == 'Deposit Section Issues' %}selected{% endif %}>Deposit Section Issues</option>
+                                <option value="Need New Credentials" {% if item.remark == 'Need New Credentials' %}selected{% endif %}>Need New Credentials</option>
+                            </select>
+                            <button type="button" onclick="updateAllotRemark({{ item.id }})"
+                                style="background:#3498db;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;white-space:nowrap;">
+                                <i class="fas fa-save"></i> Update
+                            </button>
+                        </div>
+                    </td>
+                    <td>{{ item.search_for or '-' }}</td>
+                    <td>{{ item.category or '-' }}</td>
+                    {% if is_admin_allot %}
+                    <td>
+                        <div style="display:flex;gap:6px;">
+                            <button type="button" onclick="askDeleteAllotment({{ item.id }})"
+                                style="background:#e74c3c;color:white;border:none;padding:4px 9px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
+                        </div>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="{{ 9 if is_admin_allot else 8 }}">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox" style="font-size:28px;margin-bottom:8px;display:block;"></i>
+                            No allotment records found.
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        <button onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
+            <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span style="font-size:12px;">Page {{ page_num }} of {{ total_pages }}</span>
+        <button onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if is_admin_allot %}
+<!-- Website Allot Modal (admin only) -->
+<div class="modal-overlay" id="allotModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-user-plus"></i> Website Allot
+                <span id="allotTotalBadge" style="font-size:12px;font-weight:600;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;margin-left:8px;"></span>
+            </h2>
+            <button class="modal-close" onclick="closeModal('allotModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;">
+                <div style="flex:1;min-width:150px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search</label>
+                    <input type="text" id="allotSearchBox" oninput="filterAllotRows()" placeholder="Search name / URL / category..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                </div>
+                <div style="flex:1;min-width:160px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
+                    <select id="allotUserSelect" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                        <option value="">Loading users...</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Category</label>
+                    <select id="allotCategoryFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                        <option value="">All Categories</option>
+                        {% for cat in wd_category_options %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="flex:1;min-width:120px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search For</label>
+                    <select id="allotSearchForFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                        <option value="">All</option>
+                        {% for sf in wd_search_for_options %}
+                        <option value="{{ sf }}">{{ sf }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="loadAllotSource()" style="height:34px;">
+                    <i class="fas fa-sync-alt"></i> Refresh List
+                </button>
+            </div>
+            <div style="border:1px solid #ddd;border-radius:6px;overflow:auto;max-height:420px;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:34px;"><input type="checkbox" id="allotSelectAll" onclick="toggleAllAllot(this)"></th>
+                            <th>Date</th>
+                            <th>Final URL</th>
+                            <th>Category</th>
+                            <th>Search For</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allotTbody">
+                        <tr><td colspan="5"><div class="empty-state">Click "Website Allot" to load websites...</div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <span id="allotSelectedCount" style="font-size:12px;color:#7f8c8d;margin-right:auto;">0 selected</span>
+            <button type="button" class="clear-btn" onclick="closeModal('allotModal')">Cancel</button>
+            <button type="button" class="btn btn-success" id="allotSubmitBtn" onclick="submitAllotment()">
+                <i class="fas fa-check"></i> Allot Selected
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if is_admin_allot %}
+
+<!-- Delete Allotment Confirm Modal (admin only) -->
+<div class="modal-overlay" id="deleteAllotmentModal">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-header" style="background:#e74c3c;">
+            <h2><i class="fas fa-trash"></i> Delete Allotment?</h2>
+            <button class="modal-close" onclick="closeModal('deleteAllotmentModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:24px;">
+            <div style="font-size:40px;color:#e74c3c;margin-bottom:12px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <p style="font-size:13px;color:#2c3e50;margin-bottom:6px;">Delete this allotment record?</p>
+            <p style="font-size:11px;color:#7f8c8d;">This is permanent and cannot be undone.</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;gap:12px;">
+            <button type="button" class="clear-btn" onclick="closeModal('deleteAllotmentModal')">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteAllotmentBtn" onclick="confirmDeleteAllotment()">
+                <i class="fas fa-trash"></i> Yes, Delete
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+<script>
+const IS_ADMIN_ALLOT = {{ 'true' if is_admin_allot else 'false' }};
+
+function showLoading() { document.getElementById('loadingOverlay').classList.add('active'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('active'); }
+function showToast(msg, type) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast' + (type ? ' ' + type : '');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 2200);
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function copyText(text, label) {
+    if (!text) return;
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    try { ta.select(); document.execCommand('copy'); showToast(label + ' copied!', 'ok'); }
+    catch(e) { showToast('Copy failed', 'err'); }
+    document.body.removeChild(ta);
+}
+function goToPage(p) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_num', p);
+    showLoading();
+    window.location.href = url.toString();
+}
+
+// ── Page navigation ───────────────────────────────────────────
+function changeAllotmentPage(pageType) {
+    if (pageType === 'allotment') return;
+    if (pageType === 'website_directory') {
+        showLoading();
+        window.location.href = '/website-directory';
+        return;
+    }
+    if (pageType === 'lunch_break') {
+        showLoading();
+        window.location.href = '/lunch-break';
+        return;
+    }
+    if (pageType === 'case_report') {
+        showLoading();
+        window.location.href = '/case-report';
+        return;
+    }
+    showLoading();
+    window.location.href = '/?page=' + pageType;
+}
+
+// ── Website Allot modal (admin only) ──────────────────────────
+let _allotSourceRows = [];
+function openAllotModal() {
+    document.getElementById('allotModal').classList.add('active');
+    loadAllotUsers();
+    loadAllotSource();
+}
+async function loadAllotUsers() {
+    const sel = document.getElementById('allotUserSelect');
+    try {
+        const resp = await fetch('/scam-website-allotment-users');
+        const data = await resp.json();
+        if (data.success && data.users.length) {
+            sel.innerHTML = data.users.map(u =>
+                `<option value="${u.display_name}">${u.display_name}</option>`
+            ).join('');
+        } else {
+            sel.innerHTML = '<option value="">No allotment users found</option>';
+        }
+    } catch(e) {
+        sel.innerHTML = '<option value="">Error loading users</option>';
+    }
+}
+async function loadAllotSource() {
+    const tbody = document.getElementById('allotTbody');
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:8px;">Loading websites...</p></div></td></tr>';
+    try {
+        const cat = document.getElementById('allotCategoryFilter')?.value || '';
+        const sf  = document.getElementById('allotSearchForFilter')?.value || '';
+        const params = new URLSearchParams({ offset: 0, limit: 2000 });
+        if (cat) params.set('wd_category', cat);
+        if (sf)  params.set('wd_search_for', sf);
+        const resp = await fetch('/website-directory-operable?' + params.toString());
+        const data = await resp.json();
+        _allotSourceRows = (data.success ? data.items : []) || [];
+        renderAllotRows(_allotSourceRows);
+        document.getElementById('allotTotalBadge').textContent = _allotSourceRows.length + ' records';
+    } catch(e) {
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Error loading list</div></td></tr>';
+    }
+}
+function renderAllotRows(rows) {
+    const tbody = document.getElementById('allotTbody');
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No websites found</div></td></tr>';
+        return;
+    }
+    tbody.innerHTML = rows.map(r => {
+        const rawUrl = r.final_url || r.url || '';
+        const urlCell = rawUrl
+            ? `<a href="${rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl}" target="_blank" rel="noopener" class="website-link" title="${rawUrl}">${rawUrl}</a>`
+            : '-';
+        return `
+        <tr>
+            <td><input type="checkbox" class="allot-row-check" value="${r.id}" onclick="updateAllotSelectedCount()"></td>
+            <td>${(r.date || '-').toString().split('T')[0]}</td>
+            <td>${urlCell}</td>
+            <td>${r.category || '-'}</td>
+            <td>${r.search_for || '-'}</td>
+        </tr>`;
+    }).join('');
+    updateAllotSelectedCount();
+}
+async function updateAllotRemark(id) {
+    const sel = document.getElementById(`remarkSelect_${id}`);
+    const remark = sel ? sel.value : '';
+    if (!remark) {
+        showToast('Please select a remark first', 'err');
+        return;
+    }
+    try {
+        const resp = await fetch('/scam-website-allotment-update-remark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, remark })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Remark updated!', 'ok');
+            refreshTargetBanner();
+        } else {
+            showToast(data.error || 'Update failed', 'err');
+        }
+    } catch(e) {
+        showToast('Update failed', 'err');
+    }
+}
+
+async function refreshTargetBanner() {
+    if (IS_ADMIN_ALLOT) return;
+    const banner = document.getElementById('targetCompletedBanner');
+    try {
+        // Date input fields mein hi asli currently-applied date-range hoti hai
+        // (default "today" ho ya explicit filter) — usi ke hisaab se banner
+        // check karo, chahe URL mein query params ho ya na ho.
+        const dateFromVal = document.getElementById('saDateFrom')?.value || '';
+        const dateToVal   = document.getElementById('saDateTo')?.value || '';
+        const params = new URLSearchParams();
+        if (dateFromVal) params.set('sa_date_from', dateFromVal);
+        if (dateToVal)   params.set('sa_date_to', dateToVal);
+        const resp = await fetch('/scam-website-allotment-check-target?' + params.toString());
+        const data = await resp.json();
+        if (!banner) return;
+        if (data.success && data.target_completed) {
+            banner.style.display = 'flex';
+        } else {
+            banner.style.display = 'none';
+        }
+    } catch(e) {
+        // silent fail — banner just won't update this time
+    }
+}
+function filterAllotRows() {
+    const q = document.getElementById('allotSearchBox').value.trim().toLowerCase();
+    if (!q) { renderAllotRows(_allotSourceRows); return; }
+    const filtered = _allotSourceRows.filter(r =>
+        (r.final_url || '').toLowerCase().includes(q) ||
+        (r.url || '').toLowerCase().includes(q) ||
+        (r.category || '').toLowerCase().includes(q)
+    );
+    renderAllotRows(filtered);
+}
+function toggleAllAllot(master) {
+    document.querySelectorAll('.allot-row-check').forEach(cb => cb.checked = master.checked);
+    updateAllotSelectedCount();
+}
+function updateAllotSelectedCount() {
+    const n = document.querySelectorAll('.allot-row-check:checked').length;
+    document.getElementById('allotSelectedCount').textContent = n + ' selected';
+}
+async function submitAllotment() {
+    const sel = document.getElementById('allotUserSelect');
+    const name = sel.value;
+    const ids = Array.from(document.querySelectorAll('.allot-row-check:checked')).map(cb => parseInt(cb.value));
+    if (!name) { showToast('Please select a user', 'err'); return; }
+    if (!ids.length) { showToast('Please select at least one website', 'err'); return; }
+    const btn = document.getElementById('allotSubmitBtn');
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/scam-website-allotment-allot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ alloted_user_name: name, website_ids: ids })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(`Allotted ${data.allotted} website(s) to ${name}!`, 'ok');
+            closeModal('allotModal');
+            setTimeout(() => window.location.reload(), 700);
+        } else {
+            showToast(data.error || 'Allotment failed', 'err');
+        }
+    } catch(e) {
+        showToast('Allotment failed', 'err');
+    }
+    btn.disabled = false;
+}
+
+document.getElementById('allotModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('allotModal')) closeModal('allotModal');
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeModal('allotModal'); }
+});
+function syncHeaderSpace() {
+    const h = document.querySelector('.fixed-header')?.getBoundingClientRect().height;
+    if (h && h > 30) document.documentElement.style.setProperty('--fixed-header-space', Math.ceil(h + 14) + 'px');
+}
+window.addEventListener('load', syncHeaderSpace);
+window.addEventListener('resize', syncHeaderSpace);
+syncHeaderSpace();
+window.addEventListener('load', refreshTargetBanner);
+
+// ── Delete Allotment (admin only) ──────────────────────
+let _deleteAllotmentId = null;
+function askDeleteAllotment(id) {
+    _deleteAllotmentId = id;
+    document.getElementById('deleteAllotmentModal').classList.add('active');
+}
+async function confirmDeleteAllotment() {
+    if (!_deleteAllotmentId) return;
+    const btn = document.getElementById('confirmDeleteAllotmentBtn');
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/scam-website-allotment-delete-row', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: _deleteAllotmentId })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Allotment record deleted!', 'ok');
+            const row = document.querySelector(`tr[data-allot-id="${_deleteAllotmentId}"]`);
+            if (row) row.remove();
+            closeModal('deleteAllotmentModal');
+        } else {
+            showToast(data.error || 'Delete failed', 'err');
+        }
+    } catch(e) {
+        showToast('Delete failed', 'err');
+    }
+    btn.disabled = false;
+    _deleteAllotmentId = null;
+}
+</script>
+</body>
+</html>

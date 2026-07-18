@@ -170,6 +170,14 @@ WEBSITE_DIRECTORY_CATEGORY_OPTIONS = [
 
 WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS = ["Web", "App"]
 
+WEBSITE_ALLOTMENT_TABLE = "website_allotment"
+
+ALLOTMENT_REMARK_OPTIONS = [
+    "Found On GUI", "Website Not Working", "OTP-Based Login",
+    "UPI Not Available", "System Under Maintenance", "Login Issues",
+    "Payment Processing Error", "Deposit Section Issues", "Need New Credentials",
+]
+
 WEBSITE_DIRECTORY_COLUMNS = [
     "id", "date", "name", "url", "final_url", "invitation_code",
     "search_for", "group_app_name", "number", "email", "login_id",
@@ -186,9 +194,19 @@ def can_access_lunch(user_session):
     allowed_pages = user_session.get("allowed_pages", [])
     return "lunch" in allowed_pages
 
+def can_access_allotment(user_session):
+    """Check if user can access Website Allotment page (either role)"""
+    allowed_pages = user_session.get("allowed_pages", [])
+    return "allotment" in allowed_pages or "allotment_admin" in allowed_pages
+
+def is_allotment_admin(user_session):
+    """Check if user is allowed to allot websites to others / see everyone's allotment"""
+    allowed_pages = user_session.get("allowed_pages", [])
+    return "allotment_admin" in allowed_pages
+
 ALL_EMPLOYEES = [
     "Parul Satsangi",
-    "Kakul Pal",
+    "Kakul Pal",    
     "Rozma Khan",
     "Rishabh Yadav",
     "Nitin Kumar",
@@ -896,6 +914,8 @@ def redirect_to_allowed_page(allowed_pages):
         return redirect("/lunch-break")
     if first_page == "case_report":
         return redirect("/case-report")
+    if first_page in ("allotment", "allotment_admin"):
+        return redirect("/scam-website-allotment")
     return redirect(f"/?page={first_page}")
 # ============================================================
 # LOGIN / LOGOUT
@@ -959,9 +979,11 @@ def get_user_activity_log():
         resp = query.order("created_at", desc=True).limit(500).execute()
         all_logs = resp.data or []
         PAGE_TABLE_MAP = {
-            "scraping":   "scrapping_data",
-            "social":     "social_media_accounts",
-            "investment": "BS_Investment_Scam",
+            "scraping":        "scrapping_data",
+            "social":          "social_media_accounts",
+            "investment":      "BS_Investment_Scam",
+            "allotment":       "website_allotment",
+            "allotment_admin": "website_allotment",
         }
 
         # Admin — sab kuch dikhao (but still filter by allowed_pages if not superadmin)
@@ -3887,6 +3909,367 @@ def website_directory_inoperable():
         return jsonify({"success": True, "items": resp.data or []})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
+
+@app.route("/website-directory-operable", methods=["GET"])
+@login_required
+def website_directory_operable():
+    """Website Allot picker ke liye website list — ab is route ka Website
+    Directory ke 'operable/remark' status se koi connection nahi hai; saari
+    website_directory entries yahan dikhti hain (sirf category/search_for
+    filters lagte hain, koi remark-based restriction nahi)."""
+    try:
+        wd_category   = request.args.get("wd_category", "").strip()
+        wd_search_for = request.args.get("wd_search_for", "").strip()
+        offset = int(request.args.get("offset", 0))
+        limit  = int(request.args.get("limit", 1000))
+        query = supabase.table("website_directory") \
+            .select("id,date,name,url,final_url,search_for,login_id,password,remark,origin,category,group_app_name")
+        if wd_category:
+            query = query.eq("category", wd_category)
+        if wd_search_for:
+            query = query.eq("search_for", wd_search_for)
+        query = query.order("id", desc=True).range(offset, offset + limit - 1)
+        resp = query.execute()
+        return jsonify({"success": True, "items": resp.data or []})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+# ============================================================
+# SCAM++ WEBSITE ALLOTMENT
+# ============================================================
+@app.route("/scam-website-allotment", methods=["GET"])
+@login_required
+def scam_website_allotment():
+    user = get_current_user()
+    allowed_pages = session.get("allowed_pages", [])
+    if not can_access_allotment(session):
+        flash("You don't have access to Website Allotment.", "error")
+        return redirect_to_allowed_page(allowed_pages)
+
+    is_admin_allot = is_allotment_admin(session)
+    current_display_name = session.get("display_name", "")
+    clean_display_name_filter = get_clean_display_name(current_display_name)
+
+    sa_search     = request.args.get("sa_search", "").strip()
+    sa_category   = request.args.get("sa_category", "").strip()
+    sa_search_for = request.args.get("sa_search_for", "").strip()
+    sa_remark     = request.args.get("sa_remark", "").strip()
+    sa_date_from  = request.args.get("sa_date_from", "").strip()
+    sa_date_to    = request.args.get("sa_date_to", "").strip()
+    # Default view — koi bhi date filter na diya ho toh aaj ka allotment dikhao
+    if not sa_date_from and not sa_date_to:
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        sa_date_from = today_str
+        sa_date_to = today_str
+    page = int(request.args.get("page_num", 1))
+
+    items = []
+    total_rows = 0
+    total_pages = 1
+    try:
+        query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("*", count="exact")
+
+        # Data isolation — plain "allotment" users only see rows allotted to their own name.
+        # ilike wildcard so old records saved with "(Role)" suffix and new clean-name
+        # records both match against the logged-in user's clean display name.
+        if not is_admin_allot:
+            query = query.ilike("alloted_user_name", f"{clean_display_name_filter}%")
+
+        if sa_search:
+            lt = f"%{sa_search}%"
+            query = query.or_(
+                f"final_url.ilike.{lt},"
+                f"login_id.ilike.{lt},"
+                f"password.ilike.{lt},"
+                f"remark.ilike.{lt},"
+                f"category.ilike.{lt},"
+                f"search_for.ilike.{lt},"
+                f"alloted_user_name.ilike.{lt}"
+            )
+        if sa_category:
+            query = query.eq("category", sa_category)
+        if sa_search_for:
+            query = query.eq("search_for", sa_search_for)
+        if sa_remark == "PENDING":
+            query = query.or_("remark.is.null,remark.eq.,remark.eq.NA")
+        elif sa_remark:
+            query = query.eq("remark", sa_remark)
+        if sa_date_from:
+            query = query.gte("allotted_at", sa_date_from + " 00:00:00")
+        if sa_date_to:
+            query = query.lte("allotted_at", sa_date_to + " 23:59:59")
+
+        query = query.order("id", desc=True)
+        offset = (page - 1) * PER_PAGE
+        query = query.range(offset, offset + PER_PAGE - 1)
+        resp = query.execute()
+        items = resp.data or []
+        total_rows = resp.count or 0
+        total_pages = max(1, math.ceil(total_rows / PER_PAGE))
+    except Exception as e:
+        flash(f"Error fetching website allotment: {e}", "error")
+
+    target_completed = False
+    if not is_admin_allot:
+        try:
+            target_query = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+                .select("remark") \
+                .ilike("alloted_user_name", f"{clean_display_name_filter}%")
+            # Congrats banner ab wahi date-range respect karta hai jo table mein dikhaya ja raha hai
+            if sa_date_from:
+                target_query = target_query.gte("allotted_at", sa_date_from + " 00:00:00")
+            if sa_date_to:
+                target_query = target_query.lte("allotted_at", sa_date_to + " 23:59:59")
+            target_rows_resp = target_query.execute()
+            target_rows = target_rows_resp.data or []
+            total_target = len(target_rows)
+            pending_target = sum(
+                1 for r in target_rows
+                if r.get("remark") is None
+                or not str(r.get("remark")).strip()
+                or str(r.get("remark")).strip().upper() in ("NA", "N/A")
+            )
+            target_completed = total_target > 0 and pending_target == 0
+        except Exception:
+            target_completed = False
+
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
+    return render_template(
+        "scam_website_allotment.html",
+        target_completed=target_completed,
+        items=items,
+        sa_search=sa_search,
+        sa_category=sa_category,
+        sa_search_for=sa_search_for,
+        sa_remark=sa_remark,
+        sa_date_from=sa_date_from,
+        sa_date_to=sa_date_to,
+        page_num=page,
+        total_pages=total_pages,
+        total_rows=total_rows,
+        wd_category_options=WEBSITE_DIRECTORY_CATEGORY_OPTIONS,
+        wd_search_for_options=WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS,
+        allotment_remark_options=ALLOTMENT_REMARK_OPTIONS,
+        is_admin_allot=is_admin_allot,
+        current_user=user,
+        allowed_pages=allowed_pages,
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+        can_view_activity_log=session.get("can_view_activity_log", False),
+    )
+
+
+@app.route("/scam-website-allotment-users", methods=["GET"])
+@login_required
+def scam_website_allotment_users():
+    """List of users eligible to receive allotments (for the admin's dropdown)."""
+    if not is_allotment_admin(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        client = get_auth_supabase()
+        res = client.table("dashboard_users") \
+            .select("id,display_name,allowed_pages") \
+            .eq("is_active", True) \
+            .execute()
+        rows = res.data or []
+        names = sorted({
+            get_clean_display_name(r.get("display_name")) for r in rows
+            if r.get("display_name") and (
+                "allotment" in (r.get("allowed_pages") or []) or
+                "allotment_admin" in (r.get("allowed_pages") or [])
+            )
+        })
+        return jsonify({"success": True, "users": [{"display_name": n} for n in names]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/scam-website-allotment-allot", methods=["POST"])
+@login_required
+def scam_website_allotment_allot():
+    if not is_allotment_admin(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json(force=True) or {}
+        target_name = (data.get("alloted_user_name") or "").strip()
+        website_ids = data.get("website_ids") or []
+        if not target_name or not website_ids:
+            return jsonify({"success": False, "error": "User and websites are required."})
+
+        dir_resp = supabase.table("website_directory") \
+            .select("id,final_url,login_id,password,remark,category,search_for") \
+            .in_("id", website_ids) \
+            .execute()
+        dir_rows = dir_resp.data or []
+
+        insert_rows = []
+        for row in dir_rows:
+            insert_rows.append({
+                "alloted_user_name": target_name,
+                "final_url":         row.get("final_url"),
+                "login_id":          row.get("login_id"),
+                "password":          row.get("password"),
+                # Website Directory ka purana remark (e.g. "IPG") copy NAHI karna hai —
+                # naya allotment hamesha "pending" state se start hona chahiye taaki
+                # target-completion tabhi true ho jab user khud remark select kare.
+                "remark":            None,
+                "category":          row.get("category"),
+                "search_for":        row.get("search_for"),
+                "allotted_at":       datetime.now().isoformat(),
+            })
+
+        if insert_rows:
+            supabase.table(WEBSITE_ALLOTMENT_TABLE).insert(insert_rows).execute()
+            log_activity("allotment_create", target_table=WEBSITE_ALLOTMENT_TABLE,
+                         extra_info=f"Allotted {len(insert_rows)} website(s) to {target_name}")
+
+        return jsonify({"success": True, "allotted": len(insert_rows)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/scam-website-allotment-update-remark", methods=["POST"])
+@login_required
+def scam_website_allotment_update_remark():
+    """Sirf website_allotment table ka remark update karta hai —
+    website_directory table par koi asar nahi padta."""
+    if not can_access_allotment(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json(force=True) or {}
+        rid = data.get("id")
+        remark = (data.get("remark") or "").strip()
+        if not rid:
+            return jsonify({"success": False, "error": "No ID provided."})
+        resp = supabase.table(WEBSITE_ALLOTMENT_TABLE).update({"remark": remark}).eq("id", rid).execute()
+        if resp.data:
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Update failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/scam-website-allotment-check-target", methods=["GET"])
+@login_required
+def scam_website_allotment_check_target():
+    """Remark update ke turant baad, bina page refresh kiye, congrats banner
+    ka status recalculate karne ke liye lightweight endpoint. Currently applied
+    date filter (agar hai) usi ke hisaab se target check karta hai."""
+    if is_allotment_admin(session):
+        return jsonify({"success": True, "target_completed": False})
+    try:
+        date_from = request.args.get("sa_date_from", "").strip()
+        date_to   = request.args.get("sa_date_to", "").strip()
+        # Filter na ho toh bhi "today" default maan kar check karo — jaisa
+        # index route mein hota hai — taaki default view par bhi banner sahi
+        # se dikhe.
+        if not date_from and not date_to:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            date_from = today_str
+            date_to = today_str
+        clean_name = get_clean_display_name(session.get("display_name", ""))
+
+        target_query = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+            .select("remark") \
+            .ilike("alloted_user_name", f"{clean_name}%")
+        if date_from:
+            target_query = target_query.gte("allotted_at", date_from + " 00:00:00")
+        if date_to:
+            target_query = target_query.lte("allotted_at", date_to + " 23:59:59")
+        target_rows_resp = target_query.execute()
+        target_rows = target_rows_resp.data or []
+        total_target = len(target_rows)
+        pending_target = sum(
+            1 for r in target_rows
+            if r.get("remark") is None
+            or not str(r.get("remark")).strip()
+            or str(r.get("remark")).strip().upper() in ("NA", "N/A")
+        )
+        target_completed = total_target > 0 and pending_target == 0
+        return jsonify({"success": True, "target_completed": target_completed})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/scam-website-allotment-delete-row", methods=["POST"])
+@login_required
+def scam_website_allotment_delete_row():
+    """Admin-only: website_allotment table se ek row permanently delete karta hai."""
+    if not is_allotment_admin(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json(force=True) or {}
+        rid = data.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID provided."})
+        supabase.table(WEBSITE_ALLOTMENT_TABLE).delete().eq("id", rid).execute()
+        log_activity("allotment_delete", target_table=WEBSITE_ALLOTMENT_TABLE, target_record_id=rid)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/scam-website-allotment-export", methods=["GET"])
+@login_required
+def scam_website_allotment_export():
+    if not can_access_allotment(session):
+        flash("You don't have access to Website Allotment.", "error")
+        return redirect_to_allowed_page(session.get("allowed_pages", []))
+    try:
+        is_admin_allot = is_allotment_admin(session)
+        query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("*")
+        if not is_admin_allot:
+            clean_export_name = get_clean_display_name(session.get("display_name", ""))
+            query = query.ilike("alloted_user_name", f"{clean_export_name}%")
+
+        sa_search     = request.args.get("sa_search", "").strip()
+        sa_category   = request.args.get("sa_category", "").strip()
+        sa_search_for = request.args.get("sa_search_for", "").strip()
+        sa_remark     = request.args.get("sa_remark", "").strip()
+        sa_date_from  = request.args.get("sa_date_from", "").strip()
+        sa_date_to    = request.args.get("sa_date_to", "").strip()
+        if sa_search:
+            lt = f"%{sa_search}%"
+            query = query.or_(
+                f"final_url.ilike.{lt},"
+                f"login_id.ilike.{lt},password.ilike.{lt},remark.ilike.{lt},"
+                f"category.ilike.{lt},search_for.ilike.{lt},alloted_user_name.ilike.{lt}"
+            )
+        if sa_category:
+            query = query.eq("category", sa_category)
+        if sa_search_for:
+            query = query.eq("search_for", sa_search_for)
+        if sa_remark == "PENDING":
+            query = query.or_("remark.is.null,remark.eq.,remark.eq.NA")
+        elif sa_remark:
+            query = query.eq("remark", sa_remark)
+        if sa_date_from:
+            query = query.gte("allotted_at", sa_date_from + " 00:00:00")
+        if sa_date_to:
+            query = query.lte("allotted_at", sa_date_to + " 23:59:59")
+
+        resp = query.order("id", desc=True).execute()
+        rows = resp.data or []
+
+        df = pd.DataFrame(rows)
+        cols = ["alloted_user_name", "final_url", "login_id",
+                "password", "remark", "search_for", "category", "allotted_at"]
+        cols = [c for c in cols if c in df.columns]
+        df = df[cols] if cols else df
+
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+            df.to_excel(writer, index=False, sheet_name="Website Allotment")
+        output.seek(0)
+        return send_file(
+            output,
+            as_attachment=True,
+            download_name=f"website_allotment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    except Exception as e:
+        flash(f"Error exporting website allotment: {e}", "error")
+        return redirect("/scam-website-allotment")
+
 @app.route("/social-search-ajax", methods=["GET"])
 @login_required
 def social_search_ajax():

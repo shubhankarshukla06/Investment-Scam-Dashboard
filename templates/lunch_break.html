@@ -151,6 +151,9 @@
                     {% if 'case_report' in allowed_pages %}
                     <option value="case_report">Case Report Generator</option>
                     {% endif %}
+                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+                    <option value="allotment">Scam++ Website Allotment</option>
+                    {% endif %}
                      {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break" selected> Lunch Break Tracker</option>
                     {% endif %}
@@ -782,6 +785,10 @@
         }
         if (pageType === 'case_report') {
             window.location.href = '/case-report';
+            return;
+        }
+        if (pageType === 'allotment') {
+            window.location.href = '/scam-website-allotment';
             return;
         }
         if (pageType === 'lunch_break') return;

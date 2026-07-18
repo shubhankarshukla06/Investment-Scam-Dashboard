@@ -175,6 +175,9 @@
             {% if 'case_report' in allowed_pages %}
             <option value="case_report" selected>Case Report Generator</option>
             {% endif %}
+            {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+            <option value="allotment">Scam++ Website Allotment</option>
+            {% endif %}
             {% if 'lunch' in allowed_pages %}
             <option value="lunch_break">Lunch Break Tracker</option>
             {% endif %}
@@ -310,6 +313,7 @@
               <option>Fake Website Scam</option>
               <option>Government Scheme Scam</option>
               <option>LPG Booking Scam</option>
+              <option>Financial Help Scam</option>
               <option value="__other__">Other (specify)</option>
             </select>
             <input type="text" id="cdScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
@@ -382,6 +386,7 @@
               <option>Fake Website Scam</option>
               <option>Government Scheme Scam</option>
               <option>LPG Booking Scam</option>
+              <option>Financial Help Scam</option>
               <option value="__other__">Other (specify)</option>
             </select>
             <input type="text" id="upiScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
@@ -434,6 +439,7 @@
               <option>Fake Website Scam</option>
               <option>Government Scheme Scam</option>
               <option>LPG Booking Scam</option>
+              <option>Financial Help Scam</option>
               <option value="__other__">Other (specify)</option>
             </select>
             <input type="text" id="bankScamTypeOther" placeholder="Enter new scam type" class="d-none" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:13px;height:38px;outline:none;margin-top:8px;background:white;color:#2c3e50;" />
@@ -1453,6 +1459,10 @@
       }
       if (pageType === 'lunch_break') {
         window.location.href = '/lunch-break';
+        return;
+      }
+      if (pageType === 'allotment') {
+        window.location.href = '/scam-website-allotment';
         return;
       }
       if (pageType === 'case_report') return;
