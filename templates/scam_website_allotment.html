@@ -176,9 +176,14 @@
     <div class="filters">
         <div class="filters-header">
             <h2><i class="fas fa-filter" style="color:#2c3e50;"></i> Filter Website Allotment</h2>
-            <span class="target-completed-banner-mini" id="targetCompletedBanner" style="{% if not target_completed %}display:none;{% endif %}">
-                <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}! You've successfully completed your target.Keep up the consistency! 🎉
-            </span>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span id="allotmentCountBadge" style="background:#eaf4fd;color:#1a5276;border:1px solid #aed6f1;padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap;">
+                    <i class="fas fa-chart-pie"></i> Loading...
+                </span>
+                <span class="target-completed-banner-mini" id="targetCompletedBanner" style="{% if not target_completed %}display:none;{% endif %}">
+                    <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}! You've successfully completed your target.Keep up the consistency! 🎉
+                </span>
+            </div>
         </div>
         <form method="GET" action="/scam-website-allotment" id="filterForm">
             <div class="filters-grid">
@@ -248,6 +253,7 @@
                     {% endif %}
                 </tr>
             </thead>
+            <!-- Action column now includes both Edit (reassign) and Delete buttons for admins -->
             <tbody>
                 {% for item in items %}
                 <tr data-allot-id="{{ item.id }}" data-allot-json='{{ item | tojson | safe }}'>
@@ -262,9 +268,16 @@
                         {% else %}-{% endif %}
                     </td>
                     <td>
-                        {% if item.final_url %}
-                        <a href="{{ item.final_url if item.final_url.startswith('http') else 'https://' + item.final_url }}" target="_blank" rel="noopener" class="website-link" title="{{ item.final_url }}">{{ item.final_url }}</a>
-                        {% else %}-{% endif %}
+                        {% if item.category == 'Investment Scam' %}
+                            {% if item.final_url %}
+                            <a href="{{ item.final_url if item.final_url.startswith('http') else 'https://' + item.final_url }}" target="_blank" rel="noopener" class="website-link" title="{{ item.final_url }}">{{ item.final_url }}</a>
+                            {% else %}-{% endif %}
+                        {% else %}
+                            {% set display_url = item.url if item.url else item.final_url %}
+                            {% if display_url %}
+                            <a href="{{ display_url if display_url.startswith('http') else 'https://' + display_url }}" target="_blank" rel="noopener" class="website-link" title="{{ display_url }}">{{ display_url }}</a>
+                            {% else %}-{% endif %}
+                        {% endif %}
                     </td>
                     <td>
                         {% if item.login_id and item.login_id not in ['NA','N/A','',None] %}
@@ -302,12 +315,12 @@
                     <td>{{ item.category or '-' }}</td>
                     {% if is_admin_allot %}
                     <td>
-                        <div style="display:flex;gap:6px;">
-                            <button type="button" onclick="askDeleteAllotment({{ item.id }})"
-                                style="background:#e74c3c;color:white;border:none;padding:4px 9px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
+                        <select onchange="handleAllotmentAction(this, {{ item.id }}, '{{ (item.alloted_user_name or '')|replace("'", "\\'") }}')"
+                            style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:11px;font-weight:600;background:#fff;min-width:105px;">
+                            <option value="">Action</option>
+                            <option value="edit">Edit User</option>
+                            <option value="delete">Delete</option>
+                        </select>
                     </td>
                     {% endif %}
                 </tr>
@@ -378,6 +391,14 @@
                         {% endfor %}
                     </select>
                 </div>
+                <div style="flex:1;min-width:120px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Status</label>
+                    <select id="allotStatusFilter" onchange="filterAllotRows()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                        <option value="">All</option>
+                        <option value="available">Available</option>
+                        <option value="allotted">Allotted</option>
+                    </select>
+                </div>
                 <button type="button" class="btn btn-primary" onclick="loadAllotSource()" style="height:34px;">
                     <i class="fas fa-sync-alt"></i> Refresh List
                 </button>
@@ -388,13 +409,14 @@
                         <tr>
                             <th style="width:34px;"><input type="checkbox" id="allotSelectAll" onclick="toggleAllAllot(this)"></th>
                             <th>Date</th>
-                            <th>Final URL</th>
+                            <th>Website</th>
                             <th>Category</th>
                             <th>Search For</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody id="allotTbody">
-                        <tr><td colspan="5"><div class="empty-state">Click "Website Allot" to load websites...</div></td></tr>
+                        <tr><td colspan="6"><div class="empty-state">Click "Website Allot" to load websites...</div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -411,6 +433,31 @@
 {% endif %}
 
 {% if is_admin_allot %}
+
+<!-- Reassign (Change User) Modal (admin only) -->
+<div class="modal-overlay" id="reassignModal">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header" style="background:#3498db;">
+            <h2><i class="fas fa-user-edit"></i> Change Allotted User</h2>
+            <button class="modal-close" onclick="closeModal('reassignModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <p style="font-size:12px;color:#7f8c8d;margin-bottom:10px;">
+                Currently allotted to: <strong id="reassignCurrentUser" style="color:#2c3e50;"></strong>
+            </p>
+            <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:5px;">New User</label>
+            <select id="reassignUserSelect" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:36px;">
+                <option value="">Loading users...</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="clear-btn" onclick="closeModal('reassignModal')">Cancel</button>
+            <button type="button" class="btn btn-primary" id="reassignSubmitBtn" onclick="submitReassign()">
+                <i class="fas fa-check"></i> OK, Reassign
+            </button>
+        </div>
+    </div>
+</div>
 
 <!-- Delete Allotment Confirm Modal (admin only) -->
 <div class="modal-overlay" id="deleteAllotmentModal">
@@ -530,21 +577,29 @@ async function loadAllotSource() {
 function renderAllotRows(rows) {
     const tbody = document.getElementById('allotTbody');
     if (!rows.length) {
-        tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state">No websites found</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">No websites found</div></td></tr>';
         return;
     }
     tbody.innerHTML = rows.map(r => {
-        const rawUrl = r.final_url || r.url || '';
+        // Investment Scam category ke liye sirf Final URL dikhao, baaki
+        // saari categories ke liye full URL dikhao.
+        const rawUrl = (r.category === 'Investment Scam')
+            ? (r.final_url || '')
+            : (r.url || r.final_url || '');
         const urlCell = rawUrl
             ? `<a href="${rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl}" target="_blank" rel="noopener" class="website-link" title="${rawUrl}">${rawUrl}</a>`
             : '-';
+        const isAllotted = !!r.is_already_allotted;
+        const statusText = r.allotment_status || (isAllotted ? 'Allotted' : 'Available');
+        const statusColor = isAllotted ? '#c0392b' : '#27ae60';
         return `
-        <tr>
-            <td><input type="checkbox" class="allot-row-check" value="${r.id}" onclick="updateAllotSelectedCount()"></td>
+        <tr style="${isAllotted ? 'background:#fff7f7;' : ''}">
+            <td><input type="checkbox" class="allot-row-check" value="${r.id}" onclick="updateAllotSelectedCount()" ${isAllotted ? 'disabled' : ''}></td>
             <td>${(r.date || '-').toString().split('T')[0]}</td>
             <td>${urlCell}</td>
             <td>${r.category || '-'}</td>
             <td>${r.search_for || '-'}</td>
+            <td><span style="color:${statusColor};font-weight:700;">${statusText}</span></td>
         </tr>`;
     }).join('');
     updateAllotSelectedCount();
@@ -600,16 +655,25 @@ async function refreshTargetBanner() {
 }
 function filterAllotRows() {
     const q = document.getElementById('allotSearchBox').value.trim().toLowerCase();
-    if (!q) { renderAllotRows(_allotSourceRows); return; }
-    const filtered = _allotSourceRows.filter(r =>
-        (r.final_url || '').toLowerCase().includes(q) ||
-        (r.url || '').toLowerCase().includes(q) ||
-        (r.category || '').toLowerCase().includes(q)
-    );
+    const status = document.getElementById('allotStatusFilter')?.value || '';
+    const filtered = _allotSourceRows.filter(r => {
+        const statusMatches =
+            !status ||
+            (status === 'available' && !r.is_already_allotted) ||
+            (status === 'allotted' && r.is_already_allotted);
+        const searchMatches =
+            !q ||
+            (r.final_url || '').toLowerCase().includes(q) ||
+            (r.url || '').toLowerCase().includes(q) ||
+            (r.category || '').toLowerCase().includes(q) ||
+            (r.search_for || '').toLowerCase().includes(q) ||
+            (r.allotment_status || '').toLowerCase().includes(q);
+        return statusMatches && searchMatches;
+    });
     renderAllotRows(filtered);
 }
 function toggleAllAllot(master) {
-    document.querySelectorAll('.allot-row-check').forEach(cb => cb.checked = master.checked);
+    document.querySelectorAll('.allot-row-check:not(:disabled)').forEach(cb => cb.checked = master.checked);
     updateAllotSelectedCount();
 }
 function updateAllotSelectedCount() {
@@ -619,7 +683,7 @@ function updateAllotSelectedCount() {
 async function submitAllotment() {
     const sel = document.getElementById('allotUserSelect');
     const name = sel.value;
-    const ids = Array.from(document.querySelectorAll('.allot-row-check:checked')).map(cb => parseInt(cb.value));
+    const ids = Array.from(document.querySelectorAll('.allot-row-check:checked:not(:disabled)')).map(cb => parseInt(cb.value));
     if (!name) { showToast('Please select a user', 'err'); return; }
     if (!ids.length) { showToast('Please select at least one website', 'err'); return; }
     const btn = document.getElementById('allotSubmitBtn');
@@ -658,6 +722,83 @@ window.addEventListener('load', syncHeaderSpace);
 window.addEventListener('resize', syncHeaderSpace);
 syncHeaderSpace();
 window.addEventListener('load', refreshTargetBanner);
+window.addEventListener('load', refreshAllotmentCount);
+
+async function refreshAllotmentCount() {
+    const badge = document.getElementById('allotmentCountBadge');
+    if (!badge) return;
+    try {
+        const resp = await fetch('/scam-website-allotment-counts');
+        const data = await resp.json();
+        if (!data.success) { badge.innerHTML = '<i class="fas fa-chart-pie"></i> N/A'; return; }
+        if (data.is_admin) {
+            badge.innerHTML = `<i class="fas fa-chart-pie"></i> Total Allotted Websites: ${data.remaining} / ${data.total}`;
+        } else {
+            badge.innerHTML = `<i class="fas fa-chart-pie"></i> Allotted Websites: ${data.remaining} / ${data.total}`;
+        }
+    } catch(e) {
+        badge.innerHTML = '<i class="fas fa-chart-pie"></i> N/A';
+    }
+}
+
+// ── Reassign / Change User (admin only) ────────────────
+let _reassignId = null;
+function handleAllotmentAction(sel, id, currentUser) {
+    const action = sel.value;
+    sel.value = '';
+    if (action === 'edit') {
+        openReassignModal(id, currentUser);
+    } else if (action === 'delete') {
+        askDeleteAllotment(id);
+    }
+}
+async function openReassignModal(id, currentUser) {
+    _reassignId = id;
+    document.getElementById('reassignCurrentUser').textContent = currentUser || '—';
+    document.getElementById('reassignModal').classList.add('active');
+    const sel = document.getElementById('reassignUserSelect');
+    sel.innerHTML = '<option value="">Loading users...</option>';
+    try {
+        const resp = await fetch('/scam-website-allotment-users');
+        const data = await resp.json();
+        if (data.success && data.users.length) {
+            sel.innerHTML = data.users
+                .filter(u => u.display_name !== currentUser)
+                .map(u => `<option value="${u.display_name}">${u.display_name}</option>`)
+                .join('');
+        } else {
+            sel.innerHTML = '<option value="">No users found</option>';
+        }
+    } catch(e) {
+        sel.innerHTML = '<option value="">Error loading users</option>';
+    }
+}
+async function submitReassign() {
+    const newUser = document.getElementById('reassignUserSelect').value;
+    if (!newUser) { showToast('Please select a user', 'err'); return; }
+    if (!_reassignId) return;
+    const btn = document.getElementById('reassignSubmitBtn');
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/scam-website-allotment-reassign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: _reassignId, new_user_name: newUser })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(`Reassigned to ${newUser}!`, 'ok');
+            closeModal('reassignModal');
+            setTimeout(() => window.location.reload(), 700);
+        } else {
+            showToast(data.error || 'Reassign failed', 'err');
+        }
+    } catch(e) {
+        showToast('Reassign failed', 'err');
+    }
+    btn.disabled = false;
+    _reassignId = null;
+}
 
 // ── Delete Allotment (admin only) ──────────────────────
 let _deleteAllotmentId = null;

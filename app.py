@@ -3902,6 +3902,7 @@ def website_directory_inoperable():
         resp = supabase.table("website_directory") \
             .select("id,date,name,url,final_url,search_for,login_id,password,remark,origin,category,group_app_name") \
             .not_.eq("remark", "IPG") \
+            .not_.ilike("remark", "Allotted to %") \
             .not_.is_("remark", "null") \
             .order("id", desc=True) \
             .range(offset, offset + limit - 1) \
@@ -3913,10 +3914,9 @@ def website_directory_inoperable():
 @app.route("/website-directory-operable", methods=["GET"])
 @login_required
 def website_directory_operable():
-    """Website Allot picker ke liye website list — ab is route ka Website
-    Directory ke 'operable/remark' status se koi connection nahi hai; saari
-    website_directory entries yahan dikhti hain (sirf category/search_for
-    filters lagte hain, koi remark-based restriction nahi)."""
+    """Website Allot picker ke liye website list.
+    Already-allotted websites bhi bhejte hain taaki UI status dikha sake,
+    lekin frontend un rows ko selectable nahi rakhta."""
     try:
         wd_category   = request.args.get("wd_category", "").strip()
         wd_search_for = request.args.get("wd_search_for", "").strip()
@@ -3930,7 +3930,44 @@ def website_directory_operable():
             query = query.eq("search_for", wd_search_for)
         query = query.order("id", desc=True).range(offset, offset + limit - 1)
         resp = query.execute()
-        return jsonify({"success": True, "items": resp.data or []})
+        allotment_status_by_key = {}
+        try:
+            allot_query = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+                .select("final_url,category,search_for,alloted_user_name")
+            if wd_category:
+                allot_query = allot_query.eq("category", wd_category)
+            if wd_search_for:
+                allot_query = allot_query.eq("search_for", wd_search_for)
+            allot_resp = allot_query.execute()
+            for allot_row in allot_resp.data or []:
+                allot_url = (allot_row.get("final_url") or "").strip().lower()
+                allot_category = (allot_row.get("category") or "").strip()
+                allot_search_for = (allot_row.get("search_for") or "").strip()
+                allot_user = (allot_row.get("alloted_user_name") or "").strip()
+                if allot_url and allot_user:
+                    allotment_status_by_key[(allot_category, allot_search_for, allot_url)] = f"Allotted to {allot_user}"
+        except Exception as status_lookup_exc:
+            print(f"[ALLOT LIST] Could not load allotment status map: {status_lookup_exc}")
+
+        items = []
+        for row in resp.data or []:
+            remark = (row.get("remark") or "").strip()
+            remark_normalized = remark.upper()
+            if (
+                remark
+                and remark_normalized not in ("NA", "N/A", "IPG")
+                and not remark.lower().startswith("allotted to ")
+            ):
+                continue
+            category = (row.get("category") or "").strip()
+            search_for = (row.get("search_for") or "").strip()
+            display_url = row.get("final_url") if category == "Investment Scam" else (row.get("url") or row.get("final_url"))
+            status_from_allotment = allotment_status_by_key.get((category, search_for, (display_url or "").strip().lower()))
+            is_allotted = bool(status_from_allotment)
+            row["allotment_status"] = status_from_allotment or "Available"
+            row["is_already_allotted"] = is_allotted
+            items.append(row)
+        return jsonify({"success": True, "items": items})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -4097,23 +4134,25 @@ def scam_website_allotment_allot():
             return jsonify({"success": False, "error": "User and websites are required."})
 
         dir_resp = supabase.table("website_directory") \
-            .select("id,final_url,login_id,password,remark,category,search_for") \
+            .select("id,url,final_url,login_id,password,remark,category,search_for") \
             .in_("id", website_ids) \
             .execute()
         dir_rows = dir_resp.data or []
 
         insert_rows = []
         for row in dir_rows:
+            category = (row.get("category") or "").strip()
+            display_url = row.get("final_url") if category == "Investment Scam" else (row.get("url") or row.get("final_url"))
             insert_rows.append({
                 "alloted_user_name": target_name,
-                "final_url":         row.get("final_url"),
+                "final_url":         display_url,
                 "login_id":          row.get("login_id"),
                 "password":          row.get("password"),
                 # Website Directory ka purana remark (e.g. "IPG") copy NAHI karna hai —
                 # naya allotment hamesha "pending" state se start hona chahiye taaki
                 # target-completion tabhi true ho jab user khud remark select kare.
                 "remark":            None,
-                "category":          row.get("category"),
+                "category":          category,
                 "search_for":        row.get("search_for"),
                 "allotted_at":       datetime.now().isoformat(),
             })
@@ -4124,6 +4163,41 @@ def scam_website_allotment_allot():
                          extra_info=f"Allotted {len(insert_rows)} website(s) to {target_name}")
 
         return jsonify({"success": True, "allotted": len(insert_rows)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+@app.route("/scam-website-allotment-reassign", methods=["POST"])
+@login_required
+def scam_website_allotment_reassign():
+    """Admin-only: ek allotment row ko naye user ko reassign karta hai —
+    purane user se allotment hat jaata hai, naye user ko mil jaata hai."""
+    if not is_allotment_admin(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json(force=True) or {}
+        rid = data.get("id")
+        new_user = (data.get("new_user_name") or "").strip()
+        if not rid or not new_user:
+            return jsonify({"success": False, "error": "Record ID and new user are required."})
+
+        row_resp = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("*").eq("id", rid).limit(1).execute()
+        if not row_resp.data:
+            return jsonify({"success": False, "error": "Allotment record not found."})
+        old_row = row_resp.data[0]
+        old_user = old_row.get("alloted_user_name")
+
+        update_payload = {
+            "alloted_user_name": new_user,
+            "remark": None,  # naye user ke liye pending state se restart
+            "allotted_at": datetime.now().isoformat(),
+        }
+        resp = supabase.table(WEBSITE_ALLOTMENT_TABLE).update(update_payload).eq("id", rid).execute()
+        if resp.data:
+            log_activity("allotment_reassign", target_table=WEBSITE_ALLOTMENT_TABLE,
+                         target_record_id=rid,
+                         old_value=old_user, new_value=new_user)
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Reassign failed"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
@@ -4145,6 +4219,30 @@ def scam_website_allotment_update_remark():
         if resp.data:
             return jsonify({"success": True, "record": resp.data[0]})
         return jsonify({"success": False, "error": "Update failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+    
+@app.route("/scam-website-allotment-counts", methods=["GET"])
+@login_required
+def scam_website_allotment_counts():
+    """Filter bar ke Total/Remaining Allotment Count ke liye — remark ke
+    basis pe 'remaining' (pending) vs 'total' (sab allotted) calculate karta hai."""
+    try:
+        is_admin_allot = is_allotment_admin(session)
+        query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("remark")
+        if not is_admin_allot:
+            clean_name = get_clean_display_name(session.get("display_name", ""))
+            query = query.ilike("alloted_user_name", f"{clean_name}%")
+        resp = query.execute()
+        rows = resp.data or []
+        total = len(rows)
+        remaining = sum(
+            1 for r in rows
+            if r.get("remark") is None
+            or not str(r.get("remark")).strip()
+            or str(r.get("remark")).strip().upper() in ("NA", "N/A")
+        )
+        return jsonify({"success": True, "total": total, "remaining": remaining, "is_admin": is_admin_allot})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
