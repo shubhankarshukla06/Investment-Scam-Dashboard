@@ -6,14 +6,17 @@
 <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
-    :root{ --fixed-header-space: 92px; }
+    :root{ --fixed-header-space: 92px; --allot-filter-space: 102px; }
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background:#f4f6f8; color:#2c3e50; }
-    .fixed-header { position:fixed; top:0; left:0; right:0; z-index:100; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
-    .header { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; flex-wrap:wrap; gap:10px; }
-    .header h1 { font-size:18px; color:#2c3e50; }
-    .header p { font-size:11px; color:#7f8c8d; }
-    .header-username { font-size:11px; color:#7f8c8d; margin-left:8px; }
+    body { background:#f5f7fa; color:#2c3e50; }
+    .fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#f5f7fa; padding:12px 15px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
+    .header { background:#fff; border-radius:8px; padding:12px 15px; box-shadow:0 1px 8px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; gap:16px; }
+    .logo { display:flex; flex-direction:column; justify-content:center; gap:4px; flex:1 1 auto; min-width:0; }
+    .logo-title-row { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; min-width:0; line-height:1.15; }
+    .logo h1 { font-size:18px; line-height:1.15; color:#2c3e50; white-space:nowrap; flex:0 0 auto; }
+    .logo p { color:#7f8c8d; font-size:12px; line-height:1.2; margin:0; font-weight:600; margin-top:2px; }
+    .header-username { font-size:12px; line-height:1.15; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+    .header-controls { display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:0 0 auto; }
     .header-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
     .page-selector { display:flex; align-items:center; gap:6px; }
     .page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:#fff; cursor:pointer; min-width:200px; height:34px; }
@@ -24,23 +27,23 @@
     .btn-warning { background:#f39c12; }
     .btn-danger  { background:#e74c3c; }
     .btn-outline { background:#ecf0f1; color:#2c3e50; border:1px solid #ddd; }
-    .container { padding-top: calc(var(--fixed-header-space) + 4px); padding-left:20px; padding-right:20px; padding-bottom:40px; }
+    .container { padding-top: calc(var(--fixed-header-space) - 2px); padding-left:20px; padding-right:20px; padding-bottom:40px; }
     .flash-message { padding:10px 16px; border-radius:6px; margin-bottom:12px; background:#eafaf1; font-size:13px; display:flex; align-items:center; gap:8px; }
     .flash-message.error { background:#fdecea; }
-    .filters { background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
-    .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:12px; }
-    .filters-header h2 { font-size:15px; display:flex; align-items:center; gap:8px; }
-    .filters-grid { display:grid; grid-template-columns:1.1fr 1.1fr 1fr 1fr 1fr auto; gap:10px; align-items:end; }
+    .filters { background:#fff; border-radius:8px; padding:10px 12px; margin-bottom:10px; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:sticky; top:calc(var(--fixed-header-space) - 6px); z-index:900; }
+    .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
+    .filters-header h2 { font-size:14px; display:flex; align-items:center; gap:8px; }
+    .filters-grid { display:grid; grid-template-columns:1.1fr 1.1fr 1fr 1fr 1fr auto; gap:8px; align-items:end; }
     .filter-group label { font-size:11px; font-weight:600; color:#555; display:flex; align-items:center; gap:5px; margin-bottom:4px; }
-    .filter-group input, .filter-group select { width:100%; padding:7px 9px; border:1px solid #ddd; border-radius:6px; font-size:12px; height:34px; }
+    .filter-group input, .filter-group select { width:100%; padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; height:30px; }
     .search-box { position:relative; }
     .search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#95a5a6; font-size:12px; }
     .search-box input { padding-left:26px; }
-    .clear-btn { background:#95a5a6; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:12px; font-weight:600; cursor:pointer; height:34px; display:flex; align-items:center; gap:5px; }
+    .clear-btn { background:#95a5a6; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer; height:30px; display:flex; align-items:center; gap:5px; }
     .filter-actions { display:flex; gap:8px; align-items:end; }
-    .table-wrap { background:#fff; border-radius:8px; overflow-x:auto; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
+    .table-wrap { background:#fff; border-radius:8px; overflow:auto; max-height:calc(100vh - var(--fixed-header-space) - var(--allot-filter-space) - 24px); box-shadow:0 1px 4px rgba(0,0,0,0.06); }
     table { width:100%; border-collapse:collapse; font-size:12.5px; }
-    thead th { background:#2c3e50; color:#fff; text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; }
+    thead th { background:#2c3e50; color:#fff; text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; z-index:20; }
     tbody td { padding:9px 12px; border-bottom:1px solid #eee; white-space:nowrap; max-width:240px; overflow:hidden; text-overflow:ellipsis; }
     tbody tr:hover { background:#f8f9fa; }
     .copy-cell { cursor:pointer; }
@@ -57,9 +60,9 @@
     .pagination { display:flex; justify-content:center; align-items:center; gap:10px; padding:14px; }
     .pagination button { padding:6px 12px; border:1px solid #ddd; background:#fff; border-radius:5px; cursor:pointer; font-size:12px; }
     .pagination button:disabled { opacity:0.4; cursor:not-allowed; }
-    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:200; align-items:center; justify-content:center; }
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; }
     .modal-overlay.active { display:flex; }
-    .modal-content { background:#fff; border-radius:10px; width:95%; max-width:1100px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+    .modal-content { background:#fff; border-radius:10px; width:95%; max-width:1350px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
     .modal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; background:#2c3e50; color:#fff; }
     .modal-header h2 { font-size:16px; display:flex; align-items:center; gap:8px; }
     .modal-close { background:none; border:none; color:#fff; font-size:16px; cursor:pointer; }
@@ -82,6 +85,11 @@
     .bar-count { width:40px; text-align:right; font-size:12px; font-weight:700; }
     .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; }
     .dev-credit-footer span { color:#3498db; font-weight:700; }
+    .allot-toolbar { display:flex; gap:10px; flex-wrap:nowrap; margin-bottom:12px; align-items:end; overflow-x:auto; padding-bottom:2px; }
+    .allot-toolbar > div { flex:1 0 130px; }
+    .allot-toolbar .allot-search { flex-basis:190px; }
+    .allot-toolbar .allot-user { flex-basis:170px; }
+    .allot-toolbar .allot-refresh { flex:0 0 auto; height:34px; }
 </style>
 </head>
 <body>
@@ -91,14 +99,14 @@
 <!-- Fixed Header -->
 <div class="fixed-header">
     <div class="header">
-        <div>
-            <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
-                <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
-                <span class="header-username" style="font-weight:700;"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+        <div class="logo">
+            <div class="logo-title-row">
+                <h1>Scam Intelligence GUI</h1>
+                <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
             </div>
-            <p style="margin-top:2px;font-weight:700;">Scam++ Website Allotment</p>
+            <p>Scam++ Website Allotment</p>
         </div>
-        <div class="header-actions">
+        <div class="header-controls">
             <div class="page-selector">
                 <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changeAllotmentPage(this.value)">
                     {% if 'scraping' in allowed_pages %}
@@ -131,6 +139,7 @@
                 </select>
             </div>
 
+            <div class="header-actions">
             {% if is_admin_allot %}
             <!-- Website Allot (admin only) -->
             <button type="button" class="btn btn-success" onclick="openAllotModal()">
@@ -159,6 +168,7 @@
             <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;" title="Logout">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
+            </div>
         </div>
     </div>
 </div>
@@ -224,7 +234,7 @@
                     <input type="date" id="saDateTo" name="sa_date_to" value="{{ sa_date_to }}" onchange="this.form.submit()">
                 </div>
                 <div class="filter-group filter-actions">
-                    <button type="submit" class="btn btn-primary" style="height:34px;">
+                    <button type="submit" class="btn btn-primary" style="height:30px;">
                         <i class="fas fa-search"></i> Apply
                     </button>
                     <button type="button" class="clear-btn" onclick="window.location.href='/scam-website-allotment'">
@@ -362,18 +372,18 @@
             <button class="modal-close" onclick="closeModal('allotModal')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:end;">
-                <div style="flex:1;min-width:150px;">
+            <div class="allot-toolbar">
+                <div class="allot-search">
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search</label>
                     <input type="text" id="allotSearchBox" oninput="filterAllotRows()" placeholder="Search name / URL / category..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                 </div>
-                <div style="flex:1;min-width:160px;">
+                <div class="allot-user">
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
                     <select id="allotUserSelect" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                         <option value="">Loading users...</option>
                     </select>
                 </div>
-                <div style="flex:1;min-width:140px;">
+                <div>
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Category</label>
                     <select id="allotCategoryFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                         <option value="">All Categories</option>
@@ -382,7 +392,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div style="flex:1;min-width:120px;">
+                <div>
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search For</label>
                     <select id="allotSearchForFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                         <option value="">All</option>
@@ -391,7 +401,7 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div style="flex:1;min-width:120px;">
+                <div>
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Status</label>
                     <select id="allotStatusFilter" onchange="filterAllotRows()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                         <option value="">All</option>
@@ -399,15 +409,15 @@
                         <option value="allotted">Allotted</option>
                     </select>
                 </div>
-                <div style="flex:1;min-width:125px;">
+                <div>
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date From</label>
                     <input type="date" id="allotDateFromFilter" value="{{ sa_date_from }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                 </div>
-                <div style="flex:1;min-width:125px;">
+                <div>
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date To</label>
                     <input type="date" id="allotDateToFilter" value="{{ sa_date_to }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                 </div>
-                <button type="button" class="btn btn-primary" onclick="loadAllotSource()" style="height:34px;">
+                <button type="button" class="btn btn-primary allot-refresh" onclick="loadAllotSource()">
                     <i class="fas fa-sync-alt"></i> Refresh List
                 </button>
             </div>
@@ -709,8 +719,18 @@ async function submitAllotment() {
         const data = await resp.json();
         if (data.success) {
             showToast(`Allotted ${data.allotted} website(s) to ${name}!`, 'ok');
-            closeModal('allotModal');
-            setTimeout(() => window.location.reload(), 700);
+            const selectedIdSet = new Set(ids);
+            _allotSourceRows = _allotSourceRows.map(r => {
+                if (!selectedIdSet.has(parseInt(r.id))) return r;
+                return {
+                    ...r,
+                    is_already_allotted: true,
+                    allotment_status: `Allotted to ${name}`
+                };
+            });
+            document.getElementById('allotSelectAll').checked = false;
+            filterAllotRows();
+            refreshAllotmentCount();
         } else {
             showToast(data.error || 'Allotment failed', 'err');
         }
@@ -728,7 +748,9 @@ document.addEventListener('keydown', e => {
 });
 function syncHeaderSpace() {
     const h = document.querySelector('.fixed-header')?.getBoundingClientRect().height;
-    if (h && h > 30) document.documentElement.style.setProperty('--fixed-header-space', Math.ceil(h + 14) + 'px');
+    if (h && h > 30) document.documentElement.style.setProperty('--fixed-header-space', Math.ceil(h + 6) + 'px');
+    const filterH = document.querySelector('.filters')?.getBoundingClientRect().height;
+    if (filterH && filterH > 30) document.documentElement.style.setProperty('--allot-filter-space', Math.ceil(filterH + 10) + 'px');
 }
 window.addEventListener('load', syncHeaderSpace);
 window.addEventListener('resize', syncHeaderSpace);
