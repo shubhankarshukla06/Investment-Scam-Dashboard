@@ -2255,22 +2255,26 @@ def save_social_field():
         value = data.get('value', '').strip()
         if not account_id or not field:
             return jsonify({"success": False, "error": "Missing id or field"})
-        EDITABLE_FIELDS = ['login_user', 'number', 'login_device', 'account_status',
-                           'review_status', 'blocked_date', 'unblock_date', 'recharge_date',
-                           'full_name', 'account_create_date','password']
+        EDITABLE_FIELDS = ['login_user', 'number', 'login_device', 'sim_inserted_device',
+                           'account_status', 'review_status', 'number_type', 'blocked_date',
+                           'unblock_date', 'recharge_date', 'sim_buy_date', 'sim_operator',
+                           'owned_by', 'full_name', 'account_create_date','password']
         if field not in EDITABLE_FIELDS:
             return jsonify({"success": False, "error": f"Field '{field}' is not editable"})
         old_value = None
         platform = None
+        old_number = None
         try:
+            select_fields = ",".join(dict.fromkeys([field, "platform", "number"]))
             old_resp = social_supabase.table("social_media_accounts") \
-                .select(f"{field},platform").eq("id", account_id).limit(1).execute()
+                .select(select_fields).eq("id", account_id).limit(1).execute()
             if old_resp.data:
                 old_value = old_resp.data[0].get(field)
                 platform = old_resp.data[0].get('platform')
+                old_number = old_resp.data[0].get('number')
         except Exception as e:
             print(f"[ACTIVITY LOG] Could not fetch old value: {e}")
-        DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date'}
+        DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date', 'sim_buy_date'}
         if field in DATE_FIELDS:
             save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
         else:
@@ -2281,6 +2285,15 @@ def save_social_field():
         response = social_supabase.table("social_media_accounts").update(update_payload).eq("id", account_id).execute()
         if hasattr(response, 'data'):
             if response.data:
+                TOTAL_NUMBER_SYNC_FIELDS = {
+                    'owned_by', 'number', 'sim_inserted_device', 'number_type',
+                    'sim_operator', 'recharge_date', 'sim_buy_date'
+                }
+                if platform == "Total Numbers" and field in TOTAL_NUMBER_SYNC_FIELDS and old_number:
+                    social_supabase.table("social_media_accounts") \
+                        .update(update_payload) \
+                        .eq("number", old_number) \
+                        .execute()
                 extra_info = {}
                 if platform:
                     extra_info['platform'] = platform

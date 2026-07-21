@@ -1827,12 +1827,15 @@
                                 data-login_user="{{ item.login_user or '' }}"
                                 data-number="{{ item.number or '' }}"
                                 data-login_device="{{ item.login_device or '' }}"
+                                data-sim_inserted_device="{{ item.sim_inserted_device or '' }}"
                                 data-full_name="{{ item.full_name or '' }}"
                                 data-account_status="{{ item.account_status or 'Active' }}"
                                 data-review_status="{{ item.review_status or 'NA' }}"
+                                data-number_type="{{ item.number_type or '' }}"
                                 data-blocked_date="{{ item.blocked_date or '' }}"
                                 data-unblock_date="{{ item.unblocked_date or item.unblock_date or '' }}"
                                 data-recharge_date="{{ item.recharge_date or '' }}"
+                                data-sim_buy_date="{{ item.sim_buy_date or '' }}"
                                 data-account_create_date="{{ item.account_create_date or '' }}"
                                 data-owned_by="{{ item.owned_by or '' }}"
                                 data-sim_operator="{{ item.sim_operator or '' }}"
@@ -2255,6 +2258,31 @@
                 'Total Numbers':  ['id','platform','department','owned_by','number','sim_inserted_device','account_status','number_type','sim_operator','review_status','recharge_date'],
             };
             const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
+            const RECHARGE_VALIDITY_DAYS = 28;
+            function formatRechargeDateWithDaysLeft(value) {
+                const raw = (value || '').trim();
+                if (!raw || ['NA','N/A','NONE','NULL'].includes(raw.toUpperCase())) return 'N/A';
+                const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                if (!match) return raw;
+
+                const rechargeDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+                if (Number.isNaN(rechargeDate.getTime())) return raw;
+                const expiryDate = new Date(rechargeDate);
+                expiryDate.setDate(expiryDate.getDate() + RECHARGE_VALIDITY_DAYS);
+
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const daysLeft = Math.ceil((expiryDate - today) / 86400000);
+                if (daysLeft < 0) return `${raw} (Expired)`;
+                const label = daysLeft === 1 ? 'Day left' : 'Days left';
+                return `${raw} (${String(daysLeft).padStart(2, '0')} ${label})`;
+            }
+            function refreshRechargeDateLabels(scope = document) {
+                scope.querySelectorAll('tr[data-recharge_date] td[data-col="recharge_date"]').forEach(td => {
+                    const row = td.closest('tr');
+                    td.textContent = formatRechargeDateWithDaysLeft(row?.dataset.recharge_date || '');
+                });
+            }
             function filterSocialColumns(platform) {
                 const table = document.getElementById('socialMediaTable');
                 if (!table) return;
@@ -2271,6 +2299,7 @@
             (function initSocialColumns() {
                 const sel = document.getElementById('socialPlatformSelect');
                 if (sel) filterSocialColumns(sel.value);
+                refreshRechargeDateLabels();
             })();
             // initNumberTypeCounts moved to loadSessionInfo().then() block
             const PLATFORM_ICONS = { 'Facebook':'facebook-f','Instagram':'instagram','Telegram':'telegram-plane','WhatsApp':'whatsapp','Amazon':'amazon','Gmail Accounts':'envelope','Total Numbers':'sim-card' };
@@ -2517,12 +2546,15 @@
                         data-login_user="${item.login_user||''}"
                         data-number="${item.number||''}"
                         data-login_device="${item.login_device||''}"
+                        data-sim_inserted_device="${item.sim_inserted_device||''}"
                         data-full_name="${item.full_name||''}"
                         data-account_status="${item.account_status||'Active'}"
                         data-review_status="${item.review_status||'NA'}"
+                        data-number_type="${item.number_type||''}"
                         data-blocked_date="${item.blocked_date||''}"
                         data-unblock_date="${item.unblocked_date||item.unblock_date||''}"
                         data-recharge_date="${item.recharge_date||''}"
+                        data-sim_buy_date="${item.sim_buy_date||''}"
                         data-account_create_date="${item.account_create_date||''}"
                         data-owned_by="${item.owned_by||''}"
                         data-sim_operator="${item.sim_operator||''}"
@@ -2550,7 +2582,7 @@
                         <td data-col="account_create_date">${item.account_create_date || 'N/A'}</td>
                         <td data-col="sim_operator">${highlight(item.sim_operator, q) || 'N/A'}</td>
                         <td data-col="full_name">${highlight(item.full_name, q) || 'N/A'}</td>
-                        <td data-col="recharge_date">${item.recharge_date || 'N/A'}</td>
+                        <td data-col="recharge_date">${formatRechargeDateWithDaysLeft(item.recharge_date)}</td>
                         <td data-col="sim_buy_date">${item.sim_buy_date || 'N/A'}</td>
                         <td data-col="account_type">${item.account_type || 'N/A'}</td>
                         <td data-col="mail_id">${highlight(item.mail_id, q) || 'N/A'}</td>
@@ -2657,8 +2689,10 @@
                 { key: 'login_user',          label: 'Login User',         type: 'text' },
                 { key: 'number',              label: 'Number',             type: 'text' },
                 { key: 'login_device',        label: 'Login Device',       type: 'text' },
+                { key: 'sim_inserted_device', label: 'SIM Inserted Device',type: 'text' },
                 { key: 'full_name',           label: 'Full Name',          type: 'text' },
                 { key: 'sim_operator',        label: 'SIM Operator',       type: 'text' },
+                { key: 'number_type',         label: 'Number Type',        type: 'text' },
                 { key: 'owned_by',            label: 'Owned By',           type: 'text' },
                 { key: 'account_status',      label: 'Account Status',     type: 'status_select' },
                 { key: 'review_status',       label: 'Review Status',      type: 'review_select' },
@@ -2666,6 +2700,7 @@
                 { key: 'blocked_date',        label: 'Blocked Date',       type: 'date' },
                 { key: 'unblock_date',        label: 'Unblock Date',       type: 'date' },
                 { key: 'recharge_date',       label: 'Recharge Date',      type: 'date' },
+                { key: 'sim_buy_date',        label: 'SIM Buy Date',       type: 'date' },
                 { key: 'password',            label: 'Password',           type: 'text' },
             ];
             function openEditDrawer(event, row) {
@@ -2760,6 +2795,8 @@
                                         // Update badge
                                         const badgeClass = sl.includes('permanent') ? 'status-permanent-block' : `status-${sl.replace(' ','-')}`;
                                         td.innerHTML = `<span class="status-display ${badgeClass}">${value}</span>`;
+                                    } else if (field === 'recharge_date') {
+                                        td.textContent = formatRechargeDateWithDaysLeft(value);
                                     } else {
                                         td.textContent = value || 'N/A';
                                     }
@@ -4899,7 +4936,7 @@
                     <td data-col="account_create_date">${v(item.account_create_date)}</td>
                     <td data-col="sim_operator">${v(item.sim_operator)}</td>
                     <td data-col="full_name">${v(item.full_name)}</td>
-                    <td data-col="recharge_date">${v(item.recharge_date)}</td>
+                    <td data-col="recharge_date">${formatRechargeDateWithDaysLeft(item.recharge_date)}</td>
                     <td data-col="sim_buy_date">${v(item.sim_buy_date)}</td>
                     <td data-col="account_type">${v(item.account_type)}</td>
                     <td data-col="mail_id">${v(item.mail_id)}</td>
