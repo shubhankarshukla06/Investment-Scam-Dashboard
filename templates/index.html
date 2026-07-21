@@ -2259,28 +2259,59 @@
             };
             const ALL_SOCIAL_COLS = ['id','platform','department','owned_by','login_user','number','login_device','sim_inserted_device','account_status','review_status','number_type','blocked_date','unblocked_date','account_create_date','sim_operator','full_name','recharge_date','sim_buy_date','account_type','mail_id','account_id','password','page_name'];
             const RECHARGE_VALIDITY_DAYS = 28;
-            function formatRechargeDateWithDaysLeft(value) {
+            function escapeRechargeHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, ch => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[ch]));
+            }
+            function getRechargeDateInfo(value) {
                 const raw = (value || '').trim();
-                if (!raw || ['NA','N/A','NONE','NULL'].includes(raw.toUpperCase())) return 'N/A';
+                if (!raw || ['NA','N/A','NONE','NULL'].includes(raw.toUpperCase())) return { raw, display: 'N/A' };
                 const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-                if (!match) return raw;
+                if (!match) return { raw, display: escapeRechargeHtml(raw) };
 
                 const rechargeDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-                if (Number.isNaN(rechargeDate.getTime())) return raw;
+                if (Number.isNaN(rechargeDate.getTime())) return { raw, display: escapeRechargeHtml(raw) };
                 const expiryDate = new Date(rechargeDate);
                 expiryDate.setDate(expiryDate.getDate() + RECHARGE_VALIDITY_DAYS);
 
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 const daysLeft = Math.ceil((expiryDate - today) / 86400000);
-                if (daysLeft < 0) return `${raw} (Expired)`;
+                if (daysLeft < 0) {
+                    return {
+                        raw,
+                        daysLeft,
+                        expired: true,
+                        display: `<span style="white-space:nowrap;">${escapeRechargeHtml(raw)}</span> <span style="display:inline-flex;align-items:center;margin-left:4px;padding:2px 7px;border-radius:999px;background:#fff1f2;border:1px solid #fecdd3;color:#be123c;font-size:11px;font-weight:700;line-height:1.2;">Expired</span>`
+                    };
+                }
                 const label = daysLeft === 1 ? 'Day left' : 'Days left';
-                return `${raw} (${String(daysLeft).padStart(2, '0')} ${label})`;
+                const daysText = `${String(daysLeft).padStart(2, '0')} ${label}`;
+                const badgeStyle = daysLeft <= 3
+                    ? 'background:#fff7ed;border:1px solid #fed7aa;color:#c2410c;'
+                    : 'background:#ecfdf5;border:1px solid #bbf7d0;color:#047857;';
+                return {
+                    raw,
+                    daysLeft,
+                    expired: false,
+                    display: `<span style="white-space:nowrap;">${escapeRechargeHtml(raw)}</span> <span style="display:inline-flex;align-items:center;margin-left:4px;padding:2px 7px;border-radius:999px;${badgeStyle}font-size:11px;font-weight:700;line-height:1.2;">${daysText}</span>`
+                };
+            }
+            function formatRechargeDateWithDaysLeft(value) {
+                return getRechargeDateInfo(value).display;
+            }
+            function applyRechargeDateCell(td, value) {
+                if (!td) return;
+                const info = getRechargeDateInfo(value);
+                td.innerHTML = info.display;
+                td.style.backgroundColor = '';
+                td.style.color = '';
             }
             function refreshRechargeDateLabels(scope = document) {
                 scope.querySelectorAll('tr[data-recharge_date] td[data-col="recharge_date"]').forEach(td => {
                     const row = td.closest('tr');
-                    td.textContent = formatRechargeDateWithDaysLeft(row?.dataset.recharge_date || '');
+                    applyRechargeDateCell(td, row?.dataset.recharge_date || '');
                 });
             }
             function filterSocialColumns(platform) {
@@ -2593,6 +2624,7 @@
                 });
 
                 tbody.innerHTML = rows.join('');
+                refreshRechargeDateLabels(tbody);
                 _updateSocialSearchBadge(total, query);
                 filterSocialColumns(currentPlatform);
 
@@ -2796,7 +2828,7 @@
                                         const badgeClass = sl.includes('permanent') ? 'status-permanent-block' : `status-${sl.replace(' ','-')}`;
                                         td.innerHTML = `<span class="status-display ${badgeClass}">${value}</span>`;
                                     } else if (field === 'recharge_date') {
-                                        td.textContent = formatRechargeDateWithDaysLeft(value);
+                                        applyRechargeDateCell(td, value);
                                     } else {
                                         td.textContent = value || 'N/A';
                                     }
@@ -4945,6 +4977,7 @@
                     <td data-col="page_name">${v(item.page_name)}</td>
                 `;
                 tbody.insertBefore(tr, tbody.firstChild);
+                applyRechargeDateCell(tr.querySelector('td[data-col="recharge_date"]'), item.recharge_date);
                 const sel = document.getElementById('socialPlatformSelect');
                 if (sel) filterSocialColumns(sel.value);
             }

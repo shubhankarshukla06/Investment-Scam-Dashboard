@@ -4457,7 +4457,7 @@ def social_search_ajax():
 # ============================================================
 # TOTAL NUMBERS — Public Read-Only API
 # ============================================================
-TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator"
+TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator,recharge_date"
 
 # ============================================================
 # CASE REPORT GENERATOR ROUTES
