@@ -399,6 +399,14 @@
                         <option value="allotted">Allotted</option>
                     </select>
                 </div>
+                <div style="flex:1;min-width:125px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date From</label>
+                    <input type="date" id="allotDateFromFilter" value="{{ sa_date_from }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                </div>
+                <div style="flex:1;min-width:125px;">
+                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date To</label>
+                    <input type="date" id="allotDateToFilter" value="{{ sa_date_to }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                </div>
                 <button type="button" class="btn btn-primary" onclick="loadAllotSource()" style="height:34px;">
                     <i class="fas fa-sync-alt"></i> Refresh List
                 </button>
@@ -562,13 +570,17 @@ async function loadAllotSource() {
     try {
         const cat = document.getElementById('allotCategoryFilter')?.value || '';
         const sf  = document.getElementById('allotSearchForFilter')?.value || '';
+        const dateFrom = document.getElementById('allotDateFromFilter')?.value || '';
+        const dateTo = document.getElementById('allotDateToFilter')?.value || '';
         const params = new URLSearchParams({ offset: 0, limit: 2000 });
         if (cat) params.set('wd_category', cat);
         if (sf)  params.set('wd_search_for', sf);
+        if (dateFrom) params.set('wd_date_from', dateFrom);
+        if (dateTo) params.set('wd_date_to', dateTo);
         const resp = await fetch('/website-directory-operable?' + params.toString());
         const data = await resp.json();
         _allotSourceRows = (data.success ? data.items : []) || [];
-        renderAllotRows(_allotSourceRows);
+        filterAllotRows();
         document.getElementById('allotTotalBadge').textContent = _allotSourceRows.length + ' records';
     } catch(e) {
         tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state">Error loading list</div></td></tr>';
@@ -728,7 +740,12 @@ async function refreshAllotmentCount() {
     const badge = document.getElementById('allotmentCountBadge');
     if (!badge) return;
     try {
-        const resp = await fetch('/scam-website-allotment-counts');
+        const params = new URLSearchParams();
+        const dateFromVal = document.getElementById('saDateFrom')?.value || '';
+        const dateToVal   = document.getElementById('saDateTo')?.value || '';
+        if (dateFromVal) params.set('sa_date_from', dateFromVal);
+        if (dateToVal)   params.set('sa_date_to', dateToVal);
+        const resp = await fetch('/scam-website-allotment-counts?' + params.toString());
         const data = await resp.json();
         if (!data.success) { badge.innerHTML = '<i class="fas fa-chart-pie"></i> N/A'; return; }
         if (data.is_admin) {

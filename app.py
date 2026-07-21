@@ -3920,6 +3920,12 @@ def website_directory_operable():
     try:
         wd_category   = request.args.get("wd_category", "").strip()
         wd_search_for = request.args.get("wd_search_for", "").strip()
+        wd_date_from  = request.args.get("wd_date_from", "").strip()
+        wd_date_to    = request.args.get("wd_date_to", "").strip()
+        if not wd_date_from and not wd_date_to:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            wd_date_from = today_str
+            wd_date_to = today_str
         offset = int(request.args.get("offset", 0))
         limit  = int(request.args.get("limit", 1000))
         query = supabase.table("website_directory") \
@@ -3938,6 +3944,10 @@ def website_directory_operable():
                 allot_query = allot_query.eq("category", wd_category)
             if wd_search_for:
                 allot_query = allot_query.eq("search_for", wd_search_for)
+            if wd_date_from:
+                allot_query = allot_query.gte("allotted_at", wd_date_from + " 00:00:00")
+            if wd_date_to:
+                allot_query = allot_query.lte("allotted_at", wd_date_to + " 23:59:59")
             allot_resp = allot_query.execute()
             for allot_row in allot_resp.data or []:
                 allot_url = (allot_row.get("final_url") or "").strip().lower()
@@ -4229,10 +4239,20 @@ def scam_website_allotment_counts():
     basis pe 'remaining' (pending) vs 'total' (sab allotted) calculate karta hai."""
     try:
         is_admin_allot = is_allotment_admin(session)
+        date_from = request.args.get("sa_date_from", "").strip()
+        date_to = request.args.get("sa_date_to", "").strip()
+        if not date_from and not date_to:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            date_from = today_str
+            date_to = today_str
         query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("remark")
         if not is_admin_allot:
             clean_name = get_clean_display_name(session.get("display_name", ""))
             query = query.ilike("alloted_user_name", f"{clean_name}%")
+        if date_from:
+            query = query.gte("allotted_at", date_from + " 00:00:00")
+        if date_to:
+            query = query.lte("allotted_at", date_to + " 23:59:59")
         resp = query.execute()
         rows = resp.data or []
         total = len(rows)
