@@ -2735,6 +2735,14 @@
                 { key: 'sim_buy_date',        label: 'SIM Buy Date',       type: 'date' },
                 { key: 'password',            label: 'Password',           type: 'text' },
             ];
+            const TOTAL_NUMBERS_DRAWER_FIELDS = new Set([
+                'owned_by', 'number', 'sim_inserted_device', 'number_type',
+                'sim_operator', 'recharge_date', 'sim_buy_date'
+            ]);
+            const NON_TOTAL_DRAWER_HIDDEN_FIELDS = new Set([
+                'owned_by', 'sim_inserted_device', 'number_type', 'sim_operator',
+                'recharge_date', 'sim_buy_date', 'account_create_date'
+            ]);
             function openEditDrawer(event, row) {
                 event.stopPropagation();
                 _editDrawerChanges = {};
@@ -2749,7 +2757,11 @@
                 const grid = document.getElementById('editDrawerGrid');
                 grid.innerHTML = '';
 
-                DRAWER_FIELDS.forEach(field => {
+                const drawerFields = platform === 'Total Numbers'
+                    ? DRAWER_FIELDS.filter(field => TOTAL_NUMBERS_DRAWER_FIELDS.has(field.key))
+                    : DRAWER_FIELDS.filter(field => !NON_TOTAL_DRAWER_HIDDEN_FIELDS.has(field.key));
+
+                drawerFields.forEach(field => {
                     const currentVal = row.dataset[field.key] || '';
                     const div = document.createElement('div');
                     div.className = 'edit-drawer-field';
@@ -3194,6 +3206,10 @@
                         if (total === 0) return;
                         const deptEntries = Object.entries(deptMap).sort((a, b) => b[1] - a[1]);
                         const activeCount = statusData['Active'] || 0;
+                        const rechargeCount = p === 'Total Numbers' ? (stats.total_numbers_recharged_count || 0) : null;
+                        const rechargePill = rechargeCount !== null
+                            ? `<span class="platform-total" style="background:#0d9488;">Total Recharge Numbers Count: ${rechargeCount}</span>`
+                            : '';
                         // Status breakdown pills (all statuses except Perm Block)
                         const statusEntries = Object.entries(statusData)
                             .filter(([s, c]) => s !== 'Permanent Block' && c > 0)
@@ -3216,7 +3232,10 @@
                         html += `<div class="platform-section">
                                     <div class="platform-header">
                                         <h4>${getPlatformIconHtml(iconName)} ${p}</h4>
-                                        <span class="platform-total" style="background:#16a34a;">Active: ${activeCount} / Total: ${total}</span>
+                                        <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;">
+                                            ${rechargePill}
+                                            <span class="platform-total" style="background:#16a34a;">Active: ${activeCount} / Total: ${total}</span>
+                                        </div>
                                     </div>
                                     ${deptEntries.length ? `
                                     <div>

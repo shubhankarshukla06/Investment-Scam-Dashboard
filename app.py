@@ -1517,7 +1517,9 @@ def tracker_stats():
         perm_block_total = 0
         platform_dept_counts = {}
         platform_number_type_counts = {}
+        total_numbers_recharged_count = 0
         CHUNK = 1000
+        today = datetime.now().date()
         for platform in platforms:
             try:
                 all_rows = []
@@ -1525,7 +1527,7 @@ def tracker_stats():
                 total_count = 0
                 while True:
                     _q = social_supabase.table("social_media_accounts") \
-                        .select("account_status,department,number_type", count='exact') \
+                        .select("account_status,department,number_type,recharge_date", count='exact') \
                         .eq("platform", platform)
                     allowed_depts = session.get("allowed_departments")
                     if allowed_depts:
@@ -1559,6 +1561,15 @@ def tracker_stats():
                     if status != 'Permanent Block':
                         dept_map[dept] = dept_map.get(dept, 0) + 1
                         num_type_map[num_type] = num_type_map.get(num_type, 0) + 1
+                    if platform == "Total Numbers":
+                        recharge_date = item.get('recharge_date')
+                        if recharge_date and str(recharge_date).upper() not in ('NA', 'N/A', 'NONE', 'NULL'):
+                            try:
+                                recharge_dt = datetime.strptime(str(recharge_date)[:10], "%Y-%m-%d").date()
+                                if recharge_dt <= today and recharge_dt + timedelta(days=28) >= today:
+                                    total_numbers_recharged_count += 1
+                            except Exception:
+                                pass
                 platform_status_counts[platform] = status_map
                 perm_block_counts[platform] = pb_count
                 perm_block_total += pb_count
@@ -1584,6 +1595,7 @@ def tracker_stats():
                 "perm_block_total": perm_block_total,
                 "platform_dept_counts": platform_dept_counts,
                 "platform_number_type_counts": platform_number_type_counts,
+                "total_numbers_recharged_count": total_numbers_recharged_count,
             }
         })
     except Exception as e:
