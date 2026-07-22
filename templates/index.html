@@ -2736,7 +2736,7 @@
                 { key: 'password',            label: 'Password',           type: 'text' },
             ];
             const TOTAL_NUMBERS_DRAWER_FIELDS = new Set([
-                'owned_by', 'number', 'sim_inserted_device', 'number_type',
+                'owned_by', 'number', 'sim_inserted_device', 'account_status', 'number_type',
                 'sim_operator', 'recharge_date', 'sim_buy_date'
             ]);
             const NON_TOTAL_DRAWER_HIDDEN_FIELDS = new Set([
@@ -3320,10 +3320,10 @@
                 if (searchInp && searchVal !== undefined) searchInp.value = searchVal || '';
                 let html = '';
                 if (count > 0) {
-                    html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
+                    html += `<div style="overflow-x:auto;"><table class="activity-table"><thead><tr><th>#</th><th>Owned By</th><th>Number</th><th>Login User</th><th>SIM Inserted Device</th><th>Login Device</th><th>Platform</th><th>Blocked Date</th><th>Active Duration</th></tr></thead><tbody>`;
                     accounts.forEach((a,i) => {
                         const iconName = PLATFORM_ICONS[a.platform] || 'globe';
-                        html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${getPlatformIconHtml(iconName,'margin-right:3px;')}${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
+                        html += `<tr style="background:#fff5f5;"><td style="color:#7f8c8d;font-size:11px;">${i+1}</td><td>${a.owned_by||'N/A'}</td><td>${a.number||'N/A'}</td><td>${a.login_user||'N/A'}</td><td>${a.sim_inserted_device||'N/A'}</td><td>${a.login_device||'N/A'}</td><td><span style="background:#e3f2fd;color:#1976d2;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${getPlatformIconHtml(iconName,'margin-right:3px;')}${a.platform||'N/A'}</span></td><td>${a.blocked_date||'N/A'}</td><td><span style="background:#ef4444;color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${a.active_duration||'N/A'}</span></td></tr>`;
                     });
                     html += '</tbody></table></div>';
                 } else {

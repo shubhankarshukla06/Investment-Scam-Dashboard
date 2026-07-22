@@ -1237,7 +1237,15 @@ def index():
                     f"full_name.ilike.{like_term},"
                     f"page_name.ilike.{like_term},"
                     f"platform.ilike.{like_term},"
-                    f"account_status.ilike.{like_term}"
+                    f"account_status.ilike.{like_term},"
+                    f"owned_by.ilike.{like_term},"
+                    f"department.ilike.{like_term},"
+                    f"sim_operator.ilike.{like_term},"
+                    f"mail_id.ilike.{like_term},"
+                    f"account_id.ilike.{like_term},"
+                    f"number_type.ilike.{like_term},"
+                    f"login_device.ilike.{like_term},"
+                    f"sim_inserted_device.ilike.{like_term}"
                 )
             if social_platform and social_platform != "":
                 query = query.eq("platform", social_platform)
@@ -1718,7 +1726,15 @@ def social_export():
                     q = q.in_("department", allowed_depts)
             if social_search:
                 like_term = f"%{social_search}%"
-                q = q.or_(f"login_user.ilike.{like_term},number.ilike.{like_term},full_name.ilike.{like_term},page_name.ilike.{like_term},platform.ilike.{like_term}")
+                q = q.or_(
+                    f"login_user.ilike.{like_term},number.ilike.{like_term},"
+                    f"full_name.ilike.{like_term},page_name.ilike.{like_term},"
+                    f"platform.ilike.{like_term},account_status.ilike.{like_term},"
+                    f"owned_by.ilike.{like_term},department.ilike.{like_term},"
+                    f"sim_operator.ilike.{like_term},mail_id.ilike.{like_term},"
+                    f"account_id.ilike.{like_term},number_type.ilike.{like_term},"
+                    f"login_device.ilike.{like_term},sim_inserted_device.ilike.{like_term}"
+                )
             if social_platform and social_platform not in ["", "All Platforms"]:
                 q = q.eq("platform", social_platform)
             if social_permanent_block == "true":
@@ -2342,7 +2358,7 @@ def get_permanent_block_accounts():
         search   = request.args.get("search",   "").strip()
         platform = request.args.get("platform", "").strip()
         query = social_supabase.table("social_media_accounts") \
-            .select("id,owned_by,number,login_device,blocked_date,account_create_date,platform,department") \
+            .select("id,owned_by,number,login_user,login_device,sim_inserted_device,blocked_date,account_create_date,platform,department") \
             .eq("account_status", "Permanent Block")
         # ── Department filter ───────────────────────────────────────────
         # Always enforce for non-admins; admins see all
@@ -2370,6 +2386,8 @@ def get_permanent_block_accounts():
         response = query.execute()
         accounts = []
         for item in (response.data or []):
+            item["login_user"] = "NA"
+            item["sim_inserted_device"] = "NA"
             b_date_str      = item.get("blocked_date")        or ""
             create_date_str = item.get("account_create_date") or ""
             active_duration = "N/A"
@@ -2809,6 +2827,19 @@ def insert_social_record():
         # platform is required
         if not record.get('platform') or record['platform'] == 'NA':
             return jsonify({"success": False, "error": "Platform is required"})
+        if record.get('number') and record['number'] != 'NA':
+            existing_perm = social_supabase.table("social_media_accounts") \
+                .select("id") \
+                .eq("platform", record['platform']) \
+                .eq("number", record['number']) \
+                .eq("account_status", "Permanent Block") \
+                .limit(1) \
+                .execute()
+            if existing_perm.data:
+                return jsonify({
+                    "success": False,
+                    "error": "Already exist in Permanent Block Account"
+                })
         # get next id
         try:
             max_id_resp = social_supabase.table("social_media_accounts") \
@@ -4444,7 +4475,8 @@ def social_search_ajax():
                 f"mail_id.ilike.{like_term},"
                 f"account_id.ilike.{like_term},"
                 f"number_type.ilike.{like_term},"
-                f"login_device.ilike.{like_term}"
+                f"login_device.ilike.{like_term},"
+                f"sim_inserted_device.ilike.{like_term}"
             )
 
         if platform:
@@ -6076,7 +6108,7 @@ def lunch_break_insert():
             return jsonify({"success": False, "error": "Date, employee name and start time are required"})
 
         if "lunch" not in allowed_pages:
-            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Lunch tracker did not have access"}), 403
         if employee_name not in ALL_EMPLOYEES:
             return jsonify({"success": False, "error": "Invalid employee name"})
 
@@ -6127,7 +6159,7 @@ def lunch_break_update():
             return jsonify({"success": False, "error": "No ID"})
 
         if "lunch" not in allowed_pages:
-            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Lunch tracker did not have access"}), 403
 
         from datetime import datetime as dt
         start = data.get("lunch_start", "")
@@ -6170,7 +6202,7 @@ def lunch_break_delete():
             return jsonify({"success": False, "error": "No ID"})
 
         if "lunch" not in allowed_pages:
-            return jsonify({"success": False, "error": "Lunch tracker access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Lunch tracker did not have access"}), 403
 
         get_auth_supabase().table("lunch_breaks").delete().eq("id", rid).execute()
         return jsonify({"success": True})
