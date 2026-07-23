@@ -1,0 +1,18 @@
+{
+  "status": "done",
+  "phase": "regenerating",
+  "total": 1,
+  "completed": 1,
+  "results": [
+    {
+      "id": "926e76fa-1bbb-4c50-84f7-7564f4d74915",
+      "old_pdf_url": "https://d13uxlm82x9iqw.cloudfront.net/case-reports/npci-7131839396_8629ad5e_b36f8fb8c70946--t.me.pdf",
+      "new_pdf_url": "https://d342cbz307migp.cloudfront.net/case-reports/npci-1784802169_7270ae1c_6a61eb7934ea5--t.me.pdf",
+      "source_url": "https://t.me/ONLINE_MONEY_INVESTMENT_INDIAN",
+      "status": "Success"
+    }
+  ],
+  "folder": "c:\\Users\\Acer\\OneDrive - Pixeltruth\\Code_Hub\\Testing_Code\\regenerate_jobs\\0a299a05a43849a3a44d7247961275dc_20260723_155229",
+  "final_excel": "c:\\Users\\Acer\\OneDrive - Pixeltruth\\Code_Hub\\Testing_Code\\regenerate_jobs\\0a299a05a43849a3a44d7247961275dc_20260723_155229\\final_regenerated_results_20260723_155229.xlsx",
+  "message": null
+}

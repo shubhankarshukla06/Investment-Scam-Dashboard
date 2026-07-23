@@ -5221,9 +5221,7 @@ def _regen_job_response(job):
         "completed": job["completed"],
         "results": job["results"],
         "folder": job["folder"],
-        "screenshot_excel": job["screenshot_excel"],
         "final_excel": job["final_excel"],
-        "investment_sheet": job["investment_sheet"],
         "message": job["message"],
     }
 
@@ -5271,69 +5269,6 @@ def _cleanup_paths(paths):
             print(f"[CLEANUP] Could not remove {path}: {exc}", flush=True)
 
 
-def _build_investment_sheet_row(report, screenshot_links, input_user):
-    """Ek regenerated report se Investment Scam sheet ki ek row banata hai —
-    naye teeno PDF links (comma-separated) screenshot/screenshot_case_report_link
-    mein jaate hain."""
-    row_data = {col: "NA" for col in REQUIRED_COLUMNS}
-
-    upi_vpa              = clean_value(report.get("upi_vpa"))
-    bank_account_number  = clean_value(report.get("bank_account_number"))
-    website_url          = clean_value(report.get("source_url"))
-    payment_gateway_url  = clean_value(report.get("payment_gateway_url"))
-    ifsc_code            = clean_value(report.get("ifsc_code"))
-    ac_holder_name       = clean_value(report.get("ac_holder_name"))
-    scam_type            = clean_value(report.get("scam_type"))
-    search_for_val       = clean_value(report.get("search_for"))
-    chat_number          = clean_value(report.get("chat_number"))
-    screenshot_val       = clean_value(screenshot_links)
-
-    row_data['upi_vpa']              = upi_vpa
-    row_data['bank_account_number']  = bank_account_number
-    row_data['website_url']          = website_url
-    row_data['payment_gateway_url']  = payment_gateway_url
-    row_data['ifsc_code']            = ifsc_code
-    row_data['ac_holder_name']       = ac_holder_name
-    row_data['scam_type']            = scam_type
-    row_data['web_contact_no']       = chat_number
-    row_data['screenshot']                    = screenshot_val
-    row_data['screenshot_case_report_link']   = screenshot_val
-
-    handle = extract_handle(upi_vpa)
-    row_data['handle']    = handle
-    row_data['bank_name'] = get_bank_name_from_handle(handle, ifsc_code)
-    row_data['search_for'] = search_for_val if search_for_val != "NA" else extract_search_for_from_url(website_url)
-    row_data['upi_bank_account_wallet'] = "UPI" if upi_vpa != "NA" else ("Bank Account" if bank_account_number != "NA" else "NA")
-
-    origin, category = lookup_origin_and_category_from_master(website_url)
-    row_data['origin'] = origin
-    row_data['category_of_website'] = category if category != "NA" else scam_type
-
-    if payment_gateway_url != "NA":
-        row_data['payment_gateway_intermediate_url'] = payment_gateway_url
-        row_data['upi_url'] = payment_gateway_url
-        row_data['payment_gateway_name'] = extract_payment_gateway_name(payment_gateway_url, website_url)
-    else:
-        row_data['payment_gateway_intermediate_url'] = "NA"
-        row_data['upi_url'] = "NA"
-        row_data['payment_gateway_name'] = "NA"
-
-    now = datetime.now()
-    row_data['inserted_date']       = now.strftime("%Y-%m-%d")
-    row_data['case_generated_time'] = now.strftime("%Y-%m-%d %H:%M:%S")
-
-    row_data.update({
-        'customer': "Mystery Shopping", 'package_name': "com.mysteryshopping",
-        'channel_name': "Organic Search", 'status': "Active", 'priority': "High",
-        'flag': "1", 'cessation': "Open", 'reviewed_status': "1",
-        'reported_earlier': "No", 'approvd_status': "1",
-        'feature_type': "BS Investment Scam", 'platform': "NA",
-        'neft_imps': "NA", 'bank_branch_details': "NA", 'transaction_method': "NA",
-    })
-
-    return {col: row_data.get(col, "NA") for col in REQUIRED_COLUMNS}
-
-
 def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
     """Background thread — actual regenerate ka kaam yahi karta hai,
     stop_event check karte hue taaki beech mein rok sakein."""
@@ -5356,12 +5291,8 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
             REGEN_JOBS[job_id]["folder"] = session_folder
         _write_regen_job_snapshot(job_id)
 
-        screenshot_rows = []
         final_rows = []
-        investment_sheet_rows = []
-        screenshot_excel_path = os.path.join(session_folder, "screenshot_paths.xlsx")
         final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
-        inv_path = os.path.join(session_folder, f"Investment_Scam_Final_Sheet_{timestamp}.csv")
 
         aml_session = aml_login_requests()
         with REGEN_JOBS_LOCK:
@@ -5397,13 +5328,6 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                     paths_for_report = download_and_extract_report_images(report, images_folder, prefix=str(report_id))
                 except Exception as exc:
                     paths_for_report = []
-                    screenshot_rows.append({"report_id": report_id, "old_pdf_url": report.get("pdf_url"), "error": str(exc)})
-
-                if paths_for_report:
-                    screenshot_row = {"report_id": report_id, "old_pdf_url": report.get("pdf_url")}
-                    for idx, p in enumerate(paths_for_report, start=1):
-                        screenshot_row[f"screenshot_path_{idx}"] = p
-                    screenshot_rows.append(screenshot_row)
 
                 if not paths_for_report:
                     row_result = {"id": report.get("id"), "old_pdf_url": report.get("pdf_url"), "new_pdf_url": None, "source_url": report.get("source_url"), "status": "No screenshots extracted"}
@@ -5465,28 +5389,15 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                     REGEN_JOBS[job_id]["results"].append(row_result)
                     REGEN_JOBS[job_id]["completed"] += 1
                 final_rows.append(row_result)
-                if mode == "investment_sheet" and status == "Success" and new_pdf_url and new_pdf_url != "Failed":
-                    investment_sheet_rows.append(
-                        _build_investment_sheet_row(report, new_pdf_links_all or new_pdf_url, input_user)
-                    )
                 _write_regen_job_snapshot(job_id)
             finally:
                 _cleanup_paths(paths_for_report)
 
         FINAL_RESULT_COLUMNS = ["id", "old_pdf_url", "new_pdf_url", "source_url", "status"]
         pd.DataFrame(final_rows, columns=FINAL_RESULT_COLUMNS).to_excel(final_excel_path, index=False)
-        pd.DataFrame(screenshot_rows).to_excel(screenshot_excel_path, index=False)
         with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["screenshot_excel"] = screenshot_excel_path
             REGEN_JOBS[job_id]["final_excel"] = final_excel_path
         _write_regen_job_snapshot(job_id)
-
-        if mode == "investment_sheet":
-            inv_df = pd.DataFrame(investment_sheet_rows, columns=REQUIRED_COLUMNS) if investment_sheet_rows else pd.DataFrame(columns=REQUIRED_COLUMNS)
-            inv_df.to_csv(inv_path, index=False, encoding='utf-8-sig')
-            with REGEN_JOBS_LOCK:
-                REGEN_JOBS[job_id]["investment_sheet"] = inv_path
-            _write_regen_job_snapshot(job_id)
 
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["status"] = "stopped" if stop_event.is_set() else "done"
@@ -5697,9 +5608,7 @@ def bulk_regenerate_cases():
     try:
         data = request.get_json(silent=True) or {}
         report_ids = data.get("report_ids", [])
-        mode = data.get("mode", "basic")
-        if mode not in ("basic", "investment_sheet"):
-            mode = "basic"
+        mode = "basic"
         if not report_ids:
             return jsonify({"status": "error", "message": "No report_ids provided"}), 400
         if len(report_ids) > MAX_BULK_REGENERATE_REPORTS:
@@ -5719,9 +5628,7 @@ def bulk_regenerate_cases():
                 "completed": 0,
                 "results": [],
                 "folder": None,
-                "screenshot_excel": None,
                 "final_excel": None,
-                "investment_sheet": None,
                 "message": None,
                 "stop_event": threading.Event(),
                 "driver": None,
@@ -5751,8 +5658,6 @@ def download_regenerate_file(job_id, file_type):
 
     allowed_types = {
         "final_excel": job_data.get("final_excel"),
-        "investment_sheet": job_data.get("investment_sheet"),
-        "screenshot_excel": job_data.get("screenshot_excel"),
     }
     file_path = allowed_types.get(file_type)
     if not file_path or not os.path.isfile(file_path):

@@ -217,6 +217,10 @@
           <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:14px;">
             <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;">
               <div>
+                <label style="font-size:11px;font-weight:700;color:#2c3e50;display:block;margin-bottom:4px;">Search</label>
+                <input type="text" id="vdSearchInput" placeholder="Search UPI, URL, Category..." style="height:34px;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;width:220px;" />
+              </div>
+              <div>
                 <label style="font-size:11px;font-weight:700;color:#2c3e50;display:block;margin-bottom:4px;">Date From</label>
                 <input type="date" id="vdDateFrom" style="height:34px;padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;" />
               </div>
@@ -240,9 +244,6 @@
             <div style="display:flex;gap:8px;">
               <button id="vdRegenerateBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;" onclick="runRegenerate('basic')">
                 <i class="fas fa-sync-alt"></i> Regenerate Cases
-              </button>
-              <button id="vdRegenerateFinalSheetBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;background:#27ae60;" onclick="runRegenerate('investment_sheet')">
-                <i class="fas fa-file-excel"></i> Regenerate Cases with Final Sheet
               </button>
               <button id="vdExportBtn" type="button" class="btn btn-generate" style="height:34px;font-size:12px;">
                 <i class="fas fa-download"></i> Export CSV
@@ -1096,6 +1097,7 @@
     }
     const VD_LINK_KEYS = ["source_url", "pdf_url"];
 
+    let _regeneratedReportIds = new Set();
     function renderViewDataTable(rows) {
       if (!rows || rows.length === 0) {
         viewDataTableWrap.innerHTML = '<p style="font-size:12.5px;color:#7f8c8d;">No data found.</p>';
@@ -1107,7 +1109,8 @@
       html += `<th style="width:60px;">Action</th>`;
       html += '</tr></thead><tbody>';
       rows.forEach(row => {
-        html += '<tr>';
+        const isRegenerated = _regeneratedReportIds.has(String(row.id));
+        html += `<tr${isRegenerated ? ' style="background-color:#fdecea;"' : ''}>`;
         html += `<td><input type="checkbox" class="vd-row-checkbox" data-report-id="${row.id}" /></td>`;
         VIEW_DATA_COLUMNS.forEach(col => {
           let val = row[col.key] || "NA";
@@ -1314,6 +1317,22 @@
       const headerCb = document.getElementById("vdSelectAllCheckbox");
       if (headerCb) headerCb.checked = true;
     });
+    document.getElementById("vdSearchInput").addEventListener("input", (e) => {
+      const term = e.target.value.trim().toLowerCase();
+      if (!term) {
+        renderViewDataTable(_allReports);
+        document.getElementById("vdFilteredCount").textContent = _allReports.length;
+        return;
+      }
+      const filtered = _allReports.filter(row => {
+        return VIEW_DATA_COLUMNS.some(col => {
+          const val = row[col.key];
+          return val && String(val).toLowerCase().includes(term);
+        });
+      });
+      renderViewDataTable(filtered);
+      document.getElementById("vdFilteredCount").textContent = filtered.length;
+    });
     const vdRegenerateProgress      = document.getElementById("vdRegenerateProgress");
     const vdRegenerateProgressLabel = document.getElementById("vdRegenerateProgressLabel");
     const vdRegenerateResultsWrap   = document.getElementById("vdRegenerateResultsWrap");
@@ -1322,9 +1341,7 @@
     let _regenPollTimer   = null;
     function _setRegenButtonsDisabled(disabled) {
       const b1 = document.getElementById("vdRegenerateBtn");
-      const b2 = document.getElementById("vdRegenerateFinalSheetBtn");
       if (b1) b1.disabled = disabled;
-      if (b2) b2.disabled = disabled;
     }
     async function runRegenerate(mode) {
       const selectedIds = getSelectedReportIds();
@@ -1394,12 +1411,15 @@
             _setRegenButtonsDisabled(false);
             const finishedJobId = _activeRegenJobId;
             _activeRegenJobId = null;
+            if (Array.isArray(data.results)) {
+              data.results.forEach(r => {
+                if (r.status === "Success") _regeneratedReportIds.add(String(r.id));
+              });
+            }
+            renderViewDataTable(_allReports);
             let links = [];
             if (data.final_excel) {
               links.push(`<a href="/download-regenerate-file/${finishedJobId}/final_excel" class="btn btn-sm btn-primary">Download Results (Excel)</a>`);
-            }
-            if (data.investment_sheet) {
-              links.push(`<a href="/download-regenerate-file/${finishedJobId}/investment_sheet" class="btn btn-sm btn-success">Download Investment Scam Final Sheet</a>`);
             }
             let folderMsg = links.length ? links.join(" &nbsp; ") : "No output file was generated.";
             if (data.status === "stopped") folderMsg += " <span style='color:#e67e22;'>(Stopped by user)</span>";
