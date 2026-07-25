@@ -210,6 +210,7 @@ ALL_EMPLOYEES = [
     "Rozma Khan",
     "Rishabh Yadav",
     "Nitin Kumar",
+    "Anshika Pathak",
 ]
 
 PLATFORM_ACCOUNT_STATUS = {
