@@ -372,14 +372,53 @@
             <button class="modal-close" onclick="closeModal('allotModal')"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
-            <div class="allot-toolbar">
+            <!-- ── ALLOT MODE TABS ── -->
+            <div style="display:flex;gap:0;border-bottom:2px solid #e9ecef;margin-bottom:14px;">
+                <button type="button" id="allotTabBrowse" onclick="switchAllotTab('browse')"
+                    style="padding:8px 18px;border:none;background:#2c3e50;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
+                    <i class="fas fa-list"></i> Browse List
+                </button>
+                <button type="button" id="allotTabPaste" onclick="switchAllotTab('paste')"
+                    style="padding:8px 18px;border:none;background:#fff;color:#7f8c8d;font-size:12px;font-weight:700;cursor:pointer;border-left:1px solid #e9ecef;">
+                    <i class="fas fa-paste"></i> Paste URLs (Bulk)
+                </button>
+            </div>
+
+            <!-- ── PASTE URLS TAB CONTENT ── -->
+            <div id="allotPasteContent" style="display:none;margin-bottom:14px;">
+                <div style="display:flex;gap:10px;align-items:flex-start;">
+                    <textarea id="allotBulkUrlInput" rows="5" placeholder="https://site1.com&#10;https://site2.com&#10;https://site3.com"
+                        oninput="onAllotBulkUrlInput()"
+                        style="flex:1;padding:10px 12px;border:1.5px solid #aed6f1;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:#fff;line-height:1.6;min-height:100px;box-sizing:border-box;"></textarea>
+                    <div>
+                        <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
+                        <select id="allotBulkUserSelect" onchange="syncAllotUserSelects(this.value)" style="width:100%;min-width:170px;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                            <option value="">Loading users...</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;min-width:140px;">
+                        <span id="allotBulkUrlCount" style="font-size:11px;color:#7f8c8d;"></span>
+                        <button type="button" onclick="matchAllotBulkUrls()" id="allotBulkMatchBtn"
+                            style="padding:8px 14px;background:#3498db;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center;">
+                            <i class="fas fa-search"></i> Match &amp; Select All
+                        </button>
+                        <button type="button" onclick="clearAllotBulkPaste()"
+                            style="padding:6px 12px;background:#95a5a6;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <div id="allotBulkSummary" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
+            </div>
+
+            <div class="allot-toolbar" id="allotBrowseToolbar">
                 <div class="allot-search">
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search</label>
                     <input type="text" id="allotSearchBox" oninput="filterAllotRows()" placeholder="Search name / URL / category..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                 </div>
                 <div class="allot-user">
                     <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
-                    <select id="allotUserSelect" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
+                    <select id="allotUserSelect" onchange="syncAllotUserSelects(this.value)" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
                         <option value="">Loading users...</option>
                     </select>
                 </div>
@@ -421,7 +460,7 @@
                     <i class="fas fa-sync-alt"></i> Refresh List
                 </button>
             </div>
-            <div style="border:1px solid #ddd;border-radius:6px;overflow:auto;max-height:420px;">
+            <div style="border:1px solid #ddd;border-radius:6px;overflow:auto;max-height:420px;" id="allotTableWrap">
                 <table>
                     <thead>
                         <tr>
@@ -553,26 +592,147 @@ function changeAllotmentPage(pageType) {
 
 // ── Website Allot modal (admin only) ──────────────────────────
 let _allotSourceRows = [];
+let _allotMode = 'browse'; // 'browse' or 'paste'
 function openAllotModal() {
     document.getElementById('allotModal').classList.add('active');
+    switchAllotTab('browse');
     loadAllotUsers();
     loadAllotSource();
 }
+
+function switchAllotTab(tab) {
+    _allotMode = tab;
+    const isBrowse = tab === 'browse';
+    document.getElementById('allotPasteContent').style.display   = isBrowse ? 'none' : '';
+    document.getElementById('allotBrowseToolbar').style.display  = isBrowse ? '' : 'none';
+    document.getElementById('allotTabBrowse').style.background   = isBrowse ? '#2c3e50' : '#fff';
+    document.getElementById('allotTabBrowse').style.color        = isBrowse ? '#fff' : '#7f8c8d';
+    document.getElementById('allotTabPaste').style.background    = isBrowse ? '#fff' : '#2c3e50';
+    document.getElementById('allotTabPaste').style.color         = isBrowse ? '#7f8c8d' : '#fff';
+    if (isBrowse) {
+        filterAllotRows();
+    } else {
+        // Paste tab par jaate hi table khaali kar do jab tak match na ho
+        if (!_allotBulkMatchedRows.length) {
+            document.getElementById('allotTbody').innerHTML =
+                '<tr><td colspan="6"><div class="empty-state">Paste URLs above and click "Match &amp; Select All"...</div></td></tr>';
+            updateAllotSelectedCount();
+        }
+    }
+}
+
+function onAllotBulkUrlInput() {
+    const lines = document.getElementById('allotBulkUrlInput').value.trim().split('\n').filter(l => l.trim());
+    const el = document.getElementById('allotBulkUrlCount');
+    el.textContent = lines.length ? `${lines.length} URL${lines.length > 1 ? 's' : ''} detected` : '';
+}
+
+function clearAllotBulkPaste() {
+    document.getElementById('allotBulkUrlInput').value = '';
+    document.getElementById('allotBulkUrlCount').textContent = '';
+    document.getElementById('allotBulkSummary').style.display = 'none';
+    document.getElementById('allotBulkSummary').innerHTML = '';
+    _allotBulkMatchedRows = [];
+    document.getElementById('allotTbody').innerHTML =
+        '<tr><td colspan="6"><div class="empty-state">Paste URLs above and click "Match &amp; Select All"...</div></td></tr>';
+    updateAllotSelectedCount();
+}
+
+let _allotBulkMatchedRows = [];
+async function matchAllotBulkUrls() {
+    const raw = document.getElementById('allotBulkUrlInput').value.trim();
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
+    if (!lines.length) { showToast('Please paste at least one URL', 'err'); return; }
+
+    const btn = document.getElementById('allotBulkMatchBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Matching...';
+    document.getElementById('allotTbody').innerHTML =
+        '<tr><td colspan="6"><div class="empty-state"><div class="spinner" style="margin:0 auto;"></div><p style="margin-top:8px;">Matching URLs against directory...</p></div></td></tr>';
+
+    try {
+        const resp = await fetch('/scam-website-allotment-bulk-match', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ urls: lines })
+        });
+        const data = await resp.json();
+        if (!data.success) {
+            showToast(data.error || 'Matching failed', 'err');
+            document.getElementById('allotTbody').innerHTML = '<tr><td colspan="6"><div class="empty-state">Matching failed</div></td></tr>';
+            return;
+        }
+
+        _allotBulkMatchedRows = data.results.filter(r => r.found).map(r => ({
+            id: r.id,
+            date: r.date,
+            url: r.url,
+            final_url: r.final_url,
+            category: r.category,
+            search_for: r.search_for,
+            is_already_allotted: r.is_already_allotted,
+            allotment_status: r.allotment_status,
+        }));
+
+        // Summary badges
+        const summaryEl = document.getElementById('allotBulkSummary');
+        summaryEl.style.display = 'flex';
+        summaryEl.innerHTML = `
+            <div style="background:#e8f8f0;border:1px solid #a9dfbf;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#1e8449;">
+                <i class="fas fa-check-circle"></i> Matched: ${data.found_count}
+            </div>
+            <div style="background:#fde8e8;border:1px solid #fbc7c7;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#c0392b;">
+                <i class="fas fa-times-circle"></i> Not Found: ${data.not_found_count}
+            </div>
+            <div style="background:#eaf4fd;border:1px solid #aed6f1;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:700;color:#1a5276;">
+                <i class="fas fa-list"></i> Total Pasted: ${data.total_pasted}
+            </div>
+        `;
+
+        // Render matched rows into the same table used by Browse tab, then auto-select all
+        renderAllotRows(_allotBulkMatchedRows);
+        const selectAllCb = document.getElementById('allotSelectAll');
+        selectAllCb.checked = true;
+        toggleAllAllot(selectAllCb);
+
+        showToast(`${data.found_count} matched and selected, ${data.not_found_count} not found`, data.found_count > 0 ? 'ok' : 'err');
+    } catch(e) {
+        showToast('Matching failed', 'err');
+        document.getElementById('allotTbody').innerHTML = '<tr><td colspan="6"><div class="empty-state">Error matching URLs</div></td></tr>';
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-search"></i> Match &amp; Select All';
+    }
+}
 async function loadAllotUsers() {
     const sel = document.getElementById('allotUserSelect');
+    const bulkSel = document.getElementById('allotBulkUserSelect');
     try {
         const resp = await fetch('/scam-website-allotment-users');
         const data = await resp.json();
         if (data.success && data.users.length) {
-            sel.innerHTML = data.users.map(u =>
+            const optionsHtml = data.users.map(u =>
                 `<option value="${u.display_name}">${u.display_name}</option>`
             ).join('');
+            sel.innerHTML = optionsHtml;
+            if (bulkSel) bulkSel.innerHTML = optionsHtml;
         } else {
             sel.innerHTML = '<option value="">No allotment users found</option>';
+            if (bulkSel) bulkSel.innerHTML = '<option value="">No allotment users found</option>';
         }
     } catch(e) {
         sel.innerHTML = '<option value="">Error loading users</option>';
+        if (bulkSel) bulkSel.innerHTML = '<option value="">Error loading users</option>';
     }
+}
+
+// Dono user dropdowns (Browse tab + Paste tab) ko sync rakhta hai taaki
+// koi bhi ek se select karo, dusra bhi wahi value reflect kare.
+function syncAllotUserSelects(value) {
+    const sel = document.getElementById('allotUserSelect');
+    const bulkSel = document.getElementById('allotBulkUserSelect');
+    if (sel) sel.value = value;
+    if (bulkSel) bulkSel.value = value;
 }
 async function loadAllotSource() {
     const tbody = document.getElementById('allotTbody');
@@ -703,8 +863,9 @@ function updateAllotSelectedCount() {
     document.getElementById('allotSelectedCount').textContent = n + ' selected';
 }
 async function submitAllotment() {
-    const sel = document.getElementById('allotUserSelect');
-    const name = sel.value;
+    const name = (_allotMode === 'paste')
+        ? document.getElementById('allotBulkUserSelect').value
+        : document.getElementById('allotUserSelect').value;
     const ids = Array.from(document.querySelectorAll('.allot-row-check:checked:not(:disabled)')).map(cb => parseInt(cb.value));
     if (!name) { showToast('Please select a user', 'err'); return; }
     if (!ids.length) { showToast('Please select at least one website', 'err'); return; }
@@ -718,7 +879,12 @@ async function submitAllotment() {
         });
         const data = await resp.json();
         if (data.success) {
-            showToast(`Allotted ${data.allotted} website(s) to ${name}!`, 'ok');
+            const newCount = data.new ?? data.allotted;
+            const reassignedCount = data.reassigned ?? 0;
+            const msg = reassignedCount > 0
+                ? `Allotted ${newCount} new + reassigned ${reassignedCount} to ${name} (today)!`
+                : `Allotted ${data.allotted} website(s) to ${name}!`;
+            showToast(msg, 'ok');
             const selectedIdSet = new Set(ids);
             _allotSourceRows = _allotSourceRows.map(r => {
                 if (!selectedIdSet.has(parseInt(r.id))) return r;
@@ -728,8 +894,20 @@ async function submitAllotment() {
                     allotment_status: `Allotted to ${name}`
                 };
             });
+            _allotBulkMatchedRows = _allotBulkMatchedRows.map(r => {
+                if (!selectedIdSet.has(parseInt(r.id))) return r;
+                return {
+                    ...r,
+                    is_already_allotted: true,
+                    allotment_status: `Allotted to ${name}`
+                };
+            });
             document.getElementById('allotSelectAll').checked = false;
-            filterAllotRows();
+            if (_allotMode === 'paste') {
+                renderAllotRows(_allotBulkMatchedRows);
+            } else {
+                filterAllotRows();
+            }
             refreshAllotmentCount();
         } else {
             showToast(data.error || 'Allotment failed', 'err');

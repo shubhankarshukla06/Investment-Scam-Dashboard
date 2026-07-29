@@ -3607,6 +3607,7 @@ def website_directory_export():
 
         def _build_wd_query():
             q = supabase.table("website_directory").select("*")
+            q = q.or_("remark.is.null,remark.eq.NA,remark.eq.,remark.eq.IPG")
             if wd_search:
                 lt = f"%{wd_search}%"
                 q = q.or_(
@@ -3647,10 +3648,12 @@ def website_directory_tracker_stats():
     try:
         CHUNK = 1000
         all_rows, offset = [], 0
-        # ── Fetch ALL rows first ──
+        # ── Fetch ALL rows first (inoperable records excluded — same filter
+        # as the main directory list view) ──
         while True:
             resp = supabase.table("website_directory") \
                 .select("category,search_for,remark,date,name") \
+                .or_("remark.is.null,remark.eq.NA,remark.eq.,remark.eq.IPG") \
                 .order("id", desc=False) \
                 .range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
@@ -3967,6 +3970,128 @@ def website_directory_inoperable():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+@app.route("/scam-website-allotment-bulk-match", methods=["POST"])
+@login_required
+def scam_website_allotment_bulk_match():
+    """Bulk-pasted URLs ko website_directory mein match karke unke IDs +
+    details return karta hai — Website Allot modal ke 'Paste URLs' tab ke liye.
+    Ek hi request mein saari URLs ke against DB search karta hai (chunked)."""
+    if not is_allotment_admin(session):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json(force=True) or {}
+        raw_urls = data.get("urls", [])
+        if not raw_urls:
+            return jsonify({"success": False, "error": "No URLs provided"})
+
+        cleaned_urls = []
+        for u in raw_urls:
+            u = str(u).strip()
+            if u:
+                cleaned_urls.append(u)
+        if not cleaned_urls:
+            return jsonify({"success": False, "error": "No valid URLs found"})
+
+        def _domain_of(u):
+            try:
+                netloc = urlparse(u if u.startswith("http") else "https://" + u).netloc
+                return netloc[4:] if netloc.startswith("www.") else netloc
+            except Exception:
+                return ""
+
+        results = []
+        seen_ids = set()
+        for u in cleaned_urls:
+            like_term = f"%{u}%"
+            found_row = None
+            try:
+                resp = supabase.table("website_directory") \
+                    .select("id,date,url,final_url,search_for,login_id,password,remark,origin,category,group_app_name") \
+                    .or_(f"url.ilike.{like_term},final_url.ilike.{like_term}") \
+                    .order("id", desc=True) \
+                    .limit(1).execute()
+                if resp.data:
+                    found_row = resp.data[0]
+            except Exception:
+                found_row = None
+
+            if not found_row:
+                domain = _domain_of(u)
+                if domain:
+                    try:
+                        like_domain = f"%{domain}%"
+                        resp2 = supabase.table("website_directory") \
+                            .select("id,date,url,final_url,search_for,login_id,password,remark,origin,category,group_app_name") \
+                            .or_(f"url.ilike.{like_domain},final_url.ilike.{like_domain}") \
+                            .order("id", desc=True) \
+                            .limit(1).execute()
+                        if resp2.data:
+                            found_row = resp2.data[0]
+                    except Exception:
+                        found_row = None
+
+            if found_row and found_row.get("id") not in seen_ids:
+                seen_ids.add(found_row.get("id"))
+                results.append({
+                    "pasted_url": u,
+                    "found": True,
+                    "id": found_row.get("id"),
+                    "date": found_row.get("date"),
+                    "url": found_row.get("url"),
+                    "final_url": found_row.get("final_url"),
+                    "search_for": found_row.get("search_for"),
+                    "category": found_row.get("category"),
+                    "remark": found_row.get("remark"),
+                })
+            else:
+                results.append({"pasted_url": u, "found": False})
+
+        # ── Allotment status bhi bata do (already allotted?) ──
+        matched_ids = [r["id"] for r in results if r.get("found")]
+        allotment_status_by_id = {}
+        if matched_ids:
+            try:
+                matched_rows = [r for r in results if r.get("found")]
+                url_keys = set()
+                for r in matched_rows:
+                    category = (r.get("category") or "").strip()
+                    display_url = r.get("final_url") if category == "Investment Scam" else (r.get("url") or r.get("final_url"))
+                    url_keys.add(((display_url or "").strip().lower()))
+                allot_resp = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+                    .select("final_url,category,search_for,alloted_user_name") \
+                    .execute()
+                allot_map = {}
+                for row in allot_resp.data or []:
+                    key = (row.get("final_url") or "").strip().lower()
+                    if key:
+                        allot_map[key] = row.get("alloted_user_name")
+                for r in matched_rows:
+                    category = (r.get("category") or "").strip()
+                    display_url = r.get("final_url") if category == "Investment Scam" else (r.get("url") or r.get("final_url"))
+                    key = (display_url or "").strip().lower()
+                    if key in allot_map and allot_map[key]:
+                        allotment_status_by_id[r["id"]] = f"Allotted to {allot_map[key]}"
+            except Exception as e:
+                print(f"[BULK MATCH] allotment status lookup error: {e}")
+
+        for r in results:
+            if r.get("found"):
+                status = allotment_status_by_id.get(r["id"])
+                r["is_already_allotted"] = bool(status)
+                r["allotment_status"] = status or "Available"
+
+        found_count = sum(1 for r in results if r.get("found"))
+        return jsonify({
+            "success": True,
+            "results": results,
+            "total_pasted": len(cleaned_urls),
+            "found_count": found_count,
+            "not_found_count": len(cleaned_urls) - found_count,
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
 @app.route("/website-directory-operable", methods=["GET"])
 @login_required
 def website_directory_operable():
@@ -4205,30 +4330,91 @@ def scam_website_allotment_allot():
             .execute()
         dir_rows = dir_resp.data or []
 
-        insert_rows = []
+        # ── Build display_url per row so we can check for existing allotment
+        # of the SAME url (any user, any older date) and reassign it to today
+        # instead of inserting a duplicate row. ──
+        prepared_rows = []
+        display_urls = []
         for row in dir_rows:
             category = (row.get("category") or "").strip()
             display_url = row.get("final_url") if category == "Investment Scam" else (row.get("url") or row.get("final_url"))
-            insert_rows.append({
-                "alloted_user_name": target_name,
-                "final_url":         display_url,
-                "login_id":          row.get("login_id"),
-                "password":          row.get("password"),
-                # Website Directory ka purana remark (e.g. "IPG") copy NAHI karna hai —
-                # naya allotment hamesha "pending" state se start hona chahiye taaki
-                # target-completion tabhi true ho jab user khud remark select kare.
-                "remark":            None,
-                "category":          category,
-                "search_for":        row.get("search_for"),
-                "allotted_at":       datetime.now().isoformat(),
+            prepared_rows.append({
+                "dir_row": row,
+                "category": category,
+                "display_url": display_url,
             })
+            if display_url:
+                display_urls.append(display_url)
+
+        existing_by_url = {}
+        if display_urls:
+            try:
+                existing_resp = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+                    .select("id,final_url,category,search_for") \
+                    .in_("final_url", display_urls) \
+                    .execute()
+                for erow in existing_resp.data or []:
+                    key = (erow.get("final_url") or "").strip().lower()
+                    if key:
+                        # Agar same URL ke multiple purane allotment records hain
+                        # (different users ko), sabse latest wale ko reuse karo.
+                        existing_by_url.setdefault(key, []).append(erow)
+            except Exception as e:
+                print(f"[ALLOT] existing lookup error: {e}")
+
+        insert_rows = []
+        update_count = 0
+        now_iso = datetime.now().isoformat()
+
+        for prepped in prepared_rows:
+            row = prepped["dir_row"]
+            category = prepped["category"]
+            display_url = prepped["display_url"]
+            url_key = (display_url or "").strip().lower()
+            existing_matches = existing_by_url.get(url_key, []) if url_key else []
+
+            if existing_matches:
+                # Reassign the most recent existing allotment row for this URL to
+                # today's date + new user, instead of creating a duplicate.
+                target_row = sorted(existing_matches, key=lambda r: r.get("id", 0), reverse=True)[0]
+                update_payload = {
+                    "alloted_user_name": target_name,
+                    "login_id":          row.get("login_id"),
+                    "password":          row.get("password"),
+                    "remark":            None,
+                    "category":          category,
+                    "search_for":        row.get("search_for"),
+                    "allotted_at":       now_iso,
+                }
+                supabase.table(WEBSITE_ALLOTMENT_TABLE) \
+                    .update(update_payload) \
+                    .eq("id", target_row["id"]) \
+                    .execute()
+                update_count += 1
+            else:
+                insert_rows.append({
+                    "alloted_user_name": target_name,
+                    "final_url":         display_url,
+                    "login_id":          row.get("login_id"),
+                    "password":          row.get("password"),
+                    # Website Directory ka purana remark (e.g. "IPG") copy NAHI karna hai —
+                    # naya allotment hamesha "pending" state se start hona chahiye taaki
+                    # target-completion tabhi true ho jab user khud remark select kare.
+                    "remark":            None,
+                    "category":          category,
+                    "search_for":        row.get("search_for"),
+                    "allotted_at":       now_iso,
+                })
 
         if insert_rows:
             supabase.table(WEBSITE_ALLOTMENT_TABLE).insert(insert_rows).execute()
-            log_activity("allotment_create", target_table=WEBSITE_ALLOTMENT_TABLE,
-                         extra_info=f"Allotted {len(insert_rows)} website(s) to {target_name}")
 
-        return jsonify({"success": True, "allotted": len(insert_rows)})
+        total_allotted = len(insert_rows) + update_count
+        if total_allotted:
+            log_activity("allotment_create", target_table=WEBSITE_ALLOTMENT_TABLE,
+                         extra_info=f"Allotted {len(insert_rows)} new + reassigned {update_count} existing website(s) to {target_name}")
+
+        return jsonify({"success": True, "allotted": total_allotted, "new": len(insert_rows), "reassigned": update_count})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
