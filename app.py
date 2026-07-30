@@ -4046,7 +4046,8 @@ def scam_website_allotment_bulk_match():
             else:
                 results.append({"pasted_url": u, "found": False})
 
-        # ── Allotment status bhi bata do (already allotted?) ──
+        # ── Allotment status bhi bata do (sirf AAJ ke allotment count hote hain —
+        # purane din allot hui website aaj phir se available maani jaati hai) ──
         matched_ids = [r["id"] for r in results if r.get("found")]
         allotment_status_by_id = {}
         if matched_ids:
@@ -4057,8 +4058,11 @@ def scam_website_allotment_bulk_match():
                     category = (r.get("category") or "").strip()
                     display_url = r.get("final_url") if category == "Investment Scam" else (r.get("url") or r.get("final_url"))
                     url_keys.add(((display_url or "").strip().lower()))
+                today_str = datetime.now().strftime("%Y-%m-%d")
                 allot_resp = supabase.table(WEBSITE_ALLOTMENT_TABLE) \
                     .select("final_url,category,search_for,alloted_user_name") \
+                    .gte("allotted_at", today_str + " 00:00:00") \
+                    .lte("allotted_at", today_str + " 23:59:59") \
                     .execute()
                 allot_map = {}
                 for row in allot_resp.data or []:
