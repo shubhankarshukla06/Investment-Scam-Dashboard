@@ -2920,6 +2920,27 @@ def insert_scraping_record():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
     
+def _extract_facebook_profile_id(*values):
+    for value in values:
+        raw = str(value or "").strip()
+        if not raw or raw.upper() in ("NA", "N/A"):
+            continue
+        try:
+            parsed = urllib.parse.urlparse(raw if raw.lower().startswith(("http://", "https://")) else "https://" + raw)
+            host = (parsed.netloc or "").lower()
+            if "facebook.com" not in host and "fb.com" not in host:
+                continue
+            qs = urllib.parse.parse_qs(parsed.query)
+            fb_id = (qs.get("id") or [""])[0].strip()
+            if fb_id and re.fullmatch(r"\d{5,}", fb_id):
+                return fb_id
+        except Exception:
+            pass
+        m = re.search(r"(?:[?&]id=)(\d{5,})", raw)
+        if m:
+            return m.group(1)
+    return ""
+
 @app.route("/check-scraping-duplicates", methods=["POST"])
 @login_required
 def check_scraping_duplicates():
@@ -2929,17 +2950,30 @@ def check_scraping_duplicates():
         if not entries:
             return jsonify({"success": True, "results": []})
         results = []
+        facebook_id_counts = {}
+        for entry in entries:
+            platform = str(entry.get("platform", "")).strip()
+            if platform.lower() != "facebook":
+                continue
+            fb_id = _extract_facebook_profile_id(entry.get("post_url", ""), entry.get("group_name", ""))
+            if fb_id:
+                facebook_id_counts[fb_id] = facebook_id_counts.get(fb_id, 0) + 1
         for entry in entries:
             gn = str(entry.get("group_name", "")).strip()
             cn = str(entry.get("chat_number", "")).strip()
+            post_url = str(entry.get("post_url", "")).strip()
+            platform = str(entry.get("platform", "")).strip()
+            is_facebook = platform.lower() == "facebook"
+            facebook_id = _extract_facebook_profile_id(post_url, gn) if is_facebook else ""
             # Dono NA hain toh skip
             gn_empty = not gn or gn.upper() in ("NA", "N/A", "")
             cn_empty = not cn or cn.upper() in ("NA", "N/A", "")
-            if gn_empty and cn_empty:
+            if gn_empty and cn_empty and not facebook_id:
                 results.append({"status": "NEW", "count": 0})
                 continue
             try:
                 found = []
+                local_facebook_duplicate = bool(facebook_id and facebook_id_counts.get(facebook_id, 0) > 1)
                 if not gn_empty and not cn_empty:
                     # Dono available — AND match
                     res = supabase.table("scrapping_data") \
@@ -2962,8 +2996,15 @@ def check_scraping_duplicates():
                         .ilike("chat_number", cn) \
                         .limit(10).execute()
                     found = res.data or []
+                if is_facebook and facebook_id and not found:
+                    res = supabase.table("scrapping_data") \
+                        .select("id, group_name, post_url, chat_number, inserted_date") \
+                        .eq("platform", "Facebook") \
+                        .or_(f"post_url.ilike.%id={facebook_id}%,group_name.ilike.%id={facebook_id}%") \
+                        .limit(10).execute()
+                    found = res.data or []
                 results.append({
-                    "status": "DUPLICATE" if found else "NEW",
+                    "status": "DUPLICATE" if found or local_facebook_duplicate else "NEW",
                     "count": len(found),
                     "earliest_date": found[0].get("inserted_date") if found else None,
                 })

@@ -1057,9 +1057,9 @@
                             <button type="button" class="btn btn-success" onclick="openScrapInsertModal()" style="height:30px;font-size:12px;padding:5px 12px;">
                                 <i class="fas fa-plus"></i> Insert Data
                             </button>
-                            <button type="button" onclick="openScrapEditDeleteModal()"
+                            <button type="button" id="scrapUpdateDataBtn" onclick="toggleScrapActionColumn()"
                                 style="background:#e67e22;color:white;border:none;padding:5px 12px;border-radius:5px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;height:30px;font-weight:600;white-space:nowrap;">
-                                <i class="fas fa-edit"></i> Edit &amp; Delete Data
+                                <i class="fas fa-edit"></i> Update Data
                             </button>
                         </div>
                     </div>
@@ -1112,6 +1112,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th class="scrap-action-col" style="display:none;">Action</th>
                                 <th>ID</th>
                                 <th>Share Status</th>
                                 <th>Name</th>
@@ -1128,6 +1129,11 @@
                             {% if items %}
                             {% for item in items %}
                             <tr>
+                                <td class="scrap-action-col" style="display:none;">
+                                    <button class="copy-btn" onclick="openScrapEditById({{ item['id'] }})" title="Edit Record" style="color:#e67e22;">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </button>
+                                </td>
                                 <td><strong style="color:#2c3e50;">#{{ item["id"] }}</strong></td>
                                 <td>
                                     {% if item.get("share_status") and item["share_status"] not in ["NA","N/A",""] %}
@@ -1176,7 +1182,7 @@
                             </tr>
                             {% endfor %}
                             {% else %}
-                            <tr><td colspan="9"><div class="empty-state"><i class="fas fa-database"></i><h3>No records found</h3><p>Try adjusting your search filters or import some data</p><button class="btn btn-primary" style="margin-top:10px;" onclick="clearFilters()"><i class="fas fa-times"></i> Clear All Filters</button></div></td></tr>
+                            <tr><td colspan="10"><div class="empty-state"><i class="fas fa-database"></i><h3>No records found</h3><p>Try adjusting your search filters or import some data</p><button class="btn btn-primary" style="margin-top:10px;" onclick="clearFilters()"><i class="fas fa-times"></i> Clear All Filters</button></div></td></tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -6193,7 +6199,7 @@
                         const resp = await fetch('/check-scraping-duplicates', {
                             method: 'POST',
                             headers: {'Content-Type':'application/json'},
-                            body: JSON.stringify({ entries: _scrapRows.map(r => ({group_name: r.group_name||'', chat_number: r.chat_number||''})) })
+                            body: JSON.stringify({ entries: _scrapRows.map(r => ({platform: r.platform||'', post_url: r.post_url||'', group_name: r.group_name||'', chat_number: r.chat_number||''})) })
                         });
                         const data = await resp.json();
                         if (data.success) {
@@ -6290,6 +6296,11 @@
                     const today = new Date().toISOString().split('T')[0];
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
+                        <td class="scrap-action-col" style="${_scrapActionVisible ? '' : 'display:none;'}">
+                            <button class="copy-btn" onclick="openScrapEditById(${item.id})" title="Edit Record" style="color:#e67e22;">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                        </td>
                         <td><strong style="color:#2c3e50;">#${item.id}</strong></td>
                         <td>
                             ${v(item.share_status)
@@ -6386,6 +6397,20 @@
                 }
                 let _scrapEditCurrentId = null;
                 let _scrapEditOrigData  = {};
+                let _scrapActionVisible = false;
+                function toggleScrapActionColumn() {
+                    _scrapActionVisible = !_scrapActionVisible;
+                    document.querySelectorAll('.scrap-action-col').forEach(el => {
+                        el.style.display = _scrapActionVisible ? '' : 'none';
+                    });
+                    const btn = document.getElementById('scrapUpdateDataBtn');
+                    if (btn) {
+                        btn.style.background = _scrapActionVisible ? '#d35400' : '#e67e22';
+                        btn.innerHTML = _scrapActionVisible
+                            ? '<i class="fas fa-eye-slash"></i> Hide Action'
+                            : '<i class="fas fa-edit"></i> Update Data';
+                    }
+                }
                 function openScrapEditDeleteModal() {
                     document.getElementById('scrapEditDeleteModal').style.display = 'flex';
                     document.getElementById('scrapEditSearchId').value = '';
@@ -6400,6 +6425,12 @@
                     document.getElementById('scrapEditDeleteModal').style.display = 'none';
                     _scrapEditCurrentId = null;
                     _scrapEditOrigData  = {};
+                }
+                function openScrapEditById(id) {
+                    openScrapEditDeleteModal();
+                    const input = document.getElementById('scrapEditSearchId');
+                    if (input) input.value = id;
+                    searchScrapEditById();
                 }
                 async function searchScrapEditById() {
                     const rawId = document.getElementById('scrapEditSearchId').value.trim().replace(/^#/, '');
@@ -6491,30 +6522,30 @@
                 }
                 function _updateScrapingRowInDOM(updates) {
                     document.querySelectorAll('.scraping-page tbody tr').forEach(tr => {
-                        const strong = tr.querySelector('td:first-child strong');
+                        const strong = tr.querySelector('td:nth-child(2) strong');
                         if (!strong || strong.textContent.trim() !== `#${updates.id}`) return;
                         const tds = tr.querySelectorAll('td');
-                        if (tds[3]) tds[3].innerHTML = `<span class="platform-badge">${updates.platform}</span>`;
-                        if (tds[4]) {
+                        if (tds[4]) tds[4].innerHTML = `<span class="platform-badge">${updates.platform}</span>`;
+                        if (tds[5]) {
                             const u = updates.post_url;
-                            tds[4].innerHTML = u && u !== 'NA'
+                            tds[5].innerHTML = u && u !== 'NA'
                                 ? `<div class="field-container"><a href="${u}" target="_blank" class="url-link">${u.substring(0,35)}${u.length>35?'...':''}</a><button class="copy-btn" onclick="copyToClipboard('${u.replace(/'/g,"\\'")}','Post URL')"><i class="fas fa-copy"></i></button></div>`
                                 : '<span style="color:#95a5a6;">N/A</span>';
                         }
-                        if (tds[5]) {
+                        if (tds[6]) {
                             const cn = updates.chat_number;
-                            tds[5].innerHTML = cn && cn !== 'NA'
+                            tds[6].innerHTML = cn && cn !== 'NA'
                                 ? `<div class="field-container"><span>${cn}</span><button class="copy-btn" onclick="copyToClipboard('${cn.replace(/'/g,"\\'")}','Chat Number')"><i class="fas fa-copy"></i></button></div>`
                                 : '<span style="color:#95a5a6;">N/A</span>';
                         }
-                        if (tds[6]) {
+                        if (tds[7]) {
                             const gn = updates.group_name;
-                            tds[6].innerHTML = gn && gn !== 'NA'
+                            tds[7].innerHTML = gn && gn !== 'NA'
                                 ? `<div class="field-container"><span>${gn}</span><button class="copy-btn" onclick="copyToClipboard('${gn.replace(/'/g,"\\'")}','Group Name')"><i class="fas fa-copy"></i></button></div>`
                                 : '<span style="color:#95a5a6;">N/A</span>';
                         }
-                        if (tds[7]) tds[7].innerHTML = updates.scam_type ? `<span class="scam-type">${updates.scam_type}</span>` : '<span style="color:#95a5a6;">N/A</span>';
-                        if (tds[1]) tds[1].innerHTML = updates.share_status && updates.share_status !== 'NA'
+                        if (tds[8]) tds[8].innerHTML = updates.scam_type ? `<span class="scam-type">${updates.scam_type}</span>` : '<span style="color:#95a5a6;">N/A</span>';
+                        if (tds[2]) tds[2].innerHTML = updates.share_status && updates.share_status !== 'NA'
                             ? `<span style="background:#f3e5f5;color:#6a1a9a;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">${updates.share_status}</span>`
                             : '<span style="color:#95a5a6;">N/A</span>';
                         tr.style.transition = 'background 0.5s';
