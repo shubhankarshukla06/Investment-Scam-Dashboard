@@ -2477,7 +2477,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
     with open(temp_csv_path, "w", encoding="utf-8-sig", newline="") as f:
         f.write(csv_text)
 
-    driver = aml_build_driver(headless=False)
+    driver = aml_build_driver(headless=True)
     _AML_DEBUG_DRIVERS.append(driver)
     wait = WebDriverWait(driver, 40)
     try:
@@ -2558,8 +2558,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
         if re.search(r"(Oops!|No column present|alert-danger|Fatal error|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
             raise RuntimeError(f"AML GUI import failed on page: {page_preview}")
 
-        # Debug mode: keep the visible browser alive after the request returns.
-        threading.Timer(120, lambda: _close_debug_driver(driver, temp_csv_path)).start()
+        _close_debug_driver(driver, temp_csv_path)
         return page_preview
     except Exception:
         try:
@@ -2572,7 +2571,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
             print(f"[SHEET AML IMPORT HEADED] debug saved id={debug_id} dir={debug_dir}", flush=True)
         except Exception as dbg_exc:
             print(f"[SHEET AML IMPORT HEADED] debug save failed: {dbg_exc}", flush=True)
-        threading.Timer(120, lambda: _close_debug_driver(driver, temp_csv_path)).start()
+        _close_debug_driver(driver, temp_csv_path)
         raise
 
 def _close_debug_driver(driver, temp_csv_path=None):
@@ -5151,8 +5150,8 @@ print(f"[TESSERACT] command={TESSERACT_CMD_RESOLVED}", flush=True)
 
 AML_LOGIN_URL  = "https://aml-gui.chargebackzero.com/index.php"
 AML_REPORT_URL = "https://aml-gui.chargebackzero.com/report_generation/index_mfilter.php"
-AML_USERNAME = os.environ.get("AML_USERNAME", "EmpShubhankarShukla icuser")
-AML_PASSWORD = os.environ.get("AML_PASSWORD", "Shukla@678")
+AML_USERNAME = os.environ.get("AML_USERNAME", "").strip()
+AML_PASSWORD = os.environ.get("AML_PASSWORD", "").strip()
 def get_aml_credentials_for_user(email=None, display_name=None):
     def _pick(row, *keys):
         for key in keys:
@@ -5204,12 +5203,14 @@ def get_aml_credentials_for_user(email=None, display_name=None):
     except Exception as e:
         print(f"[AML CREDS] dashboard_users lookup error: {e}")
 
-    return (
-        AML_USERNAME,
-        AML_PASSWORD,
-        os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
-        os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
-    )
+    if AML_USERNAME and AML_PASSWORD:
+        return (
+            AML_USERNAME,
+            AML_PASSWORD,
+            os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
+            os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
+        )
+    raise RuntimeError("AML credentials not configured for this dashboard user")
 
 def get_aml_credentials():
     return get_aml_credentials_for_user(session.get("email"), session.get("display_name"))

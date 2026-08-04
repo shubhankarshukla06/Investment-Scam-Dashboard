@@ -3888,7 +3888,15 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
                     });
-                    const data = await resp.json();
+                    const responseText = await resp.text();
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseErr) {
+                        const preview = responseText.replace(/\s+/g, ' ').slice(0, 180);
+                        throw new Error(`Server returned non-JSON response. Render may have restarted during GUI export. ${preview}`);
+                    }
+                    if (!resp.ok) throw new Error(data.error || `GUI export failed with HTTP ${resp.status}`);
                     if (!data.success) throw new Error(data.error || 'GUI export failed');
                     summaryHeaders = data.headers || [];
                     summaryParsedData = data.rows || [];
