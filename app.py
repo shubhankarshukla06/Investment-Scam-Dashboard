@@ -27,6 +27,7 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
@@ -36,6 +37,11 @@ import traceback
 import uuid
 import threading
 import shutil
+import base64
+
+_EASYOCR_READER = None
+_EASYOCR_LOCK = threading.Lock()
+_AML_DEBUG_DRIVERS = []
 
 load_dotenv()
 
@@ -211,6 +217,7 @@ ALL_EMPLOYEES = [
     "Rishabh Yadav",
     "Nitin Kumar",
     "Anshika Pathak",
+    "Vidhi Satsangi",
 ]
 
 PLATFORM_ACCOUNT_STATUS = {
@@ -1493,9 +1500,19 @@ def investment_export():
         inv_wallet = request.args.get("inv_wallet", "").strip()
         inv_date_from = request.args.get("inv_date_from", "").strip()
         inv_date_to = request.args.get("inv_date_to", "").strip()
+        inv_export_columns = [
+            "Id", "Customer", "Package_name", "Channel_name", "Bank_account_number", "Bank_name", "Upi_vpa",
+            "Ac_holder_name", "Screenshot", "Platform", "Search_for", "Status", "Upi_bank_account_wallet",
+            "Priority", "Flag", "Cessation", "Reviewed_status", "Handle", "Origin", "Payment_gateway_name",
+            "Category_of_website", "Screenshot_case_report_link", "Payment_gateway_intermediate_url", "Neft_imps",
+            "Transaction_method", "Scam_type", "Ifsc_code", "Bank_branch_details", "Payment_gateway_url",
+            "Upi_url", "Website_url", "Inserted_date", "Reported_earlier", "Input_user", "Approvd_status",
+            "Approved_by", "Qc_remarks", "Inserted_datetime", "Case_generated_time", "Upi_found_status",
+            "Feature_type", "Approved_date", "Video_url", "Web_contact_no"
+        ]
 
         def _build_inv_query():
-            q = supabase.table("BS_Investment_Scam").select("*")
+            q = supabase.table("BS_Investment_Scam").select(",".join(inv_export_columns))
             if inv_search:
                 like_term = f"%{inv_search}%"
                 q = q.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
@@ -1897,6 +1914,82 @@ def generate_sheet():
         flash(f"Error generating sheet: {str(e)}", "error")
         return redirect("/?page=sheet")
 
+def _build_sheet_csv_response(sheet_type, file_storage):
+    if not sheet_type:
+        raise ValueError("Please select a sheet type")
+    if not file_storage or file_storage.filename == '':
+        raise ValueError("Please select a file")
+    if not is_allowed_file(file_storage.filename):
+        raise ValueError("Unsupported file type.")
+
+    filename = secure_filename(file_storage.filename)
+    temp_path = os.path.join(tempfile.gettempdir(), filename)
+    file_storage.save(temp_path)
+    try:
+        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
+        df = read_data_file(temp_path, file_ext)
+        if df.empty:
+            raise ValueError("The uploaded file is empty")
+
+        is_valid, missing_cols, extra_cols = validate_input_columns(df, sheet_type)
+        if not is_valid:
+            error_parts = []
+            if missing_cols:
+                error_parts.append(f"Missing column(s): {', '.join(missing_cols)}")
+            if extra_cols:
+                error_parts.append(f"Extra/unexpected column(s): {', '.join(extra_cols)}")
+            raise ValueError("Uploaded file does not match the input template. " + " | ".join(error_parts))
+
+        result_df, _ = process_sheet_data(df, sheet_type)
+        output = io.StringIO()
+        result_df.to_csv(output, index=False, encoding='utf-8-sig')
+        return output.getvalue(), result_df, filename
+    finally:
+        if os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
+def _build_aml_gui_import_csv(sheet_type, result_df):
+    return None, result_df
+
+def _sheet_import_download_payload(csv_text, filename):
+    return {
+        "filename": filename,
+        "content_b64": base64.b64encode(csv_text.encode("utf-8-sig")).decode("ascii"),
+    }
+
+@app.route("/sheet-import-to-aml-gui", methods=["POST"])
+@login_required
+def sheet_import_to_aml_gui():
+    download_payload = None
+    try:
+        sheet_type = request.form.get("sheet_type")
+        file = request.files.get("file")
+        print(f"[SHEET AML IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
+        csv_text, result_df, _ = _build_sheet_csv_response(sheet_type, file)
+        import_csv_text, import_df = _build_aml_gui_import_csv(sheet_type, result_df)
+        if import_csv_text:
+            csv_text = import_csv_text
+        import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
+        download_payload = _sheet_import_download_payload(csv_text, import_filename)
+        print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
+        page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
+        print("[SHEET AML IMPORT] headed import submitted", flush=True)
+
+        return jsonify({
+            "success": True,
+            "message": "CSV generated and submitted in headed AML GUI browser.",
+            "rows": len(import_df),
+            "debug_preview": page_preview,
+            "download": download_payload,
+        })
+    except Exception as e:
+        print(f"[SHEET AML IMPORT] ERROR: {e}", flush=True)
+        traceback.print_exc()
+        return jsonify({"success": False, "error": str(e), "download": download_payload})
+
 # ============================================================
 # BS Investment Scam Import
 # ============================================================
@@ -2256,6 +2349,277 @@ def parse_raw_file():
             "total_rows": len(df)
         })
     except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+AML_GUI_BASE_URL = "https://aml-gui.chargebackzero.com/"
+AML_DATALIST_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "datalist_npci.php")
+AML_IMPORT_URL = os.environ.get("AML_IMPORT_URL", "").strip()
+AML_GUI_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
+)
+
+def _parse_csv_response_to_summary(resp):
+    content_type = resp.headers.get("Content-Type", "")
+    try:
+        df = pd.read_csv(io.BytesIO(resp.content), dtype=str).fillna("")
+    except Exception as exc:
+        preview = (resp.text or "")[:500].replace("\n", " ").replace("\r", " ")
+        raise RuntimeError(f"Export did not return readable CSV. content_type={content_type} preview={preview}") from exc
+    headers = [str(c) for c in df.columns]
+    rows = df.head(5000).to_dict(orient="records")
+    return headers, rows, len(df)
+
+def _download_aml_datalist_csv(date_from, date_to, keyword="icuser", transaction_method="All", status="Approve"):
+    session_obj = aml_login_requests(max_captcha_attempts=7, require_report_form=False)
+    headers = {"Referer": AML_DATALIST_URL, "Origin": AML_GUI_BASE_URL.rstrip("/")}
+    session_obj.get(AML_DATALIST_URL, timeout=60)
+    print(f"[AML SUMMARY] Applying HTTP filter {date_from}..{date_to} keyword={keyword}", flush=True)
+    session_obj.post(
+        AML_DATALIST_URL,
+        data={
+            "clear_data": "",
+            "Keyword_Filter": keyword,
+            "from_date": date_from,
+            "to_date": date_to,
+            "transaction_method": transaction_method,
+            "status": status,
+            "filter": "filter",
+        },
+        headers=headers,
+        timeout=300,
+    )
+    print("[AML SUMMARY] Exporting filtered CSV over HTTP", flush=True)
+    resp = session_obj.post(
+        AML_DATALIST_URL,
+        data={"exportConfigFields[]": "All", "Export": "Export"},
+        headers=headers,
+        timeout=900,
+        stream=False,
+    )
+    resp.raise_for_status()
+    return _parse_csv_response_to_summary(resp)
+
+def _extract_form_action(html_text, base_url):
+    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
+    for form in forms:
+        if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE):
+            match = re.search(r"action=[\"']([^\"']*)[\"']", form, flags=re.IGNORECASE)
+            return urllib.parse.urljoin(base_url, match.group(1)) if match else base_url
+    return None
+
+def _find_aml_import_page(session_obj):
+    if AML_IMPORT_URL:
+        return AML_IMPORT_URL
+    page = session_obj.get(AML_DATALIST_URL, timeout=60)
+    page.raise_for_status()
+    links = re.findall(r"<a\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>", page.text or "", flags=re.IGNORECASE)
+    for href in links:
+        low = href.lower()
+        if any(token in low for token in ("import", "upload", "csv")):
+            return urllib.parse.urljoin(AML_DATALIST_URL, href)
+    if links:
+        return urllib.parse.urljoin(AML_DATALIST_URL, links[0])
+    raise RuntimeError("AML import page link not found on datalist page")
+
+def _import_sheet_csv_to_aml_gui(csv_text, filename):
+    session_obj = aml_login_requests(max_captcha_attempts=7, require_report_form=False)
+    import_page_url = _find_aml_import_page(session_obj)
+    print(f"[SHEET AML IMPORT] import_page={import_page_url}", flush=True)
+    import_page = session_obj.get(import_page_url, timeout=60)
+    import_page.raise_for_status()
+    post_url = _extract_form_action(import_page.text, import_page_url) or import_page_url
+    data = {}
+    file_field = "file"
+    for match in re.finditer(r"<input\b([^>]*)>", import_page.text or "", flags=re.IGNORECASE):
+        attrs = match.group(1)
+        if re.search(r"type=[\"']file[\"']", attrs, flags=re.IGNORECASE):
+            name_match = re.search(r"name=[\"']([^\"']+)[\"']", attrs, flags=re.IGNORECASE)
+            if name_match:
+                file_field = name_match.group(1)
+            continue
+        name_match = re.search(r"name=[\"']([^\"']+)[\"']", attrs, flags=re.IGNORECASE)
+        if not name_match:
+            continue
+        value_match = re.search(r"value=[\"']([^\"']*)[\"']", attrs, flags=re.IGNORECASE)
+        data[name_match.group(1)] = value_match.group(1) if value_match else ""
+    files = {file_field: (filename or "aml_gui_import.csv", io.BytesIO(csv_text.encode("utf-8-sig")), "text/csv")}
+    resp = session_obj.post(
+        post_url,
+        data=data,
+        files=files,
+        timeout=300,
+        allow_redirects=True,
+        headers={"Referer": import_page_url, "Origin": AML_GUI_BASE_URL.rstrip("/")},
+    )
+    resp.raise_for_status()
+    response_text = resp.text or ""
+    response_preview = re.sub(r"\s+", " ", response_text)[:500]
+    print(f"[SHEET AML IMPORT] response_url={resp.url} content_type={resp.headers.get('Content-Type', '')} preview={response_preview}", flush=True)
+    if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
+        raise RuntimeError("AML import returned login page; session expired or login failed")
+    error_match = re.search(
+        r"(error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
+        response_text,
+        flags=re.IGNORECASE,
+    )
+    success_match = re.search(
+        r"(success|imported|uploaded|inserted|record[s]?\s+added|data\s+import)",
+        response_text,
+        flags=re.IGNORECASE,
+    )
+    if error_match and not success_match:
+        raise RuntimeError(f"AML import rejected the CSV near: {response_preview}")
+    return resp
+
+def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
+    temp_csv_path = os.path.join(tempfile.gettempdir(), filename or f"aml_gui_import_{uuid.uuid4().hex}.csv")
+    with open(temp_csv_path, "w", encoding="utf-8-sig", newline="") as f:
+        f.write(csv_text)
+
+    driver = aml_build_driver(headless=False)
+    _AML_DEBUG_DRIVERS.append(driver)
+    wait = WebDriverWait(driver, 40)
+    try:
+        if not aml_login(driver, max_captcha_attempts=7):
+            raise RuntimeError("AML GUI headed login failed after captcha retries")
+
+        driver.get(AML_DATALIST_URL)
+        time.sleep(2)
+        try:
+            import_btn = wait.until(EC.element_to_be_clickable((
+                By.XPATH,
+                "//button[contains(normalize-space(.), 'Import') or contains(normalize-space(.), 'Update')]"
+                "|//a[contains(normalize-space(.), 'Import') or contains(normalize-space(.), 'Update')]"
+            )))
+            driver.execute_script("arguments[0].click();", import_btn)
+        except Exception as exc:
+            print(f"[SHEET AML IMPORT HEADED] Import/Update click failed, falling back to modal JS: {exc}", flush=True)
+            driver.execute_script("""
+                const modal = document.querySelector('#importModal');
+                if (modal) {
+                    modal.classList.add('show');
+                    modal.style.display = 'block';
+                    modal.removeAttribute('aria-hidden');
+                }
+            """)
+        time.sleep(1)
+
+        file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")))
+        file_input.send_keys(temp_csv_path)
+
+        form = file_input.find_element(By.XPATH, "ancestor::form[1]")
+        form_debug = driver.execute_script("""
+            const form = arguments[0];
+            return Array.from(form.elements).map(el => ({
+                tag: el.tagName,
+                type: el.type || '',
+                name: el.name || '',
+                value: el.type === 'file' ? el.value.split('\\\\').pop() : el.value,
+                multiple: !!el.multiple,
+                options: el.tagName === 'SELECT'
+                    ? Array.from(el.options || []).map(o => ({value:o.value, text:o.text, selected:o.selected}))
+                    : []
+            }));
+        """, form)
+        print(f"[SHEET AML IMPORT HEADED] form_controls={json.dumps(form_debug)[:3000]}", flush=True)
+        selected_count = driver.execute_script("""
+            const form = arguments[0];
+            let selected = 0;
+            form.querySelectorAll('select').forEach(select => {
+                Array.from(select.options || []).forEach(option => {
+                    if (option.value !== '') {
+                        option.selected = true;
+                        selected += 1;
+                    }
+                });
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+            form.querySelectorAll('input[type="checkbox"]').forEach(input => {
+                if (!input.checked) {
+                    input.checked = true;
+                    selected += 1;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+            return selected;
+        """, form)
+        print(f"[SHEET AML IMPORT HEADED] selected import fields={selected_count}", flush=True)
+        try:
+            submit_btn = form.find_element(By.CSS_SELECTOR, "button[type='submit'], input[type='submit']")
+            driver.execute_script("arguments[0].click();", submit_btn)
+        except Exception:
+            driver.execute_script("arguments[0].submit();", form)
+
+        time.sleep(5)
+        page_text = driver.find_element(By.TAG_NAME, "body").text
+        page_preview = re.sub(r"\s+", " ", page_text or "")[:500]
+        print(f"[SHEET AML IMPORT HEADED] current_url={driver.current_url} preview={page_preview}", flush=True)
+        if re.search(r"(Oops!|No column present|alert-danger|Fatal error|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
+            raise RuntimeError(f"AML GUI import failed on page: {page_preview}")
+
+        # Debug mode: keep the visible browser alive after the request returns.
+        threading.Timer(120, lambda: _close_debug_driver(driver, temp_csv_path)).start()
+        return page_preview
+    except Exception:
+        try:
+            debug_id = uuid.uuid4().hex[:8]
+            debug_dir = os.path.join(tempfile.gettempdir(), "aml_sheet_import_debug")
+            os.makedirs(debug_dir, exist_ok=True)
+            driver.save_screenshot(os.path.join(debug_dir, f"sheet_import_{debug_id}.png"))
+            with open(os.path.join(debug_dir, f"sheet_import_{debug_id}.html"), "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print(f"[SHEET AML IMPORT HEADED] debug saved id={debug_id} dir={debug_dir}", flush=True)
+        except Exception as dbg_exc:
+            print(f"[SHEET AML IMPORT HEADED] debug save failed: {dbg_exc}", flush=True)
+        threading.Timer(120, lambda: _close_debug_driver(driver, temp_csv_path)).start()
+        raise
+
+def _close_debug_driver(driver, temp_csv_path=None):
+    try:
+        driver.quit()
+    except Exception:
+        pass
+    try:
+        if driver in _AML_DEBUG_DRIVERS:
+            _AML_DEBUG_DRIVERS.remove(driver)
+    except Exception:
+        pass
+    if temp_csv_path and os.path.exists(temp_csv_path):
+        try:
+            os.remove(temp_csv_path)
+        except Exception:
+            pass
+
+@app.route("/summary-source-from-gui", methods=["POST"])
+@login_required
+def summary_source_from_gui():
+    if "sheet" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Sheet page access nahi hai"}), 403
+    data = request.get_json() or {}
+    date_from = str(data.get("date_from", "")).strip()
+    date_to = str(data.get("date_to", "")).strip()
+    keyword = "icuser"
+    if not date_from or not date_to:
+        return jsonify({"success": False, "error": "From date and To date required"})
+
+    try:
+        print(f"[AML SUMMARY] Start date_from={date_from} date_to={date_to} keyword={keyword}", flush=True)
+        headers, rows, total_rows = _download_aml_datalist_csv(date_from, date_to, keyword=keyword)
+        print(f"[AML SUMMARY] Completed HTTP export rows={total_rows} headers={len(headers)}", flush=True)
+        return jsonify({
+            "success": True,
+            "headers": headers,
+            "rows": rows,
+            "total_rows": total_rows,
+            "source": "AML GUI",
+            "keyword": keyword,
+            "date_from": date_from,
+            "date_to": date_to,
+        })
+    except Exception as e:
+        print(f"[AML SUMMARY] ERROR: {e}", flush=True)
+        traceback.print_exc()
         return jsonify({"success": False, "error": str(e)})
 
 @app.route("/health", methods=["GET"])
@@ -4789,6 +5153,66 @@ AML_LOGIN_URL  = "https://aml-gui.chargebackzero.com/index.php"
 AML_REPORT_URL = "https://aml-gui.chargebackzero.com/report_generation/index_mfilter.php"
 AML_USERNAME = os.environ.get("AML_USERNAME", "EmpShubhankarShukla icuser")
 AML_PASSWORD = os.environ.get("AML_PASSWORD", "Shukla@678")
+def get_aml_credentials_for_user(email=None, display_name=None):
+    def _pick(row, *keys):
+        for key in keys:
+            val = row.get(key)
+            if val is not None and str(val).strip():
+                return str(val).strip()
+        return None
+
+    current_email = (email or "").strip().lower()
+    current_name = get_clean_display_name(display_name or "").strip().lower()
+    lookup_keys = [k for k in [current_email, current_name] if k]
+
+    try:
+        client = get_auth_supabase()
+        user_row = None
+        for key in lookup_keys:
+            res = client.table("dashboard_users").select("*").eq("email", key).eq("is_active", True).limit(1).execute()
+            if res.data:
+                user_row = res.data[0]
+                break
+
+        if user_row:
+            aml_blob = user_row.get("aml_credentials")
+            if isinstance(aml_blob, str):
+                try:
+                    aml_blob = json.loads(aml_blob)
+                except Exception:
+                    aml_blob = {}
+            if not isinstance(aml_blob, dict):
+                aml_blob = {}
+
+            username = _pick(user_row, "aml_username", "aml_user", "aml_email", "aml_login_username", "username", "user")
+            password = _pick(user_row, "aml_password", "aml_pass", "aml_login_password", "password", "pass")
+            customer = _pick(user_row, "aml_customer", "aml_input_customer", "aml_report_customer", "customer")
+            platform = _pick(user_row, "aml_platform", "aml_input_platform", "aml_report_platform", "platform")
+
+            username = username or _pick(aml_blob, "username", "user", "email")
+            password = password or _pick(aml_blob, "password", "pass")
+            customer = customer or _pick(aml_blob, "customer")
+            platform = platform or _pick(aml_blob, "platform")
+
+            if username and password:
+                return (
+                    username,
+                    password,
+                    customer or os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
+                    platform or os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
+                )
+    except Exception as e:
+        print(f"[AML CREDS] dashboard_users lookup error: {e}")
+
+    return (
+        AML_USERNAME,
+        AML_PASSWORD,
+        os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
+        os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
+    )
+
+def get_aml_credentials():
+    return get_aml_credentials_for_user(session.get("email"), session.get("display_name"))
 
 # TODO: DevTools se AML login page pe jaakar in XPaths ko verify/update karo
 AML_USERNAME_INPUT_XPATH = "/html/body/div/div/div/div/div/form/div[1]/input"
@@ -4888,6 +5312,21 @@ def aml_clean_captcha_text(text):
     return re.sub(r"[^a-zA-Z0-9]", "", text or "").lower()
 
 
+def aml_get_hex_captcha_text_with_easyocr(captcha_bytes):
+    global _EASYOCR_READER
+    with _EASYOCR_LOCK:
+        if _EASYOCR_READER is None:
+            import easyocr
+            _EASYOCR_READER = easyocr.Reader(["en"], gpu=False, verbose=False)
+    text = "".join(_EASYOCR_READER.readtext(captcha_bytes, detail=0, allowlist="0123456789abcdef"))
+    return re.sub(r"[^0-9a-f]", "", text.lower())
+
+
+def aml_solve_gui_download_captcha(session_obj):
+    img = session_obj.get(urllib.parse.urljoin(AML_GUI_BASE_URL, "captcha.php"), timeout=30).content
+    return aml_get_hex_captcha_text_with_easyocr(img)
+
+
 def aml_get_captcha_text_with_tesseract(captcha_bytes):
     img = Image.open(io.BytesIO(captcha_bytes)).convert("L")
     if img.width and img.height:
@@ -4915,32 +5354,30 @@ def aml_get_captcha_text_with_ddddocr(captcha_bytes):
 
 
 def aml_get_captcha_text_from_bytes(captcha_bytes):
-    """Captcha OCR helper for direct HTTP captcha.
-
-    Auto mode:
-    - If Tesseract binary is actually available, try it first.
-    - If Tesseract is missing on Render Python runtime, use ddddocr fallback.
-    Env override: AML_OCR_ENGINE=tesseract or AML_OCR_ENGINE=ddddocr.
-    """
+    """Captcha OCR helper for direct HTTP captcha."""
     engine = os.environ.get("AML_OCR_ENGINE", "auto").strip().lower()
     tesseract_available = bool(shutil.which("tesseract")) or (
         TESSERACT_CMD_RESOLVED not in ("tesseract", None) and os.path.exists(TESSERACT_CMD_RESOLVED)
     )
 
     engines = []
-    if engine == "tesseract":
+    if engine == "easyocr":
+        engines = ["easyocr"]
+    elif engine == "tesseract":
         engines = ["tesseract"]
     elif engine in ("ddddocr", "dddocr"):
         engines = ["ddddocr"]
     elif tesseract_available:
-        engines = ["tesseract", "ddddocr"]
+        engines = ["easyocr", "tesseract", "ddddocr"]
     else:
-        engines = ["ddddocr", "tesseract"]
+        engines = ["easyocr", "ddddocr", "tesseract"]
 
     last_error = None
     for candidate in engines:
         try:
-            if candidate == "tesseract":
+            if candidate == "easyocr":
+                captcha_text = aml_get_hex_captcha_text_with_easyocr(captcha_bytes)
+            elif candidate == "tesseract":
                 captcha_text = aml_get_captcha_text_with_tesseract(captcha_bytes)
             else:
                 captcha_text = aml_get_captcha_text_with_ddddocr(captcha_bytes)
@@ -5031,68 +5468,66 @@ def aml_extract_pdf_links_from_html(html_text, base_url):
     return hrefs
 
 
-def aml_login_requests(max_captcha_attempts=5):
+def aml_login_requests(max_captcha_attempts=7, creds=None, require_report_form=True):
     """Login to AML GUI without launching Chrome. Returns authenticated requests.Session."""
     session_obj = requests.Session()
     session_obj.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                      "(KHTML, like Gecko) Chrome/120 Safari/537.36",
+        "User-Agent": AML_GUI_UA,
         "Referer": AML_LOGIN_URL,
     })
 
     for attempt in range(1, max_captcha_attempts + 1):
-        login_page = session_obj.get(AML_LOGIN_URL, timeout=30)
+        username_value, password_value, customer_value, platform_value = creds or get_aml_credentials()
+        session_obj.cookies.clear()
+        login_page = session_obj.get(AML_GUI_BASE_URL, timeout=30)
         login_page.raise_for_status()
-
-        captcha_src_match = re.search(
-            r"<img[^>]+src=[\"']([^\"']*captcha[^\"']*)[\"']",
-            login_page.text,
-            flags=re.IGNORECASE,
-        )
-        captcha_src = captcha_src_match.group(1) if captcha_src_match else "captcha.php"
-        captcha_url = urllib.parse.urljoin(AML_LOGIN_URL, captcha_src)
-        captcha_resp = session_obj.get(captcha_url, timeout=30)
-        captcha_resp.raise_for_status()
-        captcha_text = aml_get_captcha_text_from_bytes(captcha_resp.content)
+        captcha_text = aml_solve_gui_download_captcha(session_obj)
         print(f"[AML HTTP LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
 
-        if not captcha_text:
+        if len(captcha_text or "") != 6:
             time.sleep(1)
             continue
 
         payload = {
-            "usernamee": AML_USERNAME,
-            "passwordd": AML_PASSWORD,
-            "inputcustomer": os.environ.get("AML_INPUT_CUSTOMER", "Mystery Shopping"),
-            "inputplatform": os.environ.get("AML_INPUT_PLATFORM", "v3_pre_scraper_merchantlaundering_data_table"),
-            "rememberr": "1",
+            "usernamee": username_value,
+            "passwordd": password_value,
+            "inputcustomer": customer_value,
+            "inputplatform": platform_value,
             "captcha": captcha_text,
-            "sub": "Sign in",
+            "sub": "",
         }
-        login_resp = session_obj.post(AML_LOGIN_URL, data=payload, timeout=30, allow_redirects=True)
+        login_resp = session_obj.post(
+            AML_GUI_BASE_URL,
+            data=payload,
+            headers={"Referer": AML_GUI_BASE_URL, "Origin": AML_GUI_BASE_URL.rstrip("/")},
+            timeout=60,
+            allow_redirects=False,
+        )
         login_resp.raise_for_status()
 
-        # Same success signal as Selenium flow: login form should disappear.
-        if re.search(r"name=[\"']usernamee[\"']", login_resp.text, flags=re.IGNORECASE):
-            print(f"[AML HTTP LOGIN] Attempt {attempt} failed — login form still visible. Retrying.")
-            time.sleep(1)
-            continue
-
-        report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
-        report_page.raise_for_status()
-        if re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
+        location = login_resp.headers.get("Location", "")
+        login_ok = login_resp.status_code == 302 and "datalist_npci" in location
+        if login_ok and not require_report_form:
             print("[AML HTTP LOGIN] Success")
             return session_obj
 
-        print(f"[AML HTTP LOGIN] Attempt {attempt} failed — report form not available. Retrying.")
+        if login_ok:
+            report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
+            report_page.raise_for_status()
+            if re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
+                print("[AML HTTP LOGIN] Success")
+                return session_obj
+            print(f"[AML HTTP LOGIN] Attempt {attempt} failed - report form not available. Retrying.")
+        else:
+            print(f"[AML HTTP LOGIN] Attempt {attempt} failed - status={login_resp.status_code} location={location!r}. Retrying.")
         time.sleep(1)
 
     raise RuntimeError("AML GUI HTTP login failed after captcha retries")
-def aml_build_driver():
+def aml_build_driver(headless=False):
     options = ChromeOptions()
-    # Regenerate process ab hamesha headless hi chalta hai — koi visible
-    # Chrome window nahi khulta.
-    options.add_argument("--headless=new")
+    # Default headed for GUI-style AML flows; headless can still be requested.
+    if headless:
+        options.add_argument("--headless=new")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
@@ -5118,13 +5553,14 @@ def aml_login(driver, max_captcha_attempts=5):
 
     for attempt in range(1, max_captcha_attempts + 1):
         try:
+            username_value, password_value, _, _ = get_aml_credentials()
             username_field = wait.until(EC.presence_of_element_located((By.XPATH, AML_USERNAME_INPUT_XPATH)))
             username_field.clear()
-            username_field.send_keys(AML_USERNAME)
+            username_field.send_keys(username_value)
 
             password_field = driver.find_element(By.XPATH, AML_PASSWORD_INPUT_XPATH)
             password_field.clear()
-            password_field.send_keys(AML_PASSWORD)
+            password_field.send_keys(password_value)
 
             captcha_img = wait.until(EC.presence_of_element_located((By.XPATH, AML_CAPTCHA_IMG_XPATH)))
             captcha_text = aml_get_captcha_text(captcha_img)
@@ -5133,7 +5569,7 @@ def aml_login(driver, max_captcha_attempts=5):
             if not captcha_text:
                 print("[AML LOGIN] Captcha OCR returned empty text — retrying with a fresh page.")
                 driver.get(AML_LOGIN_URL)
-                time.sleep(1)
+                time.sleep(0.5)
                 continue
 
             captcha_field = driver.find_element(By.XPATH, AML_CAPTCHA_INPUT_XPATH)
@@ -5500,7 +5936,7 @@ def _cleanup_paths(paths):
             print(f"[CLEANUP] Could not remove {path}: {exc}", flush=True)
 
 
-def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
+def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user, aml_creds):
     """Background thread — actual regenerate ka kaam yahi karta hai,
     stop_event check karte hue taaki beech mein rok sakein."""
     with REGEN_JOBS_LOCK:
@@ -5525,7 +5961,7 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
         final_rows = []
         final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
 
-        aml_session = aml_login_requests()
+        aml_session = aml_login_requests(creds=aml_creds)
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id]["phase"] = "regenerating"
             REGEN_JOBS[job_id]["driver"] = None  # Requests-based flow does not launch Chrome.
@@ -5605,7 +6041,7 @@ def _run_bulk_regenerate_job(job_id, report_ids, mode, input_user):
                     status = f"Error: {err_msg}"
                     # Session/captcha can expire; re-login once so remaining reports can continue.
                     try:
-                        aml_session = aml_login_requests()
+                        aml_session = aml_login_requests(creds=aml_creds)
                     except Exception as login_exc:
                         status = f"{status} | HTTP re-login failed: {str(login_exc).strip() or type(login_exc).__name__}"
 
@@ -5849,7 +6285,10 @@ def bulk_regenerate_cases():
             }), 400
 
         job_id = uuid.uuid4().hex
-        input_user = get_clean_display_name(session.get("display_name", "User"))
+        current_email = session.get("email", "")
+        current_display_name = session.get("display_name", "User")
+        input_user = get_clean_display_name(current_display_name)
+        aml_creds = get_aml_credentials_for_user(current_email, current_display_name)
 
         with REGEN_JOBS_LOCK:
             REGEN_JOBS[job_id] = {
@@ -5867,7 +6306,7 @@ def bulk_regenerate_cases():
 
         thread = threading.Thread(
             target=_run_bulk_regenerate_job,
-            args=(job_id, list(report_ids), mode, input_user),
+            args=(job_id, list(report_ids), mode, input_user, aml_creds),
             daemon=True
         )
         thread.start()

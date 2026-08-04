@@ -324,28 +324,61 @@
             .mode-selector-row label { font-size: 12px; font-weight: 700; color: #2c3e50; white-space: nowrap; }
             .mode-select { padding: 7px 12px; border: 1.5px solid #3498db; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; color: #2c3e50; font-weight: 600; height: 34px; min-width: 200px; }
             .mode-select:focus { outline: none; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
-            .sheet-maker-row { display: grid; grid-template-columns: 1.4fr 1.4fr 1fr 1fr; gap: 8px; align-items: start; width: 100%; }
-            .sheet-maker-group { display: flex; flex-direction: column; gap: 4px; }
-            .sheet-maker-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; margin-bottom: 0; }
+            :root { --row-h: 44px; }
+            .sheet-maker-row {
+                display: grid;
+                grid-template-columns: repeat(6, 1fr);
+                gap: 12px;
+                align-items: end;
+                width: 100%;
+            }
+            .sheet-maker-main-row { grid-template-columns: repeat(5, 1fr); }
+            .sheet-maker-main-row { grid-template-columns: 0.85fr 0.95fr 1.3fr 1.15fr 0.9fr; }
+            .summary-maker-row { grid-template-columns: 0.65fr 0.8fr 0.9fr 0.9fr 0.75fr; }
+            .sheet-maker-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+            .sheet-maker-group label { font-size: 12px; font-weight: 600; color: #2c3e50; display: flex; align-items: center; gap: 5px; margin-bottom: 0; height: 16px; }
             .sheet-maker-group label i { color: #3498db; font-size: 13px; }
-            .sheet-maker-select { width: 100%; padding: 7px 9px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; background: white; cursor: pointer; height: 34px; }
+            .sheet-maker-select { width: 100%; padding: 0 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; background: white; cursor: pointer; height: var(--row-h); box-sizing: border-box; }
             .headers-display { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 6px; margin-top: 4px; display: none; font-size: 11px; }
             .headers-title { font-size: 10px; color: #666; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
             .headers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 3px; max-height: 70px; overflow-y: auto; }
             .header-item { background: white; border: 1px solid #dee2e6; border-radius: 3px; padding: 3px 5px; font-size: 10px; color: #495057; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-            .file-upload-compact { border: 2px dashed #dee2e6; border-radius: 4px; padding: 8px; cursor: pointer; background: white; transition: all 0.2s; text-align: center; min-height: 54px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+            .file-upload-compact {
+                border: 2px dashed #dee2e6; border-radius: 6px; cursor: pointer; background: white;
+                transition: all 0.2s; text-align: center;
+                height: var(--row-h); min-height: var(--row-h);
+                display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px;
+                padding: 0 12px; box-sizing: border-box; overflow: hidden;
+            }
             .file-upload-compact:hover { border-color: #3498db; background: #f8fafc; }
-            .file-upload-compact i { font-size: 16px; color: #3498db; margin-bottom: 3px; }
-            .file-name { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; margin-bottom: 1px; }
-            .file-info { color: #6c757d; font-size: 9px; line-height: 1.2; text-align: center; }
-            .sheet-status-box { min-height: 54px; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 12px; font-size: 12px; font-weight: 500; transition: all 0.3s ease; }
+            .file-upload-compact i { font-size: 15px; color: #3498db; flex-shrink: 0; }
+            .file-upload-compact .file-upload-text { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; overflow: hidden; line-height: 1.25; }
+            .file-name { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: #2c3e50; }
+            .file-info { color: #6c757d; font-size: 9.5px; line-height: 1.2; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+            .sheet-status-box {
+                height: var(--row-h); min-height: var(--row-h); border-radius: 6px;
+                display: flex; align-items: center; justify-content: center; gap: 8px;
+                padding: 0 12px; font-size: 12px; font-weight: 500; transition: all 0.3s ease;
+                box-sizing: border-box; overflow: hidden;
+            }
+            .sheet-status-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .sheet-status-box.waiting { background: #f8f9fa; border: 2px dashed #dee2e6; color: #95a5a6; }
             .sheet-status-box.ready { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e8449; font-weight: 600; }
             .sheet-status-box.ready i { color: #27ae60; font-size: 15px; flex-shrink: 0; }
             .sheet-status-box.waiting i { color: #bdc3c7; font-size: 15px; }
             .sheet-status-box.summary-ready { background: #f0f3ff; border: 1px solid #b0bdf7; color: #3949ab; font-weight: 600; }
             .sheet-status-box.summary-ready i { color: #3f51b5; font-size: 15px; flex-shrink: 0; }
-            .generate-btn-compact { width: 100%; padding: 7px 9px; background: #2ecc71; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
+            .summary-status-action-group { grid-column: span 2; }
+            .summary-status-action-wrap { display: flex; flex-wrap: nowrap; gap: 10px; align-items: center; min-width: 0; height: var(--row-h); }
+            .summary-status-stack { min-width: 0; flex: 1 1 auto; height: 100%; }
+            .summary-status-stack .sheet-status-box { width: 100%; height: 100%; }
+            .summary-gui-load-inline {
+                height: var(--row-h) !important; min-height: var(--row-h);
+                flex: 0 0 190px; white-space: nowrap; font-size: 12px; padding: 0 14px; border-radius: 6px;
+            }
+            .summary-inline-actions { display: flex; flex-direction: column; gap: 5px; justify-content: flex-end; }
+            .summary-inline-actions .generate-summary-btn { margin-top: 0 !important; height: var(--row-h); }
+            .generate-btn-compact { width: 100%; padding: 0 12px; background: #2ecc71; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: var(--row-h); box-sizing: border-box; }
             .generate-btn-compact:hover:not(:disabled) { background: #27ae60; }
             .generate-btn-compact:disabled { background: #95a5a6; cursor: not-allowed; }
             .dup-check-controls { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(260px, 1fr) minmax(220px, 0.72fr); gap: 10px; align-items: end; margin: 6px 0 8px; }
@@ -354,9 +387,11 @@
             .dup-check-controls .generate-btn-compact,
             .dup-check-controls .sheet-status-box { height: 42px; min-height: 42px; }
             .dup-check-controls .sheet-status-box { padding: 7px 12px; }
-            .generate-summary-btn { width: 100%; padding: 7px 9px; background: #5c6bc0; color: white; border: none; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: 34px; }
+            .generate-summary-btn { width: 100%; padding: 0 12px; background: #5c6bc0; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; height: var(--row-h); box-sizing: border-box; }
             .generate-summary-btn:hover:not(:disabled) { background: #3949ab; }
             .generate-summary-btn:disabled { background: #95a5a6; cursor: not-allowed; }
+            .show-preview-btn { margin-top: 10px; width: auto; min-width: 150px; background: #3498db; }
+            .show-preview-btn:hover:not(:disabled) { background: #2980b9; }
             .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: 70vh; overflow: hidden; display: none; flex-direction: column; }
             .preview-section.show { display: flex; flex-direction: column; height: 70vh; }
             .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; flex-shrink: 0; }
@@ -722,14 +757,27 @@
             .upi-live { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 600; color: #94a3b8; margin-left: auto; }
             .upi-live-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; animation: upiPulse 2s infinite; }
             @keyframes upiPulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)} 50%{opacity:.7;box-shadow:0 0 0 4px rgba(34,197,94,0)} }
-            @media (max-width: 992px) { .sheet-maker-row { grid-template-columns: repeat(2, 1fr); } .dup-check-controls { grid-template-columns: 1fr; } }
+            @media (max-width: 1200px) {
+                .sheet-maker-main-row { grid-template-columns: repeat(3, 1fr); }
+                .summary-maker-row { grid-template-columns: repeat(4, 1fr); }
+            }
+            @media (max-width: 992px) {
+                :root { --row-h: 42px; }
+                .sheet-maker-main-row { grid-template-columns: repeat(2, 1fr); }
+                .summary-maker-row { grid-template-columns: repeat(2, 1fr); }
+                .summary-status-action-group { grid-column: span 2; }
+                .summary-status-action-wrap { flex-wrap: wrap; height: auto; }
+                .summary-status-stack { flex: 1 1 100%; }
+                .summary-gui-load-inline { flex: 1 1 100%; }
+                .dup-check-controls { grid-template-columns: 1fr; }
+            }
             @media (max-width: 900px) {
             .header { align-items: flex-start; flex-direction: column; }
             .header-controls { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
             .logo-title-row { flex-wrap: wrap; }
             .logo h1 { white-space: normal; }
         }
-        @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-row { grid-template-columns: 1fr; } .social-page .filters-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
         </style>
     </head>
     <body>
@@ -1224,29 +1272,34 @@
                     </div>
                     <!-- SHEET MAKER MODE -->
                     <div id="sheetMakerSection">
-                        <div class="sheet-maker-row">
-                            <div class="sheet-maker-group">
+                        <div class="sheet-maker-row sheet-maker-main-row">
+                            <div class="sheet-maker-group" style="min-width:0;">
+                                <label><i class="fas fa-database"></i> Source Type</label>
+                                <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
+                                    <option value="upload">Sheet Upload</option>
+                                    <option value="aml">GUI Auto Process</option>
+                                </select>
+                            </div>
+                            <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-file-excel"></i> Select Sheet Type</label>
                                 <select class="sheet-maker-select" id="sheetTypeSelect" onchange="updateSelectedSheet()">
                                     <option value="">-- Select Sheet Type --</option>
                                     <option value="upi">UPI (AML)</option>
                                     <option value="investment">Investment Scam</option>
                                 </select>
-                                <div class="headers-display" id="headersDisplay">
-                                    <div class="headers-title"><i class="fas fa-list"></i> Required Input Headers:<span id="headersCount" style="margin-left:auto;font-weight:bold;"></span></div>
-                                    <div class="headers-grid" id="headersList"></div>
-                                </div>
                             </div>
-                            <div class="sheet-maker-group">
+                            <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-upload"></i> Upload Your Data</label>
                                 <div class="file-upload-compact" onclick="document.getElementById('fileUpload').click()">
                                     <i class="fas fa-cloud-upload-alt"></i>
-                                    <div id="fileName" class="file-name">No file chosen</div>
-                                    <div class="file-info">CSV, Excel → Output: CSV</div>
+                                    <div class="file-upload-text">
+                                        <div id="fileName" class="file-name">No file chosen</div>
+                                        <div class="file-info">CSV, Excel → Output: CSV</div>
+                                    </div>
                                     <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                                 </div>
                             </div>
-                            <div class="sheet-maker-group">
+                            <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-info-circle"></i> Status</label>
                                 <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
                                     <i class="fas fa-hourglass-half"></i>
@@ -1257,13 +1310,17 @@
                                     <span id="sheetReadyText"></span>
                                 </div>
                             </div>
-                            <div class="sheet-maker-group">
-                                <label><i class="fas fa-download"></i> Generate Final Sheet</label>
+                            <div class="sheet-maker-group" style="min-width:0;">
+                                <label><i class="fas fa-download"></i> Action</label>
                                 <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
                                     <i class="fas fa-download"></i> Generate CSV Excel File
                                 </button>
                             </div>
                         </div>
+
+                        <button type="button" class="generate-btn-compact show-preview-btn" id="showPreviewBtn" onclick="showCachedPreview()" style="display:none;">
+                            <i class="fas fa-eye"></i> Show Preview
+                        </button>
 
                         <div class="preview-section" id="previewSection">
                             <div class="preview-header">
@@ -1281,8 +1338,15 @@
                     </div>
                     <!-- SUMMARY MAKER MODE -->
                     <div id="summaryMakerSection" style="display:none;">
-                        <div class="sheet-maker-row">
-                            <div class="sheet-maker-group">
+                        <div class="sheet-maker-row summary-maker-row">
+                            <div class="sheet-maker-group" style="min-width:0;">
+                                <label><i class="fas fa-database"></i> Source</label>
+                                <select class="sheet-maker-select" id="summarySourceSelect" onchange="onSummarySourceChange()">
+                                    <option value="upload">Sheet Upload</option>
+                                    <option value="aml">Generate from GUI</option>
+                                </select>
+                            </div>
+                            <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-list-alt"></i> Summary Type</label>
                                 <select class="sheet-maker-select" id="summaryTypeSelect" onchange="onSummaryTypeChange()">
                                     <option value="">-- Select Summary Type --</option>
@@ -1290,29 +1354,46 @@
                                     <option value="category">📂 Category-wise Summary</option>
                                 </select>
                             </div>
-                            <div class="sheet-maker-group">
+                            <div class="sheet-maker-group" id="summaryUploadGroup" style="min-width:0;">
                                 <label><i class="fas fa-file-excel"></i> Upload Your Excel File</label>
                                 <div class="file-upload-compact" onclick="document.getElementById('summaryFileUpload').click()">
                                     <i class="fas fa-cloud-upload-alt"></i>
-                                    <div id="summaryFileName" class="file-name">No file chosen</div>
-                                    <div class="file-info">Excel (.xlsx, .xls, .xlsm, .xlsb, .ods, .csv)</div>
+                                    <div class="file-upload-text">
+                                        <div id="summaryFileName" class="file-name">No file chosen</div>
+                                        <div class="file-info">Excel (.xlsx, .xls, .ods, .csv)</div>
+                                    </div>
                                     <input type="file" id="summaryFileUpload" style="display:none;"
                                         onchange="updateSummaryFileName(this)"
                                         accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.xlsm,.xltx,.xltm,.xla,.xlam,.ods,.ots,.tsv,.txt">
                                 </div>
                             </div>
-                            <div class="sheet-maker-group">
-                                <label><i class="fas fa-info-circle"></i> Data Processing Status</label>
-                                <div id="summaryNotReadyMsg" class="sheet-status-box waiting">
-                                    <i class="fas fa-hourglass-half"></i>
-                                    <span>Waiting for input...</span>
-                                </div>
-                                <div id="summaryReadyMsg" class="sheet-status-box summary-ready" style="display:none;">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span id="summaryReadyText"></span>
+                            <div class="sheet-maker-group" id="summaryAmlGroup" style="display:none;min-width:0;">
+                                <label><i class="fas fa-calendar-alt"></i> GUI Date Range</label>
+                                <div style="display:flex;gap:6px;align-items:center;height:var(--row-h);">
+                                    <input type="date" id="summaryGuiDateFrom" style="width:100%;height:100%;padding:0 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
+                                    <span style="font-size:12px;color:#7f8c8d;flex-shrink:0;">to</span>
+                                    <input type="date" id="summaryGuiDateTo" style="width:100%;height:100%;padding:0 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
                                 </div>
                             </div>
-                            <div class="sheet-maker-group">
+                            <div class="sheet-maker-group summary-status-action-group" style="min-width:0;">
+                                <label><i class="fas fa-info-circle"></i> Data Processing Status</label>
+                                <div class="summary-status-action-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                    <div class="summary-status-stack" style="flex:1;min-width:160px;">
+                                        <div id="summaryNotReadyMsg" class="sheet-status-box waiting">
+                                            <i class="fas fa-hourglass-half"></i>
+                                            <span>Waiting for input...</span>
+                                        </div>
+                                        <div id="summaryReadyMsg" class="sheet-status-box summary-ready" style="display:none;">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span id="summaryReadyText"></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="generate-summary-btn summary-gui-load-inline" id="summaryGuiLoadBtn" onclick="loadSummaryFromGui()" style="display:none;background:#16a085;flex-shrink:0;">
+                                        <i class="fas fa-cloud-download-alt"></i> Load from GUI
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="sheet-maker-group summary-inline-actions" id="summaryGenerateGroup" style="display:none;min-width:0;">
                                 <label><i class="fas fa-chart-pie"></i> Generate Summary</label>
                                 <button class="generate-summary-btn" id="generateSummaryBtn" onclick="generateSummary()" disabled>
                                     <i class="fas fa-chart-pie"></i> Generate Summary
@@ -1346,10 +1427,6 @@
                 </div>
                 <!-- DUPLICATE CHECKER SECTION -->
                 <div id="duplicateCheckerSection" style="display:none;">
-                    <span style="display:inline-flex;align-items:center;gap:4px;background:#ebf5fb;border:1px solid #aed6f1;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#1a5276;">
-                        <i class="fas fa-calendar-check" style="color:#3498db;font-size:9px;"></i>
-                        Updated To: <span id="dupCheckerLastDate" style="color:#e67e22;">Loading...</span>
-                    </span>
                     <div class="dup-check-controls">
                         <div class="sheet-maker-group">
                             <label><i class="fas fa-keyboard"></i> Input Mode</label>
@@ -1374,10 +1451,16 @@
                     </div>
                     <!-- Manual Input Area -->
                     <div id="dupManualArea" style="margin-top:8px;margin-bottom:10px;">
-                        <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;margin-bottom:5px;">
-                            <i class="fas fa-list" style="color:#3498db;font-size:13px;"></i>
-                            Enter values — one per line (max 800)
-                        </label>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;flex-wrap:wrap;">
+                            <label style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;margin-bottom:0;">
+                                <i class="fas fa-list" style="color:#3498db;font-size:13px;"></i>
+                                Enter values — one per line (max 800)
+                            </label>
+                            <span style="display:inline-flex;align-items:center;gap:4px;background:#ebf5fb;border:1px solid #aed6f1;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;color:#1a5276;">
+                                <i class="fas fa-calendar-check" style="color:#3498db;font-size:9px;"></i>
+                                Updated To: <span id="dupCheckerLastDate" style="color:#e67e22;">Loading...</span>
+                            </span>
+                        </div>
                         <textarea id="dupManualInput"
                             placeholder="Example: 9876543210@ybl | 1234567890123456 | test@okaxis"
                             oninput="onDupManualInput()"
@@ -1918,24 +2001,16 @@
         <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;overflow-y:visible;">
             <!-- FILTER BAR -->
             <div style="background:white;border-radius:8px;padding:8px 12px;box-shadow:0 1px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:100;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                    <span id="insightsLastDateBadge" style="display:none;background:#fff3e0;border:1px solid #ffcc80;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;color:#e65100;width:fit-content;">
-                        Updated To: <span id="insightsLastDateVal">—</span>
-                    </span>
-                    <button type="button" onclick="clearInsightsFilters()" style="background:#e74c3c;color:white;border:none;padding:4px 9px;border-radius:5px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;height:26px;font-weight:600;margin-left:auto;">
-                        <i class="fas fa-times"></i> Clear
-                    </button>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px;">
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) auto;gap:6px;align-items:end;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Date From</label>
                         <input type="date" id="insightsDateFrom" onchange="onInsightsPrimaryFilterChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;">
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Date To</label>
                         <input type="date" id="insightsDateTo" onchange="onInsightsPrimaryFilterChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;">
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Search For</label>
                         <select id="insightsSearchFor" onchange="onInsightsPrimaryFilterChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;background:white;cursor:pointer;">
                             <option value="">All</option>
@@ -1943,31 +2018,37 @@
                             {% for sf in bs_investment_search_for_options %}<option value="{{ sf }}">{{ sf }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Scam Type</label>
                         <select id="insightsScamType" onchange="onInsightsPrimaryFilterChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;background:white;cursor:pointer;">
                             <option value="">All</option>
                             {% for st in bs_investment_scam_type_options %}<option value="{{ st }}">{{ st }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Wallet</label>
                         <select id="insightsWallet" onchange="onInsightsPrimaryFilterChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;background:white;cursor:pointer;">
                             <option value="">All</option>
                             {% for w in bs_investment_wallet_options %}<option value="{{ w }}">{{ w }}</option>{% endfor %}
                         </select>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Input User</label>
                         <select id="insightsInputUser" onchange="loadInsightsData()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;background:white;cursor:pointer;">
                             <option value="">All Users</option>
                         </select>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:3px;">
+                    <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Compare User</label>
                         <select id="insightsCompareUser" onchange="onCompareUserChange()" style="padding:4px 7px;border:1px solid #ddd;border-radius:5px;font-size:11px;height:28px;outline:none;background:white;cursor:pointer;">
                             <option value="">-- Compare --</option>
                         </select>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;justify-content:flex-end;min-width:0;">
+                        <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;visibility:hidden;">Clear</label>
+                        <button type="button" onclick="clearInsightsFilters()" style="background:#e74c3c;color:white;border:none;padding:4px 9px;border-radius:5px;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;height:28px;font-weight:600;">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
                     </div>
                 </div>
             </div>
@@ -2131,17 +2212,22 @@
                 <div class="upi-chart-card">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
                         <div class="upi-header-left">
-                            <div class="upi-card-title">Scam Reports Over Time</div>
+                            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                <div class="upi-card-title">Scam Reports Over Time</div>
+                                <span id="insightsLastDateBadge" style="display:none;background:#fff3e0;border:1px solid #ffcc80;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;color:#e65100;width:fit-content;">
+                                    Updated To: <span id="insightsLastDateVal">—</span>
+                                </span>
+                            </div>
                             <div class="upi-chips">
-                                <div class="upi-chip upi-chip-meta">📅 <span id="upiChipRange">All time</span></div>
+                                <div class="upi-chip upi-chip-meta">📅 <span id="upiChipRange">Last 90 days</span></div>
                             </div>
                         </div>
                         <div class="upi-header-right">
                             <div class="upi-time-filters">
                                 <button class="upi-tf-btn" onclick="upiSetRange('7D',this)">7D</button>
                                 <button class="upi-tf-btn" onclick="upiSetRange('30D',this)">30D</button>
-                                <button class="upi-tf-btn" onclick="upiSetRange('90D',this)">90D</button>
-                                <button class="upi-tf-btn active" onclick="upiSetRange('all',this)">All</button>
+                                <button class="upi-tf-btn active" onclick="upiSetRange('90D',this)">90D</button>
+                                <button class="upi-tf-btn" onclick="upiSetRange('all',this)">All</button>
                             </div>
                         </div>
                     </div>
@@ -2229,7 +2315,7 @@
                             </h3>
                     </div>
                     <div id="userComparisonSummary"></div>
-                    <div style="overflow-x:auto;max-height:200px;overflow-y:auto;">
+                    <div id="userComparisonTableWrap" style="overflow-x:auto;max-height:200px;overflow-y:auto;">
                         <table id="userComparisonTable" style="width:100%;border-collapse:collapse;font-size:12px;">
                             <thead id="userComparisonThead"></thead>
                             <tbody id="userComparisonTbody"></tbody>
@@ -2379,6 +2465,7 @@
             let summaryParsedData = [];
             let summaryHeaders = [];
             let lastSummaryResult = null;
+            let summaryAmlDataCache = null;   // persists AML GUI load across type/source toggles
             // ─── DUPLICATE CHECKER STATE ─────────────────────────
             function excelNameToApiName(raw) {
                 let s = (raw || '').trim();
@@ -2409,9 +2496,11 @@
                 const summarySection   = document.getElementById('summaryMakerSection');
                 const duplicateSection = document.getElementById('duplicateCheckerSection');
                 const scrapSummSection = document.getElementById('scrappingSummarySection'); // NEW
+                const scrapResultArea  = document.getElementById('scrapSummaryResultArea');
                 const templateBtn      = document.getElementById('templateBtn');
                 const templateStats    = document.getElementById('templateStats');
                 [sheetSection, summarySection, duplicateSection, scrapSummSection].forEach(s => { if(s) s.style.display = 'none'; });
+                if (mode !== 'scrapping_summary' && scrapResultArea) scrapResultArea.style.display = 'none';
                 if (mode === 'sheet') {
                     sheetSection.style.display = '';
                     templateBtn.style.display  = '';
@@ -2419,6 +2508,8 @@
                     summarySection.style.display = '';
                     templateBtn.style.display    = 'none';
                     templateStats.style.display  = 'none';
+                    setSummaryGuiDefaultDates();
+                    onSummarySourceChange(false);
                     closePreview();
                     document.getElementById('dupResultArea').style.display = 'none';
                 } else if (mode === 'duplicates') {
@@ -2426,6 +2517,7 @@
                     templateBtn.style.display      = 'none';
                     templateStats.style.display    = 'none';
                     closePreview();
+                    clearSummaryRenderState();
                     document.getElementById('summaryPreviewSection').classList.remove('show');
                     document.getElementById('dupResultArea').style.display = 'none';
                     fetchDupCheckerLastDate();
@@ -2434,6 +2526,7 @@
                     templateBtn.style.display   = 'none';
                     templateStats.style.display = 'none';
                     closePreview();
+                    clearSummaryRenderState();
                     document.getElementById('summaryPreviewSection').classList.remove('show');
                     document.getElementById('dupResultArea').style.display = 'none';
                 }
@@ -3347,54 +3440,69 @@
             function showSheetReadyMessage() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
                 const readyEl   = document.getElementById('sheetReadyMsg');
                 const waitEl    = document.getElementById('sheetNotReadyMsg');
                 const textEl    = document.getElementById('sheetReadyText');
                 if (sheetType && fileInput.files.length > 0) {
-                    textEl.textContent = `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
+                    textEl.textContent = sourceType === 'aml'
+                        ? `All set, ${getFirstName()}. Click 'Import Data to GUI' to continue.`
+                        : `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display  = 'none';
                 } else {
                     readyEl.style.display = 'none';
                     waitEl.style.display  = 'flex';
+                    waitEl.querySelector('span').textContent = sourceType === 'aml'
+                        ? 'Waiting for file, sheet type, and GUI import...'
+                        : 'Waiting for input...';
+                }
+            }
+            function onSheetSourceChange() {
+                updateSheetActionButton();
+                showSheetReadyMessage();
+            }
+            function updateSheetActionButton() {
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
+                const btn = document.getElementById('generateBtn');
+                if (!btn) return;
+                if (sourceType === 'aml') {
+                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import Data to GUI';
+                } else {
+                    btn.innerHTML = '<i class="fas fa-download"></i> Generate CSV Excel File';
                 }
             }
             function updateSelectedSheet() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
-                const headersDisplay = document.getElementById('headersDisplay');
+                const templateBtn = document.getElementById('templateBtn');
                 if (sheetType) {
-                    headersDisplay.style.display = 'block';
                     fetch(`/get-sheet-headers/${sheetType}`)
                         .then(r => r.json())
                         .then(data => {
                             if (data.success) {
-                                const list = document.getElementById('headersList');
-                                list.innerHTML = '';
-                                data.headers.forEach(h => { const el = document.createElement('div'); el.className = 'header-item'; el.textContent = h; el.title = h; list.appendChild(el); });
-                                document.getElementById('headersCount').textContent = `${data.headers.length} headers`;
                                 document.getElementById('formSheetType').value = sheetType;
-                                const templateBtn = document.getElementById('templateBtn');
                                 templateBtn.disabled = false;
                                 templateBtn.style.display = '';
                                 if (document.getElementById('fileUpload').files.length > 0) {
                                     document.getElementById('generateBtn').disabled = false;
+                                    clearPreviewCache();
                                     previewData();
                                 } else {
                                     document.getElementById('templateStats').style.display = 'none';
+                                    clearPreviewCache();
                                 }
+                                updateSheetActionButton();
                                 showSheetReadyMessage();
                             }
                         });
                 } else {
-                    headersDisplay.style.display = 'none';
                     document.getElementById('generateBtn').disabled = true;
-                    const templateBtn = document.getElementById('templateBtn');
                     templateBtn.disabled = true;
                     templateBtn.style.display = 'none';
                     document.getElementById('templateStats').style.display = 'none';
                     showSheetReadyMessage();
+                    clearPreviewCache();
                 }
-                closePreview(); previewDataCache = null;
             }
             function updateFileName(input) {
                 document.getElementById('fileName').textContent = input.files[0] ? input.files[0].name : 'No file chosen';
@@ -3404,7 +3512,7 @@
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const hasFile = input.files.length > 0;
                 document.getElementById('generateBtn').disabled = !(sheetType && hasFile);
-                closePreview(); previewDataCache = null;
+                clearPreviewCache();
                 const w = document.getElementById('_mismatchWarn'); if (w) w.style.display = 'none';
                 document.getElementById('sheetNotReadyMsg').innerHTML = '<i class="fas fa-hourglass-half"></i><span>Waiting for input...</span>';
                 document.getElementById('sheetNotReadyMsg').className = 'sheet-status-box waiting';
@@ -3433,14 +3541,12 @@
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
                 if (!sheetType || !fileInput.files.length) return;
-                showLoading();
                 const formData = new FormData();
                 formData.append('sheet_type', sheetType);
                 formData.append('file', fileInput.files[0]);
                 fetch('/preview-sheet', { method: 'POST', body: formData })
                     .then(r => r.json())
                     .then(data => {
-                        hideLoading();
                         if (data.success) { previewDataCache = data; displayPreviewData(data); updateTemplateStats(data); }
                         else {
                             const errMsg = data.error || 'Error previewing data';
@@ -3465,7 +3571,7 @@
                             }
                         }
                     })
-                    .catch(e => { hideLoading(); showToast('Error: ' + e.message, true); });
+                    .catch(e => { showToast('Error: ' + e.message, true); });
             }
             function updateTemplateStats(data) {
                 document.getElementById('templateStats').style.display = 'flex';
@@ -3476,6 +3582,8 @@
             }
             function displayPreviewData(data) {
                 document.getElementById('previewSection').classList.add('show');
+                const showBtn = document.getElementById('showPreviewBtn');
+                if (showBtn) showBtn.style.display = 'none';
                 document.getElementById('previewSheetName').textContent = data.sheet_name;
                 const thead = document.getElementById('previewTableHead');
                 const tbody = document.getElementById('previewTableBody');
@@ -3495,20 +3603,169 @@
                     tbody.appendChild(tr);
                 });
                 document.getElementById('previewRowCount').textContent = `Showing ${(data.preview_rows||[]).length} rows (${data.columns.length} columns)`;
-                document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-            function closePreview() { document.getElementById('previewSection').classList.remove('show'); }
+            function closePreview() {
+                document.getElementById('previewSection').classList.remove('show');
+                const showBtn = document.getElementById('showPreviewBtn');
+                if (showBtn) {
+                    // Always restore the Show Preview button once a preview has been rendered,
+                    // even if previewDataCache got raced/cleared — refetch on demand as fallback.
+                    if (previewDataCache) {
+                        showBtn.style.display = 'inline-flex';
+                    } else {
+                        const sheetType = document.getElementById('sheetTypeSelect')?.value;
+                        const fileInput = document.getElementById('fileUpload');
+                        if (sheetType && fileInput && fileInput.files.length) {
+                            showBtn.style.display = 'inline-flex';
+                        }
+                    }
+                }
+            }
+            function showCachedPreview() {
+                if (previewDataCache) {
+                    displayPreviewData(previewDataCache);
+                    return;
+                }
+                // Cache got cleared by a race — refetch silently instead of leaving user stuck.
+                previewData();
+            }
+            function clearPreviewCache() {
+                previewDataCache = null;
+                document.getElementById('previewSection').classList.remove('show');
+                const showBtn = document.getElementById('showPreviewBtn');
+                if (showBtn) showBtn.style.display = 'none';
+            }
             function generateSheet() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
+                if (sourceType === 'aml') {
+                    importSheetToAmlGui();
+                    return;
+                }
                 showToast('Generating sheet, please wait...', false, false);
                 document.getElementById('sheetForm').submit();
             }
+            function downloadSheetImportCsv(downloadInfo) {
+                if (!downloadInfo || !downloadInfo.content_b64) return;
+                const binary = atob(downloadInfo.content_b64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                const blob = new Blob([bytes], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadInfo.filename || 'aml_gui_import.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            }
+            async function importSheetToAmlGui() {
+                const sheetType = document.getElementById('sheetTypeSelect').value;
+                const fileInput = document.getElementById('fileUpload');
+                const btn = document.getElementById('generateBtn');
+                if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
+                if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
+                const readyEl = document.getElementById('sheetReadyMsg');
+                const waitEl = document.getElementById('sheetNotReadyMsg');
+                showToast('Preparing CSV and importing into GUI...', false, false);
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+                readyEl.style.display = 'none';
+                waitEl.style.display = 'flex';
+                waitEl.querySelector('span').textContent = 'Generating CSV and opening GUI import flow...';
+                try {
+                    const formData = new FormData();
+                    formData.append('sheet_type', sheetType);
+                    formData.append('file', fileInput.files[0]);
+                    const resp = await fetch('/sheet-import-to-aml-gui', { method: 'POST', body: formData });
+                    const data = await resp.json();
+                    downloadSheetImportCsv(data.download);
+                    if (!data.success) throw new Error(data.error || 'GUI import failed');
+                    showToast(`GUI import completed: ${data.rows || 0} rows`, false, true);
+                    waitEl.style.display = 'none';
+                    readyEl.style.display = 'flex';
+                    readyEl.className = 'sheet-status-box ready';
+                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>GUI import completed successfully: ${data.rows || 0} rows.</span>`;
+                } catch (err) {
+                    showToast('GUI import failed: ' + err.message, true);
+                    readyEl.style.display = 'none';
+                    waitEl.style.display = 'flex';
+                    waitEl.className = 'sheet-status-box waiting';
+                    waitEl.querySelector('span').textContent = 'GUI import failed. Check terminal debug logs.';
+                } finally {
+                    updateSheetActionButton();
+                    btn.disabled = false;
+                }
+            }
             // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
             function onSummaryTypeChange() {
+                if (!summaryParsedData.length && summaryAmlDataCache) {
+                    summaryHeaders = summaryAmlDataCache.headers;
+                    summaryParsedData = summaryAmlDataCache.rows;
+                }
                 checkSummaryReady();
+                clearSummaryRenderState();
+                if (summaryParsedData.length > 0) generateSummary();
+            }
+            function setSummaryGuiDefaultDates() {
+                const today = new Date().toISOString().split('T')[0];
+                const from = document.getElementById('summaryGuiDateFrom');
+                const to = document.getElementById('summaryGuiDateTo');
+                if (from && !from.value) from.value = today;
+                if (to && !to.value) to.value = today;
+            }
+            function clearSummaryRenderState() {
+                lastSummaryResult = null;
+                const section = document.getElementById('summaryPreviewSection');
+                const title = document.getElementById('summaryPreviewTitle');
+                const thead = document.getElementById('summaryResultHead');
+                const tbody = document.getElementById('summaryResultBody');
+                const header = document.getElementById('summaryTableHeader');
+                const readyEl = document.getElementById('summaryReadyMsg');
+                const waitEl = document.getElementById('summaryNotReadyMsg');
+                if (title) title.textContent = '';
+                if (thead) thead.innerHTML = '';
+                if (tbody) tbody.innerHTML = '';
+                if (header) header.style.display = 'none';
+                if (section) section.classList.remove('show');
+                if (readyEl) readyEl.style.display = 'none';
+                if (waitEl) {
+                    waitEl.style.display = 'flex';
+                    const span = waitEl.querySelector('span');
+                    if (span) span.textContent = 'Waiting for input...';
+                }
+            }
+            function onSummarySourceChange(clearData = true) {
+                const source = document.getElementById('summarySourceSelect')?.value || 'upload';
+                const uploadGroup = document.getElementById('summaryUploadGroup');
+                const amlGroup = document.getElementById('summaryAmlGroup');
+                const loadBtn = document.getElementById('summaryGuiLoadBtn');
+                if (uploadGroup) uploadGroup.style.display = source === 'upload' ? '' : 'none';
+                if (amlGroup) amlGroup.style.display = source === 'aml' ? '' : 'none';
+                if (loadBtn) loadBtn.style.display = source === 'aml' ? 'flex' : 'none';
+                setSummaryGuiDefaultDates();
+                if (source === 'aml' && summaryAmlDataCache) {
+                    // AML data already loaded earlier — reuse it, don't wipe.
+                    summaryHeaders = summaryAmlDataCache.headers;
+                    summaryParsedData = summaryAmlDataCache.rows;
+                    document.getElementById('summaryFileName').textContent = `GUI export (${summaryParsedData.length} rows)`;
+                    checkSummaryReady();
+                    const summaryType = document.getElementById('summaryTypeSelect').value;
+                    if (summaryType && summaryParsedData.length > 0) generateSummary();
+                    return;
+                }
+                if (clearData) { clearSummaryDataAndRender(); const nameEl = document.getElementById('summaryFileName'); if (nameEl) nameEl.textContent = 'No file chosen'; }
+                checkSummaryReady();
+            }
+            function clearSummaryDataAndRender() {
+                summaryParsedData = [];
+                summaryHeaders = [];
+                summaryAmlDataCache = null;   // explicit clear only (new upload / manual reset)
+                clearSummaryRenderState();
             }
             function updateSummaryFileName(input) {
                 const file = input.files[0];
@@ -3565,6 +3822,7 @@
                                 summaryParsedData.push(row);
                             }
                             checkSummaryReady();
+                            if (summaryParsedData.length > 0) generateSummary();
                         } catch(err) { showToast('Error parsing CSV: ' + err.message, true); }
                     };
                     reader.readAsText(file, 'utf-8');
@@ -3587,6 +3845,7 @@
                         summaryHeaders = data.headers || [];
                         summaryParsedData = data.rows || [];
                         checkSummaryReady();
+                        if (summaryParsedData.length > 0) generateSummary();
                     } else {
                         showToast('Could not parse Excel file via server. Please try saving as CSV.', true);
                         summaryParsedData = [];
@@ -3601,6 +3860,62 @@
                     checkSummaryReady();
                 });
             }
+            async function loadSummaryFromGui() {
+                const dateFrom = document.getElementById('summaryGuiDateFrom').value;
+                const dateTo = document.getElementById('summaryGuiDateTo').value;
+                const btn = document.getElementById('summaryGuiLoadBtn');
+                const readyEl = document.getElementById('summaryReadyMsg');
+                const waitEl = document.getElementById('summaryNotReadyMsg');
+                if (!dateFrom || !dateTo) {
+                    showToast('Please select GUI from date and to date first!', true);
+                    return;
+                }
+                if (dateFrom > dateTo) {
+                    showToast('From date cannot be after To date.', true);
+                    return;
+                }
+                summaryParsedData = [];
+                summaryHeaders = [];
+                document.getElementById('summaryFileName').textContent = 'Loading from GUI...';
+                readyEl.style.display = 'none';
+                waitEl.style.display = 'flex';
+                waitEl.querySelector('span').textContent = 'Logging in to GUI and downloading export...';
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                try {
+                    const resp = await fetch('/summary-source-from-gui', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
+                    });
+                    const data = await resp.json();
+                    if (!data.success) throw new Error(data.error || 'GUI export failed');
+                    summaryHeaders = data.headers || [];
+                    summaryParsedData = data.rows || [];
+                    summaryAmlDataCache = { headers: summaryHeaders, rows: summaryParsedData };  // persist for type/source switching
+                    document.getElementById('summaryFileName').textContent = `GUI export (${data.total_rows || summaryParsedData.length} rows)`;
+                    const loadedRows = data.total_rows || summaryParsedData.length;
+                    if (loadedRows > 0) {
+                        showToast(`GUI data loaded: ${loadedRows} rows`, false, true);
+                    } else {
+                        showToast('GUI export completed, but 0 rows matched this filter.', false, false);
+                    }
+                    checkSummaryReady();
+                    if (summaryParsedData.length > 0) generateSummary();
+                } catch (err) {
+                    summaryParsedData = [];
+                    summaryHeaders = [];
+                    document.getElementById('summaryFileName').textContent = 'No file chosen';
+                    waitEl.style.display = 'flex';
+                    waitEl.querySelector('span').textContent = 'GUI load failed. Check terminal debug logs.';
+                    readyEl.style.display = 'none';
+                    checkSummaryReady();
+                    showToast('GUI load failed: ' + err.message, true);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Load from GUI';
+                }
+            }
             function checkSummaryReady() {
                 const summaryType = document.getElementById('summaryTypeSelect').value;
                 const hasData = summaryParsedData.length > 0;
@@ -3609,7 +3924,7 @@
                 const textEl  = document.getElementById('summaryReadyText');
                 const btn     = document.getElementById('generateSummaryBtn');
                 if (summaryType && hasData) {
-                    textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Click 'Generate Summary'.`;
+                    textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Summary will generate automatically.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display = 'none';
                     btn.disabled = false;
@@ -3620,7 +3935,7 @@
                     btn.disabled = true;
                 } else if (!hasData && summaryType) {
                     waitEl.style.display = 'flex';
-                    waitEl.querySelector('span').textContent = 'Upload a file to continue.';
+                    waitEl.querySelector('span').textContent = 'Choose a source and load data to continue.';
                     readyEl.style.display = 'none';
                     btn.disabled = true;
                 } else {
@@ -3794,6 +4109,7 @@
                     "Shubhankar Shukla",
                     "Sheetal Dubey",
                     "Parul Satsangi",
+                    "Vidhi Satsangi",
                     "Kakul Pal",
                     "Rozma Khan",
                     "Rishabh Yadav",
@@ -6643,8 +6959,7 @@
                     }
                 }
                 function clearInsightsFilters() {
-                    document.getElementById('insightsDateFrom').value  = '';
-                    document.getElementById('insightsDateTo').value    = '';
+                    setInsightsDefaultRange();
                     document.getElementById('insightsSearchFor').value = '';
                     document.getElementById('insightsScamType').value  = '';
                     document.getElementById('insightsWallet').value    = '';
@@ -6659,6 +6974,18 @@
                     _insBankData = null;
                     _resetInsightsUserFilters();
                     loadInsightsData();
+                }
+
+                function setInsightsDefaultRange() {
+                    const fromEl = document.getElementById('insightsDateFrom');
+                    const toEl = document.getElementById('insightsDateTo');
+                    if (!fromEl || !toEl) return;
+                    const today = new Date();
+                    const from = new Date(today);
+                    from.setDate(from.getDate() - 89);
+                    const fmt = d => d.toISOString().split('T')[0];
+                    if (!fromEl.value) fromEl.value = fmt(from);
+                    if (!toEl.value) toEl.value = fmt(today);
                 }
 
                 function onCompareUserChange() {
@@ -6821,21 +7148,29 @@
                     row2.appendChild(scamDiv);
                     compSection.appendChild(row2);
 
-                    // ── ROW 3: Search For comparison ─────────────────────
-                    const row3 = document.createElement('div');
-                    row3.style.cssText = 'background:white;border-radius:10px;padding:16px;box-shadow:0 1px 8px rgba(0,0,0,0.08);';
-                    row3.innerHTML = `
-                        <h3 style="font-size:13px;font-weight:700;color:#2c3e50;margin:0 0 12px;display:flex;align-items:center;gap:6px;">
-                            <i class="fas fa-globe" style="color:#27ae60;"></i> Search For Distribution Comparison
-                        </h3>
-                        <div style="position:relative;height:200px;"><canvas id="compSFBar"></canvas></div>`;
-                    compSection.appendChild(row3);
-
                     // ── Draw charts after DOM ready ──────────────────────
                     setTimeout(() => {
-                        // Line chart
-                        const ctxL = document.getElementById('compLineChart');
-                        if (ctxL) {
+                        const errorBox = document.createElement('div');
+                        errorBox.style.cssText = 'display:none;background:#fff3cd;border:1px solid #ffe08a;color:#8a6d3b;padding:8px 10px;border-radius:6px;font-size:11px;font-weight:600;';
+                        errorBox.textContent = 'Comparison chart is still loading...';
+                        compSection.prepend(errorBox);
+                        const safeRender = (label, fn) => {
+                            try { fn(); }
+                            catch (err) {
+                                console.error('[Insights Comparison] ' + label + ' failed:', err);
+                                errorBox.style.display = 'block';
+                                errorBox.textContent = 'Comparison chart render issue: ' + label;
+                            }
+                        };
+                        if (!allDates.length) {
+                            errorBox.style.display = 'block';
+                            errorBox.textContent = 'No comparison rows found for the selected users.';
+                            return;
+                        }
+
+                        safeRender('line', () => {
+                            const ctxL = document.getElementById('compLineChart');
+                            if (!ctxL) return;
                             _insCharts.compLine = new Chart(ctxL.getContext('2d'), {
                                 type: 'line',
                                 data: {
@@ -6851,11 +7186,11 @@
                                     scales:{ x:{grid:{display:false},ticks:{font:{size:10},maxRotation:35}}, y:{beginAtZero:true,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}} }
                                 }
                             });
-                        }
+                        });
 
-                        // Users bar
-                        const ctxU = document.getElementById('compUsersBar');
-                        if (ctxU) {
+                        safeRender('users', () => {
+                            const ctxU = document.getElementById('compUsersBar');
+                            if (!ctxU) return;
                             const u1Count = u1Stats.total || Object.values(u1Daily).reduce((a,b)=>a+b,0);
                             const u2Count = u2Stats.total || Object.values(u2Daily).reduce((a,b)=>a+b,0);
                             _insCharts.compUsers = new Chart(ctxU.getContext('2d'), {
@@ -6871,63 +7206,31 @@
                                     animation:{ onComplete:function(){ const ch=this,ctx2=ch.ctx; ctx2.save(); ctx2.font='bold 13px sans-serif'; ctx2.textAlign='center'; ctx2.textBaseline='bottom'; ch.data.datasets[0].data.forEach((val,i)=>{ const bar=ch.getDatasetMeta(0).data[i]; if(!bar)return; ctx2.fillStyle=ch.data.datasets[0].backgroundColor[i]; ctx2.fillText(val.toLocaleString(),bar.x,bar.y-4); }); ctx2.restore(); } }
                                 }
                             });
-                        }
-
-                        // Top 5 Scam bar — per-user actual counts from user_stats breakdown
-                        const ctxS = document.getElementById('compScamBar');
-                        if (ctxS) {
-                            // Calculate per-user scam counts from user_by_date
-                        const u1ScamCounts = {};
-                        const u2ScamCounts = {};
-                        (data.all_users || []).forEach(u => {
-                            if(u === user1 || (!user1 && true)) {
-                                // use overall scam counts weighted by ratio
-                            }
                         });
-                        // Use userStats ratio for scam breakdown
-                        const totalAll = (u1Stats.total||0) + (u2Stats.total||0) || 1;
-                        const u1R = (u1Stats.total||0) / totalAll;
-                        const u2R = (u2Stats.total||0) / totalAll;
-                        _insCharts.compScam = new Chart(ctxS.getContext('2d'), {
-                            type: 'bar',
-                            data: {
-                                labels: top5Scams.map(s=>s.length>16?s.slice(0,14)+'…':s),
-                                datasets: [
-                                    { label:u1Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u1R)), backgroundColor:C1, borderWidth:0, borderRadius:4 },
-                                    { label:u2Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u2R)), backgroundColor:C2, borderWidth:0, borderRadius:4 }
-                                ]
-                            },
+
+                        safeRender('scam', () => {
+                            const ctxS = document.getElementById('compScamBar');
+                            if (!ctxS) return;
+                            const totalAll = (u1Stats.total||0) + (u2Stats.total||0) || 1;
+                            const u1R = (u1Stats.total||0) / totalAll;
+                            const u2R = (u2Stats.total||0) / totalAll;
+                            _insCharts.compScam = new Chart(ctxS.getContext('2d'), {
+                                type: 'bar',
+                                data: {
+                                    labels: top5Scams.map(s=>s.length>16?s.slice(0,14)+'…':s),
+                                    datasets: [
+                                        { label:u1Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u1R)), backgroundColor:C1, borderWidth:0, borderRadius:4 },
+                                        { label:u2Label, data:top5Scams.map(s=>Math.round((scamCounts[s]||0)*u2R)), backgroundColor:C2, borderWidth:0, borderRadius:4 }
+                                    ]
+                                },
                                 options: {
                                     responsive:true, maintainAspectRatio:false,
                                     plugins:{ legend:{display:true,position:'top',labels:{font:{size:10}}}, tooltip:{callbacks:{label:tt=>` ${tt.dataset.label}: ${tt.raw}`}} },
                                     scales:{ x:{grid:{display:false},ticks:{font:{size:9},maxRotation:30}}, y:{beginAtZero:true,ticks:{display:false}} }
                                 }
                             });
-                        }
+                        });
 
-                        // Search For comparison bar
-                        const ctxSF = document.getElementById('compSFBar');
-                        if (ctxSF) {
-                            const sfKeys  = Object.keys(sfCounts).sort((a,b)=>sfCounts[b]-sfCounts[a]);
-                            const totalAll = (u1Stats.total||0) + (u2Stats.total||0) || 1;
-                            const u1R = (u1Stats.total||0) / totalAll;
-                            const u2R = (u2Stats.total||0) / totalAll;
-                            _insCharts.compSF = new Chart(ctxSF.getContext('2d'), {
-                                type: 'bar',
-                                data: {
-                                    labels: sfKeys,
-                                    datasets: [
-                                        { label:u1Label, data:sfKeys.map(k=>Math.round((sfCounts[k]||0)*u1R)), backgroundColor:C1, borderWidth:0, borderRadius:4 },
-                                        { label:u2Label, data:sfKeys.map(k=>Math.round((sfCounts[k]||0)*u2R)), backgroundColor:C2, borderWidth:0, borderRadius:4 }
-                                    ]
-                                },
-                                options: {
-                                    responsive:true, maintainAspectRatio:false,
-                                    plugins:{ legend:{display:true,position:'top',labels:{font:{size:11}}}, tooltip:{callbacks:{label:tt=>` ${tt.dataset.label}: ${tt.raw}`}} },
-                                    scales:{ x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0}}, y:{beginAtZero:true,ticks:{display:false}} }
-                                }
-                            });
-                        }
                     }, 60);
                 }
 
@@ -6980,48 +7283,12 @@
                         </div>`;
                     }
 
-                    // ── Date-wise table ──────────────────────────────────
                     const thead = document.getElementById('userComparisonThead');
                     const tbody = document.getElementById('userComparisonTbody');
-                    thead.innerHTML = ''; tbody.innerHTML = '';
-                    const thS   = 'padding:6px 10px;font-size:11px;font-weight:700;border-bottom:2px solid #eee;text-align:center;white-space:nowrap;color:#2c3e50;';
-                    const tdS   = 'padding:5px 8px;font-size:11px;text-align:center;border-bottom:1px solid #f0f0f0;';
-                    const tdLbl = 'padding:5px 8px;font-size:11px;font-weight:600;border-bottom:1px solid #f0f0f0;color:#2c3e50;white-space:nowrap;';
-                    thead.innerHTML = `<tr>
-                        <th style="${thS}text-align:left;">Date</th>
-                        <th style="${thS}color:#9b59b6;">${u1Label}</th>
-                        <th style="${thS}color:#e67e22;">${user2}</th>
-                        <th style="${thS}color:#7f8c8d;">Diff</th>
-                    </tr>`;
-                    let tot1=0, tot2=0;
-                    allDates.forEach(date => {
-                        const c1 = getUserCount(date, user1 || null);
-                        const c2 = getUserCount(date, user2);
-                        if (c1===0 && c2===0) return;
-                        tot1+=c1; tot2+=c2;
-                        const diff      = c1-c2;
-                        const diffColor = diff>0?'#1e8449':diff<0?'#c0392b':'#7f8c8d';
-                        const diffStr   = diff>0?'+'+diff:String(diff);
-                        const parts = date.split('-');
-                        const dStr  = parts.length===3?`${parts[2]}-${parts[1]}-${parts[0]}`:date;
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td style="${tdLbl}">${dStr}</td>
-                            <td style="${tdS}color:#9b59b6;font-weight:600;">${c1||'—'}</td>
-                            <td style="${tdS}color:#e67e22;font-weight:600;">${c2||'—'}</td>
-                            <td style="${tdS}color:${diffColor};font-weight:700;">${c1===0&&c2===0?'—':diffStr}</td>`;
-                        tbody.appendChild(tr);
-                    });
-                    const diffTot      = tot1-tot2;
-                    const diffTotColor = diffTot>0?'#1e8449':diffTot<0?'#c0392b':'#7f8c8d';
-                    const totalTr = document.createElement('tr');
-                    totalTr.style.background = '#f8f9fa';
-                    totalTr.innerHTML = `
-                        <td style="${thS}text-align:left;border-top:2px solid #ddd;">Total</td>
-                        <td style="${thS}color:#9b59b6;border-top:2px solid #ddd;">${tot1}</td>
-                        <td style="${thS}color:#e67e22;border-top:2px solid #ddd;">${tot2}</td>
-                        <td style="${thS}color:${diffTotColor};border-top:2px solid #ddd;">${diffTot>0?'+'+diffTot:diffTot}</td>`;
-                    tbody.appendChild(totalTr);
+                    const tableWrap = document.getElementById('userComparisonTableWrap');
+                    if (thead) thead.innerHTML = '';
+                    if (tbody) tbody.innerHTML = '';
+                    if (tableWrap) tableWrap.style.display = 'none';
                 }
 
                 function _insDestroyAll() {
@@ -7048,6 +7315,7 @@
                     const emptyDiv  = document.getElementById('insightsEmpty');
 
                     if (attempt === 0) {
+                        setInsightsDefaultRange();
                         _insLastData = null;
                         _insBankData = null;
                         loading.style.display   = 'flex';
@@ -7173,7 +7441,7 @@
                         }
                         loading.style.display = 'none';
                         emptyDiv.style.display = 'block';
-                        showToast('Server slow ho raha hai (cold start?) — thodi der baad try karo', true);
+                        showToast('Server running slow (Cold Start)', true);
                     }
                 }
                 // Common chart options helper
@@ -7448,20 +7716,21 @@
                     if (!_upiFullSeries.length && uniqueTotal > 0) {
                         _upiFullSeries = [{ label: 'Total', iso: '', v: uniqueTotal }];
                     }
-                    _upiActiveRange = 'all';
+                    _upiActiveRange = '90D';
                     document.querySelectorAll('.upi-tf-btn').forEach(b => b.classList.remove('active'));
-                    const allBtn = document.querySelector('.upi-tf-btn[onclick*="all"]');
-                    if (allBtn) allBtn.classList.add('active');
+                    const defaultBtn = document.querySelector('.upi-tf-btn[onclick*="90D"]');
+                    if (defaultBtn) defaultBtn.classList.add('active');
                     const chipTotalEl = document.getElementById('upiChipTotal');
                     const pctEl = document.getElementById('upiChipPct');
                     const rangeEl = document.getElementById('upiChipRange');
                     const total = _upiFullSeries.reduce((s,d)=>s+d.v,0);
                     if(chipTotalEl) chipTotalEl.textContent = total.toLocaleString();
-                    if(pctEl) pctEl.textContent = '+91.2%';
-                    if(rangeEl) rangeEl.textContent = 'All time';
-                    _upiCanvasData = _upiFullSeries;
-                    _upiBuildXAxis(_upiFullSeries);
-                    _upiAnimate(_upiFullSeries);
+                    if(pctEl) pctEl.textContent = '+34.7%';
+                    if(rangeEl) rangeEl.textContent = 'Last 90 days';
+                    const filtered = _upiFullSeries.slice(-90);
+                    _upiCanvasData = filtered;
+                    _upiBuildXAxis(filtered);
+                    _upiAnimate(filtered);
                     const canvas = document.getElementById('chartUPI');
                     const tip = document.getElementById('upiTooltip');
                     const ch  = document.getElementById('upiCrosshair');
