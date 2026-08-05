@@ -1011,7 +1011,7 @@
                             <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
                             {% endif %}
                             {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                            <option value="allotment">Scam++ Website Allotment</option>
+                            <option value="allotment" {% if page_type == 'allotment' %}selected{% endif %}>Scam++ Website Allotment</option>
                             {% endif %}
                             {% if 'insights' in allowed_pages %}
                             <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Scam++ Dashboard</option>
@@ -1020,7 +1020,7 @@
                             <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>Case Report Generator</option>
                             {% endif %}
                             {% if 'lunch' in allowed_pages %} 
-                            <option value="lunch_break"> Lunch Break Tracker</option>
+                            <option value="lunch_break" {% if page_type == 'lunch_break' %}selected{% endif %}>Lunch Break Tracker</option>
                             {% endif %}
                         </select>
                     </div>
@@ -1276,8 +1276,8 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Source Type</label>
                                 <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
+                                    <option value="aml" selected>GUI Auto Process</option>
                                     <option value="upload">Sheet Upload</option>
-                                    <option value="aml">GUI Auto Process</option>
                                 </select>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
@@ -1342,8 +1342,8 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Source</label>
                                 <select class="sheet-maker-select" id="summarySourceSelect" onchange="onSummarySourceChange()">
+                                    <option value="aml" selected>Generate from GUI</option>
                                     <option value="upload">Sheet Upload</option>
-                                    <option value="aml">Generate from GUI</option>
                                 </select>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
@@ -2504,6 +2504,7 @@
                 if (mode === 'sheet') {
                     sheetSection.style.display = '';
                     templateBtn.style.display  = '';
+                    onSheetSourceChange();
                 } else if (mode === 'summary') {
                     summarySection.style.display = '';
                     templateBtn.style.display    = 'none';
@@ -3440,7 +3441,7 @@
             function showSheetReadyMessage() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 const readyEl   = document.getElementById('sheetReadyMsg');
                 const waitEl    = document.getElementById('sheetNotReadyMsg');
                 const textEl    = document.getElementById('sheetReadyText');
@@ -3463,7 +3464,7 @@
                 showSheetReadyMessage();
             }
             function updateSheetActionButton() {
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 const btn = document.getElementById('generateBtn');
                 if (!btn) return;
                 if (sourceType === 'aml') {
@@ -3638,7 +3639,7 @@
             function generateSheet() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'upload';
+                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
                 if (sourceType === 'aml') {
@@ -3740,7 +3741,7 @@
                 }
             }
             function onSummarySourceChange(clearData = true) {
-                const source = document.getElementById('summarySourceSelect')?.value || 'upload';
+                const source = document.getElementById('summarySourceSelect')?.value || 'aml';
                 const uploadGroup = document.getElementById('summaryUploadGroup');
                 const amlGroup = document.getElementById('summaryAmlGroup');
                 const loadBtn = document.getElementById('summaryGuiLoadBtn');
