@@ -5325,7 +5325,7 @@ def aml_get_hex_captcha_text_with_easyocr(captcha_bytes):
 
 def aml_solve_gui_download_captcha(session_obj):
     img = session_obj.get(urllib.parse.urljoin(AML_GUI_BASE_URL, "captcha.php"), timeout=30).content
-    return aml_get_hex_captcha_text_with_easyocr(img)
+    return aml_get_captcha_text_from_bytes(img)
 
 
 def aml_get_captcha_text_with_tesseract(captcha_bytes):
@@ -5369,9 +5369,12 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
     elif engine in ("ddddocr", "dddocr"):
         engines = ["ddddocr"]
     elif tesseract_available:
-        engines = ["easyocr", "tesseract", "ddddocr"]
+        engines = ["tesseract"]
     else:
-        engines = ["easyocr", "ddddocr", "tesseract"]
+        engines = []
+
+    if not engines:
+        raise RuntimeError("Tesseract OCR is not available. Set AML_OCR_ENGINE=ddddocr or easyocr only if Render has enough memory.")
 
     last_error = None
     for candidate in engines:
@@ -5480,8 +5483,10 @@ def aml_login_requests(max_captcha_attempts=7, creds=None, require_report_form=T
     for attempt in range(1, max_captcha_attempts + 1):
         username_value, password_value, customer_value, platform_value = creds or get_aml_credentials()
         session_obj.cookies.clear()
+        print(f"[AML HTTP LOGIN] Loading login page attempt={attempt}", flush=True)
         login_page = session_obj.get(AML_GUI_BASE_URL, timeout=30)
         login_page.raise_for_status()
+        print(f"[AML HTTP LOGIN] Solving captcha attempt={attempt}", flush=True)
         captcha_text = aml_solve_gui_download_captcha(session_obj)
         print(f"[AML HTTP LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
 

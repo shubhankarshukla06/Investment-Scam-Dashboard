@@ -18,5 +18,4 @@ requests==2.32.3
 selenium==4.24.0
 webdriver-manager==4.0.2
 ddddocr
-easyocr
 
