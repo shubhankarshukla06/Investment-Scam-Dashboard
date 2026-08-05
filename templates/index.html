@@ -7,6 +7,15 @@
         <link rel="icon" type="image/png" href="/static/favicon.png">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                try {
+                    if (localStorage.getItem('scamGuiTheme') === 'dark') {
+                        document.documentElement.classList.add('theme-dark-preload');
+                    }
+                } catch (e) {}
+            })();
+        </script>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
             body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
@@ -51,6 +60,7 @@
             .btn-warning:hover { background: #e67e22; }
             .btn-danger { background: #e74c3c; color: white; }
             .btn-danger:hover { background: #c0392b; }
+            .theme-select { min-width: 118px; }
             .page-content { display: none; }
             .page-content.active { display: flex; flex-direction: column; }
             /* ============================================================
@@ -777,7 +787,424 @@
             .logo-title-row { flex-wrap: wrap; }
             .logo h1 { white-space: normal; }
         }
-        @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
+            @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
+            html.theme-dark-preload body,
+            body.theme-dark { background: #202938; color: #e2e8f0; }
+            body.theme-dark .fixed-header { background: #202938; border-bottom-color: rgba(148,163,184,0.12); box-shadow: 0 8px 22px rgba(15,23,42,0.18); }
+            body.theme-dark .header,
+            body.theme-dark .scraping-page .filters,
+            body.theme-dark .investment-page .filters,
+            body.theme-dark .social-page .filters,
+            body.theme-dark .sheet-maker-compact,
+            body.theme-dark .preview-section,
+            body.theme-dark .summary-preview-section,
+            body.theme-dark .duplicate-checker-compact,
+            body.theme-dark .scrap-summary-compact,
+            body.theme-dark .activity-log-container,
+            body.theme-dark .modal-content,
+            body.theme-dark .card { background: #2b3546; color: #e2e8f0; box-shadow: 0 8px 22px rgba(15,23,42,0.22); border-color: rgba(148,163,184,0.12); }
+            body.theme-dark .logo h1,
+            body.theme-dark .filters-header h2,
+            body.theme-dark .sheet-maker-header h2,
+            body.theme-dark .sheet-maker-group label,
+            body.theme-dark .filter-group label,
+            body.theme-dark .page-selector label,
+            body.theme-dark .preview-header h3,
+            body.theme-dark th { color: #e5e7eb; }
+            body.theme-dark .logo p,
+            body.theme-dark .header-username,
+            body.theme-dark .date-range-sep,
+            body.theme-dark .search-hint,
+            body.theme-dark .preview-row-count { color: #aab4c3; }
+            body.theme-dark .page-select,
+            body.theme-dark .sheet-maker-select,
+            body.theme-dark input,
+            body.theme-dark select,
+            body.theme-dark textarea,
+            body.theme-dark .file-upload-compact,
+            body.theme-dark .sheet-status-box.waiting { background: #243044; color: #e5e7eb; border-color: rgba(148,163,184,0.22); }
+            body.theme-dark input::placeholder,
+            body.theme-dark textarea::placeholder { color: #7b8798; }
+            body.theme-dark .btn-outline { background: #273247; color: #93c5fd; border-color: rgba(96,165,250,0.42); }
+            body.theme-dark .btn-outline:hover { background: #334155; }
+            body.theme-dark .table-container,
+            body.theme-dark .scraping-page .table-container,
+            body.theme-dark .investment-page .table-container,
+            body.theme-dark .social-page .table-container,
+            body.theme-dark .preview-table-container { background: #243044; border-color: rgba(148,163,184,0.12); }
+            body.theme-dark table,
+            body.theme-dark td,
+            body.theme-dark th { border-color: rgba(148,163,184,0.14); }
+            body.theme-dark th,
+            body.theme-dark .scraping-page th,
+            body.theme-dark .investment-page th,
+            body.theme-dark .social-page th { background: #334155; color: #e5e7eb; }
+            body.theme-dark tr:hover,
+            body.theme-dark .scraping-page tr:hover,
+            body.theme-dark .investment-page tr:hover { background: #334155; }
+            body.theme-dark .na-cell { color: #94a3b8; }
+            body.theme-dark .template-stats { background: #243044; border-color: rgba(148,163,184,0.14); color: #e2e8f0; }
+            body.theme-dark .dev-credit-footer { background: #172033; color: #cbd5e1; }
+            body.theme-dark .scraping-page .filter-group label,
+            body.theme-dark .investment-page .filter-group label,
+            body.theme-dark .social-page .filter-group label,
+            body.theme-dark .scraping-page .filters-header h2,
+            body.theme-dark .investment-page .filters-header h2,
+            body.theme-dark .social-page .filters-header h2 { color: #f1f5f9; }
+            body.theme-dark .scraping-page td,
+            body.theme-dark .investment-page td,
+            body.theme-dark .social-page td { color: #e6edf7; }
+            body.theme-dark .scraping-page [style*="color:#2c3e50"],
+            body.theme-dark .scraping-page [style*="color: #2c3e50"],
+            body.theme-dark .investment-page [style*="color:#2c3e50"],
+            body.theme-dark .investment-page [style*="color: #2c3e50"],
+            body.theme-dark .social-page [style*="color:#2c3e50"],
+            body.theme-dark .social-page [style*="color: #2c3e50"] { color: #f1f5f9 !important; }
+            body.theme-dark .scraping-page [style*="color:#95a5a6"],
+            body.theme-dark .scraping-page [style*="color: #95a5a6"],
+            body.theme-dark .investment-page [style*="color:#95a5a6"],
+            body.theme-dark .investment-page [style*="color: #95a5a6"],
+            body.theme-dark .social-page [style*="color:#95a5a6"],
+            body.theme-dark .social-page [style*="color: #95a5a6"] { color: #aab4c3 !important; }
+            body.theme-dark .investment-page tbody tr,
+            body.theme-dark .investment-page tr:nth-child(even) { background: #243044; }
+            body.theme-dark .investment-page tbody tr:nth-child(even) { background: #2b3546; }
+            body.theme-dark .investment-page tbody tr:hover { background: #334155; }
+            body.theme-dark .social-page .row-active { background-color: rgba(22,101,52,0.32) !important; }
+            body.theme-dark .social-page .row-active:hover { background-color: rgba(22,101,52,0.44) !important; }
+            body.theme-dark .social-page .row-block,
+            body.theme-dark .social-page .row-blocked,
+            body.theme-dark .social-page .row-permanent-block { background-color: rgba(127,29,29,0.36) !important; }
+            body.theme-dark .social-page .row-block:hover,
+            body.theme-dark .social-page .row-blocked:hover,
+            body.theme-dark .social-page .row-permanent-block:hover { background-color: rgba(153,27,27,0.48) !important; }
+            body.theme-dark .social-page .row-restricted { background-color: rgba(113,63,18,0.36) !important; }
+            body.theme-dark .social-page .row-restricted:hover { background-color: rgba(133,77,14,0.48) !important; }
+            body.theme-dark .social-page .row-frozen { background-color: rgba(30,64,175,0.28) !important; }
+            body.theme-dark .social-page .row-frozen:hover { background-color: rgba(30,64,175,0.38) !important; }
+            body.theme-dark {
+                background: #0F172A;
+                color: #F8FAFC;
+                font-family: Inter, 'Segoe UI', Roboto, sans-serif;
+                scrollbar-color: #475569 #111827;
+            }
+            body.theme-dark * { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease; }
+            body.theme-dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+            body.theme-dark ::-webkit-scrollbar-track { background: #111827; }
+            body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+            body.theme-dark ::-webkit-scrollbar-thumb:hover { background: #64748B; }
+            body.theme-dark .fixed-header {
+                background: rgba(15,23,42,0.82);
+                backdrop-filter: blur(14px);
+                -webkit-backdrop-filter: blur(14px);
+                border-bottom: 1px solid #334155;
+                box-shadow: 0 10px 25px rgba(0,0,0,.22), 0 0 0 1px rgba(59,130,246,0.08);
+            }
+            body.theme-dark .header,
+            body.theme-dark .scraping-page .filters,
+            body.theme-dark .investment-page .filters,
+            body.theme-dark .social-page .filters,
+            body.theme-dark .sheet-maker-compact,
+            body.theme-dark .preview-section,
+            body.theme-dark .summary-preview-section,
+            body.theme-dark .duplicate-checker-compact,
+            body.theme-dark .scrap-summary-compact,
+            body.theme-dark .activity-log-container,
+            body.theme-dark .modal-content,
+            body.theme-dark .tracker-content,
+            body.theme-dark .card {
+                background: #1E293B;
+                color: #F8FAFC;
+                border: 1px solid #334155;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,.30), 0 0 24px rgba(59,130,246,0.15);
+            }
+            body.theme-dark .scraping-page .filters,
+            body.theme-dark .investment-page .filters,
+            body.theme-dark .social-page .filters,
+            body.theme-dark .sheet-maker-compact {
+                border-radius: 14px;
+                box-shadow: 0 10px 25px rgba(0,0,0,.30), 0 0 22px rgba(59,130,246,0.12);
+            }
+            body.theme-dark .header:hover,
+            body.theme-dark .card:hover,
+            body.theme-dark .sheet-maker-compact:hover,
+            body.theme-dark .preview-section:hover,
+            body.theme-dark .summary-preview-section:hover,
+            body.theme-dark .duplicate-checker-compact:hover,
+            body.theme-dark .scrap-summary-compact:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 30px rgba(0,0,0,.35), 0 0 24px rgba(59,130,246,0.15);
+            }
+            body.theme-dark .logo h1,
+            body.theme-dark .filters-header h2,
+            body.theme-dark .sheet-maker-header h2,
+            body.theme-dark .sheet-maker-group label,
+            body.theme-dark .filter-group label,
+            body.theme-dark .page-selector label,
+            body.theme-dark .preview-header h3,
+            body.theme-dark th { color: #F8FAFC; }
+            body.theme-dark .logo p,
+            body.theme-dark .header-username,
+            body.theme-dark .date-range-sep,
+            body.theme-dark .search-hint,
+            body.theme-dark .preview-row-count,
+            body.theme-dark .pagination-info { color: #CBD5E1; }
+            body.theme-dark input,
+            body.theme-dark select,
+            body.theme-dark textarea,
+            body.theme-dark .page-select,
+            body.theme-dark .sheet-maker-select,
+            body.theme-dark .mode-select,
+            body.theme-dark .file-upload-compact,
+            body.theme-dark .sheet-status-box.waiting {
+                background: #0F172A;
+                color: #F8FAFC;
+                border: 1px solid #334155;
+                border-radius: 10px;
+                box-shadow: inset 0 0 0 1px rgba(255,255,255,0.01);
+            }
+            body.theme-dark input::placeholder,
+            body.theme-dark textarea::placeholder { color: #94A3B8; }
+            body.theme-dark input:focus,
+            body.theme-dark select:focus,
+            body.theme-dark textarea:focus,
+            body.theme-dark .page-select:focus,
+            body.theme-dark .sheet-maker-select:focus,
+            body.theme-dark .mode-select:focus {
+                border-color: #3B82F6;
+                box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+                outline: none;
+            }
+            body.theme-dark select option { background: #0F172A; color: #F8FAFC; }
+            body.theme-dark .btn,
+            body.theme-dark button,
+            body.theme-dark .generate-btn-compact,
+            body.theme-dark .template-btn,
+            body.theme-dark .pagination-btn {
+                border-radius: 10px;
+                box-shadow: 0 6px 16px rgba(0,0,0,.24);
+            }
+            body.theme-dark .btn:hover,
+            body.theme-dark button:hover:not(:disabled),
+            body.theme-dark .generate-btn-compact:hover:not(:disabled),
+            body.theme-dark .template-btn:hover:not(:disabled),
+            body.theme-dark .pagination-btn:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 24px rgba(0,0,0,.30), 0 0 18px rgba(59,130,246,0.15);
+            }
+            body.theme-dark .btn:active,
+            body.theme-dark button:active:not(:disabled),
+            body.theme-dark .generate-btn-compact:active:not(:disabled),
+            body.theme-dark .template-btn:active:not(:disabled),
+            body.theme-dark .pagination-btn:active:not(:disabled) { transform: translateY(0); }
+            body.theme-dark .btn-primary,
+            body.theme-dark .pagination-btn,
+            body.theme-dark .template-btn,
+            body.theme-dark .generate-btn-compact { background: #2563EB !important; color: #F8FAFC !important; }
+            body.theme-dark .btn-primary:hover,
+            body.theme-dark .pagination-btn:hover:not(:disabled),
+            body.theme-dark .template-btn:hover:not(:disabled),
+            body.theme-dark .generate-btn-compact:hover:not(:disabled) { background: #1D4ED8 !important; }
+            body.theme-dark .btn-success { background: #16A34A !important; color: #F8FAFC !important; }
+            body.theme-dark .btn-warning { background: #F59E0B !important; color: #111827 !important; }
+            body.theme-dark .btn-danger,
+            body.theme-dark .clear-filters { background: #DC2626 !important; color: #F8FAFC !important; }
+            body.theme-dark .btn-purple,
+            body.theme-dark .action-btn.activity { background: #7C3AED !important; color: #F8FAFC !important; }
+            body.theme-dark .table-container,
+            body.theme-dark .preview-table-container,
+            body.theme-dark .summary-table-wrap {
+                background: #1E293B;
+                border: 1px solid #334155;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,.30);
+            }
+            body.theme-dark th,
+            body.theme-dark .scraping-page th,
+            body.theme-dark .investment-page th,
+            body.theme-dark .social-page th,
+            body.theme-dark .preview-table th,
+            body.theme-dark .summary-table th {
+                background: #273449;
+                color: #F8FAFC;
+                border-color: #334155;
+            }
+            body.theme-dark tbody tr,
+            body.theme-dark .investment-page tbody tr,
+            body.theme-dark .summary-table td { background: #1E293B; }
+            body.theme-dark tbody tr:nth-child(even),
+            body.theme-dark .investment-page tbody tr:nth-child(even),
+            body.theme-dark .summary-table tr:nth-child(even) td { background: #223047; }
+            body.theme-dark tbody tr:hover,
+            body.theme-dark .scraping-page tr:hover,
+            body.theme-dark .investment-page tr:hover,
+            body.theme-dark .social-page tr:hover,
+            body.theme-dark .preview-table tr:hover td,
+            body.theme-dark .summary-table tr:hover td { background: #2C3E50; }
+            body.theme-dark td,
+            body.theme-dark .summary-table td {
+                color: #F8FAFC;
+                border-color: #334155;
+            }
+            body.theme-dark a,
+            body.theme-dark .url-link { color: #38BDF8; }
+            body.theme-dark i,
+            body.theme-dark .copy-btn { color: #60A5FA; }
+            body.theme-dark .platform-badge,
+            body.theme-dark .scam-type,
+            body.theme-dark .stat-badge,
+            body.theme-dark .template-stats,
+            body.theme-dark #scrapMyCountBadge {
+                background: rgba(59,130,246,.12) !important;
+                color: #60A5FA !important;
+                border-color: rgba(96,165,250,.35) !important;
+                border-radius: 999px;
+            }
+            body.theme-dark .status-pending,
+            body.theme-dark [style*="Pending"] { background: rgba(168,85,247,.15) !important; color: #C084FC !important; }
+            body.theme-dark .status-active,
+            body.theme-dark .status-completed,
+            body.theme-dark .row-active .status-display { background: rgba(22,163,74,.18) !important; color: #86EFAC !important; border-color: rgba(134,239,172,.35) !important; }
+            body.theme-dark .status-block,
+            body.theme-dark .status-blocked,
+            body.theme-dark .status-rejected { background: rgba(220,38,38,.18) !important; color: #FCA5A5 !important; border-color: rgba(252,165,165,.35) !important; }
+            body.theme-dark .status-restricted,
+            body.theme-dark .status-processing { background: rgba(245,158,11,.18) !important; color: #FCD34D !important; border-color: rgba(252,211,77,.35) !important; }
+            body.theme-dark .pagination {
+                background: #1E293B;
+                border: 1px solid #334155;
+                border-radius: 12px;
+                box-shadow: 0 10px 25px rgba(0,0,0,.30);
+            }
+            body.theme-dark .pagination-btn:disabled {
+                background: #475569 !important;
+                color: #CBD5E1 !important;
+                opacity: .65;
+                box-shadow: none;
+            }
+            body.theme-dark .theme-toggle {
+                width: 34px;
+                min-width: 34px;
+                height: 34px;
+                padding: 0;
+                justify-content: center;
+                border-radius: 50%;
+                background: #0F172A;
+                color: #F8FAFC;
+                border: 1px solid #334155;
+                box-shadow: 0 6px 16px rgba(0,0,0,.24), 0 0 18px rgba(59,130,246,.15);
+            }
+            body.theme-dark .theme-toggle i { color: #FACC15; font-size: 14px; }
+            .theme-toggle {
+                width: 34px;
+                min-width: 34px;
+                height: 34px;
+                padding: 0;
+                justify-content: center;
+                border-radius: 50%;
+                background: #F8FAFC;
+                color: #0F172A;
+                border: 1px solid #CBD5E1;
+                box-shadow: 0 4px 14px rgba(15,23,42,.12);
+            }
+            .theme-toggle i { color: #F59E0B; font-size: 14px; }
+            .btn,
+            .page-select,
+            .search-box input,
+            .filter-group select,
+            .filter-group input,
+            .date-range-group input {
+                border-radius: 10px;
+            }
+            .header,
+            .filters,
+            .table-container,
+            .pagination {
+                border-radius: 12px;
+            }
+            html.theme-switching *,
+            html.theme-switching *::before,
+            html.theme-switching *::after {
+                transition: none !important;
+            }
+            body.theme-dark .scraping-page .filter-group select,
+            body.theme-dark .investment-page .filter-group select,
+            body.theme-dark .social-page .filter-group select,
+            body.theme-dark .filter-group select,
+            body.theme-dark .filter-group input,
+            body.theme-dark .date-range-group input,
+            body.theme-dark select[style],
+            body.theme-dark input[style] {
+                background: #0F172A !important;
+                color: #F8FAFC !important;
+                border-color: #334155 !important;
+                color-scheme: dark;
+            }
+            body.theme-dark .filter-group select.active-filter,
+            body.theme-dark .filter-group input.active-filter {
+                background: #111E33 !important;
+                color: #F8FAFC !important;
+                border-color: #3B82F6 !important;
+            }
+            body.theme-dark select option {
+                background: #0F172A !important;
+                color: #F8FAFC !important;
+            }
+            body.theme-dark .header:hover,
+            body.theme-dark .card:hover,
+            body.theme-dark .sheet-maker-compact:hover,
+            body.theme-dark .preview-section:hover,
+            body.theme-dark .summary-preview-section:hover,
+            body.theme-dark .duplicate-checker-compact:hover,
+            body.theme-dark .scrap-summary-compact:hover,
+            body.theme-dark .btn:hover,
+            body.theme-dark button:hover:not(:disabled),
+            body.theme-dark .generate-btn-compact:hover:not(:disabled),
+            body.theme-dark .template-btn:hover:not(:disabled),
+            body.theme-dark .pagination-btn:hover:not(:disabled) {
+                transform: none !important;
+            }
+            body.theme-dark .summary-preview-section .summary-table td,
+            body.theme-dark .summary-preview-section .summary-table th,
+            body.theme-dark #summaryResultArea table td,
+            body.theme-dark #summaryResultArea table th,
+            body.theme-dark #scrapSummaryResultArea table td,
+            body.theme-dark #scrapSummaryResultArea table th,
+            body.theme-dark #scrapSummaryTableWrapper table td,
+            body.theme-dark #scrapSummaryTableWrapper table th {
+                color: #0F172A !important;
+            }
+            body.theme-dark .summary-preview-section .summary-table .total-row td,
+            body.theme-dark #scrapSummaryResultArea table tr:last-child td,
+            body.theme-dark #scrapSummaryTableWrapper table tr:last-child td {
+                color: #0F172A !important;
+                font-weight: 700;
+            }
+            body.theme-dark .investment-page [style*="color:#555"],
+            body.theme-dark .investment-page [style*="color: #555"],
+            body.theme-dark .investment-page [style*="color:#37474f"],
+            body.theme-dark .investment-page [style*="color: #37474f"],
+            body.theme-dark .investment-page [style*="color:#2e7d32"],
+            body.theme-dark .investment-page [style*="color: #2e7d32"],
+            body.theme-dark .investment-page [style*="color:#2c3e50"],
+            body.theme-dark .investment-page [style*="color: #2c3e50"],
+            body.theme-dark .investment-page .text-content {
+                color: #F8FAFC !important;
+            }
+            body.theme-dark .investment-page tbody td span:not(.platform-badge):not(.wallet-badge),
+            body.theme-dark .investment-page tbody td strong {
+                color: #F8FAFC !important;
+            }
+            body.theme-dark .investment-page tbody td span[style*="background:#f3e5f5"],
+            body.theme-dark .investment-page tbody td span[style*="background: #f3e5f5"] {
+                background: rgba(168,85,247,0.18) !important;
+                color: #E9D5FF !important;
+                border: 1px solid rgba(216,180,254,0.28);
+            }
+            body.theme-dark .investment-page td {
+                color: #F8FAFC !important;
+            }
         </style>
     </head>
     <body>
@@ -1036,10 +1463,6 @@
                             <button type="submit" class="btn btn-primary" style="display:inline-flex;" onclick="showToast('Downloading Scraping Data...', false, false)"><i class="fas fa-file-export"></i> Export</button>
                         </form>
                         <button type="button" class="btn btn-warning" onclick="showScrapingTracker()"><i class="fas fa-chart-bar"></i> Tracker</button>
-                        <form id="importForm" action="/upload" method="POST" enctype="multipart/form-data" style="display:inline;">
-                            <input type="file" name="file" id="fileInput" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
-                            <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()"><i class="fas fa-file-import"></i> Import</button>
-                        </form>
                         {% elif page_type == 'social' %}
                         <a href="#" class="btn btn-outline" title="Download Import Template"
                             onclick="downloadSocialTemplate(); return false;">
@@ -1075,6 +1498,9 @@
                         </form>
                         {% endif %}
                         <button type="button" class="btn btn-outline" onclick="window.location.reload()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+                        <button type="button" class="btn theme-toggle" id="themeModeToggle" onclick="toggleGuiTheme()" title="Switch to dark mode" aria-label="Toggle theme" aria-pressed="false">
+                            <i class="fas fa-moon"></i>
+                        </button>
                         {% if can_view_activity_log and page_type in ['scraping', 'social', 'investment'] %}
                         <button type="button" class="btn" style="background:#6366f1;color:white;gap:5px;" onclick="showUserActivityLog()">
                             <i class="fas fa-history"></i> User's Activity Log
@@ -2467,6 +2893,32 @@
             let lastSummaryResult = null;
             let summaryAmlDataCache = null;   // persists AML GUI load across type/source toggles
             // ─── DUPLICATE CHECKER STATE ─────────────────────────
+            function setGuiTheme(mode) {
+                const selectedMode = mode === 'dark' ? 'dark' : 'light';
+                document.documentElement.classList.add('theme-switching');
+                document.body.classList.toggle('theme-dark', selectedMode === 'dark');
+                document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
+                try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
+                const select = document.getElementById('themeModeSelect');
+                if (select) select.value = selectedMode;
+                const toggle = document.getElementById('themeModeToggle');
+                if (toggle) {
+                    toggle.innerHTML = selectedMode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+                    toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+                    toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
+                }
+                window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 80);
+            }
+            function toggleGuiTheme() {
+                const isDark = document.body.classList.contains('theme-dark');
+                setGuiTheme(isDark ? 'light' : 'dark');
+            }
+            function initGuiTheme() {
+                let savedMode = 'light';
+                try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
+                setGuiTheme(savedMode);
+            }
+            initGuiTheme();
             function excelNameToApiName(raw) {
                 let s = (raw || '').trim();
                 s = s.replace(/^icuser/i, '').trim();
@@ -3683,8 +4135,19 @@
                     formData.append('sheet_type', sheetType);
                     formData.append('file', fileInput.files[0]);
                     const resp = await fetch('/sheet-import-to-aml-gui', { method: 'POST', body: formData });
-                    const data = await resp.json();
+                    const responseText = await resp.text();
+                    let data;
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (parseErr) {
+                        const preview = (responseText || '').replace(/\s+/g, ' ').slice(0, 220);
+                        throw new Error(
+                            'Server returned non-JSON response. Render may have restarted during GUI import.' +
+                            (preview ? ' Preview: ' + preview : '')
+                        );
+                    }
                     downloadSheetImportCsv(data.download);
+                    if (!resp.ok) throw new Error(data.error || `GUI import failed with HTTP ${resp.status}`);
                     if (!data.success) throw new Error(data.error || 'GUI import failed');
                     showToast(`GUI import completed: ${data.rows || 0} rows`, false, true);
                     waitEl.style.display = 'none';
@@ -5026,9 +5489,6 @@
                 });
             }, 5000);
             // File input triggers
-            document.getElementById('fileInput')?.addEventListener('change', function() {
-                if (this.files.length) { showLoading(); document.getElementById('importForm').submit(); }
-            });
             document.getElementById('fileInputSocial')?.addEventListener('change', function() {
                 if (this.files.length) { showLoading(); document.getElementById('importFormSocial').submit(); }
             });

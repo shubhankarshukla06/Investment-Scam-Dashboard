@@ -6,6 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Scam Intelligence GUI</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('scamGuiTheme') === 'dark') {
+                    document.documentElement.classList.add('theme-dark-preload');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(180deg, #a8d8f0 0%, #c5e8f7 25%, #ddf0fb 50%, #eef8fe 75%, #f5fbff 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
@@ -81,6 +90,30 @@
         .pixel-logo-corner:hover .pixel-logo-img {
             opacity: 0.85;
         }
+        html.theme-dark-preload body,
+        body.theme-dark {
+            background: linear-gradient(180deg, #202938 0%, #243044 48%, #2b3546 100%);
+            color: #e2e8f0;
+        }
+        body.theme-dark::before,
+        body.theme-dark::after { opacity: 0.18; }
+        body.theme-dark .brand h1 { color: #e5e7eb; text-shadow: none; }
+        body.theme-dark .brand p,
+        body.theme-dark .login-footer { color: #aab4c3; text-shadow: none; }
+        body.theme-dark .login-card {
+            background: #2b3546;
+            border-color: rgba(148,163,184,0.12);
+            box-shadow: 0 8px 26px rgba(15,23,42,0.26);
+        }
+        body.theme-dark .card-title { color: #e5e7eb; border-bottom-color: rgba(148,163,184,0.16); }
+        body.theme-dark .form-group label { color: #aab4c3; }
+        body.theme-dark .form-group input {
+            background: #243044;
+            border-color: rgba(148,163,184,0.22);
+            color: #e5e7eb;
+        }
+        body.theme-dark .form-group input:focus { background: #273247; }
+        body.theme-dark .dev-credit-footer { background: #172033; color: #cbd5e1; }
     </style>
 </head>
 <body>
@@ -126,6 +159,12 @@
     </div>
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
     <script>
+        (function initGuiTheme() {
+            let savedMode = 'light';
+            try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
+            document.body.classList.toggle('theme-dark', savedMode === 'dark');
+            document.documentElement.classList.toggle('theme-dark-preload', savedMode === 'dark');
+        })();
         function togglePwd() {
             const pwd = document.getElementById('password'), icon = document.getElementById('toggleIcon');
             if (pwd.type === 'password') { pwd.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash'); }

@@ -38,6 +38,7 @@ import uuid
 import threading
 import shutil
 import base64
+import html
 
 _EASYOCR_READER = None
 _EASYOCR_LOCK = threading.Lock()
@@ -1975,12 +1976,17 @@ def sheet_import_to_aml_gui():
         import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
         download_payload = _sheet_import_download_payload(csv_text, import_filename)
         print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
-        page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
-        print("[SHEET AML IMPORT] headed import submitted", flush=True)
+        import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "http").strip().lower()
+        if import_engine == "selenium":
+            page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
+        else:
+            resp = _import_sheet_csv_to_aml_gui(csv_text, import_filename)
+            page_preview = re.sub(r"\s+", " ", resp.text or "")[:500]
+        print(f"[SHEET AML IMPORT] {import_engine if import_engine == 'selenium' else 'http'} import submitted", flush=True)
 
         return jsonify({
             "success": True,
-            "message": "CSV generated and submitted in headed AML GUI browser.",
+            "message": "CSV generated and submitted to AML GUI.",
             "rows": len(import_df),
             "debug_preview": page_preview,
             "download": download_payload,
@@ -2408,6 +2414,70 @@ def _extract_form_action(html_text, base_url):
             return urllib.parse.urljoin(base_url, match.group(1)) if match else base_url
     return None
 
+def _extract_attrs(tag_text):
+    attrs = {}
+    for match in re.finditer(r"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*([\"'])(.*?)\2", tag_text or "", flags=re.DOTALL):
+        attrs[match.group(1).lower()] = html.unescape(match.group(3) or "")
+    return attrs
+
+def _set_form_value(data, name, value):
+    if not name:
+        return
+    if name in data:
+        if isinstance(data[name], list):
+            data[name].append(value)
+        else:
+            data[name] = [data[name], value]
+    else:
+        data[name] = value
+
+def _extract_import_form_payload(html_text):
+    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
+    form_html = next((form for form in forms if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE)), html_text or "")
+    data = {}
+    file_field = "file"
+
+    for match in re.finditer(r"<input\b([^>]*)>", form_html, flags=re.IGNORECASE | re.DOTALL):
+        attrs = _extract_attrs(match.group(1))
+        input_type = (attrs.get("type") or "text").lower()
+        name = attrs.get("name")
+        if not name:
+            continue
+        if input_type == "file":
+            file_field = name
+            continue
+        if input_type in ("submit", "button", "reset", "image"):
+            continue
+        if input_type in ("checkbox", "radio"):
+            _set_form_value(data, name, attrs.get("value") or "on")
+        else:
+            _set_form_value(data, name, attrs.get("value", ""))
+
+    for select_match in re.finditer(r"<select\b([^>]*)>(.*?)</select>", form_html, flags=re.IGNORECASE | re.DOTALL):
+        attrs = _extract_attrs(select_match.group(1))
+        name = attrs.get("name")
+        if not name:
+            continue
+        option_values = []
+        for option_match in re.finditer(r"<option\b([^>]*)>(.*?)</option>", select_match.group(2) or "", flags=re.IGNORECASE | re.DOTALL):
+            opt_attrs = _extract_attrs(option_match.group(1))
+            value = opt_attrs.get("value")
+            if value is None:
+                value = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
+            value = html.unescape(value or "").strip()
+            if value:
+                option_values.append(value)
+        if option_values:
+            data[name] = option_values
+
+    for textarea_match in re.finditer(r"<textarea\b([^>]*)>(.*?)</textarea>", form_html, flags=re.IGNORECASE | re.DOTALL):
+        attrs = _extract_attrs(textarea_match.group(1))
+        name = attrs.get("name")
+        if name:
+            _set_form_value(data, name, html.unescape(textarea_match.group(2) or ""))
+
+    return data, file_field
+
 def _find_aml_import_page(session_obj):
     if AML_IMPORT_URL:
         return AML_IMPORT_URL
@@ -2429,20 +2499,9 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     import_page = session_obj.get(import_page_url, timeout=60)
     import_page.raise_for_status()
     post_url = _extract_form_action(import_page.text, import_page_url) or import_page_url
-    data = {}
-    file_field = "file"
-    for match in re.finditer(r"<input\b([^>]*)>", import_page.text or "", flags=re.IGNORECASE):
-        attrs = match.group(1)
-        if re.search(r"type=[\"']file[\"']", attrs, flags=re.IGNORECASE):
-            name_match = re.search(r"name=[\"']([^\"']+)[\"']", attrs, flags=re.IGNORECASE)
-            if name_match:
-                file_field = name_match.group(1)
-            continue
-        name_match = re.search(r"name=[\"']([^\"']+)[\"']", attrs, flags=re.IGNORECASE)
-        if not name_match:
-            continue
-        value_match = re.search(r"value=[\"']([^\"']*)[\"']", attrs, flags=re.IGNORECASE)
-        data[name_match.group(1)] = value_match.group(1) if value_match else ""
+    data, file_field = _extract_import_form_payload(import_page.text)
+    selected_fields = sum(len(v) if isinstance(v, list) else 1 for v in data.values())
+    print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields}", flush=True)
     files = {file_field: (filename or "aml_gui_import.csv", io.BytesIO(csv_text.encode("utf-8-sig")), "text/csv")}
     resp = session_obj.post(
         post_url,
@@ -2459,7 +2518,7 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
         raise RuntimeError("AML import returned login page; session expired or login failed")
     error_match = re.search(
-        r"(error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
+        r"(oops|no\s+column\s+present|fatal\s+error|error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
         response_text,
         flags=re.IGNORECASE,
     )
