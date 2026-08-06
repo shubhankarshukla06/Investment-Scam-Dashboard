@@ -1981,7 +1981,7 @@ def sheet_import_to_aml_gui():
             page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
         else:
             resp = _import_sheet_csv_to_aml_gui(csv_text, import_filename)
-            page_preview = re.sub(r"\s+", " ", resp.text or "")[:500]
+            page_preview = _validate_aml_sheet_import_response(resp.text, resp.url)
         print(f"[SHEET AML IMPORT] {import_engine if import_engine == 'selenium' else 'http'} import submitted", flush=True)
 
         return jsonify({
@@ -2414,6 +2414,10 @@ def _extract_form_action(html_text, base_url):
             return urllib.parse.urljoin(base_url, match.group(1)) if match else base_url
     return None
 
+def _extract_file_form_html(html_text):
+    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
+    return next((form for form in forms if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE)), html_text or "")
+
 def _extract_attrs(tag_text):
     attrs = {}
     for match in re.finditer(r"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*([\"'])(.*?)\2", tag_text or "", flags=re.DOTALL):
@@ -2432,10 +2436,10 @@ def _set_form_value(data, name, value):
         data[name] = value
 
 def _extract_import_form_payload(html_text):
-    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
-    form_html = next((form for form in forms if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE)), html_text or "")
+    form_html = _extract_file_form_html(html_text)
     data = {}
     file_field = "file"
+    submit_added = False
 
     for match in re.finditer(r"<input\b([^>]*)>", form_html, flags=re.IGNORECASE | re.DOTALL):
         attrs = _extract_attrs(match.group(1))
@@ -2446,7 +2450,12 @@ def _extract_import_form_payload(html_text):
         if input_type == "file":
             file_field = name
             continue
-        if input_type in ("submit", "button", "reset", "image"):
+        if input_type in ("reset", "image"):
+            continue
+        if input_type in ("submit", "button"):
+            if not submit_added and name:
+                _set_form_value(data, name, attrs.get("value", ""))
+                submit_added = True
             continue
         if input_type in ("checkbox", "radio"):
             _set_form_value(data, name, attrs.get("value") or "on")
@@ -2477,6 +2486,31 @@ def _extract_import_form_payload(html_text):
             _set_form_value(data, name, html.unescape(textarea_match.group(2) or ""))
 
     return data, file_field
+
+def _validate_aml_sheet_import_response(response_text, response_url):
+    response_text = response_text or ""
+    response_preview = re.sub(r"\s+", " ", response_text)[:500]
+    if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
+        raise RuntimeError("AML import returned login page; session expired or login failed")
+
+    error_match = re.search(
+        r"(oops|no\s+column\s+present|fatal\s+error|error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
+        response_text,
+        flags=re.IGNORECASE,
+    )
+    success_match = re.search(
+        r"(success(?:fully)?|imported\s+successfully|uploaded\s+successfully|inserted\s+successfully|record[s]?\s+(?:added|inserted)|data\s+import(?:ed)?\s+successfully)",
+        response_text,
+        flags=re.IGNORECASE,
+    )
+    if error_match:
+        raise RuntimeError(f"AML import rejected the CSV near: {response_preview}")
+    if not success_match:
+        raise RuntimeError(
+            "AML import did not return a success confirmation. "
+            f"response_url={response_url} preview={response_preview}"
+        )
+    return response_preview
 
 def _find_aml_import_page(session_obj):
     if AML_IMPORT_URL:
@@ -2515,20 +2549,7 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     response_text = resp.text or ""
     response_preview = re.sub(r"\s+", " ", response_text)[:500]
     print(f"[SHEET AML IMPORT] response_url={resp.url} content_type={resp.headers.get('Content-Type', '')} preview={response_preview}", flush=True)
-    if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
-        raise RuntimeError("AML import returned login page; session expired or login failed")
-    error_match = re.search(
-        r"(oops|no\s+column\s+present|fatal\s+error|error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
-        response_text,
-        flags=re.IGNORECASE,
-    )
-    success_match = re.search(
-        r"(success|imported|uploaded|inserted|record[s]?\s+added|data\s+import)",
-        response_text,
-        flags=re.IGNORECASE,
-    )
-    if error_match and not success_match:
-        raise RuntimeError(f"AML import rejected the CSV near: {response_preview}")
+    _validate_aml_sheet_import_response(response_text, resp.url)
     return resp
 
 def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
