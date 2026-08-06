@@ -217,7 +217,6 @@ ALL_EMPLOYEES = [
     "Rozma Khan",
     "Rishabh Yadav",
     "Nitin Kumar",
-    "Anshika Pathak",
     "Vidhi Satsangi",
 ]
 
@@ -1985,11 +1984,12 @@ def sheet_import_to_aml_gui():
         file = request.files.get("file")
         print(f"[SHEET AML IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
         csv_text, result_df, _ = _build_sheet_csv_response(sheet_type, file)
+        download_csv_text = csv_text
         import_csv_text, import_df = _build_aml_gui_import_csv(sheet_type, result_df)
         if import_csv_text:
             csv_text = import_csv_text
         import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
-        download_payload = _sheet_import_download_payload(csv_text, import_filename)
+        download_payload = _sheet_import_download_payload(download_csv_text, import_filename)
         print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
         import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "http").strip().lower()
         if import_engine == "selenium":
@@ -2435,8 +2435,12 @@ def _extract_file_form_html(html_text):
 
 def _extract_attrs(tag_text):
     attrs = {}
-    for match in re.finditer(r"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*([\"'])(.*?)\2", tag_text or "", flags=re.DOTALL):
-        attrs[match.group(1).lower()] = html.unescape(match.group(3) or "")
+    for match in re.finditer(
+        r"([A-Za-z_:][-A-Za-z0-9_:.]*)\s*=\s*(?:([\"'])(.*?)\2|([^\s\"'=<>`]+))",
+        tag_text or "",
+        flags=re.DOTALL,
+    ):
+        attrs[match.group(1).lower()] = html.unescape((match.group(3) if match.group(2) else match.group(4)) or "")
     return attrs
 
 def _set_form_value(data, name, value):
@@ -2502,6 +2506,36 @@ def _extract_import_form_payload(html_text):
 
     return data, file_field
 
+def _summarize_import_form_controls(html_text):
+    form_html = _extract_file_form_html(html_text)
+    controls = []
+    for match in re.finditer(r"<input\b([^>]*)>", form_html, flags=re.IGNORECASE | re.DOTALL):
+        attrs = _extract_attrs(match.group(1))
+        input_type = (attrs.get("type") or "text").lower()
+        controls.append({
+            "tag": "input",
+            "type": input_type,
+            "name": attrs.get("name", ""),
+            "value": attrs.get("value", "")[:80],
+        })
+    for select_match in re.finditer(r"<select\b([^>]*)>(.*?)</select>", form_html, flags=re.IGNORECASE | re.DOTALL):
+        attrs = _extract_attrs(select_match.group(1))
+        options = []
+        for option_match in re.finditer(r"<option\b([^>]*)>(.*?)</option>", select_match.group(2) or "", flags=re.IGNORECASE | re.DOTALL):
+            opt_attrs = _extract_attrs(option_match.group(1))
+            value = opt_attrs.get("value")
+            if value is None:
+                value = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
+            text = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
+            options.append({"value": html.unescape(value or "")[:80], "text": html.unescape(text or "")[:80]})
+        controls.append({
+            "tag": "select",
+            "name": attrs.get("name", ""),
+            "multiple": "multiple" in (select_match.group(1) or "").lower(),
+            "options": options[:20],
+        })
+    return controls[:80]
+
 def _validate_aml_sheet_import_response(response_text, response_url):
     response_text = response_text or ""
     response_preview = re.sub(r"\s+", " ", response_text)[:500]
@@ -2551,6 +2585,8 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     data, file_field = _extract_import_form_payload(import_page.text)
     selected_fields = sum(len(v) if isinstance(v, list) else 1 for v in data.values())
     print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields}", flush=True)
+    print(f"[SHEET AML IMPORT] csv_headers={csv_text.splitlines()[0][:1000] if csv_text else ''}", flush=True)
+    print(f"[SHEET AML IMPORT] form_controls={json.dumps(_summarize_import_form_controls(import_page.text))[:3000]}", flush=True)
     files = {file_field: (filename or "aml_gui_import.csv", io.BytesIO(csv_text.encode("utf-8-sig")), "text/csv")}
     resp = session_obj.post(
         post_url,
