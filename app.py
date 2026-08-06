@@ -1953,7 +1953,22 @@ def _build_sheet_csv_response(sheet_type, file_storage):
                 pass
 
 def _build_aml_gui_import_csv(sheet_type, result_df):
-    return None, result_df
+    if sheet_type != "investment":
+        return None, result_df
+
+    import_df = pd.DataFrame()
+    for target_col in BS_INVESTMENT_IMPORT_COLUMNS:
+        if target_col == "Id":
+            continue
+        source_col = find_import_column(result_df.columns, target_col)
+        if source_col:
+            import_df[target_col] = result_df[source_col]
+        else:
+            import_df[target_col] = "NA"
+
+    output = io.StringIO()
+    import_df.to_csv(output, index=False, encoding="utf-8-sig")
+    return output.getvalue(), import_df
 
 def _sheet_import_download_payload(csv_text, filename):
     return {
