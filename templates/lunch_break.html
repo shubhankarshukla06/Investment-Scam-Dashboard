@@ -296,9 +296,16 @@
             transform:none !important;
         }
         .over-limit { color: #e74c3c; font-weight: 700; }
+        .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); z-index:9999; display:none; align-items:center; justify-content:center; }
+        .loading-overlay.active { display:flex; }
+        .spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
     </style>
 </head>
 <body>
+<!-- Loading overlay for page transitions (used by page-jump handlers) -->
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
 <!-- Fixed Header -->
 <div class="fixed-header">
     <div class="header">
@@ -327,6 +334,9 @@
                     {% endif %}
                     {% if 'investment' in allowed_pages %}
                     <option value="investment">BS Investment Scam</option>
+                    {% endif %}
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc">GUI QC Review</option>
                     {% endif %}
                     {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory">Scam++ Website Directory</option>
@@ -994,20 +1004,37 @@
     })();
 
     function changeLunchPage(pageType) {
+        if (pageType === 'qc') {
+            showLoading();
+            window.location.href = '/qc-gui';
+            return;
+        }
         if (pageType === 'website_directory') {
+            showLoading();
             window.location.href = '/website-directory';
             return;
         }
         if (pageType === 'case_report') {
+            showLoading();
             window.location.href = '/case-report';
             return;
         }
         if (pageType === 'allotment') {
+            showLoading();
             window.location.href = '/scam-website-allotment';
             return;
         }
         if (pageType === 'lunch_break') return;
+        showLoading();
         window.location.href = '/?page=' + pageType;
+    }
+    function showLoading() {
+        const ov = document.getElementById('loadingOverlay');
+        if (ov) ov.classList.add('active');
+    }
+    function hideLoading() {
+        const ov = document.getElementById('loadingOverlay');
+        if (ov) ov.classList.remove('active');
     }
 
     // ── Sync header space ─────────────────────────────────────────

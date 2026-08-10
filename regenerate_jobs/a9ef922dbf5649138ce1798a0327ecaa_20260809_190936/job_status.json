@@ -1,0 +1,18 @@
+{
+  "status": "done",
+  "phase": "regenerating",
+  "total": 1,
+  "completed": 1,
+  "results": [
+    {
+      "id": "05c6f202-7214-40b5-a08d-88fd2d033dba",
+      "old_pdf_url": "https://d13uxlm82x9iqw.cloudfront.net/case-reports/npci-2934363048_14d0d135_ace6cc5465dd41--t.me.pdf",
+      "new_pdf_url": "https://d342cbz307migp.cloudfront.net/case-reports/npci-1786282811_f5991ba6_6a78833bc3731--t.me.pdf",
+      "source_url": "https://t.me/Trades_With_mohitAgrawal",
+      "status": "Success"
+    }
+  ],
+  "folder": "c:\\Users\\Acer\\OneDrive - Pixeltruth\\Code_Hub\\Testing_Code\\regenerate_jobs\\a9ef922dbf5649138ce1798a0327ecaa_20260809_190936",
+  "final_excel": "c:\\Users\\Acer\\OneDrive - Pixeltruth\\Code_Hub\\Testing_Code\\regenerate_jobs\\a9ef922dbf5649138ce1798a0327ecaa_20260809_190936\\final_regenerated_results_20260809_190936.xlsx",
+  "message": null
+}

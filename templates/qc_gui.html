@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GUI QC Review</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+(function () {
+    try {
+        if (localStorage.getItem('scamGuiTheme') === 'dark') {
+            document.documentElement.classList.add('theme-dark-preload');
+        }
+    } catch (e) {}
+})();
+</script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
+body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
+.fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#f5f7fa; padding:12px 15px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
+.header { background:white; border-radius:8px; padding:12px 15px; box-shadow:0 1px 8px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; }
+.logo { min-width:0; flex:1 1 auto; }
+.logo h1 { font-size:18px; color:#2c3e50; }
+.logo-sub { display:flex; align-items:center; gap:10px; }
+.header-username { font-size:12px; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
+.logo p { color:#7f8c8d; font-size:12px; margin-top:2px; font-weight:600; }
+.header-actions { display:flex; gap:6px; align-items:center; justify-content:flex-end; flex:0 0 auto; flex-wrap:nowrap; }
+.btn { padding:6px 12px; border:none; border-radius:5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; font-size:12px; transition:all 0.2s; white-space:nowrap; height:34px; }
+.btn-primary  { background:#3498db; color:white; }
+.btn-primary:hover  { background:#2980b9; }
+.btn-success  { background:#2ecc71; color:white; }
+.btn-success:hover  { background:#27ae60; }
+.btn-warning  { background:#f39c12; color:white; }
+.btn-warning:hover  { background:#e67e22; }
+.btn-outline  { background:white; color:#3498db; border:1.5px solid #3498db; }
+.btn-outline:hover  { background:#f0f7ff; }
+.btn-danger   { background:#e74c3c; color:white; }
+.btn-danger:hover   { background:#c0392b; }
+.btn-purple   { background:#8e44ad; color:white; }
+.btn-purple:hover   { background:#6c3483; }
+:root { --fixed-header-space: 92px; }
+.container { padding:10px 15px 30px; padding-top:var(--fixed-header-space); }
+.page-selector { display:flex; align-items:center; gap:6px; }
+.page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
+.page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:185px; height:34px; }
+.page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
+.filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; margin-top:6px; box-shadow:0 1px 8px rgba(0,0,0,0.08); border-top:3px solid #27ae60; }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+.filters-header h2 { font-size:14px; color:#2c3e50; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+.filter-group { display:flex; flex-direction:column; gap:4px; }
+.filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
+.filter-group input, .filter-group select { width:100%; padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height:34px; outline:none; }
+.filter-group input:focus, .filter-group select:focus { border-color:#3498db; box-shadow:0 0 0 2px rgba(52,152,219,0.2); }
+.filter-group input.active-filter, .filter-group select.active-filter { border-color:#3498db; background:#ebf5fb; }
+.search-box { position:relative; }
+.search-box input { padding-left:30px !important; }
+.search-icon { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:#7f8c8d; font-size:13px; }
+.date-range-group { display:flex; gap:5px; align-items:center; }
+.date-range-group input { flex:1; height:34px; }
+.date-range-sep { font-size:11px; color:#7f8c8d; white-space:nowrap; }
+.clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
+.clear-btn:hover { background:#c0392b; }
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 300px); }
+table { width:max-content; min-width:100%; border-collapse:collapse; }
+th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
+th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
+th:last-child { border-right:none; }
+tr:hover { background:#f8fffe; }
+.na-cell { color:#95a5a6; font-style:italic; font-size:11px; }
+.field-cell { display:flex; align-items:center; gap:4px; }
+.copy-btn  { background:none; border:none; color:#3498db; cursor:pointer; padding:2px 4px; border-radius:3px; font-size:10px; vertical-align:middle; }
+.copy-btn:hover { background:#f0f7ff; }
+.url-link  { color:#3498db; text-decoration:none; font-size:11px; display:inline-block; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:middle; }
+.url-link:hover { text-decoration:underline; }
+.pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:8px; background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); margin-top:10px; }
+.pag-btn { padding:5px 10px; background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px; height:30px; }
+.pag-btn:hover:not(:disabled) { background:#2980b9; }
+.pag-btn:disabled { background:#bdc3c7; cursor:not-allowed; }
+.pag-info { color:#7f8c8d; font-size:12px; }
+.modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.72); z-index:2000; justify-content:center; align-items:center; padding:20px; }
+.modal-overlay.active { display:flex; }
+.modal-box { background:white; border-radius:12px; width:100%; max-width:900px; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,0.25); animation:modalIn 0.25s ease; }
+@keyframes modalIn { from{transform:scale(0.95) translateY(-8px);opacity:0} to{transform:scale(1) translateY(0);opacity:1} }
+.modal-hdr { padding:22px 28px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; color:white; }
+.modal-hdr h2 { font-size:19px; margin:0; display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:0.3px; }
+.modal-close { background:none; border:none; color:white; font-size:22px; cursor:pointer; padding:6px 12px; border-radius:4px; line-height:1; }
+.modal-close:hover { background:rgba(255,255,255,0.2); }
+.modal-body { padding:20px; overflow-y:auto; flex-grow:1; }
+.modal-footer { padding:12px 20px; background:#f8f9fa; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px; flex-shrink:0; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-group label { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:0.5px; }
+.form-group input, .form-group select, .form-group textarea { padding:8px 10px; border:1.5px solid #e2e8f0; border-radius:6px; font-size:12px; background:white; color:#2c3e50; outline:none; height:34px; }
+.form-group textarea { height:70px; resize:vertical; }
+/* ===== QC Review edit modal — two-column layout ===== */
+.qc-review-title { text-align:center; font-size:13px; font-weight:600; color:#2c3e50; margin:0 0 10px; padding:6px 10px; background:#f8f9fa; border-radius:6px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.qc-review-user { color:#8e44ad; margin-left:6px; font-weight:600; }
+.qc-review-user i { color:#8e44ad; }
+.qc-edit-grid { display:grid; grid-template-columns:0.85fr 1.15fr; gap:14px; }
+.qc-edit-col { display:flex; flex-direction:column; gap:9px; min-width:0; }
+.qc-edit-col .form-group textarea { height:50px; }
+.qc-edit-col .form-group input, .qc-edit-col .form-group select { height:32px; font-size:11.5px; }
+.qc-edit-col-right { background:#fafbfc; border-radius:10px; padding:12px; border:1px solid #e2e8f0; }
+.qc-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.qc-pill { background:#e2e8f0; color:#2c3e50; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:600; text-align:center; height:34px; display:flex; align-items:center; justify-content:center; border:1.5px solid transparent; }
+.qc-pill.readonly { background:#edf2f7; color:#4a5568; }
+input.qc-pill { width:100%; cursor:default; outline:none; }
+.upi-validation-container { background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%); border-radius:8px; padding:10px 12px; border:1px solid #dee2e6; position:relative; }
+.upi-validation-container::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#007bff,#28a745,#ffc107,#dc3545); border-radius:10px 10px 0 0; }
+.upi-label { display:block; font-weight:600; color:#495057; margin-bottom:5px; font-size:11px; }
+.upi-input-row { display:flex; align-items:center; gap:8px; }
+.upi-input-row input { flex:1; padding:9px 12px; border:1.5px solid #e9ecef; border-radius:6px; font-size:13px; font-weight:500; outline:none; background:white; }
+.upi-input-row input:focus { border-color:#007bff; box-shadow:0 0 0 3px rgba(0,123,255,.1); }
+.btn-refresh { background:linear-gradient(135deg,#6c757d 0%,#495057 100%); color:white; border:none; padding:7px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.btn-refresh:hover { background:linear-gradient(135deg,#495057 0%,#343a40 100%); }
+.upi-status { background:linear-gradient(135deg,#28a745 0%,#20c997 100%); color:white; padding:6px 12px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+.upi-hint { margin-top:5px; font-size:10px; color:#6c757d; }
+.qc-pdf-frame { background:#1a1a1a; border-radius:8px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+.qc-pdf-hint { font-size:10px; color:#7f8c8d; margin:5px 2px 0; }
+.qc-edit-actions { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:6px; }
+.qc-more-fields { margin-top:8px; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; background:#fafbfc; }
+.qc-more-fields summary { cursor:pointer; font-size:12px; font-weight:600; color:#4a5568; outline:none; list-style:none; display:flex; align-items:center; gap:6px; }
+.qc-more-fields summary::-webkit-details-marker { display:none; }
+.qc-more-fields[open] summary i { transform:rotate(180deg); transition:transform .2s; }
+.qc-more-fields summary i { transition:transform .2s; }
+.qc-more-fields[open] { background:#fff; }
+@media (max-width: 900px) { .qc-edit-grid { grid-template-columns:1fr; } .qc-row-2 { grid-template-columns:1fr; } }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.12); }
+.toast { position:fixed; bottom:20px; right:12px; background:#2c3e50; color:white; padding:8px 16px; border-radius:6px; font-size:12px; animation:fadeUp 0.3s; z-index:3000; box-shadow:0 4px 10px rgba(0,0,0,0.15); }
+.toast.err { background:#e74c3c; }
+.toast.ok  { background:#2ecc71; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.9); display:none; justify-content:center; align-items:center; z-index:2000; }
+.spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:35px; height:35px; animation:spin 1s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+.flash-message { position:fixed; top:12px; right:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-left:4px solid #2ecc71; display:flex; align-items:center; gap:6px; z-index:1001; font-size:13px; animation:slideIn 0.3s ease; max-width:320px; }
+.flash-message.error { border-left-color:#e74c3c; }
+@keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+.empty-state { text-align:center; padding:50px 20px; color:#95a5a6; }
+.empty-state i { font-size:40px; display:block; margin-bottom:14px; color:#dde3ed; }
+.dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; box-shadow:-2px -2px 6px rgba(0,0,0,0.12); }
+.dev-credit-footer span { color:#3498db; font-weight:700; }
+.qc-remark { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:#555; }
+@media (max-width: 900px) {
+    .header { align-items: flex-start; flex-direction: column; }
+    .header-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
+}
+@media (max-width: 1500px) {
+    :root { --fixed-header-space: 156px; }
+    .header { align-items:flex-start; flex-direction:column; }
+    .header-actions { width:100%; flex-wrap:wrap; justify-content:flex-start; }
+}
+.theme-toggle { width:34px; min-width:34px; height:34px; padding:0; justify-content:center; border-radius:50%; background:#F8FAFC; color:#0F172A; border:1px solid #CBD5E1; box-shadow:0 4px 14px rgba(15,23,42,.12); }
+.theme-toggle i { color:#F59E0B; font-size:14px; }
+/* Dark theme */
+body.theme-dark { background:#0F172A; color:#F8FAFC; }
+body.theme-dark .fixed-header { background:rgba(15,23,42,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid #334155; }
+body.theme-dark .header, body.theme-dark .filters, body.theme-dark .table-container, body.theme-dark .pagination, body.theme-dark .modal-box { background:#1E293B; color:#F8FAFC; border:1px solid #334155; border-radius:12px; box-shadow:0 10px 25px rgba(0,0,0,.30); }
+body.theme-dark .logo h1, body.theme-dark .filters-header h2, body.theme-dark .filter-group label, body.theme-dark .page-selector label, body.theme-dark th { color:#F8FAFC; }
+body.theme-dark .logo p, body.theme-dark .header-username, body.theme-dark .date-range-sep, body.theme-dark .pag-info, body.theme-dark .na-cell { color:#CBD5E1; }
+body.theme-dark input, body.theme-dark select, body.theme-dark textarea, body.theme-dark .page-select, body.theme-dark .filter-group input, body.theme-dark .filter-group select, body.theme-dark .form-group input, body.theme-dark .form-group select, body.theme-dark .form-group textarea { background:#0F172A; color:#F8FAFC; border:1px solid #334155; border-radius:10px; }
+body.theme-dark .filter-group select, body.theme-dark .filter-group input, body.theme-dark .date-range-group input { background:#0F172A !important; color:#F8FAFC !important; border-color:#334155 !important; color-scheme:dark; }
+body.theme-dark select option { background:#0F172A; color:#F8FAFC; }
+body.theme-dark tr:hover { background:#2C3E50; }
+body.theme-dark tbody tr { background:#1E293B; }
+body.theme-dark tbody tr:nth-child(even) { background:#223047; }
+body.theme-dark tbody tr:hover { background:#2C3E50; }
+body.theme-dark th { background:#273449; border-color:#334155; }
+body.theme-dark .modal-footer { background:#243044; border-color:rgba(148,163,184,0.14); }
+body.theme-dark .dev-credit-footer { background:#172033; color:#cbd5e1; }
+body.theme-dark .btn-outline { background:#0F172A; color:#93c5fd; border-color:rgba(96,165,250,0.42); }
+body.theme-dark a, body.theme-dark .url-link { color:#38BDF8; }
+body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<!-- Edit Modal — two-column layout matching reference HTML -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal-box" style="max-width:1280px; max-height:94vh;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#8e44ad,#6c3483); padding:16px 30px;">
+            <h2 style="font-size:17px;"><i class="fas fa-edit"></i> GUI QC Review — Update Report <span id="editRecordIdLabel" style="opacity:0.85;font-size:13px;"></span></h2>
+            <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="padding:14px 18px;">
+            <input type="hidden" id="edit_id">
+            <h3 class="qc-review-title">
+                Update Report Generation By
+                <span class="qc-review-user"><i class="fas fa-user"></i> {{ display_name }}</span>
+            </h3>
+            <div class="qc-edit-grid">
+                <!-- LEFT COLUMN — Form fields -->
+                <div class="qc-edit-col">
+                    <div class="form-group">
+                        <label>Input User</label>
+                        <input type="text" id="edit_input_user" class="qc-pill readonly" readonly>
+                    </div>
+
+                    <div class="upi-validation-container">
+                        <label class="upi-label">
+                            <i class="fas fa-credit-card"></i> UPI/VPA ID <span style="color:#e74c3c;">*</span>
+                        </label>
+                        <div class="upi-input-row">
+                            <input type="text" id="edit_upi_vpa" required>
+                            <button type="button" id="refresh_validation" class="btn-refresh" onclick="validateCurrentUpi()" title="Refresh Validation">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <span id="upi_validation_status" class="upi-status"><i class="fas fa-check-circle"></i> Valid</span>
+                        </div>
+                        <div class="upi-hint"><i class="fas fa-info-circle"></i> Real-time validation with 2-hour cache refresh</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Website URL <span style="color:#e74c3c;">*</span></label>
+                        <input type="text" id="edit_website_url" placeholder="Website URL" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Gateway URL <span style="color:#e74c3c;">*</span></label>
+                        <textarea id="edit_payment_gateway_url" rows="3" placeholder="Payment Gateway URL" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Web Contact No</label>
+                        <input type="text" id="edit_web_contact_no" placeholder="Web Contact No">
+                    </div>
+
+                    <div class="qc-row-2">
+                        <div class="form-group">
+                            <label>Search For <span style="color:#e74c3c;">*</span></label>
+                            <select id="edit_search_for" required>
+                                <option value="">-- Select --</option>
+                                {% for sf in search_for_options %}
+                                <option value="{{ sf }}">{{ sf }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Approved By</label>
+                            <input type="text" id="edit_approved_by" placeholder="Approved by">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN — PDF Preview + QC Remark + Buttons -->
+                <div class="qc-edit-col qc-edit-col-right">
+                    <div class="qc-pdf-frame">
+                        <iframe id="pdfViewer" src="about:blank" width="100%" height="380" style="border:none;border-radius:8px;background:#1a1a1a;"></iframe>
+                        <p class="qc-pdf-hint"><i class="fas fa-info-circle"></i> Showing "without_header" PDF from screenshot links</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>QC Remark</label>
+                        <select id="edit_qc_remarks">
+                            <option value="">-- Select --</option>
+                            {% for r in qc_remarks_options %}
+                            <option value="{{ r }}">{{ r }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="qc-edit-actions">
+                        <button class="btn btn-danger" onclick="askDeleteFromEdit()" id="editDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+                            <button class="btn btn-primary" onclick="submitEdit()" id="editSubmitBtn"><i class="fas fa-save"></i> UPDATE</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-hdr" style="background:#e74c3c;">
+            <h2><i class="fas fa-trash"></i> Delete Record?</h2>
+            <button class="modal-close" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:28px;">
+            <div style="font-size:44px;color:#e74c3c;margin-bottom:14px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <p style="font-size:14px;color:#2c3e50;margin-bottom:8px;">Delete Record <strong id="deleteRecordId" style="color:#e74c3c;"></strong>?</p>
+            <p style="font-size:12px;color:#7f8c8d;">This is permanent and cannot be undone.</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center;gap:14px;">
+            <button class="btn btn-outline" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i> Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()" id="confirmDeleteBtn"><i class="fas fa-trash"></i> Yes, Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Fixed Header -->
+<div class="fixed-header">
+    <div class="header">
+        <div class="logo">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                <div style="min-width:0;">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
+                        <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
+                        <span class="header-username"><i class="fas fa-user-circle" style="color:#32d3a2;font-size:11px;"></i> {{ display_name }}</span>
+                    </div>
+                    <p style="margin-top:2px;">GUI QC Review</p>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <div class="page-selector">
+                <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changePageFromQC(this.value)">
+                    {% if 'scraping' in allowed_pages %}
+                    <option value="scraping">Scraping Data</option>
+                    {% endif %}
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    {% endif %}
+                    {% if 'social' in allowed_pages %}
+                    <option value="social">Social Media Accounts</option>
+                    {% endif %}
+                    {% if 'investment' in allowed_pages %}
+                    <option value="investment">BS Investment Scam</option>
+                    {% endif %}
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc" selected>GUI QC Review</option>
+                    {% endif %}
+                    {% if 'website_directory' in allowed_pages %}
+                    <option value="website_directory">Scam++ Website Directory</option>
+                    {% endif %}
+                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+                    <option value="allotment">Scam++ Website Allotment</option>
+                    {% endif %}
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights">Scam++ Dashboard</option>
+                    {% endif %}
+                    {% if 'case_report' in allowed_pages %}
+                    <option value="case_report">Case Report Generator</option>
+                    {% endif %}
+                    {% if 'lunch' in allowed_pages %}
+                    <option value="lunch_break">Lunch Break Tracker</option>
+                    {% endif %}
+                </select>
+            </div>
+            <!-- Download Template -->
+            <a href="/qc-gui-template" class="btn" style="background:#7f8c8d;color:white;" onclick="showLoading(); setTimeout(hideLoading, 2000);">
+                <i class="fas fa-file-download"></i> Template
+            </a>
+            <!-- Import -->
+            <form id="importForm" action="/qc-gui-import" method="POST" enctype="multipart/form-data" style="display:inline;">
+                <input type="file" name="file" id="fileInput" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods" onchange="if(this.files.length){showLoading();document.getElementById('importForm').submit();}">
+                <button type="button" class="btn btn-success" onclick="document.getElementById('fileInput').click()">
+                    <i class="fas fa-file-import"></i> Import
+                </button>
+            </form>
+            <!-- Export -->
+            <form action="/qc-gui-export" method="GET" style="display:inline;" id="exportForm">
+                <input type="hidden" name="qc_search" value="{{ qc_search }}">
+                <input type="hidden" name="qc_wallet" value="{{ qc_wallet }}">
+                <input type="hidden" name="qc_date_from" value="{{ qc_date_from }}">
+                <input type="hidden" name="qc_date_to" value="{{ qc_date_to }}">
+                <button type="submit" class="btn btn-primary" onclick="showToast('Downloading QC Data...', '')">
+                    <i class="fas fa-file-export"></i> Export
+                </button>
+            </form>
+            <button type="button" class="btn btn-outline" onclick="window.location.reload()" title="Refresh">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+            <button type="button" class="btn theme-toggle" id="themeModeToggle" onclick="toggleGuiTheme()" title="Switch to dark mode" aria-label="Toggle theme" aria-pressed="false">
+                <i class="fas fa-moon"></i>
+            </button>
+            <a href="/logout" class="btn btn-danger" style="font-size:11px;padding:5px 10px;height:30px;" title="Logout">
+                <i class="fas fa-sign-out-alt"></i>
+            </a>
+        </div>
+    </div>
+</div>
+<div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+    <div class="flash-message {% if category == 'error' %}error{% endif %}">
+        <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
+        {{ message }}
+    </div>
+    {% endfor %}{% endif %}
+    {% endwith %}
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filters-header">
+            <h2><i class="fas fa-filter" style="color:#27ae60;"></i> Filter GUI QC Review</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <span style="font-size:12px;color:#7f8c8d;font-weight:600;background:#f0fff4;border:1px solid #a9dfbf;padding:3px 10px;border-radius:12px;">
+                    <i class="fas fa-database" style="color:#27ae60;"></i> {{ total_rows }} records
+                </span>
+                <button class="clear-btn" onclick="window.location.href='/qc-gui'">
+                    <i class="fas fa-times"></i> Clear Filters
+                </button>
+            </div>
+        </div>
+        <form method="GET" action="/qc-gui" id="filterForm">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label><i class="fas fa-search"></i> Search</label>
+                    <div class="search-box">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" name="qc_search" value="{{ qc_search }}" placeholder="Keywords Filter"
+                            onkeyup="if(event.keyCode===13) this.form.submit()">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label><i class="fas fa-wallet"></i> UPI / Bank / Wallet</label>
+                    <select name="qc_wallet" onchange="this.form.submit()"
+                        class="{{ 'active-filter' if qc_wallet else '' }}">
+                        <option value="">All</option>
+                        {% for w in wallet_options %}
+                        <option value="{{ w }}" {{ 'selected' if qc_wallet == w else '' }}>{{ w }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group" style="grid-column:span 2;">
+                    <label><i class="fas fa-calendar-alt"></i> Date Range</label>
+                    <div class="date-range-group">
+                        <input type="date" name="qc_date_from" value="{{ qc_date_from }}" onchange="this.form.submit()"
+                            class="{{ 'active-filter' if qc_date_from else '' }}">
+                        <span class="date-range-sep">to</span>
+                        <input type="date" name="qc_date_to" value="{{ qc_date_to }}" onchange="this.form.submit()"
+                            class="{{ 'active-filter' if qc_date_to else '' }}">
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!-- Table -->
+    <div class="table-container">
+        <table id="qcTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>GUI ID</th>
+                    <th>Bank Account No.</th>
+                    <th>Bank Name</th>
+                    <th>UPI VPA</th>
+                    <th>Ac. Holder</th>
+                    <th>Search For</th>
+                    <th>Wallet</th>
+                    <th>Scam Type</th>
+                    <th>IFSC Code</th>
+                    <th>Payment Gateway URL</th>
+                    <th>Website URL</th>
+                    <th>Web Contact No.</th>
+                    <th>Input User</th>
+                    <th>Inserted Date</th>
+                    <th>Approved By</th>
+                    <th>QC Remarks</th>
+                    <th>Feature Type</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                {% for item in items %}
+                <tr id="qc-row-{{ item.id }}">
+                    <td>
+                        <a href="javascript:void(0);" onclick="openEditModal({{ item.id }})"
+                           style="color:#1e8449;font-weight:700;text-decoration:none;border-bottom:1px dashed #1e8449;padding-bottom:1px;"
+                           title="Click to view / edit full details">
+                        #{{ item.id }}
+                        </a>
+                    </td>
+                    <td>
+                        {% if item.get('gui_id') and item['gui_id'] not in ['NA','N/A','',None] %}
+                        <span style="font-family:monospace;font-size:11px;color:#8e44ad;">{{ item['gui_id'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('bank_account_number') and item['bank_account_number'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-family:monospace;font-size:11px;">{{ item['bank_account_number'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['bank_account_number']|replace("'","\\'") }}','Bank Account')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('bank_name') and item['bank_name'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#1565c0;font-weight:600;">{{ item['bank_name'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('upi_vpa') and item['upi_vpa'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-family:monospace;font-size:11px;">{{ item['upi_vpa'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['upi_vpa']|replace("'","\\'") }}','UPI VPA')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>{% if item.get('ac_holder_name') and item['ac_holder_name'] not in ['NA','N/A','',None] %}<span style="font-size:11px;">{{ item['ac_holder_name'][:20] }}{% if item['ac_holder_name']|length > 20 %}...{% endif %}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>
+                        {% if item.get('search_for') and item['search_for'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#1a5276;background:#eaf4fd;padding:2px 7px;border-radius:4px;">{{ item['search_for'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('upi_bank_account_wallet') and item['upi_bank_account_wallet'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:20px;font-weight:600;">{{ item['upi_bank_account_wallet'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>{% if item.get('scam_type') and item['scam_type'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#37474f;">{{ item['scam_type'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>{% if item.get('ifsc_code') and item['ifsc_code'] not in ['NA','N/A','',None] %}<span style="font-family:monospace;font-size:11px;color:#2e7d32;">{{ item['ifsc_code'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>
+                        {% if item.get('payment_gateway_url') and item['payment_gateway_url'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <a href="{{ item['payment_gateway_url'] }}" target="_blank" class="url-link" title="{{ item['payment_gateway_url'] }}">{{ item['payment_gateway_url'][:35] }}{% if item['payment_gateway_url']|length > 35 %}...{% endif %}</a>
+                            <button class="copy-btn" onclick="copyText('{{ item['payment_gateway_url']|replace("'","\\'") }}','Payment Gateway URL')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('website_url') and item['website_url'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <a href="{{ item['website_url'] }}" target="_blank" class="url-link" title="{{ item['website_url'] }}">{{ item['website_url'][:35] }}{% if item['website_url']|length > 35 %}...{% endif %}</a>
+                            <button class="copy-btn" onclick="copyText('{{ item['website_url']|replace("'","\\'") }}','Website URL')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('web_contact_no') and item['web_contact_no'] not in ['NA','N/A','',None] %}
+                        <div class="field-cell">
+                            <span style="font-size:11px;">{{ item['web_contact_no'] }}</span>
+                            <button class="copy-btn" onclick="copyText('{{ item['web_contact_no']|replace("'","\\'") }}','Contact')"><i class="fas fa-copy"></i></button>
+                        </div>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>{% if item.get('input_user') and item['input_user'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#37474f;">{{ item['input_user'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>{% if item.get('inserted_date') and item['inserted_date'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item['inserted_date'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>
+                        {% if item.get('approved_by') and item['approved_by'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:10px;background:#e8f8f0;color:#1e8449;padding:2px 8px;border-radius:20px;font-weight:600;">{{ item['approved_by'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('qc_remarks') and item['qc_remarks'] not in ['NA','N/A','',None] %}
+                        <span class="qc-remark" title="{{ item['qc_remarks'] }}">{{ item['qc_remarks'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>{% if item.get('feature_type') and item['feature_type'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#6c3483;">{{ item['feature_type'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
+                    <td>
+                        <button onclick="openEditModal({{ item.id }})"
+                            style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
+                            <i class="fas fa-edit"></i> Edit
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="19">
+                        <div class="empty-state">
+                            <i class="fas fa-clipboard-check"></i>
+                            <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
+                            <p style="font-size:12px;">Try adjusting your filters or import data using the Import button.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        <button class="pag-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
+            <i class="fas fa-chevron-left"></i> Prev
+        </button>
+        <span class="pag-info">Page {{ page_num }} of {{ total_pages }} ({{ total_rows }} total)</span>
+        <button class="pag-btn" onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
+            Next <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>
+<div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
+
+<script>
+let _deleteId = null;
+const _qcItems = {};
+{% if items %}{% for item in items %}_qcItems[{{ item.id }}] = {{ item | tojson | safe }};
+{% endfor %}{% endif %}
+
+function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
+function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
+
+function setGuiTheme(mode) {
+    const selectedMode = mode === 'dark' ? 'dark' : 'light';
+    document.body.classList.toggle('theme-dark', selectedMode === 'dark');
+    document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
+    try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
+    const toggle = document.getElementById('themeModeToggle');
+    if (toggle) {
+        toggle.innerHTML = selectedMode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+        toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
+    }
+}
+function toggleGuiTheme() {
+    const isDark = document.body.classList.contains('theme-dark');
+    setGuiTheme(isDark ? 'light' : 'dark');
+}
+(function initGuiTheme() {
+    let savedMode = 'light';
+    try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
+    setGuiTheme(savedMode);
+})();
+
+function changePageFromQC(pageType) {
+    if (pageType === 'qc') return;
+    if (pageType === 'website_directory') { showLoading(); window.location.href = '/website-directory'; return; }
+    if (pageType === 'lunch_break') { showLoading(); window.location.href = '/lunch-break'; return; }
+    if (pageType === 'case_report') { showLoading(); window.location.href = '/case-report'; return; }
+    if (pageType === 'allotment') { showLoading(); window.location.href = '/scam-website-allotment'; return; }
+    showLoading();
+    window.location.href = '/?page=' + pageType;
+}
+function goToPage(p) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('page_num', p);
+    showLoading();
+    window.location.href = url.toString();
+}
+function copyText(text, label) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta);
+    try { ta.select(); ta.setSelectionRange(0,99999); document.execCommand('copy'); showToast(label + ' copied!', 'ok'); }
+    catch(e) { navigator.clipboard && navigator.clipboard.writeText(text).then(()=>showToast(label+' copied!','ok')); }
+    finally { document.body.removeChild(ta); }
+}
+function showToast(msg, type='') {
+    const ex = document.querySelector('.toast'); if(ex) ex.remove();
+    const t = document.createElement('div');
+    t.className = 'toast ' + type; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(()=>{ if(t.parentNode) t.remove(); }, 3000);
+}
+// Extract "without_header" PDF URL from a comma-separated list of links.
+// Falls back to first URL if no "without_header" link found.
+function _pickWithoutHeaderPdf(rawText) {
+    if (!rawText) return '';
+    const urls = String(rawText).split(',').map(u => u.trim()).filter(u => u);
+    const target = urls.find(u => u.toLowerCase().includes('without_header'));
+    return target || urls[0] || '';
+}
+// Simple UPI validation: just a placeholder — UI look karta hai ke validation chal rahi hai.
+function validateCurrentUpi() {
+    const inp = document.getElementById('edit_upi_vpa');
+    const status = document.getElementById('upi_validation_status');
+    const v = (inp.value || '').trim();
+    status.classList.remove('valid','invalid','error');
+    if (!v) {
+        status.classList.add('error');
+        status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Required';
+        return;
+    }
+    if (v.indexOf('@') === -1) {
+        status.classList.add('invalid');
+        status.innerHTML = '<i class="fas fa-times-circle"></i> Invalid';
+        return;
+    }
+    status.classList.add('valid');
+    status.innerHTML = '<i class="fas fa-check-circle"></i> Valid';
+}
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if(e.target===m) m.classList.remove('active'); });
+});
+document.addEventListener('keydown', e => {
+    if(e.key==='Escape') document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
+});
+
+async function openEditModal(id) {
+    let item = _qcItems[id];
+    if (!item) {
+        try {
+            const resp = await fetch('/qc-gui-get-record?id=' + id);
+            const data = await resp.json();
+            if (data.success && data.record) {
+                _qcItems[id] = data.record;
+                item = data.record;
+            } else {
+                showToast('Record load failed!', 'err');
+                return;
+            }
+        } catch(e) {
+            showToast('Network error!', 'err');
+            return;
+        }
+    }
+    _fillEditModal(id, item);
+}
+function _fillEditModal(id, item) {
+    document.getElementById('editModal').classList.add('active');
+    document.getElementById('editRecordIdLabel').textContent = '#' + id;
+    document.getElementById('edit_id').value = id;
+    const g = (field) => {
+        const v = item[field];
+        if (v === null || v === undefined) return '';
+        const s = String(v).trim();
+        return (s === 'NA' || s === 'N/A' || s === 'nan' || s === '') ? '' : s;
+    };
+    // PDF preview: screenshot field ke comma-separated URLs mein se "without_header" wala pick karo
+    const pdfUrl = _pickWithoutHeaderPdf(g('screenshot')) || _pickWithoutHeaderPdf(g('screenshot_case_report_link'));
+    const pdfFrame = document.getElementById('pdfViewer');
+    pdfFrame.src = pdfUrl || 'about:blank';
+    // Only fields that exist in the current modal
+    document.getElementById('edit_input_user').value = g('input_user');
+    document.getElementById('edit_upi_vpa').value = g('upi_vpa');
+    document.getElementById('edit_website_url').value = g('website_url');
+    document.getElementById('edit_payment_gateway_url').value = g('payment_gateway_url');
+    document.getElementById('edit_web_contact_no').value = g('web_contact_no');
+    document.getElementById('edit_search_for').value = g('search_for');
+    document.getElementById('edit_approved_by').value = g('approved_by');
+    document.getElementById('edit_qc_remarks').value = g('qc_remarks');
+}
+async function submitEdit() {
+    const id = document.getElementById('edit_id').value;
+    if (!id) return;
+    const g = i => (document.getElementById(i)||{}).value||'';
+    const loggedInName = "{{ clean_display_name }}";
+    // Only fields that exist in the current modal
+    const payload = {
+        id,
+        input_user: g('edit_input_user'),
+        approved_by: g('edit_approved_by') || loggedInName,
+        search_for: g('edit_search_for'),
+        upi_vpa: g('edit_upi_vpa'),
+        web_contact_no: g('edit_web_contact_no'),
+        payment_gateway_url: g('edit_payment_gateway_url'),
+        website_url: g('edit_website_url'),
+        qc_remarks: g('edit_qc_remarks'),
+    };
+    const btn = document.getElementById('editSubmitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    try {
+        const resp = await fetch('/qc-gui-update', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('Record updated!', 'ok');
+            closeModal('editModal');
+            setTimeout(()=>window.location.reload(), 800);
+        } else {
+            showToast('Error: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save"></i> UPDATE';
+    }
+}
+function askDeleteFromEdit() {
+    const id = document.getElementById('edit_id').value;
+    if (!id) return;
+    closeModal('editModal');
+    _deleteId = parseInt(id);
+    document.getElementById('deleteRecordId').textContent = '#' + id;
+    document.getElementById('deleteConfirmModal').classList.add('active');
+}
+async function confirmDelete() {
+    if (!_deleteId) return;
+    const btn = document.getElementById('confirmDeleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        const resp = await fetch('/qc-gui-delete', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({id: _deleteId})
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast(`Record #${_deleteId} deleted!`, 'ok');
+            const row = document.getElementById(`qc-row-${_deleteId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s,transform 0.3s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-20px)';
+                setTimeout(() => row.remove(), 310);
+            }
+            closeModal('deleteConfirmModal');
+        } else {
+            showToast('Delete failed: ' + data.error, 'err');
+        }
+    } catch(e) {
+        showToast('Network error: ' + e.message, 'err');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete';
+        _deleteId = null;
+    }
+}
+setTimeout(() => {
+    document.querySelectorAll('.flash-message').forEach(m => {
+        m.style.transition = 'opacity 0.3s';
+        m.style.opacity = '0';
+        setTimeout(() => { m.remove(); }, 300);
+    });
+}, 5000);
+
+// Dynamic fixed-header spacer — measures actual header height and pushes content down
+// so the filter card never slides under the sticky top bar. (Same pattern as index.html.)
+function syncFixedHeaderSpace() {
+    const header = document.querySelector('.fixed-header');
+    if (!header) return;
+    const h = header.getBoundingClientRect().height;
+    if (h < 30 || h > 260) return;
+    const space = Math.ceil(h + 14);
+    document.documentElement.style.setProperty('--fixed-header-space', `${space}px`);
+}
+function syncWithRAF() {
+    requestAnimationFrame(() => {
+        syncFixedHeaderSpace();
+        setTimeout(syncFixedHeaderSpace, 100);
+        setTimeout(syncFixedHeaderSpace, 300);
+    });
+}
+syncWithRAF();
+document.addEventListener('DOMContentLoaded', syncWithRAF);
+window.addEventListener('load', () => {
+    syncWithRAF();
+    setTimeout(syncFixedHeaderSpace, 600);
+    setTimeout(syncFixedHeaderSpace, 1200);
+});
+window.addEventListener('resize', syncFixedHeaderSpace);
+if ('ResizeObserver' in window) {
+    const headerObserver = new ResizeObserver(syncFixedHeaderSpace);
+    document.addEventListener('DOMContentLoaded', () => {
+        const header = document.querySelector('.fixed-header');
+        if (header) headerObserver.observe(header);
+    });
+}
+</script>
+</body>
+</html>
+

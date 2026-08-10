@@ -19,7 +19,7 @@
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
             body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
-            :root { --fixed-header-space: 72px; }
+            :root { --fixed-header-space: 92px; }
             .container { width: 100%; max-width: none; margin: 0; padding: 15px; padding-top: var(--fixed-header-space); padding-bottom: 30px; display: flex; flex-direction: column; box-sizing: border-box; }
             .fixed-header { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: #f5f7fa; padding: 12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom: 1px solid #e1e5eb; }
             .header { background: white; border-radius: 8px; padding: 12px 15px; box-shadow: 0 1px 8px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -1433,6 +1433,9 @@
                             {% endif %}
                             {% if 'investment' in allowed_pages %}
                             <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>BS Investment Scam</option>
+                            {% endif %}
+                            {% if 'qc' in allowed_pages %}
+                            <option value="qc" {% if page_type == 'qc' %}selected{% endif %}>GUI QC Review</option>
                             {% endif %}
                             {% if 'website_directory' in allowed_pages %}
                             <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
@@ -2986,6 +2989,10 @@
             }
             // ─── Page / Navigation ──────────────────────────────────────
             function changePageFromWD(pageType) {
+                if (pageType === 'qc') {
+                    window.location.href = '/qc-gui';
+                    return;
+                }
                 if (pageType === 'website_directory') {
                     window.location.href = '/website-directory';
                     return;

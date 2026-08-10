@@ -990,6 +990,9 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
                     {% if 'investment' in allowed_pages %}
                     <option value="investment">BS Investment Scam</option>
                     {% endif %}
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc">GUI QC Review</option>
+                    {% endif %}
                     {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory" selected>Scam++ Website Directory</option>
                     {% endif %}
@@ -1494,6 +1497,11 @@ function changePageFromWD(pageType) {
     if (pageType === 'allotment') {
         showLoading();
         window.location.href = '/scam-website-allotment';
+        return;
+    }
+    if (pageType === 'qc') {
+        showLoading();
+        window.location.href = '/qc-gui';
         return;
     }
     showLoading();

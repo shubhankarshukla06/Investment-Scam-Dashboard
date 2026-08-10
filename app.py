@@ -64,7 +64,7 @@ DEMO_ADMIN = {
     "email": "test123@gmail.com",
     "password": "test123",
     "display_name": "Shubhankar Shukla (Test User)",
-    "allowed_pages": ["scraping", "sheet", "social", "investment"],
+    "allowed_pages": ["scraping", "sheet", "social", "investment", "qc"],
     "is_admin": True,
     "is_active": True,
     "can_view_activity_log": True,
@@ -540,42 +540,7 @@ def extract_search_for_from_url(url):
         return "Platform"
     except Exception:
         return "Platform"
-def lookup_origin_and_category_from_master(url):
-    url_value = clean_value(url)
-    if url_value == "NA":
-        return "NA", "NA"
-    url_clean = url_value.strip()
-    try:
-        # Try exact match first (case-insensitive via ilike)
-        resp = supabase.table("website_directory") \
-            .select("origin,category") \
-            .or_(f"url.ilike.{url_clean},final_url.ilike.{url_clean}") \
-            .limit(1).execute()
-        if resp.data:
-            row = resp.data[0]
-            origin   = (row.get("origin")   or "NA").strip() or "NA"
-            category = (row.get("category") or "NA").strip() or "NA"
-            return origin, category
-        # Try domain-level match
-        try:
-            domain = urlparse(url_clean).netloc
-            if domain:
-                domain_clean = domain[4:] if domain.startswith("www.") else domain
-                like_term = f"%{domain_clean}%"
-                resp2 = supabase.table("website_directory") \
-                    .select("origin,category") \
-                    .or_(f"url.ilike.{like_term},final_url.ilike.{like_term}") \
-                    .limit(1).execute()
-                if resp2.data:
-                    row = resp2.data[0]
-                    origin   = (row.get("origin")   or "NA").strip() or "NA"
-                    category = (row.get("category") or "NA").strip() or "NA"
-                    return origin, category
-        except Exception:
-            pass
-    except Exception as e:
-        print(f"[WD Lookup] Error for {url}: {e}")
-    return "NA", "NA"
+
 def bulk_lookup_origin_category(urls: list) -> dict:
     result = {}
     unique_urls = [u for u in set(urls) if u and u.upper() not in ("NA", "N/A", "")]
@@ -917,6 +882,8 @@ def redirect_to_allowed_page(allowed_pages):
     first_page = allowed_pages[0]
     if first_page == "website_directory":
         return redirect("/website-directory")
+    if first_page == "qc":
+        return redirect("/qc-gui")
     if first_page == "lunch":
         return redirect("/lunch-break")
     if first_page == "case_report":
@@ -1171,6 +1138,17 @@ def index():
     page_type = request.args.get("page", "").strip()
     if not page_type or page_type not in allowed_pages:
         page_type = allowed_pages[0] if allowed_pages else "scraping"
+    # Dedicated pages — apne route pe redirect karo
+    if page_type == "qc":
+        return redirect("/qc-gui")
+    if page_type == "website_directory":
+        return redirect("/website-directory")
+    if page_type == "lunch_break":
+        return redirect("/lunch-break")
+    if page_type == "case_report":
+        return redirect("/case-report")
+    if page_type in ("allotment", "allotment_admin"):
+        return redirect("/scam-website-allotment")
     search_query = request.args.get("search", "").strip()
     scam_filter = request.args.get("scam_type", "").strip()
     platform_filter = request.args.get("platform", "").strip()
@@ -1952,22 +1930,7 @@ def _build_sheet_csv_response(sheet_type, file_storage):
                 pass
 
 def _build_aml_gui_import_csv(sheet_type, result_df):
-    if sheet_type != "investment":
-        return None, result_df
-
-    import_df = pd.DataFrame()
-    for target_col in BS_INVESTMENT_IMPORT_COLUMNS:
-        if target_col == "Id":
-            continue
-        source_col = find_import_column(result_df.columns, target_col)
-        if source_col:
-            import_df[target_col] = result_df[source_col]
-        else:
-            import_df[target_col] = "NA"
-
-    output = io.StringIO()
-    import_df.to_csv(output, index=False, encoding="utf-8-sig")
-    return output.getvalue(), import_df
+    return None, result_df
 
 def _sheet_import_download_payload(csv_text, filename):
     return {
@@ -1984,14 +1947,13 @@ def sheet_import_to_aml_gui():
         file = request.files.get("file")
         print(f"[SHEET AML IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
         csv_text, result_df, _ = _build_sheet_csv_response(sheet_type, file)
-        download_csv_text = csv_text
         import_csv_text, import_df = _build_aml_gui_import_csv(sheet_type, result_df)
         if import_csv_text:
             csv_text = import_csv_text
         import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
-        download_payload = _sheet_import_download_payload(download_csv_text, import_filename)
+        download_payload = _sheet_import_download_payload(csv_text, import_filename)
         print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
-        import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "http").strip().lower()
+        import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "selenium").strip().lower()
         if import_engine == "selenium":
             page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
         else:
@@ -2584,7 +2546,7 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     post_url = _extract_form_action(import_page.text, import_page_url) or import_page_url
     data, file_field = _extract_import_form_payload(import_page.text)
     selected_fields = sum(len(v) if isinstance(v, list) else 1 for v in data.values())
-    print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields}", flush=True)
+    print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields} serviceNameHidden={data.get('serviceNameHidden', '')}", flush=True)
     print(f"[SHEET AML IMPORT] csv_headers={csv_text.splitlines()[0][:1000] if csv_text else ''}", flush=True)
     print(f"[SHEET AML IMPORT] form_controls={json.dumps(_summarize_import_form_controls(import_page.text))[:3000]}", flush=True)
     files = {file_field: (filename or "aml_gui_import.csv", io.BytesIO(csv_text.encode("utf-8-sig")), "text/csv")}
@@ -2656,24 +2618,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
         print(f"[SHEET AML IMPORT HEADED] form_controls={json.dumps(form_debug)[:3000]}", flush=True)
         selected_count = driver.execute_script("""
             const form = arguments[0];
-            let selected = 0;
-            form.querySelectorAll('select').forEach(select => {
-                Array.from(select.options || []).forEach(option => {
-                    if (option.value !== '') {
-                        option.selected = true;
-                        selected += 1;
-                    }
-                });
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-            form.querySelectorAll('input[type="checkbox"]').forEach(input => {
-                if (!input.checked) {
-                    input.checked = true;
-                    selected += 1;
-                    input.dispatchEvent(new Event('change', { bubbles: true }));
-                }
-            });
-            return selected;
+            return 0;
         """, form)
         print(f"[SHEET AML IMPORT HEADED] selected import fields={selected_count}", flush=True)
         try:
@@ -2686,7 +2631,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
         page_text = driver.find_element(By.TAG_NAME, "body").text
         page_preview = re.sub(r"\s+", " ", page_text or "")[:500]
         print(f"[SHEET AML IMPORT HEADED] current_url={driver.current_url} preview={page_preview}", flush=True)
-        if re.search(r"(Oops!|No column present|alert-danger|Fatal error|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
+        if re.search(r"(Oops!|No column present|alert-danger|Fatal error|SQLSTATE|specified twice|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
             raise RuntimeError(f"AML GUI import failed on page: {page_preview}")
 
         _close_debug_driver(driver, temp_csv_path)
@@ -5364,6 +5309,7 @@ AML_RESULT_LINK_XPATH      = "/html/body/a[2]"
 AML_RESULT_LINKS_ALL_XPATH = "//a[contains(@href,'.pdf')]"
 MAX_BULK_REGENERATE_REPORTS = 70
 MAX_IMAGES_PER_REGENERATED_PDF = 10
+MAX_BULK_GENERATE_REPORTS = 100
 
 def case_report_allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in CASE_REPORT_ALLOWED_EXT
@@ -6017,6 +5963,11 @@ def aml_chunk_list(lst, size):
 REGEN_JOBS = {}
 REGEN_JOBS_LOCK = threading.Lock()
 
+# BULK GENERATE FROM EXCEL — background job tracking (Stop button support)
+# ============================================================
+BULK_GENERATE_JOBS = {}
+BULK_GENERATE_JOBS_LOCK = threading.Lock()
+
 def _regen_job_response(job):
     return {
         "status": job["status"],
@@ -6505,6 +6456,357 @@ def stop_regenerate_job(job_id):
     return jsonify({"status": "success", "message": "Stop signal sent"})
 
 # ============================================================
+# CASE REPORT — GENERATE REPORTS BULK (Excel upload → multiple case PDFs)
+# ============================================================
+def _bulk_generate_job_response(job):
+    if not job:
+        return None
+    return {
+        "status":       job.get("status"),
+        "phase":        job.get("phase"),
+        "total":        job.get("total", 0),
+        "completed":    job.get("completed", 0),
+        "results":      job.get("results", []),
+        "final_excel":  bool(job.get("final_excel")),
+        "message":      job.get("message"),
+        "current_path": job.get("current_path", ""),
+    }
+
+
+def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, current_email=None, current_display_name=None):
+    """Background worker: read Excel rows, log in to AML GUI once (HTTP,
+    no Selenium), submit each row's screenshots via aml_submit_chunk_requests
+    and capture the resulting NPCI PDF link.
+
+    Mirrors the AML submit flow used by `_run_bulk_regenerate_job`
+    (single shared session, per-row chunk submission, re-login on failure).
+    """
+    import openpyxl
+
+    def _set_status(**kw):
+        with BULK_GENERATE_JOBS_LOCK:
+            for k, v in kw.items():
+                BULK_GENERATE_JOBS[job_id][k] = v
+
+    def _get_job():
+        with BULK_GENERATE_JOBS_LOCK:
+            return BULK_GENERATE_JOBS.get(job_id)
+
+    # ── 0. Resolve AML credentials up front so login failures surface early ─
+    try:
+        aml_creds = get_aml_credentials_for_user(current_email, current_display_name)
+    except Exception as creds_exc:
+        _set_status(status="failed", phase="failed",
+                    message=f"AML credentials not available: {creds_exc}")
+        return
+
+    aml_session = None
+    try:
+        with BULK_GENERATE_JOBS_LOCK:
+            job = BULK_GENERATE_JOBS.get(job_id)
+            if not job:
+                return
+            job["phase"]        = "reading"
+            job["current_path"] = original_filename
+
+        # ── 1. AML login (HTTP, single shared session for the whole job) ─
+        _set_status(phase="aml_login",
+                    current_path="Authenticating with AML GUI…")
+        try:
+            aml_session = aml_login_requests(creds=aml_creds, require_report_form=True)
+        except Exception as login_exc:
+            _set_status(status="failed", phase="failed",
+                        message=f"AML login failed: {login_exc}")
+            return
+
+        # ── 2. Read input Excel ────────────────────────────────────────
+        wb = openpyxl.load_workbook(excel_path, data_only=True)
+        ws = wb.active
+        rows_iter = list(ws.iter_rows(values_only=True))
+        if not rows_iter:
+            _set_status(status="failed", phase="failed",
+                        message="Excel file is empty.")
+            return
+
+        header = [str(c).strip() if c is not None else "" for c in rows_iter[0]]
+        col_index = {h: i for i, h in enumerate(header)}
+
+        # Required columns — mirror the regenerate pattern: only screenshots
+        # + Description (website URL) are needed. Title and Input are
+        # auto-derived from Description so the input Excel stays minimal.
+        required = ["Screenshot_Path_1", "Description"]
+        missing = [c for c in required if c not in col_index]
+        if missing:
+            _set_status(status="failed", phase="failed",
+                        message="Missing required columns: " + ", ".join(missing))
+            return
+
+        def _row_get(row, col):
+            i = col_index.get(col)
+            if i is None or i >= len(row):
+                return ""
+            v = row[i]
+            return "" if v is None else str(v).strip()
+
+        data_rows = rows_iter[1:]
+        data_rows = [r for r in data_rows if any((c not in (None, "")) for c in r)]
+        total = len(data_rows)
+        _set_status(total=total, phase="generating", current_path="")
+
+        if total == 0:
+            _set_status(status="failed", phase="failed",
+                        message="No data rows found in Excel.")
+            return
+
+        # ── 3. Process each row via AML submit chunk ───────────────────
+        results = []
+        for idx, row in enumerate(data_rows, start=1):
+            job_snapshot = _get_job()
+            if job_snapshot and job_snapshot["stop_event"].is_set():
+                _set_status(status="stopped", phase="stopped",
+                            message="Stopped by user.")
+                break
+
+            s1_path  = _row_get(row, "Screenshot_Path_1")
+            s2_path  = _row_get(row, "Screenshot_Path_2")
+            desc_val = _row_get(row, "Description")
+            # `Description` doubles as the website URL — and is also the
+            # source for auto-derived Title / Input (mirrors regenerate flow).
+            # No separate Website_URL, Title, or Input columns in input Excel.
+            website  = desc_val
+
+            entry = {
+                "row":     idx,
+                "title":   "",  # auto-derived from Description below
+                "input":   "",  # auto-derived from Description below
+                "status":  "FAILED",
+                "pdf_url": None,
+                "message": None,
+            }
+
+            try:
+                # ── Validate row inputs ─────────────────────────────
+                if not s1_path or not os.path.isfile(s1_path):
+                    raise ValueError(f"Screenshot_Path_1 not found: {s1_path}")
+                if not website:
+                    raise ValueError("Description (website URL) is required — paste the URL into the Description cell.")
+
+                image_chunk = [s1_path]
+                if s2_path and os.path.isfile(s2_path):
+                    image_chunk.append(s2_path)
+
+                # ── AML submit (mirrors regenerate pattern) ─────────
+                # Title and Input dono Description (website URL) se auto-fill —
+                # same as _run_bulk_regenerate_job me hota hai (see lines ~6096-6099).
+                source_url       = website or "NA"
+                title_text       = source_url
+                description_text = source_url
+                input_text       = aml_strip_scheme(source_url)
+                # Track the auto-derived values in the result entry so the
+                # output Excel reflects exactly what was sent to AML.
+                entry["title"]   = title_text
+                entry["input"]   = input_text
+
+                chunk_result = aml_submit_chunk_requests(
+                    aml_session,
+                    title_text,
+                    input_text,
+                    description_text,
+                    image_chunk,
+                )
+                if chunk_result and chunk_result.get("npci"):
+                    entry["status"]  = "SUCCESS"
+                    entry["pdf_url"] = chunk_result["npci"]
+                    entry["message"] = None
+                elif chunk_result and chunk_result.get("all"):
+                    # Fallback: portal didn't label any link "npci"; use the first available.
+                    first = chunk_result["all"].split(",")[0].strip()
+                    if first:
+                        entry["status"]  = "SUCCESS"
+                        entry["pdf_url"] = first
+                        entry["message"] = "Non-NPCI link returned by AML"
+                else:
+                    entry["message"] = "AML did not return a PDF link."
+
+            except Exception as exc:
+                err_msg = str(exc).strip() or type(exc).__name__
+                entry["message"] = err_msg[:300]
+                # Session/captcha can expire — try to re-login once so the
+                # remaining rows in this batch still have a chance.
+                try:
+                    re_logged = aml_login_requests(creds=aml_creds, require_report_form=True)
+                    if re_logged:
+                        aml_session = re_logged
+                except Exception as login_exc:
+                    entry["message"] = (
+                        f"{entry['message']} | re-login failed: "
+                        f"{str(login_exc).strip() or type(login_exc).__name__}"
+                    )
+
+            results.append(entry)
+            _set_status(
+                completed=idx,
+                current_path=entry["title"],
+                results=list(results),
+            )
+
+        # ── 4. Write output Excel ─────────────────────────────────────
+        _set_status(phase="finalizing", current_path="")
+
+        out_wb = openpyxl.Workbook()
+        out_ws = out_wb.active
+        out_ws.title = "Bulk Generate Results"
+        out_ws.append(["Row", "Status", "PDF_URL", "Title", "Input", "Message"])
+        for r in results:
+            out_ws.append([
+                r.get("row"),
+                r.get("status"),
+                r.get("pdf_url") or "",
+                r.get("title") or "",
+                r.get("input") or "",
+                r.get("message") or "",
+            ])
+
+        base_name = os.path.splitext(os.path.basename(original_filename))[0]
+        out_filename = f"Bulk_Generate_Results_{base_name}_{job_id[:8]}.xlsx"
+        out_path = os.path.join(CASE_REPORT_REPORTS_FOLDER, out_filename)
+        out_wb.save(out_path)
+
+        with BULK_GENERATE_JOBS_LOCK:
+            job = BULK_GENERATE_JOBS.get(job_id)
+            if job:
+                job["final_excel"] = out_path
+                current_status = job.get("status")
+                if current_status not in ("stopped", "failed"):
+                    job["status"]  = "success"
+                    job["phase"]   = "done"
+                    job["message"] = (
+                        f"Processed {job.get('completed', 0)} of "
+                        f"{job.get('total', 0)} rows via AML."
+                    )
+
+    except Exception as outer_exc:
+        _set_status(status="failed", phase="failed",
+                    message=f"Unexpected error: {outer_exc}")
+    finally:
+        # ── 5. Cleanup ────────────────────────────────────────────────
+        # Close AML session if we opened one
+        if aml_session is not None:
+            try:
+                aml_session.close()
+            except Exception:
+                pass
+        # Remove uploaded input Excel
+        try:
+            if excel_path and os.path.exists(excel_path):
+                os.remove(excel_path)
+        except Exception:
+            pass
+
+
+@app.route("/bulk-generate-cases", methods=["POST"])
+@login_required
+def bulk_generate_cases():
+    try:
+        if "excel_file" not in request.files:
+            return jsonify({"status": "error", "message": "No Excel file uploaded."}), 400
+        f = request.files["excel_file"]
+        if not f.filename:
+            return jsonify({"status": "error", "message": "Empty filename."}), 400
+        if not (f.filename.lower().endswith(".xlsx") or f.filename.lower().endswith(".xls")):
+            return jsonify({"status": "error", "message": "Only .xlsx / .xls files are supported."}), 400
+
+        original_filename = f.filename
+        safe_name = secure_filename(f.filename) or f"upload_{uuid.uuid4().hex}.xlsx"
+        dest = os.path.join(CASE_REPORT_UPLOAD_FOLDER, f"bulk_{uuid.uuid4().hex}_{safe_name}")
+        f.save(dest)
+
+        # quick row-count guard (use openpyxl in this thread to fail fast)
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(dest, read_only=True)
+            ws = wb.active
+            row_count = sum(1 for _ in ws.iter_rows()) - 1  # minus header
+            wb.close()
+            if row_count < 1:
+                try: os.remove(dest)
+                except Exception: pass
+                return jsonify({"status": "error", "message": "Excel contains no data rows."}), 400
+            if row_count > MAX_BULK_GENERATE_REPORTS:
+                try: os.remove(dest)
+                except Exception: pass
+                return jsonify({"status": "error", "message": f"Maximum {MAX_BULK_GENERATE_REPORTS} rows per upload."}), 400
+        except Exception as parse_exc:
+            try: os.remove(dest)
+            except Exception: pass
+            return jsonify({"status": "error", "message": f"Could not read Excel: {parse_exc}"}), 400
+
+        job_id = uuid.uuid4().hex
+        current_email = session.get("email", "")
+        current_display_name = session.get("display_name", "User")
+        input_user = get_clean_display_name(current_display_name)
+
+        with BULK_GENERATE_JOBS_LOCK:
+            BULK_GENERATE_JOBS[job_id] = {
+                "status":       "running",
+                "phase":        "queued",
+                "total":        row_count,
+                "completed":    0,
+                "results":      [],
+                "final_excel":  None,
+                "message":      None,
+                "current_path": original_filename,
+                "stop_event":   threading.Event(),
+            }
+
+        thread = threading.Thread(
+            target=_run_bulk_generate_job,
+            args=(job_id, dest, original_filename, input_user, current_email, current_display_name),
+            daemon=True,
+        )
+        thread.start()
+
+        return jsonify({"status": "success", "job_id": job_id, "total": row_count})
+    except Exception as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 500
+
+
+@app.route("/bulk-generate-cases-status/<job_id>", methods=["GET"])
+@login_required
+def bulk_generate_cases_status(job_id):
+    with BULK_GENERATE_JOBS_LOCK:
+        job = BULK_GENERATE_JOBS.get(job_id)
+        payload = _bulk_generate_job_response(job) if job else None
+    if payload is None:
+        return jsonify({"status": "error", "message": "Job not found"}), 404
+    return jsonify(payload)
+
+
+@app.route("/stop-bulk-generate-job/<job_id>", methods=["POST"])
+@login_required
+def stop_bulk_generate_job(job_id):
+    with BULK_GENERATE_JOBS_LOCK:
+        job = BULK_GENERATE_JOBS.get(job_id)
+        if not job:
+            return jsonify({"status": "error", "message": "Job not found"}), 404
+        job["stop_event"].set()
+        if job["status"] == "running":
+            job["status"] = "stopping"
+    return jsonify({"status": "success", "message": "Stop signal sent"})
+
+
+@app.route("/download-bulk-generate/<job_id>", methods=["GET"])
+@login_required
+def download_bulk_generate(job_id):
+    with BULK_GENERATE_JOBS_LOCK:
+        job = BULK_GENERATE_JOBS.get(job_id)
+        file_path = job.get("final_excel") if job else None
+    if not file_path or not os.path.isfile(file_path):
+        return jsonify({"status": "error", "message": "Output file not available yet."}), 404
+    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+
+
+# ============================================================
 
 @app.route("/api/total-numbers", methods=["GET"])
 def api_total_numbers_list():
@@ -6608,7 +6910,7 @@ def api_total_numbers_stats():
 @login_required
 def social_download_template():
     import openpyxl
-    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.styles import PatternFill, Font
     from openpyxl.worksheet.datavalidation import DataValidation
 
     platform = request.args.get("platform", "").strip()
@@ -6959,6 +7261,434 @@ def lunch_break_export():
     except Exception as e:
         flash(f"Export error: {e}", "error")
         return redirect("/lunch-break")
+
+# ============================================================
+# GUI QC — LIST / FILTER / PAGINATION
+# ============================================================
+QC_COLUMNS = [
+    "id", "gui_id", "date", "input_user", "approved_by", "scam_type",
+    "search_for", "upi_bank_account_wallet", "bank_name",
+    "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
+    "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
+    "screenshot_case_report_link", "qc_remarks", "feature_type",
+    "inserted_date", "inserted_datetime"
+]
+
+QC_TABLE = "qc_table"
+
+# Columns in qc_table whose Postgres type is integer — need numeric conversion so
+# empty / "NA" cells become NULL instead of an unparseable string at insert time.
+QC_INT_COLUMNS = {"gui_id", "bank_account_number", "web_contact_no"}
+
+# QC Remark options for the dropdown in the edit modal
+QC_REMARKS_OPTIONS = [
+    "Approved",
+    "Major Mistake - Wrong Website/Group/URL Case",
+    "Major Mistake - Wrong/Non-Existent Payment Details Filled",
+    "Major Mistake - Wrong Payment Gateway URL",
+    "Major Mistake - Wrong Video/Non-Linear Recording/Background Sound",
+    "Major Mistake - Wrong First/Second Screenshot/ Same Screenshots",
+    "Major Mistake - Payment Details/Web URL/PG URL/Mobile Screenshot Not Showing",
+    "Major Mistake - Extension/Profile Picture/Taskbar & Tab Showing",
+    "Major Mistake - Post URL and WhatsApp Number are Mismatched",
+    "Minor Mistake - First/Second Screenshot Is Missing",
+    "Minor Mistake - Wrong Transaction/Transfer Mode/Search For Option",
+    "Minor Mistake - Worked on Duplicate/Extra/Others Website Or Timeline Not Followed",
+    "GUI Issue - First/Second Screenshot Is Crossed",
+    "GUI Issue",
+    "Rejected",
+]
+
+QC_SEARCH_FIELDS = [
+    "gui_id", "input_user", "approved_by", "scam_type", "search_for",
+    "upi_bank_account_wallet", "bank_name", "bank_account_number",
+    "upi_vpa", "ifsc_code", "ac_holder_name", "web_contact_no",
+    "payment_gateway_url", "website_url", "qc_remarks", "feature_type"
+]
+
+QC_EXPORT_COLUMNS = [
+    "gui_id", "input_user", "approved_by", "scam_type",
+    "search_for", "upi_bank_account_wallet", "bank_name",
+    "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
+    "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
+    "screenshot_case_report_link", "qc_remarks", "feature_type",
+    "inserted_date"
+]
+
+QC_IMPORT_ALIASES = {
+    "gui_id": ["gui_id", "gui id", "gui", "id"],
+    "input_user": ["input_user", "input user", "user", "username"],
+    "approved_by": ["approved_by", "approved by"],
+    "scam_type": ["scam_type", "scam type", "type", "category"],
+    "search_for": ["search_for", "search for"],
+    "upi_bank_account_wallet": ["upi_bank_account_wallet", "upi bank account wallet", "wallet", "payment type"],
+    "bank_name": ["bank_name", "bank name"],
+    "bank_account_number": ["bank_account_number", "bank account number", "account_number", "account number", "acc_no", "acc no"],
+    "upi_vpa": ["upi_vpa", "upi vpa", "upi", "vpa"],
+    "ifsc_code": ["ifsc_code", "ifsc code", "ifsc"],
+    "ac_holder_name": ["ac_holder_name", "ac holder name", "account holder name", "holder_name"],
+    "web_contact_no": ["web_contact_no", "web contact no", "contact number", "phone", "mobile"],
+    "payment_gateway_url": ["payment_gateway_url", "payment gateway url", "payment url", "gateway url"],
+    "website_url": ["website_url", "website url", "url", "website"],
+    "screenshot": ["screenshot", "image", "proof"],
+    "screenshot_case_report_link": ["screenshot_case_report_link", "screenshot case report link", "case report link"],
+    "qc_remarks": ["qc_remarks", "qc remarks"],
+    "feature_type": ["feature_type", "feature type"],
+    "inserted_date": ["inserted_date", "inserted date"],
+}
+
+
+def _qc_normalize_header(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value).lower()).strip()
+
+
+def _qc_find_import_column(df_columns, target_col):
+    normalized = {_qc_normalize_header(c): c for c in df_columns}
+    candidates = [target_col] + QC_IMPORT_ALIASES.get(target_col, [])
+    for candidate in candidates:
+        key = _qc_normalize_header(candidate)
+        if key in normalized:
+            return normalized[key]
+    return None
+
+
+@app.route("/qc-gui", methods=["GET"])
+@login_required
+def qc_gui():
+    allowed_pages = session.get("allowed_pages", [])
+    if "qc" not in allowed_pages:
+        flash("You don't have access to GUI QC.", "error")
+        return redirect_to_allowed_page(allowed_pages)
+
+    qc_search     = request.args.get("qc_search",     "").strip()
+    qc_wallet     = request.args.get("qc_wallet",     "").strip()
+    qc_date_from  = request.args.get("qc_date_from",  "").strip()
+    qc_date_to    = request.args.get("qc_date_to",    "").strip()
+    page = int(request.args.get("page_num", 1))
+    items = []
+    total_rows = 0
+    total_pages = 1
+    try:
+        query = supabase.table(QC_TABLE).select("*", count="exact")
+        if qc_search:
+            lt = f"%{qc_search}%"
+            or_parts = ",".join(f"{f}.ilike.{lt}" for f in QC_SEARCH_FIELDS)
+            query = query.or_(or_parts)
+        if qc_wallet:
+            query = query.eq("upi_bank_account_wallet", qc_wallet)
+        if qc_date_from:
+            query = query.gte("inserted_date", qc_date_from)
+        if qc_date_to:
+            query = query.lte("inserted_date", qc_date_to)
+        query = query.order("id", desc=True)
+        offset = (page - 1) * PER_PAGE
+        query = query.range(offset, offset + PER_PAGE - 1)
+        resp = query.execute()
+        items = resp.data or []
+        total_rows = resp.count or 0
+        total_pages = max(1, math.ceil(total_rows / PER_PAGE))
+    except Exception as e:
+        flash(f"Error fetching QC data: {e}", "error")
+
+    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
+    return render_template(
+        "qc_gui.html",
+        items=items,
+        qc_search=qc_search,
+        qc_wallet=qc_wallet,
+        qc_date_from=qc_date_from,
+        qc_date_to=qc_date_to,
+        page_num=page,
+        total_pages=total_pages,
+        total_rows=total_rows,
+        wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
+        search_for_options=BS_INVESTMENT_SEARCH_FOR_OPTIONS,
+        qc_remarks_options=QC_REMARKS_OPTIONS,
+        allowed_pages=allowed_pages,
+        display_name=session.get("display_name", "User"),
+        clean_display_name=clean_display_name,
+    )
+
+
+@app.route("/qc-gui-import", methods=["POST"])
+@login_required
+def qc_gui_import():
+    if "qc" not in session.get("allowed_pages", []):
+        flash("Access denied.", "error")
+        return redirect("/qc-gui")
+    temp_path = None
+    try:
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            flash("No file selected", "error")
+            return redirect("/qc-gui")
+        if not is_allowed_file(file.filename):
+            flash("Unsupported file type.", "error")
+            return redirect("/qc-gui")
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), filename)
+        file.save(temp_path)
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "csv"
+        df = read_data_file(temp_path, file_ext)
+        df = df.fillna("")
+        df.columns = df.columns.astype(str).str.strip()
+
+        source_columns = list(df.columns)
+        column_lookup = {
+            target: _qc_find_import_column(source_columns, target)
+            for target in QC_IMPORT_ALIASES.keys()
+        }
+        matched_columns = [col for col in column_lookup.values() if col]
+        if not matched_columns:
+            flash("Import Error: No matching QC column names found.", "error")
+            return redirect("/qc-gui")
+
+        input_user_default = get_clean_display_name(session.get("display_name", "User"))
+        today = datetime.now().strftime("%Y-%m-%d")
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        records = []
+        for _, row in df.iterrows():
+            rec = {}
+            for target_col, source_col in column_lookup.items():
+                if not source_col:
+                    continue
+                val = str(row[source_col]).strip()
+                if val.lower() in ("nan", "none", "null", "na", "n/a", "undefined", ""):
+                    if target_col == "inserted_date":
+                        rec[target_col] = None
+                    elif target_col in QC_INT_COLUMNS:
+                        rec[target_col] = None
+                    else:
+                        rec[target_col] = "NA"
+                elif target_col in QC_INT_COLUMNS:
+                    try:
+                        rec[target_col] = int(float(val))
+                    except (ValueError, TypeError):
+                        rec[target_col] = None
+                else:
+                    rec[target_col] = val
+            if not rec.get("input_user") or rec.get("input_user") == "NA":
+                rec["input_user"] = input_user_default
+            if not rec.get("inserted_date") or rec.get("inserted_date") == "NA":
+                rec["inserted_date"] = today
+            records.append(rec)
+
+        # Insert in chunks to avoid payload limits
+        CHUNK = 500
+        for i in range(0, len(records), CHUNK):
+            supabase.table(QC_TABLE).insert(records[i:i + CHUNK]).execute()
+
+        log_activity(
+            action_type="import",
+            target_table=QC_TABLE,
+            extra_info={"file_name": filename, "records_count": len(records)}
+        )
+        flash(f"QC file imported successfully! {len(records)} records added.", "success")
+    except Exception as e:
+        flash(f"QC Import Error: {str(e)}", "error")
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+    return redirect("/qc-gui")
+
+
+@app.route("/qc-gui-export", methods=["GET"])
+@login_required
+def qc_gui_export():
+    if "qc" not in session.get("allowed_pages", []):
+        flash("Access denied.", "error")
+        return redirect("/qc-gui")
+    try:
+        qc_search     = request.args.get("qc_search",     "").strip()
+        qc_wallet     = request.args.get("qc_wallet",     "").strip()
+        qc_date_from  = request.args.get("qc_date_from",  "").strip()
+        qc_date_to    = request.args.get("qc_date_to",    "").strip()
+
+        def _build_qc_query():
+            q = supabase.table(QC_TABLE).select(",".join(QC_EXPORT_COLUMNS))
+            if qc_search:
+                lt = f"%{qc_search}%"
+                or_parts = ",".join(f"{f}.ilike.{lt}" for f in QC_SEARCH_FIELDS)
+                q = q.or_(or_parts)
+            if qc_wallet:
+                q = q.eq("upi_bank_account_wallet", qc_wallet)
+            if qc_date_from:
+                q = q.gte("inserted_date", qc_date_from)
+            if qc_date_to:
+                q = q.lte("inserted_date", qc_date_to)
+            return q
+
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return _stream_supabase_csv(_build_qc_query, "id", f"gui_qc_{ts}.csv")
+    except Exception as e:
+        flash(f"Export Error: {e}", "error")
+        return redirect("/qc-gui")
+
+
+@app.route("/qc-gui-template", methods=["GET"])
+@login_required
+def qc_gui_template():
+    if "qc" not in session.get("allowed_pages", []):
+        flash("Access denied.", "error")
+        return redirect("/qc-gui")
+    try:
+        output = io.StringIO()
+        csv.writer(output).writerow(QC_EXPORT_COLUMNS)
+        output.seek(0)
+        return send_file(
+            io.BytesIO(output.getvalue().encode("utf-8-sig")),
+            download_name="GUI_QC_Import_Template.csv",
+            as_attachment=True,
+            mimetype="text/csv"
+        )
+    except Exception as e:
+        flash(f"Error generating template: {str(e)}", "error")
+        return redirect("/qc-gui")
+
+
+@app.route("/qc-gui-get-record", methods=["GET"])
+@login_required
+def qc_gui_get_record():
+    if "qc" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        rid = request.args.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+        resp = supabase.table(QC_TABLE).select("*").eq("id", rid).limit(1).execute()
+        if resp.data:
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Record not found"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/qc-gui-update", methods=["POST"])
+@login_required
+def qc_gui_update():
+    if "qc" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data"})
+        rid = data.get("id")
+        if rid is None:
+            return jsonify({"success": False, "error": "No ID"})
+
+        ALLOWED = [
+            "gui_id", "date", "input_user", "approved_by", "scam_type",
+            "search_for", "upi_bank_account_wallet", "bank_name",
+            "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
+            "web_contact_no", "payment_gateway_url", "website_url",
+            "screenshot", "screenshot_case_report_link", "qc_remarks",
+            "feature_type", "inserted_date"
+        ]
+        record = {}
+        for f in ALLOWED:
+            if f not in data:
+                continue
+            val = str(data.get(f, "")).strip()
+            if f in ("date", "inserted_date"):
+                record[f] = val if val and val.upper() not in ("NA", "N/A", "") else None
+            else:
+                record[f] = val if val else "NA"
+        if not record:
+            return jsonify({"success": False, "error": "No valid fields to update"})
+
+        resp = supabase.table(QC_TABLE).update(record).eq("id", rid).execute()
+        if resp.data:
+            log_activity(
+                action_type="field_update",
+                target_table=QC_TABLE,
+                target_record_id=rid,
+                field_name="edit",
+                new_value=str(record)
+            )
+            return jsonify({"success": True, "record": resp.data[0]})
+        return jsonify({"success": False, "error": "Update failed"})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/qc-gui-delete", methods=["POST"])
+@login_required
+def qc_gui_delete():
+    if "qc" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        data = request.get_json()
+        rid = data.get("id")
+        if not rid:
+            return jsonify({"success": False, "error": "No ID"})
+        supabase.table(QC_TABLE).delete().eq("id", rid).execute()
+        log_activity(
+            action_type="field_update",
+            target_table=QC_TABLE,
+            target_record_id=rid,
+            field_name="DELETE",
+            old_value="EXISTS",
+            new_value="DELETED"
+        )
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/qc-gui-tracker-stats", methods=["GET"])
+@login_required
+def qc_gui_tracker_stats():
+    if "qc" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
+    try:
+        CHUNK = 1000
+        all_rows, offset = [], 0
+        while True:
+            resp = supabase.table(QC_TABLE) \
+                .select("scam_type,search_for,upi_bank_account_wallet,approved_by,input_user,inserted_date") \
+                .order("id", desc=False) \
+                .range(offset, offset + CHUNK - 1).execute()
+            chunk = resp.data or []
+            all_rows.extend(chunk)
+            if len(chunk) < CHUNK:
+                break
+            offset += CHUNK
+        scam_counts = {}
+        sf_counts = {}
+        wallet_counts = {}
+        approved_counts = {}
+        input_user_counts = {}
+        daily_counts = {}
+        for row in all_rows:
+            st  = (row.get("scam_type") or "Unknown").strip() or "Unknown"
+            sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
+            w   = (row.get("upi_bank_account_wallet") or "Unknown").strip() or "Unknown"
+            ab  = (row.get("approved_by") or "Unknown").strip() or "Unknown"
+            iu  = (row.get("input_user") or "Unknown").strip() or "Unknown"
+            dt  = (row.get("inserted_date") or "")[:10]
+            scam_counts[st] = scam_counts.get(st, 0) + 1
+            sf_counts[sf] = sf_counts.get(sf, 0) + 1
+            wallet_counts[w] = wallet_counts.get(w, 0) + 1
+            approved_counts[ab] = approved_counts.get(ab, 0) + 1
+            input_user_counts[iu] = input_user_counts.get(iu, 0) + 1
+            if dt:
+                daily_counts[dt] = daily_counts.get(dt, 0) + 1
+        return jsonify({
+            "success": True,
+            "total": len(all_rows),
+            "scam_counts": scam_counts,
+            "sf_counts": sf_counts,
+            "wallet_counts": wallet_counts,
+            "approved_counts": approved_counts,
+            "input_user_counts": input_user_counts,
+            "daily_counts": {k: daily_counts[k] for k in sorted(daily_counts)},
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
