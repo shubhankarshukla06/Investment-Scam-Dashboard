@@ -252,7 +252,7 @@ body.theme-dark {
     font-family:Inter,'Segoe UI',Roboto,sans-serif;
     scrollbar-color:#475569 #111827;
 }
-body.theme-dark * { transition:background-color .25s ease,border-color .25s ease,color .25s ease,box-shadow .25s ease,transform .25s ease; }
+html.theme-switching * { transition:background-color .26s ease,border-color .26s ease,color .26s ease,box-shadow .26s ease,opacity .26s ease; }
 body.theme-dark ::-webkit-scrollbar { width:8px; height:8px; }
 body.theme-dark ::-webkit-scrollbar-track { background:#111827; }
 body.theme-dark ::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
@@ -436,7 +436,7 @@ body.theme-dark select option { background:#0F172A !important; color:#F8FAFC !im
 html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
-    transition:none !important;
+    transition:background-color .26s ease, color .26s ease, border-color .26s ease, box-shadow .26s ease, opacity .26s ease !important;
 }
 body.theme-dark .header:hover,
 body.theme-dark .t-card:hover,
@@ -1011,7 +1011,7 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
                 </select>
             </div>
             <!-- Download Template -->
-            <a href="/website-directory-template" class="btn" style="background:#7f8c8d;color:white;" onclick="showLoading(); setTimeout(hideLoading, 2000);">
+            <a href="/website-directory-template" class="btn" style="background:#7f8c8d;color:white;">
                 <i class="fas fa-file-download"></i> Template
             </a>
             <!-- Import -->
@@ -1458,9 +1458,9 @@ async function checkSingleUrlDuplicate(url, inputId, statusId) {
 function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
 window.addEventListener('pageshow', hideLoading);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) hideLoading(); });
-function setGuiTheme(mode) {
+function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
-    document.documentElement.classList.add('theme-switching');
+    if (animate) document.documentElement.classList.add('theme-switching');
     document.body.classList.toggle('theme-dark', selectedMode === 'dark');
     document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
     try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
@@ -1472,7 +1472,7 @@ function setGuiTheme(mode) {
         toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
         toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
     }
-    window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 80);
+    if (animate) window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 280);
 }
 function toggleGuiTheme() {
     const isDark = document.body.classList.contains('theme-dark');
@@ -1481,38 +1481,32 @@ function toggleGuiTheme() {
 (function initGuiTheme() {
     let savedMode = 'light';
     try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
-    setGuiTheme(savedMode);
+    setGuiTheme(savedMode, false);
 })();
 
 function changePageFromWD(pageType) {
     if (pageType === 'website_directory') return;
     if (pageType === 'lunch_break') {
-        showLoading();
         window.location.href = '/lunch-break';
         return;
     }
     if (pageType === 'case_report') {
-        showLoading();
         window.location.href = '/case-report';
         return;
     }
     if (pageType === 'allotment') {
-        showLoading();
         window.location.href = '/scam-website-allotment';
         return;
     }
     if (pageType === 'qc') {
-        showLoading();
         window.location.href = '/qc-gui';
         return;
     }
-    showLoading();
     window.location.href = '/?page=' + pageType;
 }
 function goToPage(p) {
     const url = new URL(window.location.href);
     url.searchParams.set('page_num', p);
-    showLoading();
     window.location.href = url.toString();
 }
 function copyText(text, label) {

@@ -528,6 +528,9 @@
       .d-none {
         display: none !important;
       }
+      .bulk-mode-hidden {
+        display: none !important;
+      }
       .dev-credit-footer {
         position: fixed;
         bottom: 0;
@@ -620,7 +623,7 @@
         font-family: Inter, "Segoe UI", Roboto, sans-serif;
         scrollbar-color: #475569 #111827;
       }
-      body.theme-dark * {
+      html.theme-switching * {
         transition:
           background-color 0.25s ease,
           border-color 0.25s ease,
@@ -838,7 +841,12 @@
       html.theme-switching *,
       html.theme-switching *::before,
       html.theme-switching *::after {
-        transition: none !important;
+        transition:
+          background-color 0.26s ease,
+          border-color 0.26s ease,
+          color 0.26s ease,
+          box-shadow 0.26s ease,
+          opacity 0.26s ease !important;
       }
       body.theme-dark .header:hover,
       body.theme-dark .card:hover,
@@ -1625,7 +1633,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="singleScreenshotCard">
         <div class="card-body">
           <!-- Screenshot Slots -->
           <div
@@ -1814,7 +1822,7 @@
           </div>
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="singleTransactionCard">
         <div class="card-body">
           <!-- Transaction By Toggle -->
           <div id="singleTxSection">
@@ -2148,6 +2156,12 @@
       const slotsContainer = document.getElementById("slotsContainer");
       const addMoreBtn = document.getElementById("addMoreBtn");
       const generateBtn = document.getElementById("generateBtn");
+      const singleScreenshotCard = document.getElementById(
+        "singleScreenshotCard",
+      );
+      const singleTransactionCard = document.getElementById(
+        "singleTransactionCard",
+      );
       const resetBtn = document.getElementById("resetBtn");
       const progressSection = document.getElementById("progressSection");
       const progressBar = document.getElementById("progressBar");
@@ -2595,12 +2609,23 @@
       resetBtn.addEventListener("click", () => {
         resetFormFieldsOnly();
         hideAll();
+        showFormSections();
       });
 
       function hideAll() {
         [progressSection, resultSection, errorSection].forEach((el) =>
           el.classList.add("d-none"),
         );
+      }
+
+      function hideFormSections() {
+        singleScreenshotCard.classList.add("d-none");
+        singleTransactionCard.classList.add("d-none");
+      }
+
+      function showFormSections() {
+        singleScreenshotCard.classList.remove("d-none");
+        singleTransactionCard.classList.remove("d-none");
       }
 
       function clearFieldErrors() {
@@ -2737,6 +2762,7 @@
           errorSection.classList.remove("d-none");
           return;
         }
+        hideFormSections();
         progressSection.classList.remove("d-none");
         progressSection.scrollIntoView({ behavior: "smooth", block: "center" });
         animateProgress();
@@ -2772,15 +2798,18 @@
             // Report ban gaya — agla report fresh form se bhara jaaye, purani
             // details persist nahi honi chahiye.
             resetFormFieldsOnly();
+            showFormSections();
           } else {
             errorMsg.textContent = data.message || "Unknown error.";
             errorSection.classList.remove("d-none");
+            showFormSections();
           }
         } catch (err) {
           clearInterval(_progTimer);
           progressSection.classList.add("d-none");
           errorMsg.textContent = "Network error: " + err.message;
           errorSection.classList.remove("d-none");
+          showFormSections();
         }
       });
       let _progTimer = null;
@@ -3311,9 +3340,9 @@
       });
 
       // ── Page navigation ───────────────────────────────────────────
-      function setGuiTheme(mode) {
+      function setGuiTheme(mode, animate = true) {
         const selectedMode = mode === "dark" ? "dark" : "light";
-        document.documentElement.classList.add("theme-switching");
+        if (animate) document.documentElement.classList.add("theme-switching");
         document.body.classList.toggle("theme-dark", selectedMode === "dark");
         document.documentElement.classList.toggle(
           "theme-dark-preload",
@@ -3339,10 +3368,12 @@
             selectedMode === "dark" ? "true" : "false",
           );
         }
-        window.setTimeout(
-          () => document.documentElement.classList.remove("theme-switching"),
-          80,
-        );
+        if (animate) {
+          window.setTimeout(
+            () => document.documentElement.classList.remove("theme-switching"),
+            280,
+          );
+        }
       }
       function toggleGuiTheme() {
         const isDark = document.body.classList.contains("theme-dark");
@@ -3353,32 +3384,27 @@
         try {
           savedMode = localStorage.getItem("scamGuiTheme") || "light";
         } catch (e) {}
-        setGuiTheme(savedMode);
+        setGuiTheme(savedMode, false);
       })();
 
       function changeCaseReportPage(pageType) {
         if (pageType === "qc") {
-          showLoading();
           window.location.href = "/qc-gui";
           return;
         }
         if (pageType === "website_directory") {
-          showLoading();
           window.location.href = "/website-directory";
           return;
         }
         if (pageType === "lunch_break") {
-          showLoading();
           window.location.href = "/lunch-break";
           return;
         }
         if (pageType === "allotment") {
-          showLoading();
           window.location.href = "/scam-website-allotment";
           return;
         }
         if (pageType === "case_report") return;
-        showLoading();
         window.location.href = "/?page=" + pageType;
       }
       function showLoading() {
@@ -3405,6 +3431,17 @@
         if (!banner) return;
         const willShow = banner.classList.contains("d-none");
         banner.classList.toggle("d-none");
+        [
+          "singleScreenshotCard",
+          "commonDetailsPanel",
+          "singleTransactionCard",
+          "progressSection",
+          "resultSection",
+          "errorSection",
+        ].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle("bulk-mode-hidden", willShow);
+        });
         if (btn) {
           btn.classList.toggle("btn-outline-secondary", !willShow);
           btn.classList.toggle("btn-generate", willShow);

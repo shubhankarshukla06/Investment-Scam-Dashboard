@@ -4832,10 +4832,6 @@ def scam_website_allotment_allot():
             .in_("id", website_ids) \
             .execute()
         dir_rows = dir_resp.data or []
-
-        # ── Build display_url per row so we can check for existing allotment
-        # of the SAME url (any user, any older date) and reassign it to today
-        # instead of inserting a duplicate row. ──
         prepared_rows = []
         display_urls = []
         for row in dir_rows:
@@ -6538,12 +6534,37 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         with BULK_GENERATE_JOBS_LOCK:
             return BULK_GENERATE_JOBS.get(job_id)
 
+    def _write_output_excel(results):
+        out_wb = openpyxl.Workbook()
+        out_ws = out_wb.active
+        out_ws.title = "Bulk Generate Results"
+        out_ws.append(["PDF_URL", "Final_URL", "Status", "Message"])
+        for r in results:
+            out_ws.append([
+                r.get("pdf_url") or "",
+                r.get("final_url") or r.get("title") or "",
+                r.get("status") or "",
+                r.get("message") or "",
+            ])
+
+        base_name = os.path.splitext(os.path.basename(original_filename))[0]
+        out_filename = f"Bulk_Generate_Results_{base_name}_{job_id[:8]}.xlsx"
+        out_path = os.path.join(CASE_REPORT_REPORTS_FOLDER, out_filename)
+        out_wb.save(out_path)
+        return out_path
+
     # ── 0. Resolve AML credentials up front so login failures surface early ─
     try:
         aml_creds = get_aml_credentials_for_user(current_email, current_display_name)
     except Exception as creds_exc:
-        _set_status(status="failed", phase="failed",
-                    message=f"AML credentials not available: {creds_exc}")
+        msg = f"AML credentials not available: {creds_exc}"
+        out_path = _write_output_excel([{
+            "pdf_url": "",
+            "final_url": "",
+            "status": "FAILED",
+            "message": msg,
+        }])
+        _set_status(status="failed", phase="failed", final_excel=out_path, message=msg)
         return
 
     aml_session = None
@@ -6561,8 +6582,14 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         try:
             aml_session = aml_login_requests(creds=aml_creds, require_report_form=True)
         except Exception as login_exc:
-            _set_status(status="failed", phase="failed",
-                        message=f"AML login failed: {login_exc}")
+            msg = f"AML login failed: {login_exc}"
+            out_path = _write_output_excel([{
+                "pdf_url": "",
+                "final_url": "",
+                "status": "FAILED",
+                "message": msg,
+            }])
+            _set_status(status="failed", phase="failed", final_excel=out_path, message=msg)
             return
 
         # ── 2. Read input Excel ────────────────────────────────────────
@@ -6570,8 +6597,14 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         ws = wb.active
         rows_iter = list(ws.iter_rows(values_only=True))
         if not rows_iter:
-            _set_status(status="failed", phase="failed",
-                        message="Excel file is empty.")
+            msg = "Excel file is empty."
+            out_path = _write_output_excel([{
+                "pdf_url": "",
+                "final_url": "",
+                "status": "FAILED",
+                "message": msg,
+            }])
+            _set_status(status="failed", phase="failed", final_excel=out_path, message=msg)
             return
 
         header = [str(c).strip() if c is not None else "" for c in rows_iter[0]]
@@ -6590,7 +6623,13 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
                        "Screenshot_Path_1 and Description columns.")
             else:
                 msg = "Missing required columns: " + ", ".join(missing)
-            _set_status(status="failed", phase="failed", message=msg)
+            out_path = _write_output_excel([{
+                "pdf_url": "",
+                "final_url": "",
+                "status": "FAILED",
+                "message": msg,
+            }])
+            _set_status(status="failed", phase="failed", final_excel=out_path, message=msg)
             return
 
         def _row_get(row, col):
@@ -6606,8 +6645,14 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         _set_status(total=total, phase="generating", current_path="")
 
         if total == 0:
-            _set_status(status="failed", phase="failed",
-                        message="No data rows found in Excel.")
+            msg = "No data rows found in Excel."
+            out_path = _write_output_excel([{
+                "pdf_url": "",
+                "final_url": "",
+                "status": "FAILED",
+                "message": msg,
+            }])
+            _set_status(status="failed", phase="failed", final_excel=out_path, message=msg)
             return
 
         # ── 3. Process each row via AML submit chunk ───────────────────
@@ -6633,6 +6678,7 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
                 "input":   "",  # auto-derived from Description below
                 "status":  "FAILED",
                 "pdf_url": None,
+                "final_url": website,
                 "message": None,
             }
 
@@ -6705,20 +6751,15 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         # ── 4. Write output Excel ─────────────────────────────────────
         _set_status(phase="finalizing", current_path="")
 
-        out_wb = openpyxl.Workbook()
-        out_ws = out_wb.active
-        out_ws.title = "Bulk Generate Results"
-        out_ws.append(["PDF_URL", "Final_URL"])
-        for r in results:
-            out_ws.append([
-                r.get("pdf_url") or "",
-                r.get("final_url") or r.get("title") or "",
-            ])
+        if not results:
+            results.append({
+                "pdf_url": "",
+                "final_url": "",
+                "status": "FAILED",
+                "message": "No rows were processed.",
+            })
 
-        base_name = os.path.splitext(os.path.basename(original_filename))[0]
-        out_filename = f"Bulk_Generate_Results_{base_name}_{job_id[:8]}.xlsx"
-        out_path = os.path.join(CASE_REPORT_REPORTS_FOLDER, out_filename)
-        out_wb.save(out_path)
+        out_path = _write_output_excel(results)
 
         with BULK_GENERATE_JOBS_LOCK:
             job = BULK_GENERATE_JOBS.get(job_id)
@@ -7590,15 +7631,33 @@ def qc_gui_users():
         return jsonify({"success": False, "error": "Access denied."})
     if not session.get("is_admin", False):
         return jsonify({"success": False, "error": "Admin access required."})
+    current_user_name = get_clean_display_name(session.get("display_name", "User")).strip()
     try:
-        rows = client.table("dashboard_users").select("display_name,allowed_pages,is_active").eq("is_active", True).execute().data or []
-        names = sorted({
-            get_clean_display_name(row.get("display_name"))
-            for row in rows
-            if row.get("display_name") and "qc" in (row.get("allowed_pages") or [])
-        })
+        auth_client = get_auth_supabase()
+        rows = auth_client.table("dashboard_users").select("display_name,allowed_pages,is_active").eq("is_active", True).execute().data or []
+        names = {current_user_name} if current_user_name and current_user_name != "User" else set()
+        for row in rows:
+            display_name = row.get("display_name")
+            if not display_name:
+                continue
+            allowed_pages = row.get("allowed_pages") or []
+            if isinstance(allowed_pages, str):
+                try:
+                    allowed_pages = json.loads(allowed_pages)
+                except Exception:
+                    allowed_pages = [p.strip() for p in allowed_pages.split(",") if p.strip()]
+            if "qc" in (allowed_pages or []):
+                names.add(get_clean_display_name(display_name))
+
+        names = sorted(names)
         return jsonify({"success": True, "users": [{"display_name": name} for name in names]})
     except Exception as e:
+        if current_user_name and current_user_name != "User":
+            return jsonify({
+                "success": True,
+                "users": [{"display_name": current_user_name}],
+                "warning": str(e),
+            })
         return jsonify({"success": False, "error": str(e)})
 
 

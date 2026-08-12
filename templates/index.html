@@ -888,7 +888,7 @@
                 font-family: Inter, 'Segoe UI', Roboto, sans-serif;
                 scrollbar-color: #475569 #111827;
             }
-            body.theme-dark * { transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease; }
+            html.theme-switching * { transition: background-color 0.26s ease, border-color 0.26s ease, color 0.26s ease, box-shadow 0.26s ease, opacity 0.26s ease; }
             body.theme-dark ::-webkit-scrollbar { width: 8px; height: 8px; }
             body.theme-dark ::-webkit-scrollbar-track { background: #111827; }
             body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
@@ -1126,7 +1126,7 @@
             html.theme-switching *,
             html.theme-switching *::before,
             html.theme-switching *::after {
-                transition: none !important;
+                transition: background-color .26s ease, color .26s ease, border-color .26s ease, box-shadow .26s ease, opacity .26s ease !important;
             }
             body.theme-dark .scraping-page .filter-group select,
             body.theme-dark .investment-page .filter-group select,
@@ -2896,9 +2896,9 @@
             let lastSummaryResult = null;
             let summaryAmlDataCache = null;   // persists AML GUI load across type/source toggles
             // ─── DUPLICATE CHECKER STATE ─────────────────────────
-            function setGuiTheme(mode) {
+            function setGuiTheme(mode, animate = true) {
                 const selectedMode = mode === 'dark' ? 'dark' : 'light';
-                document.documentElement.classList.add('theme-switching');
+                if (animate) document.documentElement.classList.add('theme-switching');
                 document.body.classList.toggle('theme-dark', selectedMode === 'dark');
                 document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
                 try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
@@ -2910,7 +2910,7 @@
                     toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
                     toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
                 }
-                window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 80);
+                if (animate) window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 280);
             }
             function toggleGuiTheme() {
                 const isDark = document.body.classList.contains('theme-dark');
@@ -2919,7 +2919,7 @@
             function initGuiTheme() {
                 let savedMode = 'light';
                 try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
-                setGuiTheme(savedMode);
+                setGuiTheme(savedMode, false);
             }
             initGuiTheme();
             function excelNameToApiName(raw) {
@@ -3993,7 +3993,6 @@
             function downloadTemplate() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
-                showLoading();
                 window.location.href = `/download-template/${sheetType}`;
                 setTimeout(hideLoading, 2000);
             }
@@ -5445,7 +5444,7 @@
             function goToPage(page) {
                 const url = new URL(window.location.href);
                 url.searchParams.set('page_num', page);
-                showLoading(); window.location.href = url.toString();
+                window.location.href = url.toString();
             }
             function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }
             function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
