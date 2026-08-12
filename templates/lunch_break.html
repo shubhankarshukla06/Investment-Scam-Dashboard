@@ -296,8 +296,7 @@
             transform:none !important;
         }
         .over-limit { color: #e74c3c; font-weight: 700; }
-        .loading-overlay { position:fixed; inset:0; background:rgba(255,255,255,0.7); z-index:9999; display:none; align-items:center; justify-content:center; }
-        .loading-overlay.active { display:flex; }
+.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.55); display:flex; justify-content:center; align-items:center; z-index:2000; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .16s ease, visibility .16s ease; } .loading-overlay.active { opacity:1; visibility:visible; pointer-events:auto; }
         .spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
     </style>
@@ -1028,14 +1027,10 @@
         showLoading();
         window.location.href = '/?page=' + pageType;
     }
-    function showLoading() {
-        const ov = document.getElementById('loadingOverlay');
-        if (ov) ov.classList.add('active');
-    }
-    function hideLoading() {
-        const ov = document.getElementById('loadingOverlay');
-        if (ov) ov.classList.remove('active');
-    }
+function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }
+function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
+window.addEventListener('pageshow', hideLoading);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) hideLoading(); });
 
     // ── Sync header space ─────────────────────────────────────────
     function syncHeaderSpace() {

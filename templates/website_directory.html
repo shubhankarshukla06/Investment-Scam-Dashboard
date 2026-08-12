@@ -133,7 +133,7 @@ tr:hover { background:#f8fffe; }
 .toast.err { background:#e74c3c; }
 .toast.ok  { background:#2ecc71; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.9); display:none; justify-content:center; align-items:center; z-index:2000; }
+.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.55); display:flex; justify-content:center; align-items:center; z-index:2000; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .16s ease, visibility .16s ease; } .loading-overlay.active { opacity:1; visibility:visible; pointer-events:auto; }
 .spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:35px; height:35px; animation:spin 1s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .flash-message { position:fixed; top:12px; right:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-left:4px solid #2ecc71; display:flex; align-items:center; gap:6px; z-index:1001; font-size:13px; animation:slideIn 0.3s ease; max-width:320px; }
@@ -1370,7 +1370,7 @@ function extractUrlParts(rawUrl) {
         return { finalUrl: '', inviteCode: '' };
     }
 }
-function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
+function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }
 // Single insert — URL type/paste karne pe auto-fill Final URL + Invite Code
 let _insUrlCheckTimer = null;
 function _stripQueryHash(url) {
@@ -1455,7 +1455,9 @@ async function checkSingleUrlDuplicate(url, inputId, statusId) {
         if (el) el.innerHTML = '';
     }
 }
-function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
+function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
+window.addEventListener('pageshow', hideLoading);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) hideLoading(); });
 function setGuiTheme(mode) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
     document.documentElement.classList.add('theme-switching');

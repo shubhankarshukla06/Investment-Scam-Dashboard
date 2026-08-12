@@ -45,24 +45,24 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
 .page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:185px; height:34px; }
 .page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
-.filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; margin-top:6px; box-shadow:0 1px 8px rgba(0,0,0,0.08); border-top:3px solid #27ae60; }
-.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
-.filters-header h2 { font-size:14px; color:#2c3e50; }
-.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
-.filter-group { display:flex; flex-direction:column; gap:4px; }
-.filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
-.filter-group input, .filter-group select { width:100%; padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height:34px; outline:none; }
+.filters { background:white; border-radius:8px; padding:8px 10px; margin-bottom:9px; margin-top:4px; box-shadow:0 1px 8px rgba(0,0,0,0.08); border-top:2px solid #27ae60; }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px; }
+.filters-header h2 { font-size:13px; color:#2c3e50; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:7px; }
+.filter-group { display:flex; flex-direction:column; gap:3px; }
+.filter-group label { font-size:11px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
+.filter-group input, .filter-group select { width:100%; padding:5px 9px; border:1px solid #ddd; border-radius:5px; font-size:11.5px; background:white; cursor:pointer; height:30px; outline:none; }
 .filter-group input:focus, .filter-group select:focus { border-color:#3498db; box-shadow:0 0 0 2px rgba(52,152,219,0.2); }
 .filter-group input.active-filter, .filter-group select.active-filter { border-color:#3498db; background:#ebf5fb; }
 .search-box { position:relative; }
 .search-box input { padding-left:30px !important; }
 .search-icon { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:#7f8c8d; font-size:13px; }
 .date-range-group { display:flex; gap:5px; align-items:center; }
-.date-range-group input { flex:1; height:34px; }
+.date-range-group input { flex:1; height:30px; }
 .date-range-sep { font-size:11px; color:#7f8c8d; white-space:nowrap; }
 .clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
 .clear-btn:hover { background:#c0392b; }
-.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 300px); }
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 270px); }
 table { width:max-content; min-width:100%; border-collapse:collapse; }
 th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
 th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
@@ -98,11 +98,11 @@ tr:hover { background:#f8fffe; }
 .qc-review-title { text-align:center; font-size:13px; font-weight:600; color:#2c3e50; margin:0 0 10px; padding:6px 10px; background:#f8f9fa; border-radius:6px; display:flex; align-items:center; justify-content:center; gap:6px; }
 .qc-review-user { color:#8e44ad; margin-left:6px; font-weight:600; }
 .qc-review-user i { color:#8e44ad; }
-.qc-edit-grid { display:grid; grid-template-columns:0.85fr 1.15fr; gap:14px; }
-.qc-edit-col { display:flex; flex-direction:column; gap:9px; min-width:0; }
-.qc-edit-col .form-group textarea { height:50px; }
-.qc-edit-col .form-group input, .qc-edit-col .form-group select { height:32px; font-size:11.5px; }
-.qc-edit-col-right { background:#fafbfc; border-radius:10px; padding:12px; border:1px solid #e2e8f0; }
+.qc-edit-grid { display:grid; grid-template-columns:0.75fr 1.45fr; gap:18px; }
+.qc-edit-col { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.qc-edit-col .form-group textarea { height:62px; }
+.qc-edit-col .form-group input, .qc-edit-col .form-group select { height:40px; font-size:13px; }
+.qc-edit-col-right { background:#fafbfc; border-radius:10px; padding:16px; border:1px solid #e2e8f0; }
 .qc-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
 .qc-pill { background:#e2e8f0; color:#2c3e50; padding:7px 12px; border-radius:6px; font-size:12px; font-weight:600; text-align:center; height:34px; display:flex; align-items:center; justify-content:center; border:1.5px solid transparent; }
 .qc-pill.readonly { background:#edf2f7; color:#4a5568; }
@@ -115,7 +115,7 @@ input.qc-pill { width:100%; cursor:default; outline:none; }
 .upi-input-row input:focus { border-color:#007bff; box-shadow:0 0 0 3px rgba(0,123,255,.1); }
 .btn-refresh { background:linear-gradient(135deg,#6c757d 0%,#495057 100%); color:white; border:none; padding:7px 12px; border-radius:6px; font-size:11px; font-weight:600; cursor:pointer; white-space:nowrap; }
 .btn-refresh:hover { background:linear-gradient(135deg,#495057 0%,#343a40 100%); }
-.upi-status { background:linear-gradient(135deg,#28a745 0%,#20c997 100%); color:white; padding:6px 12px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; white-space:nowrap; display:inline-flex; align-items:center; gap:5px; }
+.upi-status { background:linear-gradient(135deg,#28a745 0%,#20c997 100%); color:white; padding:8px 15px; border-radius:22px; font-size:12.5px; font-weight:800; text-transform:uppercase; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; min-height:34px; box-shadow:0 2px 8px rgba(40,167,69,.18); }
 .upi-hint { margin-top:5px; font-size:10px; color:#6c757d; }
 .qc-pdf-frame { background:#1a1a1a; border-radius:8px; overflow:hidden; border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,0.08); }
 .qc-pdf-hint { font-size:10px; color:#7f8c8d; margin:5px 2px 0; }
@@ -132,7 +132,7 @@ input.qc-pill { width:100%; cursor:default; outline:none; }
 .toast.err { background:#e74c3c; }
 .toast.ok  { background:#2ecc71; }
 @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.9); display:none; justify-content:center; align-items:center; z-index:2000; }
+.loading-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(255,255,255,0.55); display:flex; justify-content:center; align-items:center; z-index:2000; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .16s ease, visibility .16s ease; } .loading-overlay.active { opacity:1; visibility:visible; pointer-events:auto; }
 .spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:35px; height:35px; animation:spin 1s linear infinite; }
 @keyframes spin { to { transform:rotate(360deg); } }
 .flash-message { position:fixed; top:12px; right:12px; background:white; padding:10px 14px; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.1); border-left:4px solid #2ecc71; display:flex; align-items:center; gap:6px; z-index:1001; font-size:13px; animation:slideIn 0.3s ease; max-width:320px; }
@@ -143,6 +143,14 @@ input.qc-pill { width:100%; cursor:default; outline:none; }
 .dev-credit-footer { position:fixed; bottom:0; right:0; z-index:1001; background:#2c3e50; color:#bdc3c7; font-size:11px; font-weight:500; padding:5px 14px; border-top-left-radius:6px; white-space:nowrap; box-shadow:-2px -2px 6px rgba(0,0,0,0.12); }
 .dev-credit-footer span { color:#3498db; font-weight:700; }
 .qc-remark { max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:#555; }
+.qc-nav-btn { width:34px; height:34px; border-radius:50%; border:1.5px solid rgba(255,255,255,.45); background:rgba(255,255,255,.14); color:white; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+.qc-nav-btn:hover { background:rgba(255,255,255,.24); }
+.qc-tracker-modal .modal-box { max-width:880px; }
+.qc-tracker-grid { display:grid; grid-template-columns:repeat(3,minmax(130px,1fr)); gap:10px; margin-bottom:14px; }
+.qc-tracker-card { background:#f8f9fa; border:1px solid #e2e8f0; border-radius:8px; padding:12px; }
+.qc-tracker-card strong { display:block; font-size:22px; color:#2c3e50; margin-top:4px; }
+.qc-tracker-table { width:100%; border-collapse:collapse; min-width:520px; }
+.qc-tracker-table th, .qc-tracker-table td { padding:8px 10px; font-size:12px; text-align:left; border-bottom:1px solid #e8eef5; }
 @media (max-width: 900px) {
     .header { align-items: flex-start; flex-direction: column; }
     .header-actions { width: 100%; flex-wrap: wrap; justify-content: flex-start; }
@@ -180,10 +188,14 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
 
 <!-- Edit Modal — two-column layout matching reference HTML -->
 <div class="modal-overlay" id="editModal">
-    <div class="modal-box" style="max-width:1280px; max-height:94vh;">
+    <div class="modal-box" style="max-width:1580px; max-height:96vh;">
         <div class="modal-hdr" style="background:linear-gradient(135deg,#8e44ad,#6c3483); padding:16px 30px;">
             <h2 style="font-size:17px;"><i class="fas fa-edit"></i> GUI QC Review — Update Report <span id="editRecordIdLabel" style="opacity:0.85;font-size:13px;"></span></h2>
-            <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+            <div style="display:flex;align-items:center;gap:8px;">
+                <button type="button" class="qc-nav-btn" onclick="moveEditRecord(-1)" title="Previous case"><i class="fas fa-chevron-left"></i></button>
+                <button type="button" class="qc-nav-btn" onclick="moveEditRecord(1)" title="Next case"><i class="fas fa-chevron-right"></i></button>
+                <button class="modal-close" onclick="closeModal('editModal')"><i class="fas fa-times"></i></button>
+            </div>
         </div>
         <div class="modal-body" style="padding:14px 18px;">
             <input type="hidden" id="edit_id">
@@ -194,11 +206,6 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
             <div class="qc-edit-grid">
                 <!-- LEFT COLUMN — Form fields -->
                 <div class="qc-edit-col">
-                    <div class="form-group">
-                        <label>Input User</label>
-                        <input type="text" id="edit_input_user" class="qc-pill readonly" readonly>
-                    </div>
-
                     <div class="upi-validation-container">
                         <label class="upi-label">
                             <i class="fas fa-credit-card"></i> UPI/VPA ID <span style="color:#e74c3c;">*</span>
@@ -210,7 +217,6 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                             </button>
                             <span id="upi_validation_status" class="upi-status"><i class="fas fa-check-circle"></i> Valid</span>
                         </div>
-                        <div class="upi-hint"><i class="fas fa-info-circle"></i> Real-time validation with 2-hour cache refresh</div>
                     </div>
 
                     <div class="form-group">
@@ -228,32 +234,25 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                         <input type="text" id="edit_web_contact_no" placeholder="Web Contact No">
                     </div>
 
-                    <div class="qc-row-2">
-                        <div class="form-group">
-                            <label>Search For <span style="color:#e74c3c;">*</span></label>
-                            <select id="edit_search_for" required>
-                                <option value="">-- Select --</option>
-                                {% for sf in search_for_options %}
-                                <option value="{{ sf }}">{{ sf }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Approved By</label>
-                            <input type="text" id="edit_approved_by" placeholder="Approved by">
-                        </div>
+                    <div class="form-group">
+                        <label>Search For <span style="color:#e74c3c;">*</span></label>
+                        <select id="edit_search_for" required>
+                            <option value="">-- Select --</option>
+                            {% for sf in search_for_options %}
+                            <option value="{{ sf }}">{{ sf }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
                 <!-- RIGHT COLUMN — PDF Preview + QC Remark + Buttons -->
                 <div class="qc-edit-col qc-edit-col-right">
                     <div class="qc-pdf-frame">
-                        <iframe id="pdfViewer" src="about:blank" width="100%" height="380" style="border:none;border-radius:8px;background:#1a1a1a;"></iframe>
-                        <p class="qc-pdf-hint"><i class="fas fa-info-circle"></i> Showing "without_header" PDF from screenshot links</p>
+                        <iframe id="pdfViewer" src="about:blank" width="100%" height="430" style="border:none;border-radius:8px;background:#1a1a1a;"></iframe>
                     </div>
 
                     <div class="form-group">
-                        <label>QC Remark</label>
+                        <label>New Update Remark</label>
                         <select id="edit_qc_remarks">
                             <option value="">-- Select --</option>
                             {% for r in qc_remarks_options %}
@@ -262,8 +261,7 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                         </select>
                     </div>
 
-                    <div class="qc-edit-actions">
-                        <button class="btn btn-danger" onclick="askDeleteFromEdit()" id="editDeleteBtn"><i class="fas fa-trash"></i> Delete</button>
+                    <div class="qc-edit-actions" style="justify-content:flex-end;">
                         <div style="display:flex;gap:8px;">
                             <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
                             <button class="btn btn-primary" onclick="submitEdit()" id="editSubmitBtn"><i class="fas fa-save"></i> UPDATE</button>
@@ -275,24 +273,46 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
     </div>
 </div>
 
-<!-- Delete Confirm Modal -->
-<div class="modal-overlay" id="deleteConfirmModal">
-    <div class="modal-box" style="max-width:420px;">
-        <div class="modal-hdr" style="background:#e74c3c;">
-            <h2><i class="fas fa-trash"></i> Delete Record?</h2>
-            <button class="modal-close" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i></button>
+{% if is_admin %}
+<div class="modal-overlay qc-tracker-modal" id="qcTrackerModal">
+    <div class="modal-box">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#1e8449,#27ae60);">
+            <h2><i class="fas fa-chart-bar"></i> GUI QC Tracker</h2>
+            <button class="modal-close" onclick="closeModal('qcTrackerModal')"><i class="fas fa-times"></i></button>
         </div>
-        <div class="modal-body" style="text-align:center;padding:28px;">
-            <div style="font-size:44px;color:#e74c3c;margin-bottom:14px;"><i class="fas fa-exclamation-triangle"></i></div>
-            <p style="font-size:14px;color:#2c3e50;margin-bottom:8px;">Delete Record <strong id="deleteRecordId" style="color:#e74c3c;"></strong>?</p>
-            <p style="font-size:12px;color:#7f8c8d;">This is permanent and cannot be undone.</p>
-        </div>
-        <div class="modal-footer" style="justify-content:center;gap:14px;">
-            <button class="btn btn-outline" onclick="closeModal('deleteConfirmModal')"><i class="fas fa-times"></i> Cancel</button>
-            <button class="btn btn-danger" onclick="confirmDelete()" id="confirmDeleteBtn"><i class="fas fa-trash"></i> Yes, Delete</button>
+        <div class="modal-body" id="qcTrackerBody">
+            <div class="empty-state"><div class="spinner" style="margin:0 auto 12px;"></div><p>Loading tracker...</p></div>
         </div>
     </div>
 </div>
+
+<div class="modal-overlay" id="qcAllotmentModal">
+    <div class="modal-box" style="max-width:560px;">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#8e44ad,#6c3483);">
+            <h2><i class="fas fa-user-plus"></i> QC Allotment</h2>
+            <button class="modal-close" onclick="closeModal('qcAllotmentModal')"><i class="fas fa-times"></i></button>
+        </div>
+        <form action="/qc-gui-allotment" method="POST" enctype="multipart/form-data" onsubmit="showLoading();">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Allot To User Name</label>
+                    <select name="allot_user" id="qc_allot_user" required>
+                        <option value="">-- Select User --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Input File</label>
+                    <input type="file" name="file" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" onclick="closeModal('qcAllotmentModal')">Cancel</button>
+                <button type="submit" class="btn btn-purple"><i class="fas fa-check"></i> Done</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
 
 <!-- Fixed Header -->
 <div class="fixed-header">
@@ -347,6 +367,7 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
             <a href="/qc-gui-template" class="btn" style="background:#7f8c8d;color:white;" onclick="showLoading(); setTimeout(hideLoading, 2000);">
                 <i class="fas fa-file-download"></i> Template
             </a>
+            {% if is_admin %}
             <!-- Import -->
             <form id="importForm" action="/qc-gui-import" method="POST" enctype="multipart/form-data" style="display:inline;">
                 <input type="file" name="file" id="fileInput" style="display:none;" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods" onchange="if(this.files.length){showLoading();document.getElementById('importForm').submit();}">
@@ -354,6 +375,13 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                     <i class="fas fa-file-import"></i> Import
                 </button>
             </form>
+            <button type="button" class="btn btn-purple" onclick="openQcAllotment()" title="QC allotment">
+                <i class="fas fa-user-plus"></i> QC Allotment
+            </button>
+            <button type="button" class="btn btn-purple" onclick="openQcTracker()" title="QC tracker">
+                <i class="fas fa-chart-bar"></i> Tracker
+            </button>
+            {% endif %}
             <!-- Export -->
             <form action="/qc-gui-export" method="GET" style="display:inline;" id="exportForm">
                 <input type="hidden" name="qc_search" value="{{ qc_search }}">
@@ -442,19 +470,16 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                     <th>Bank Name</th>
                     <th>UPI VPA</th>
                     <th>Ac. Holder</th>
-                    <th>Search For</th>
-                    <th>Wallet</th>
                     <th>Scam Type</th>
                     <th>IFSC Code</th>
                     <th>Payment Gateway URL</th>
                     <th>Website URL</th>
                     <th>Web Contact No.</th>
-                    <th>Input User</th>
-                    <th>Inserted Date</th>
-                    <th>Approved By</th>
-                    <th>QC Remarks</th>
-                    <th>Feature Type</th>
-                    <th>Action</th>
+                    {% if is_admin %}
+                    <th>QC Remark</th>
+                    <th>New Update Remark</th>
+                    <th>QC Status</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -495,16 +520,6 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
                     <td>{% if item.get('ac_holder_name') and item['ac_holder_name'] not in ['NA','N/A','',None] %}<span style="font-size:11px;">{{ item['ac_holder_name'][:20] }}{% if item['ac_holder_name']|length > 20 %}...{% endif %}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
-                    <td>
-                        {% if item.get('search_for') and item['search_for'] not in ['NA','N/A','',None] %}
-                        <span style="font-size:11px;color:#1a5276;background:#eaf4fd;padding:2px 7px;border-radius:4px;">{{ item['search_for'] }}</span>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                        {% if item.get('upi_bank_account_wallet') and item['upi_bank_account_wallet'] not in ['NA','N/A','',None] %}
-                        <span style="font-size:10px;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:20px;font-weight:600;">{{ item['upi_bank_account_wallet'] }}</span>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
                     <td>{% if item.get('scam_type') and item['scam_type'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#37474f;">{{ item['scam_type'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
                     <td>{% if item.get('ifsc_code') and item['ifsc_code'] not in ['NA','N/A','',None] %}<span style="font-family:monospace;font-size:11px;color:#2e7d32;">{{ item['ifsc_code'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
                     <td>
@@ -531,30 +546,30 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
                         </div>
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
-                    <td>{% if item.get('input_user') and item['input_user'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#37474f;">{{ item['input_user'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
-                    <td>{% if item.get('inserted_date') and item['inserted_date'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#2c3e50;font-weight:600;">{{ item['inserted_date'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
-                    <td>
-                        {% if item.get('approved_by') and item['approved_by'] not in ['NA','N/A','',None] %}
-                        <span style="font-size:10px;background:#e8f8f0;color:#1e8449;padding:2px 8px;border-radius:20px;font-weight:600;">{{ item['approved_by'] }}</span>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
+                    {% if is_admin %}
                     <td>
                         {% if item.get('qc_remarks') and item['qc_remarks'] not in ['NA','N/A','',None] %}
                         <span class="qc-remark" title="{{ item['qc_remarks'] }}">{{ item['qc_remarks'] }}</span>
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
-                    <td>{% if item.get('feature_type') and item['feature_type'] not in ['NA','N/A','',None] %}<span style="font-size:11px;color:#6c3483;">{{ item['feature_type'] }}</span>{% else %}<span class="na-cell">N/A</span>{% endif %}</td>
                     <td>
-                        <button onclick="openEditModal({{ item.id }})"
-                            style="background:#8e44ad;color:white;border:none;padding:3px 8px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;">
-                            <i class="fas fa-edit"></i> Edit
-                        </button>
+                        {% if item.get('new_update_remark') and item['new_update_remark'] not in ['NA','N/A','',None] %}
+                        <span class="qc-remark" title="{{ item['new_update_remark'] }}">{{ item['new_update_remark'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
+                    <td>
+                        {% if item.get('qc_status') is sameas true %}
+                        <span style="font-size:10px;background:#e8f8f0;color:#1e8449;padding:2px 8px;border-radius:20px;font-weight:700;">True</span>
+                        {% elif item.get('qc_status') is sameas false %}
+                        <span style="font-size:10px;background:#fdecea;color:#c0392b;padding:2px 8px;border-radius:20px;font-weight:700;">False</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="19">
+                    <td colspan="{{ 14 if is_admin else 11 }}">
                         <div class="empty-state">
                             <i class="fas fa-clipboard-check"></i>
                             <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
@@ -568,26 +583,23 @@ body.theme-dark i, body.theme-dark .copy-btn { color:#60A5FA; }
     </div>
     {% if total_pages > 1 %}
     <div class="pagination">
-        <button class="pag-btn" onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
-            <i class="fas fa-chevron-left"></i> Prev
-        </button>
         <span class="pag-info">Page {{ page_num }} of {{ total_pages }} ({{ total_rows }} total)</span>
-        <button class="pag-btn" onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
-            Next <i class="fas fa-chevron-right"></i>
-        </button>
     </div>
     {% endif %}
 </div>
 <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
 
 <script>
-let _deleteId = null;
 const _qcItems = {};
 {% if items %}{% for item in items %}_qcItems[{{ item.id }}] = {{ item | tojson | safe }};
 {% endfor %}{% endif %}
+let _qcItemIds = [{% if items %}{% for item in items %}{{ item.id }}{% if not loop.last %},{% endif %}{% endfor %}{% endif %}];
+const _qcIsAdmin = {{ 'true' if is_admin else 'false' }};
 
-function showLoading() { document.getElementById('loadingOverlay').style.display='flex'; }
-function hideLoading() { document.getElementById('loadingOverlay').style.display='none'; }
+function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }
+function hideLoading() { document.getElementById('loadingOverlay')?.classList.remove('active'); }
+window.addEventListener('pageshow', hideLoading);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) hideLoading(); });
 
 function setGuiTheme(mode) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
@@ -676,6 +688,47 @@ document.addEventListener('keydown', e => {
     if(e.key==='Escape') document.querySelectorAll('.modal-overlay.active').forEach(m=>m.classList.remove('active'));
 });
 
+function moveEditRecord(direction) {
+    const currentId = parseInt(document.getElementById('edit_id')?.value || '0', 10);
+    const idx = _qcItemIds.indexOf(currentId);
+    if (idx === -1) return;
+    const nextIdx = idx + direction;
+    if (nextIdx < 0 || nextIdx >= _qcItemIds.length) {
+        showToast(direction > 0 ? 'No next case on this page.' : 'No previous case on this page.', 'err');
+        return;
+    }
+    openEditModal(_qcItemIds[nextIdx]);
+}
+
+function _moveAfterUpdate(updatedId, updatedRecord) {
+    const currentIndex = _qcItemIds.indexOf(updatedId);
+    if (updatedRecord) {
+        _qcItems[updatedId] = updatedRecord;
+    }
+    let nextId = null;
+    if (_qcIsAdmin) {
+        if (currentIndex >= 0 && currentIndex + 1 < _qcItemIds.length) {
+            nextId = _qcItemIds[currentIndex + 1];
+        }
+    } else {
+        if (currentIndex >= 0) {
+            _qcItemIds.splice(currentIndex, 1);
+        }
+        delete _qcItems[updatedId];
+        const row = document.getElementById(`qc-row-${updatedId}`);
+        if (row) row.remove();
+        if (currentIndex >= 0 && currentIndex < _qcItemIds.length) {
+            nextId = _qcItemIds[currentIndex];
+        }
+    }
+    if (nextId) {
+        openEditModal(nextId);
+        return;
+    }
+    closeModal('editModal');
+    setTimeout(() => window.location.reload(), 500);
+}
+
 async function openEditModal(id) {
     let item = _qcItems[id];
     if (!item) {
@@ -711,31 +764,26 @@ function _fillEditModal(id, item) {
     const pdfFrame = document.getElementById('pdfViewer');
     pdfFrame.src = pdfUrl || 'about:blank';
     // Only fields that exist in the current modal
-    document.getElementById('edit_input_user').value = g('input_user');
     document.getElementById('edit_upi_vpa').value = g('upi_vpa');
     document.getElementById('edit_website_url').value = g('website_url');
     document.getElementById('edit_payment_gateway_url').value = g('payment_gateway_url');
     document.getElementById('edit_web_contact_no').value = g('web_contact_no');
     document.getElementById('edit_search_for').value = g('search_for');
-    document.getElementById('edit_approved_by').value = g('approved_by');
-    document.getElementById('edit_qc_remarks').value = g('qc_remarks');
+    document.getElementById('edit_qc_remarks').value = '';
 }
 async function submitEdit() {
     const id = document.getElementById('edit_id').value;
     if (!id) return;
     const g = i => (document.getElementById(i)||{}).value||'';
-    const loggedInName = "{{ clean_display_name }}";
-    // Only fields that exist in the current modal
+    // Existing qc_remarks remains unchanged server-side; this value is saved to new_update_remark.
     const payload = {
         id,
-        input_user: g('edit_input_user'),
-        approved_by: g('edit_approved_by') || loggedInName,
         search_for: g('edit_search_for'),
         upi_vpa: g('edit_upi_vpa'),
         web_contact_no: g('edit_web_contact_no'),
         payment_gateway_url: g('edit_payment_gateway_url'),
         website_url: g('edit_website_url'),
-        qc_remarks: g('edit_qc_remarks'),
+        new_update_remark: g('edit_qc_remarks'),
     };
     const btn = document.getElementById('editSubmitBtn');
     btn.disabled = true;
@@ -747,9 +795,8 @@ async function submitEdit() {
         });
         const data = await resp.json();
         if (data.success) {
-            showToast('Record updated!', 'ok');
-            closeModal('editModal');
-            setTimeout(()=>window.location.reload(), 800);
+            showToast('Record updated! Moving to next case...', 'ok');
+            _moveAfterUpdate(parseInt(id, 10), data.record || null);
         } else {
             showToast('Error: ' + data.error, 'err');
         }
@@ -760,46 +807,82 @@ async function submitEdit() {
         btn.innerHTML = '<i class="fas fa-save"></i> UPDATE';
     }
 }
-function askDeleteFromEdit() {
-    const id = document.getElementById('edit_id').value;
-    if (!id) return;
-    closeModal('editModal');
-    _deleteId = parseInt(id);
-    document.getElementById('deleteRecordId').textContent = '#' + id;
-    document.getElementById('deleteConfirmModal').classList.add('active');
-}
-async function confirmDelete() {
-    if (!_deleteId) return;
-    const btn = document.getElementById('confirmDeleteBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    try {
-        const resp = await fetch('/qc-gui-delete', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({id: _deleteId})
-        });
-        const data = await resp.json();
-        if (data.success) {
-            showToast(`Record #${_deleteId} deleted!`, 'ok');
-            const row = document.getElementById(`qc-row-${_deleteId}`);
-            if (row) {
-                row.style.transition = 'opacity 0.3s,transform 0.3s';
-                row.style.opacity = '0';
-                row.style.transform = 'translateX(-20px)';
-                setTimeout(() => row.remove(), 310);
+{% if is_admin %}
+async function openQcAllotment() {
+    const modal = document.getElementById('qcAllotmentModal');
+    const select = document.getElementById('qc_allot_user');
+    if (!modal) return;
+    modal.classList.add('active');
+    if (select && !select.dataset.loaded) {
+        try {
+            const resp = await fetch('/qc-gui-users');
+            const data = await resp.json();
+            if (data.success) {
+                const options = (data.users || []).map(u => `<option value="${u.display_name}">${u.display_name}</option>`).join('');
+                select.innerHTML = '<option value="">-- Select User --</option>' + options;
+                select.dataset.loaded = '1';
             }
-            closeModal('deleteConfirmModal');
-        } else {
-            showToast('Delete failed: ' + data.error, 'err');
-        }
-    } catch(e) {
-        showToast('Network error: ' + e.message, 'err');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-trash"></i> Yes, Delete';
-        _deleteId = null;
+        } catch(e) {}
     }
 }
+
+async function openQcTracker() {
+    const modal = document.getElementById('qcTrackerModal');
+    const body = document.getElementById('qcTrackerBody');
+    if (!modal || !body) return;
+    modal.classList.add('active');
+    body.innerHTML = '<div class="empty-state"><div class="spinner" style="margin:0 auto 12px;"></div><p>Loading tracker...</p></div>';
+    try {
+        const resp = await fetch('/qc-gui-tracker-stats');
+        const data = await resp.json();
+        if (!data.success) throw new Error(data.error || 'Tracker load failed');
+        const daily = data.daily_qc_status || {};
+        const userDaily = data.user_daily_qc_status || {};
+        const dates = Object.keys(daily).sort().reverse();
+        const totals = dates.reduce((a, d) => {
+            const r = daily[d] || {};
+            a.total += r.total || 0; a.true += r.true || 0; a.false += r.false || 0;
+            return a;
+        }, {total:0,true:0,false:0});
+        let html = `<div class="qc-tracker-grid">
+            <div class="qc-tracker-card"><span>Total QC Done</span><strong>${totals.total}</strong></div>
+            <div class="qc-tracker-card"><span>True</span><strong style="color:#1e8449;">${totals.true}</strong></div>
+            <div class="qc-tracker-card"><span>False</span><strong style="color:#c0392b;">${totals.false}</strong></div>
+        </div>`;
+        if (!dates.length) {
+            html += '<div class="empty-state"><i class="fas fa-chart-bar"></i><p>No QC status data found.</p></div>';
+        } else {
+            html += '<div style="overflow-x:auto;"><table class="qc-tracker-table"><thead><tr><th>Date</th><th>Total QC</th><th>True</th><th>False</th></tr></thead><tbody>';
+            dates.forEach(d => {
+                const r = daily[d] || {};
+                html += `<tr><td>${d}</td><td>${r.total || 0}</td><td style="color:#1e8449;font-weight:700;">${r.true || 0}</td><td style="color:#c0392b;font-weight:700;">${r.false || 0}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+        const userRows = [];
+        Object.keys(userDaily).sort().forEach(user => {
+            Object.keys(userDaily[user] || {}).sort().reverse().forEach(dateKey => {
+                const r = userDaily[user][dateKey] || {};
+                userRows.push({ user, dateKey, total: r.total || 0, trueCount: r.true || 0, falseCount: r.false || 0 });
+            });
+        });
+        html += '<h3 style="font-size:13px;margin:16px 0 8px;color:#2c3e50;">User Wise Daily QC</h3>';
+        if (!userRows.length) {
+            html += '<div class="empty-state"><i class="fas fa-user-check"></i><p>No user-wise QC data found.</p></div>';
+        } else {
+            html += '<div style="overflow-x:auto;"><table class="qc-tracker-table"><thead><tr><th>User</th><th>Date</th><th>Total QC</th><th>True</th><th>False</th></tr></thead><tbody>';
+            userRows.forEach(r => {
+                html += `<tr><td>${r.user}</td><td>${r.dateKey}</td><td>${r.total}</td><td style="color:#1e8449;font-weight:700;">${r.trueCount}</td><td style="color:#c0392b;font-weight:700;">${r.falseCount}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+        body.innerHTML = html;
+    } catch(e) {
+        body.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>${e.message}</p></div>`;
+    }
+}
+{% endif %}
+
 setTimeout(() => {
     document.querySelectorAll('.flash-message').forEach(m => {
         m.style.transition = 'opacity 0.3s';

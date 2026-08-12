@@ -944,14 +944,20 @@
       .loading-overlay {
         position: fixed;
         inset: 0;
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(255, 255, 255, 0.55);
         z-index: 9999;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.16s ease, visibility 0.16s ease;
       }
       .loading-overlay.active {
-        display: flex;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
       }
       .spinner {
         border: 3px solid #f3f3f3;
@@ -1061,6 +1067,17 @@
       }
       .gr-btn-stop:hover {
         background: #c0392b;
+      }
+      .gr-btn-ready {
+        background: #1f9d55 !important;
+        color: #fff !important;
+        border-color: #1f9d55 !important;
+        box-shadow:
+          0 0 0 3px rgba(31, 157, 85, 0.18),
+          0 8px 18px rgba(31, 157, 85, 0.22);
+      }
+      .gr-btn-ready:hover {
+        background: #16834a !important;
       }
       .gr-progress-section {
         margin-top: 12px;
@@ -1314,7 +1331,7 @@
         </div>
 
         <div id="grProgressSection" class="gr-progress-section">
-          <div class="gr-progress-row">
+          <div class="gr-progress-row" id="grProgressRow">
             <div class="gr-progress-spinner"></div>
             <span id="grProgressLabel" class="gr-progress-label"
               >Reading Excel…</span
@@ -3372,6 +3389,10 @@
         const ov = document.getElementById("loadingOverlay");
         if (ov) ov.classList.remove("active");
       }
+      window.addEventListener("pageshow", hideLoading);
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) hideLoading();
+      });
 
       // =================== Generate Reports (bulk Excel) ===================
       let _grJobId = null;
@@ -3417,13 +3438,19 @@
             completed + " / " + total + " rows  (" + pct + "%)";
         if (labelEl) labelEl.textContent = label || "Processing…";
         if (pathEl && currentPath) pathEl.textContent = currentPath;
+        if (label !== "__keep_done__") {
+          document.getElementById("grProgressRow")?.classList.remove("gr-done");
+        }
       }
 
       function _grSetStoppedUI() {
         const stopBtn = document.getElementById("grStopBtn");
         const startBtn = document.getElementById("grStartBtn");
         const fileInput = document.getElementById("grExcelFile");
-        if (stopBtn) stopBtn.classList.add("d-none");
+        if (stopBtn) {
+          stopBtn.classList.add("d-none");
+          stopBtn.disabled = false;
+        }
         if (startBtn) startBtn.disabled = false;
         if (fileInput) fileInput.disabled = false;
       }
@@ -3441,7 +3468,11 @@
         }
 
         // reset UI
-        if (dlBtn) dlBtn.classList.add("d-none");
+        document.getElementById("grProgressRow")?.classList.remove("gr-done");
+        if (dlBtn) {
+          dlBtn.classList.add("d-none");
+          dlBtn.classList.remove("gr-btn-ready");
+        }
         if (progress) progress.classList.add("active");
         _grSetProgress(0, 0, "Uploading file…", "");
         if (startBtn) startBtn.disabled = true;
@@ -3522,6 +3553,9 @@
                 "Done! " + total + " row(s) processed.",
                 "",
               );
+              document
+                .getElementById("grProgressRow")
+                ?.classList.add("gr-done");
             } else if (data.status === "stopped") {
               _grSetProgress(
                 completed,
@@ -3541,7 +3575,10 @@
             // show download button if available
             if (data.final_excel) {
               const dl = document.getElementById("grDownloadBtn");
-              if (dl) dl.classList.remove("d-none");
+              if (dl) {
+                dl.classList.remove("d-none");
+                dl.classList.add("gr-btn-ready");
+              }
               const stopBtn = document.getElementById("grStopBtn");
               if (stopBtn) stopBtn.classList.add("d-none");
             }

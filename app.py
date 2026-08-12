@@ -11,7 +11,7 @@ import tempfile
 from werkzeug.utils import secure_filename
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import re
 import csv
 from urllib.parse import urlparse
@@ -65,12 +65,24 @@ DEMO_ADMIN = {
     "password": "test123",
     "display_name": "Shubhankar Shukla (Test User)",
     "allowed_pages": ["scraping", "sheet", "social", "investment", "qc"],
-    "is_admin": True,
+    "is_admin": False,
     "is_active": True,
     "can_view_activity_log": True,
     "allowed_departments": ["ITC","AML", "Investment Scam", "Infringement", "Chargeback"],
     "created_at": "2025-01-01"
 }
+
+
+def parse_bool(value):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return False
+    if isinstance(value, (int, float)):
+        return value != 0
+    return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
+
+
 def fetch_user_by_email(email: str):
     if email.lower().strip() == DEMO_ADMIN["email"]:
         return DEMO_ADMIN
@@ -625,7 +637,7 @@ def extract_case_time_and_date_from_npci_url(url):
         return "NA", "NA"
     try:
         ts = int(match.group(1))
-        utc_dt = datetime.utcfromtimestamp(ts)
+        utc_dt = datetime.fromtimestamp(ts, timezone.utc).replace(tzinfo=None)
         ist_dt = utc_dt + timedelta(hours=5, minutes=30)
         return ist_dt.strftime("%Y-%m-%d %H:%M:%S"), ist_dt.strftime("%Y-%m-%d")
     except Exception:
@@ -914,8 +926,8 @@ def login():
                 session["email"]                 = user["email"]
                 session["display_name"]          = user["display_name"]
                 session["allowed_pages"]         = user.get("allowed_pages") or []
-                session["is_admin"]              = bool(user.get("is_admin", False))
-                session["can_view_activity_log"] = bool(user.get("can_view_activity_log", False))
+                session["is_admin"]              = parse_bool(user.get("is_admin", False))
+                session["can_view_activity_log"] = parse_bool(user.get("can_view_activity_log", False))
                 session["allowed_departments"] = user.get("allowed_departments") or None
                 allowed = session["allowed_pages"]
                 first_page = allowed[0] if allowed else "scraping"
@@ -1953,7 +1965,7 @@ def sheet_import_to_aml_gui():
         import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
         download_payload = _sheet_import_download_payload(csv_text, import_filename)
         print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
-        import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "selenium").strip().lower()
+        import_engine = os.environ.get("SHEET_AML_IMPORT_ENGINE", "http").strip().lower()
         if import_engine == "selenium":
             page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
         else:
@@ -2416,7 +2428,7 @@ def _set_form_value(data, name, value):
     else:
         data[name] = value
 
-def _extract_import_form_payload(html_text):
+def _extract_import_form_payload(html_text, service_name=None):
     form_html = _extract_file_form_html(html_text)
     data = {}
     file_field = "file"
@@ -2465,6 +2477,12 @@ def _extract_import_form_payload(html_text):
         name = attrs.get("name")
         if name:
             _set_form_value(data, name, html.unescape(textarea_match.group(2) or ""))
+
+    service_name = (service_name or os.environ.get("AML_IMPORT_SERVICE_NAME") or "").strip()
+    if service_name and not str(data.get("serviceNameHidden", "")).strip():
+        data["serviceNameHidden"] = service_name
+    if "importCSVFileButton" not in data:
+        data["importCSVFileButton"] = "IMPORT"
 
     return data, file_field
 
@@ -2544,7 +2562,8 @@ def _import_sheet_csv_to_aml_gui(csv_text, filename):
     import_page = session_obj.get(import_page_url, timeout=60)
     import_page.raise_for_status()
     post_url = _extract_form_action(import_page.text, import_page_url) or import_page_url
-    data, file_field = _extract_import_form_payload(import_page.text)
+    _, _, _, platform_value = get_aml_credentials()
+    data, file_field = _extract_import_form_payload(import_page.text, service_name=platform_value)
     selected_fields = sum(len(v) if isinstance(v, list) else 1 for v in data.values())
     print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields} serviceNameHidden={data.get('serviceNameHidden', '')}", flush=True)
     print(f"[SHEET AML IMPORT] csv_headers={csv_text.splitlines()[0][:1000] if csv_text else ''}", flush=True)
@@ -5182,6 +5201,12 @@ CASE_REPORT_REPORTS_FOLDER = os.path.join(os.path.dirname(__file__), "generated_
 os.makedirs(CASE_REPORT_UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CASE_REPORT_REPORTS_FOLDER, exist_ok=True)
 CASE_REPORT_ALLOWED_EXT = {"png", "jpg", "jpeg", "webp"}
+CASE_REPORT_SCREENSHOT_SEARCH_DIRS = [
+    CASE_REPORT_UPLOAD_FOLDER,
+    os.environ.get("CASE_REPORT_SCREENSHOT_DIR", "").strip(),
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "IS_Websites_Automate", "api_gateway_screenshot"),
+    r"C:\Users\Acer\OneDrive - Pixeltruth\Code_Hub\IS_Websites_Automate\api_gateway_screenshot",
+]
 
 # ============================================================
 # AML GUI — BULK REGENERATE CASES (headless Selenium + OCR captcha)
@@ -5321,6 +5346,27 @@ def case_report_clean_up(*paths):
                 os.remove(path)
         except OSError as exc:
             print(f"[CASE_REPORT] Could not remove temp file {path}: {exc}")
+
+
+def resolve_bulk_screenshot_path(raw_path):
+    raw = str(raw_path or "").strip().strip('"').strip("'")
+    if not raw:
+        return ""
+    expanded = os.path.expandvars(os.path.expanduser(raw))
+    if os.path.isfile(expanded):
+        return expanded
+
+    filename = re.split(r"[\\/]+", raw)[-1].strip()
+    if not filename:
+        return expanded
+
+    for base_dir in CASE_REPORT_SCREENSHOT_SEARCH_DIRS:
+        if not base_dir:
+            continue
+        candidate = os.path.join(base_dir, filename)
+        if os.path.isfile(candidate):
+            return candidate
+    return expanded
 
 # ============================================================
 # AML GUI BULK REGENERATE — HELPERS
@@ -6537,8 +6583,14 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         required = ["Screenshot_Path_1", "Description"]
         missing = [c for c in required if c not in col_index]
         if missing:
-            _set_status(status="failed", phase="failed",
-                        message="Missing required columns: " + ", ".join(missing))
+            result_cols = {"Row", "Status", "PDF_URL", "Title", "Input", "Message"}
+            result_cols_new = {"PDF_URL", "Final_URL"}
+            if result_cols.issubset(set(header)) or result_cols_new.issubset(set(header)):
+                msg = ("This is a Bulk Generate Results output file. Upload the input Excel with "
+                       "Screenshot_Path_1 and Description columns.")
+            else:
+                msg = "Missing required columns: " + ", ".join(missing)
+            _set_status(status="failed", phase="failed", message=msg)
             return
 
         def _row_get(row, col):
@@ -6567,8 +6619,8 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
                             message="Stopped by user.")
                 break
 
-            s1_path  = _row_get(row, "Screenshot_Path_1")
-            s2_path  = _row_get(row, "Screenshot_Path_2")
+            s1_path  = resolve_bulk_screenshot_path(_row_get(row, "Screenshot_Path_1"))
+            s2_path  = resolve_bulk_screenshot_path(_row_get(row, "Screenshot_Path_2"))
             desc_val = _row_get(row, "Description")
             # `Description` doubles as the website URL — and is also the
             # source for auto-derived Title / Input (mirrors regenerate flow).
@@ -6602,10 +6654,10 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
                 title_text       = source_url
                 description_text = source_url
                 input_text       = aml_strip_scheme(source_url)
-                # Track the auto-derived values in the result entry so the
-                # output Excel reflects exactly what was sent to AML.
+                # Track the source URL so the output Excel can show only the final URL sent to AML.
                 entry["title"]   = title_text
                 entry["input"]   = input_text
+                entry["final_url"] = source_url
 
                 chunk_result = aml_submit_chunk_requests(
                     aml_session,
@@ -6656,15 +6708,11 @@ def _run_bulk_generate_job(job_id, excel_path, original_filename, input_user, cu
         out_wb = openpyxl.Workbook()
         out_ws = out_wb.active
         out_ws.title = "Bulk Generate Results"
-        out_ws.append(["Row", "Status", "PDF_URL", "Title", "Input", "Message"])
+        out_ws.append(["PDF_URL", "Final_URL"])
         for r in results:
             out_ws.append([
-                r.get("row"),
-                r.get("status"),
                 r.get("pdf_url") or "",
-                r.get("title") or "",
-                r.get("input") or "",
-                r.get("message") or "",
+                r.get("final_url") or r.get("title") or "",
             ])
 
         base_name = os.path.splitext(os.path.basename(original_filename))[0]
@@ -6732,6 +6780,25 @@ def bulk_generate_cases():
                 try: os.remove(dest)
                 except Exception: pass
                 return jsonify({"status": "error", "message": "Excel contains no data rows."}), 400
+            header_wb = openpyxl.load_workbook(dest, read_only=True)
+            try:
+                header_ws = header_wb.active
+                header = [str(c.value).strip() if c.value is not None else "" for c in next(header_ws.iter_rows(min_row=1, max_row=1))]
+            finally:
+                header_wb.close()
+            required = {"Screenshot_Path_1", "Description"}
+            missing = [c for c in required if c not in header]
+            if missing:
+                try: os.remove(dest)
+                except Exception: pass
+                result_cols = {"Row", "Status", "PDF_URL", "Title", "Input", "Message"}
+                result_cols_new = {"PDF_URL", "Final_URL"}
+                if result_cols.issubset(set(header)) or result_cols_new.issubset(set(header)):
+                    msg = ("This looks like a Bulk Generate Results output file. Upload the input Excel with "
+                           "Screenshot_Path_1 and Description columns.")
+                else:
+                    msg = "Missing required columns: " + ", ".join(missing)
+                return jsonify({"status": "error", "message": msg}), 400
             if row_count > MAX_BULK_GENERATE_REPORTS:
                 try: os.remove(dest)
                 except Exception: pass
@@ -7270,7 +7337,8 @@ QC_COLUMNS = [
     "search_for", "upi_bank_account_wallet", "bank_name",
     "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
     "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
-    "screenshot_case_report_link", "qc_remarks", "feature_type",
+    "screenshot_case_report_link", "qc_remarks",
+    "new_update_remark", "qc_status", "feature_type",
     "inserted_date", "inserted_datetime"
 ]
 
@@ -7303,7 +7371,8 @@ QC_SEARCH_FIELDS = [
     "gui_id", "input_user", "approved_by", "scam_type", "search_for",
     "upi_bank_account_wallet", "bank_name", "bank_account_number",
     "upi_vpa", "ifsc_code", "ac_holder_name", "web_contact_no",
-    "payment_gateway_url", "website_url", "qc_remarks", "feature_type"
+    "payment_gateway_url", "website_url", "qc_remarks",
+    "new_update_remark", "feature_type"
 ]
 
 QC_EXPORT_COLUMNS = [
@@ -7311,8 +7380,8 @@ QC_EXPORT_COLUMNS = [
     "search_for", "upi_bank_account_wallet", "bank_name",
     "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
     "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
-    "screenshot_case_report_link", "qc_remarks", "feature_type",
-    "inserted_date"
+    "screenshot_case_report_link", "qc_remarks", "new_update_remark",
+    "qc_status", "feature_type", "inserted_date"
 ]
 
 QC_IMPORT_ALIASES = {
@@ -7333,6 +7402,8 @@ QC_IMPORT_ALIASES = {
     "screenshot": ["screenshot", "image", "proof"],
     "screenshot_case_report_link": ["screenshot_case_report_link", "screenshot case report link", "case report link"],
     "qc_remarks": ["qc_remarks", "qc remarks"],
+    "new_update_remark": ["new_update_remark", "new update remark", "update remark"],
+    "qc_status": ["qc_status", "qc status"],
     "feature_type": ["feature_type", "feature type"],
     "inserted_date": ["inserted_date", "inserted date"],
 }
@@ -7352,6 +7423,56 @@ def _qc_find_import_column(df_columns, target_col):
     return None
 
 
+def _qc_normalize_int_value(value):
+    raw = str(value or "").strip()
+    if raw.upper() in ("", "NA", "N/A", "NONE", "NULL", "NAN", "UNDEFINED"):
+        return None
+    try:
+        return int(float(raw))
+    except (ValueError, TypeError):
+        return None
+
+
+def _qc_build_records_from_df(df, input_user_default, force_input_user=None, reset_qc_update=False):
+    df = df.fillna("")
+    df.columns = df.columns.astype(str).str.strip()
+    source_columns = list(df.columns)
+    column_lookup = {
+        target: _qc_find_import_column(source_columns, target)
+        for target in QC_IMPORT_ALIASES.keys()
+    }
+    matched_columns = [col for col in column_lookup.values() if col]
+    if not matched_columns:
+        raise ValueError("No matching QC column names found.")
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    records = []
+    for _, row in df.iterrows():
+        rec = {}
+        for target_col, source_col in column_lookup.items():
+            if not source_col:
+                continue
+            val = str(row[source_col]).strip()
+            if target_col in QC_INT_COLUMNS:
+                rec[target_col] = _qc_normalize_int_value(val)
+            elif val.lower() in ("nan", "none", "null", "na", "n/a", "undefined", ""):
+                rec[target_col] = None if target_col == "inserted_date" else "NA"
+            else:
+                rec[target_col] = val
+
+        rec["input_user"] = force_input_user or rec.get("input_user") or input_user_default
+        if rec.get("input_user") == "NA":
+            rec["input_user"] = force_input_user or input_user_default
+        if not rec.get("inserted_date") or rec.get("inserted_date") == "NA":
+            rec["inserted_date"] = today
+        if reset_qc_update:
+            rec["new_update_remark"] = "NA"
+            rec["qc_status"] = None
+            rec["approved_by"] = "NA"
+        records.append(rec)
+    return records, matched_columns
+
+
 @app.route("/qc-gui", methods=["GET"])
 @login_required
 def qc_gui():
@@ -7364,6 +7485,7 @@ def qc_gui():
     qc_wallet     = request.args.get("qc_wallet",     "").strip()
     qc_date_from  = request.args.get("qc_date_from",  "").strip()
     qc_date_to    = request.args.get("qc_date_to",    "").strip()
+    is_admin = session.get("is_admin", False)
     page = int(request.args.get("page_num", 1))
     items = []
     total_rows = 0
@@ -7380,6 +7502,8 @@ def qc_gui():
             query = query.gte("inserted_date", qc_date_from)
         if qc_date_to:
             query = query.lte("inserted_date", qc_date_to)
+        if not is_admin:
+            query = query.or_("new_update_remark.is.null,new_update_remark.eq.NA,new_update_remark.eq.N/A")
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -7407,6 +7531,7 @@ def qc_gui():
         allowed_pages=allowed_pages,
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
+        is_admin=is_admin,
     )
 
 
@@ -7415,6 +7540,9 @@ def qc_gui():
 def qc_gui_import():
     if "qc" not in session.get("allowed_pages", []):
         flash("Access denied.", "error")
+        return redirect("/qc-gui")
+    if not session.get("is_admin", False):
+        flash("Import is available for admin users only.", "error")
         return redirect("/qc-gui")
     temp_path = None
     try:
@@ -7430,48 +7558,8 @@ def qc_gui_import():
         file.save(temp_path)
         file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "csv"
         df = read_data_file(temp_path, file_ext)
-        df = df.fillna("")
-        df.columns = df.columns.astype(str).str.strip()
-
-        source_columns = list(df.columns)
-        column_lookup = {
-            target: _qc_find_import_column(source_columns, target)
-            for target in QC_IMPORT_ALIASES.keys()
-        }
-        matched_columns = [col for col in column_lookup.values() if col]
-        if not matched_columns:
-            flash("Import Error: No matching QC column names found.", "error")
-            return redirect("/qc-gui")
-
         input_user_default = get_clean_display_name(session.get("display_name", "User"))
-        today = datetime.now().strftime("%Y-%m-%d")
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        records = []
-        for _, row in df.iterrows():
-            rec = {}
-            for target_col, source_col in column_lookup.items():
-                if not source_col:
-                    continue
-                val = str(row[source_col]).strip()
-                if val.lower() in ("nan", "none", "null", "na", "n/a", "undefined", ""):
-                    if target_col == "inserted_date":
-                        rec[target_col] = None
-                    elif target_col in QC_INT_COLUMNS:
-                        rec[target_col] = None
-                    else:
-                        rec[target_col] = "NA"
-                elif target_col in QC_INT_COLUMNS:
-                    try:
-                        rec[target_col] = int(float(val))
-                    except (ValueError, TypeError):
-                        rec[target_col] = None
-                else:
-                    rec[target_col] = val
-            if not rec.get("input_user") or rec.get("input_user") == "NA":
-                rec["input_user"] = input_user_default
-            if not rec.get("inserted_date") or rec.get("inserted_date") == "NA":
-                rec["inserted_date"] = today
-            records.append(rec)
+        records, _ = _qc_build_records_from_df(df, input_user_default)
 
         # Insert in chunks to avoid payload limits
         CHUNK = 500
@@ -7486,6 +7574,85 @@ def qc_gui_import():
         flash(f"QC file imported successfully! {len(records)} records added.", "success")
     except Exception as e:
         flash(f"QC Import Error: {str(e)}", "error")
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+    return redirect("/qc-gui")
+
+
+@app.route("/qc-gui-users", methods=["GET"])
+@login_required
+def qc_gui_users():
+    if "qc" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Access denied."})
+    if not session.get("is_admin", False):
+        return jsonify({"success": False, "error": "Admin access required."})
+    try:
+        rows = client.table("dashboard_users").select("display_name,allowed_pages,is_active").eq("is_active", True).execute().data or []
+        names = sorted({
+            get_clean_display_name(row.get("display_name"))
+            for row in rows
+            if row.get("display_name") and "qc" in (row.get("allowed_pages") or [])
+        })
+        return jsonify({"success": True, "users": [{"display_name": name} for name in names]})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/qc-gui-allotment", methods=["POST"])
+@login_required
+def qc_gui_allotment():
+    if "qc" not in session.get("allowed_pages", []):
+        flash("Access denied.", "error")
+        return redirect("/qc-gui")
+    if not session.get("is_admin", False):
+        flash("QC Allotment is available for admin users only.", "error")
+        return redirect("/qc-gui")
+    temp_path = None
+    try:
+        allot_user = get_clean_display_name(request.form.get("allot_user", "")).strip()
+        if not allot_user:
+            flash("QC Allotment Error: Select allotment user.", "error")
+            return redirect("/qc-gui")
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            flash("QC Allotment Error: No file selected.", "error")
+            return redirect("/qc-gui")
+        if not is_allowed_file(file.filename):
+            flash("QC Allotment Error: Unsupported file type.", "error")
+            return redirect("/qc-gui")
+
+        filename = secure_filename(file.filename)
+        temp_path = os.path.join(tempfile.gettempdir(), f"qc_allotment_{uuid.uuid4().hex}_{filename}")
+        file.save(temp_path)
+        file_ext = filename.rsplit(".", 1)[1].lower() if "." in filename else "csv"
+        df = read_data_file(temp_path, file_ext)
+        input_user_default = get_clean_display_name(session.get("display_name", "User"))
+        records, _ = _qc_build_records_from_df(
+            df,
+            input_user_default=input_user_default,
+            force_input_user=allot_user,
+            reset_qc_update=True,
+        )
+        if not records:
+            flash("QC Allotment Error: No rows found in file.", "error")
+            return redirect("/qc-gui")
+
+        CHUNK = 500
+        for i in range(0, len(records), CHUNK):
+            supabase.table(QC_TABLE).insert(records[i:i + CHUNK]).execute()
+
+        log_activity(
+            action_type="import",
+            target_table=QC_TABLE,
+            extra_info={"file_name": filename, "records_count": len(records), "allot_user": allot_user}
+        )
+        flash(f"QC Allotment done! {len(records)} cases allotted to {allot_user}.", "success")
+    except Exception as e:
+        flash(f"QC Allotment Error: {str(e)}", "error")
     finally:
         if temp_path and os.path.exists(temp_path):
             try:
@@ -7585,17 +7752,34 @@ def qc_gui_update():
             "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
             "web_contact_no", "payment_gateway_url", "website_url",
             "screenshot", "screenshot_case_report_link", "qc_remarks",
-            "feature_type", "inserted_date"
+            "new_update_remark", "qc_status", "feature_type", "inserted_date"
         ]
         record = {}
+        existing_qc_remarks = ""
+        incoming_new_remark = None
+        if "qc_remarks" in data or "new_update_remark" in data:
+            old_resp = supabase.table(QC_TABLE).select("qc_remarks").eq("id", rid).limit(1).execute()
+            if old_resp.data:
+                existing_qc_remarks = str(old_resp.data[0].get("qc_remarks") or "").strip()
+            incoming_new_remark = str(data.get("new_update_remark", data.get("qc_remarks", "")) or "").strip()
         for f in ALLOWED:
             if f not in data:
                 continue
+            if f == "qc_remarks":
+                continue
+            if f == "qc_status":
+                continue
             val = str(data.get(f, "")).strip()
-            if f in ("date", "inserted_date"):
+            if f in QC_INT_COLUMNS:
+                record[f] = _qc_normalize_int_value(val)
+            elif f in ("date", "inserted_date"):
                 record[f] = val if val and val.upper() not in ("NA", "N/A", "") else None
             else:
                 record[f] = val if val else "NA"
+        if incoming_new_remark is not None:
+            record["new_update_remark"] = incoming_new_remark if incoming_new_remark else "NA"
+            record["qc_status"] = (existing_qc_remarks == incoming_new_remark)
+        record["approved_by"] = get_clean_display_name(session.get("display_name", "User"))
         if not record:
             return jsonify({"success": False, "error": "No valid fields to update"})
 
@@ -7643,12 +7827,14 @@ def qc_gui_delete():
 def qc_gui_tracker_stats():
     if "qc" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Access denied."})
+    if not session.get("is_admin", False):
+        return jsonify({"success": False, "error": "Admin access required."})
     try:
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
             resp = supabase.table(QC_TABLE) \
-                .select("scam_type,search_for,upi_bank_account_wallet,approved_by,input_user,inserted_date") \
+                .select("scam_type,search_for,upi_bank_account_wallet,approved_by,input_user,inserted_date,new_update_remark,qc_status") \
                 .order("id", desc=False) \
                 .range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
@@ -7662,12 +7848,15 @@ def qc_gui_tracker_stats():
         approved_counts = {}
         input_user_counts = {}
         daily_counts = {}
+        daily_qc_status = {}
+        user_daily_qc_status = {}
         for row in all_rows:
             st  = (row.get("scam_type") or "Unknown").strip() or "Unknown"
             sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
             w   = (row.get("upi_bank_account_wallet") or "Unknown").strip() or "Unknown"
             ab  = (row.get("approved_by") or "Unknown").strip() or "Unknown"
             iu  = (row.get("input_user") or "Unknown").strip() or "Unknown"
+            updater = ab if ab.upper() not in ("", "NA", "N/A", "UNKNOWN") else "Unknown"
             dt  = (row.get("inserted_date") or "")[:10]
             scam_counts[st] = scam_counts.get(st, 0) + 1
             sf_counts[sf] = sf_counts.get(sf, 0) + 1
@@ -7676,6 +7865,18 @@ def qc_gui_tracker_stats():
             input_user_counts[iu] = input_user_counts.get(iu, 0) + 1
             if dt:
                 daily_counts[dt] = daily_counts.get(dt, 0) + 1
+                bucket = daily_qc_status.setdefault(dt, {"total": 0, "true": 0, "false": 0})
+                if row.get("new_update_remark") and str(row.get("new_update_remark")).strip().upper() not in ("", "NA", "N/A"):
+                    bucket["total"] += 1
+                    user_bucket = user_daily_qc_status.setdefault(updater, {})
+                    user_day = user_bucket.setdefault(dt, {"total": 0, "true": 0, "false": 0})
+                    user_day["total"] += 1
+                    if row.get("qc_status") is True:
+                        bucket["true"] += 1
+                        user_day["true"] += 1
+                    elif row.get("qc_status") is False:
+                        bucket["false"] += 1
+                        user_day["false"] += 1
         return jsonify({
             "success": True,
             "total": len(all_rows),
@@ -7685,6 +7886,11 @@ def qc_gui_tracker_stats():
             "approved_counts": approved_counts,
             "input_user_counts": input_user_counts,
             "daily_counts": {k: daily_counts[k] for k in sorted(daily_counts)},
+            "daily_qc_status": {k: daily_qc_status[k] for k in sorted(daily_qc_status)},
+            "user_daily_qc_status": {
+                user: {date_key: days[date_key] for date_key in sorted(days, reverse=True)}
+                for user, days in sorted(user_daily_qc_status.items())
+            },
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
