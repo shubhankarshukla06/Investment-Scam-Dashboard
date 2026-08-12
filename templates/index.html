@@ -4155,11 +4155,11 @@
                     downloadSheetImportCsv(data.download);
                     if (!resp.ok) throw new Error(data.error || `GUI import failed with HTTP ${resp.status}`);
                     if (!data.success) throw new Error(data.error || 'GUI import failed');
-                    showToast(`GUI import completed: ${data.rows || 0} rows`, false, true);
+                    showToast(`Imported Success: ${data.rows || 0} rows`, false, true);
                     waitEl.style.display = 'none';
                     readyEl.style.display = 'flex';
                     readyEl.className = 'sheet-status-box ready';
-                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>GUI import completed successfully: ${data.rows || 0} rows.</span>`;
+                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>Imported Success — ${data.rows || 0} rows.</span>`;
                 } catch (err) {
                     showToast('GUI import failed: ' + err.message, true);
                     readyEl.style.display = 'none';

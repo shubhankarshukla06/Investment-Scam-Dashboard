@@ -2522,24 +2522,29 @@ def _validate_aml_sheet_import_response(response_text, response_url):
     if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
         raise RuntimeError("AML import returned login page; session expired or login failed")
 
-    error_match = re.search(
-        r"(oops|no\s+column\s+present|fatal\s+error|error|failed|invalid|not\s+imported|not\s+uploaded|duplicate|please\s+select|required|wrong\s+format|mismatch)",
-        response_text,
-        flags=re.IGNORECASE,
-    )
     success_match = re.search(
         r"(success(?:fully)?|imported\s+successfully|uploaded\s+successfully|inserted\s+successfully|record[s]?\s+(?:added|inserted)|data\s+import(?:ed)?\s+successfully)",
         response_text,
         flags=re.IGNORECASE,
     )
+    # Success confirmation le liye pehle check karo — agar mil gaya toh import
+    # pakka successful hai, chahe page mein kahin "required"/"error" jaisa koi
+    # unrelated word (menu, footer, disclaimer) bhi ho.
+    if success_match:
+        return response_preview
+
+    error_match = re.search(
+        r"(oops|no\s+column\s+present|fatal\s+error|import\s+failed|upload\s+failed|invalid\s+file|not\s+imported|not\s+uploaded|duplicate\s+entr(?:y|ies)|wrong\s+format|column\s+mismatch)",
+        response_text,
+        flags=re.IGNORECASE,
+    )
     if error_match:
         raise RuntimeError(f"AML import rejected the CSV near: {response_preview}")
-    if not success_match:
-        raise RuntimeError(
-            "AML import did not return a success confirmation. "
-            f"response_url={response_url} preview={response_preview}"
-        )
-    return response_preview
+
+    raise RuntimeError(
+        "AML import did not return a success confirmation. "
+        f"response_url={response_url} preview={response_preview}"
+    )
 
 def _find_aml_import_page(session_obj):
     if AML_IMPORT_URL:
