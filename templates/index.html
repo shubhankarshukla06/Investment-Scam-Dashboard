@@ -1422,37 +1422,40 @@
         <div class="header-controls">
                     <div class="page-selector">
                             <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changePageFromWD(this.value)">
-                            {% if 'scraping' in allowed_pages %}
-                            <option value="scraping" {% if page_type == 'scraping' %}selected{% endif %}>Scraping Data</option>
-                            {% endif %}
-                            {% if 'sheet' in allowed_pages %}
-                            <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Summary &amp; Sheet Generator</option>
-                            {% endif %}
-                            {% if 'social' in allowed_pages %}
-                            <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
-                            {% endif %}
-                            {% if 'investment' in allowed_pages %}
-                            <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>BS Investment Scam</option>
-                            {% endif %}
-                            {% if 'qc' in allowed_pages %}
-                            <option value="qc" {% if page_type == 'qc' %}selected{% endif %}>GUI QC Review</option>
-                            {% endif %}
-                            {% if 'website_directory' in allowed_pages %}
-                            <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Scam++ Website Directory</option>
-                            {% endif %}
-                            {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                            <option value="allotment" {% if page_type == 'allotment' %}selected{% endif %}>Scam++ Website Allotment</option>
-                            {% endif %}
-                            {% if 'insights' in allowed_pages %}
-                            <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Scam++ Dashboard</option>
-                            {% endif %}
-                            {% if 'case_report' in allowed_pages %}
-                            <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>Case Report Generator</option>
-                            {% endif %}
-                            {% if 'lunch' in allowed_pages %} 
-                            <option value="lunch_break" {% if page_type == 'lunch_break' %}selected{% endif %}>Lunch Break Tracker</option>
-                            {% endif %}
-                        </select>
+                    {% if 'scraping' in allowed_pages %}
+                    <option value="scraping" {% if page_type == 'scraping' %}selected{% endif %}>Data Scraping</option>
+                    {% endif %}
+                    {% if 'social' in allowed_pages %}
+                    <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
+                    {% endif %}
+                    {% if 'investment' in allowed_pages %}
+                    <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>Investment Scam Data</option>
+                    {% endif %}
+                    {% if 'website_directory' in allowed_pages %}
+                    <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Investment Website Directory</option>
+                    {% endif %}
+                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+                    <option value="allotment" {% if page_type == 'allotment' %}selected{% endif %}>Website Case Assignment</option>
+                    {% endif %}
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Summary &amp; Sheet Generator</option>
+                    {% endif %}
+                    {% if 'case_report' in allowed_pages %}
+                    <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>Case &amp; Report Generator</option>
+                    {% endif %}
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>User Performance Dashboard</option>
+                    {% endif %}
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc" {% if page_type == 'qc' %}selected{% endif %}>QC Review</option>
+                    {% endif %}
+                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    <option value="dashboard_management" {% if page_type == 'dashboard_management' %}selected{% endif %}>User &amp; Access Management</option>
+                    {% endif %}
+                    {% if 'lunch' in allowed_pages %}
+                    <option value="lunch_break" {% if page_type == 'lunch_break' %}selected{% endif %}>Break Time Management</option>
+                    {% endif %}
+</select>
                     </div>
                     <div class="header-actions">
                         {% if page_type == 'scraping' %}
@@ -1966,7 +1969,7 @@
                         </div>
                     </div>
                 </div>
-            </div>    
+            </div>
         </div>
         <!-- SCRAPPING SUMMARY SECTION -->
         <div id="scrappingSummarySection" style="display:none;">
@@ -2266,11 +2269,11 @@
                                         style="background:#e74c3c;color:white;border:none;padding:0 8px;border-radius:4px;
                                             font-size:11px;font-weight:600;cursor:pointer;height:26px;display:flex;
                                             align-items:center;gap:4px;white-space:nowrap;transition:background 0.2s;"
-                                        onmouseover="this.style.background='#c0392b'" 
+                                        onmouseover="this.style.background='#c0392b'"
                                         onmouseout="this.style.background='#e74c3c'">
                                         <i class="fas fa-times"></i> Clear Filters
                                     </button>
-                                </div> 
+                                </div>
                                 <div style="display:flex;gap:6px;align-items:center;">
                                     <button type="button" onclick="goToUpdatePage()"
                                         style="background:#3498db;color:white;border:none;padding:0 12px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;height:32px;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:background 0.2s;">
@@ -2286,7 +2289,7 @@
                                     </button>
                                 </div>
                             </div>
-                        </form>      
+                        </form>
                     </div>
                 </div>
                 <div class="table-container">
@@ -3009,6 +3012,10 @@
                     window.location.href = '/scam-website-allotment';
                     return;
                 }
+                if (pageType === 'dashboard_management') {
+                    window.location.href = '/dashboard-management';
+                    return;
+                }
                 window.location.href = '/?page=' + pageType;
             }
             function submitSocialSearch() {
@@ -3339,7 +3346,7 @@
                             ${revOpts}
                         </select>`;
                     } else if (field.type === 'date') {
-                        inputHtml = `<input type="date" id="edf_${field.key}" value="${currentVal}" 
+                        inputHtml = `<input type="date" id="edf_${field.key}" value="${currentVal}"
                         onchange="_editDrawerChanges['${field.key}']=this.value">`;
                     } else {
                         inputHtml = `<input type="text" id="edf_${field.key}" value="${currentVal}"
@@ -6538,7 +6545,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>
-                    </div>  
+                    </div>
                 </div>
             </div>
             <style>
@@ -8470,7 +8477,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                             responsive: true, maintainAspectRatio: false,
                             plugins: {
                                 legend: { display:false },
-                                tooltip: { callbacks:{ 
+                                tooltip: { callbacks:{
                                 label: tt => {
                                     const note = tt.label === 'WhatsApp' ? ' (incl. Web Contact No.)' : '';
                                     return ' ' + tt.raw.toLocaleString() + note;
@@ -8839,7 +8846,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                         <div style="background:#fff8f0;border:1px solid #f0c070;border-radius:8px;padding:10px 16px;margin-bottom:16px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;">
                             <span style="font-size:13px;font-weight:700;color:#e65100;">ID: <span id="scrapEditMetaId" style="color:#2c3e50;"></span></span>
                             <span style="font-size:12px;color:#7f8c8d;">Inserted by: <strong id="scrapEditMetaName" style="color:#2c3e50;"></strong></span>
-                            <span style="font-size:12px;color:#7f8c8d;">Date: <strong id="scrapEditMetaDate" style="color:#2c3e50;"></strong></span> 
+                            <span style="font-size:12px;color:#7f8c8d;">Date: <strong id="scrapEditMetaDate" style="color:#2c3e50;"></strong></span>
                         </div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
                             <div style="display:flex;flex-direction:column;gap:5px;">

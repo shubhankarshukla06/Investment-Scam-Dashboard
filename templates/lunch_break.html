@@ -323,36 +323,39 @@
             <div class="page-selector">
                 <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changeLunchPage(this.value)">
                     {% if 'scraping' in allowed_pages %}
-                    <option value="scraping">Scraping Data</option>
-                    {% endif %}
-                    {% if 'sheet' in allowed_pages %}
-                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    <option value="scraping">Data Scraping</option>
                     {% endif %}
                     {% if 'social' in allowed_pages %}
                     <option value="social">Social Media Accounts</option>
                     {% endif %}
                     {% if 'investment' in allowed_pages %}
-                    <option value="investment">BS Investment Scam</option>
-                    {% endif %}
-                    {% if 'qc' in allowed_pages %}
-                    <option value="qc">GUI QC Review</option>
+                    <option value="investment">Investment Scam Data</option>
                     {% endif %}
                     {% if 'website_directory' in allowed_pages %}
-                    <option value="website_directory">Scam++ Website Directory</option>
+                    <option value="website_directory">Investment Website Directory</option>
                     {% endif %}
                     {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <option value="allotment">Scam++ Website Allotment</option>
+                    <option value="allotment">Website Case Assignment</option>
                     {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <option value="insights">Scam++ Dashboard</option>
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
-                    <option value="case_report">Case Report Generator</option>
+                    <option value="case_report">Case &amp; Report Generator</option>
                     {% endif %}
-                     {% if 'lunch' in allowed_pages %}
-                    <option value="lunch_break" selected>Lunch Break Tracker</option>
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights">User Performance Dashboard</option>
                     {% endif %}
-                </select>
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc">QC Review</option>
+                    {% endif %}
+                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    <option value="dashboard_management">User &amp; Access Management</option>
+                    {% endif %}
+                    {% if 'lunch' in allowed_pages %}
+                    <option value="lunch_break" selected>Break Time Management</option>
+                    {% endif %}
+</select>
             </div>
             {% if visible_employees %}
             <button class="btn btn-success" onclick="openInsertModal()">
@@ -1020,6 +1023,7 @@
             return;
         }
         if (pageType === 'lunch_break') return;
+        if (pageType === 'dashboard_management') { window.location.href = '/dashboard-management'; return; }
         window.location.href = '/?page=' + pageType;
     }
 function showLoading() { document.getElementById('loadingOverlay')?.classList.add('active'); }

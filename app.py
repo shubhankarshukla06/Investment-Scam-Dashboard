@@ -55,8 +55,8 @@ app.permanent_session_lifetime = timedelta(hours=8)
 # ============================================================
     
 def get_auth_supabase():
-    url = os.environ.get("DASHBOARD_SUPABASE_URL") or os.environ.get("SOCIAL_SUPABASE_URL")
-    key = os.environ.get("DASHBOARD_SUPABASE_KEY") or os.environ.get("SOCIAL_SUPABASE_KEY")
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_KEY")
     return create_client(url, key)
 
 DEMO_ADMIN = {
@@ -68,7 +68,7 @@ DEMO_ADMIN = {
     "is_admin": False,
     "is_active": True,
     "can_view_activity_log": True,
-    "allowed_departments": ["ITC","AML", "Investment Scam", "Infringement", "Chargeback"],
+    "allowed_departments": ["ITC","AML", "Investment Scam","dashboard_management","Infringement", "Chargeback"],
     "created_at": "2025-01-01"
 }
 
@@ -156,14 +156,7 @@ supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_KEY")
 )
-
-SOCIAL_SUPABASE_URL = os.environ.get("SOCIAL_SUPABASE_URL")
-SOCIAL_SUPABASE_KEY = os.environ.get("SOCIAL_SUPABASE_KEY")
-
-social_supabase: Client = create_client(
-    SOCIAL_SUPABASE_URL,
-    SOCIAL_SUPABASE_KEY
-)
+social_supabase: Client = supabase
 
 PLATFORM_OPTIONS = [
     "Telegram", "WhatsApp", "Facebook", "Instagram",
@@ -902,6 +895,8 @@ def redirect_to_allowed_page(allowed_pages):
         return redirect("/case-report")
     if first_page in ("allotment", "allotment_admin"):
         return redirect("/scam-website-allotment")
+    if first_page == "dashboard_management":
+        return redirect("/dashboard-management")
     return redirect(f"/?page={first_page}")
 # ============================================================
 # LOGIN / LOGOUT
@@ -1352,6 +1347,7 @@ def index():
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
+        is_admin=session.get("is_admin", False),
     )
 # ============================================================
 # BS Investment Scam Tracker Stats
@@ -4023,6 +4019,7 @@ def website_directory():
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
+        is_admin=session.get("is_admin", False),
     )
 # ============================================================
 # WEBSITE DIRECTORY — IMPORT
@@ -4792,6 +4789,7 @@ def scam_website_allotment():
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
+        is_admin=session.get("is_admin", False),
     )
 
 
@@ -6225,6 +6223,7 @@ def case_report_page():
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
         allowed_pages=allowed_pages,
+        is_admin=session.get("is_admin", False),
     )
 
 @app.route("/generate-case-report", methods=["POST"])
@@ -7189,7 +7188,12 @@ def lunch_break():
             query = query.eq("employee_name", emp_filter)
 
         resp = query.order("date", desc=True).order("id", desc=True).limit(500).execute()
-        items = resp.data or []
+        raw_items = resp.data or []
+        # A logged-in user must NOT see their OWN lunch-break entries. We identify
+        # "own" records by matching the record's employee_name against the currently
+        # authenticated user's clean display name (the existing identity mapping used
+        # throughout the project). Other users' records stay fully visible.
+        items = [it for it in raw_items if not is_own_lunch_record(it, user)]
         total = len(items)
     except Exception as e:
         items = []
@@ -7359,7 +7363,9 @@ def lunch_break_export():
             query = query.eq("employee_name", emp_filter)
 
         resp = query.order("date", desc=False).execute()
-        rows = resp.data or []
+        rows_all = resp.data or []
+        current_user = get_current_user()
+        rows = [r for r in rows_all if not is_own_lunch_record(r, current_user)]
         df   = pd.DataFrame(rows) if rows else pd.DataFrame()
         out  = io.StringIO()
         df.to_csv(out, index=False, encoding="utf-8-sig")
@@ -7376,6 +7382,257 @@ def lunch_break_export():
         return redirect("/lunch-break")
 
 # ============================================================
+# DASHBOARD MANAGEMENT (dashboard_users)
+# ============================================================
+DASHBOARD_MANAGEMENT_PAGE = "dashboard_management"
+
+# Full set of page keys a user can be granted (for the Allowed Pages picker).
+ALLOWED_PAGES_OPTIONS = [
+    ("scraping",          "Scraping Data"),
+    ("sheet",             "Summary & Sheet Generator"),
+    ("social",            "Social Media Accounts"),
+    ("investment",        "BS Investment Scam"),
+    ("qc",                "GUI QC Review"),
+    ("website_directory", "Scam++ Website Directory"),
+    ("allotment",         "Scam++ Website Allotment"),
+    ("insights",          "Scam++ Dashboard"),
+    ("case_report",       "Case Report Generator"),
+    ("lunch",             "Lunch Break Tracker"),
+    (DASHBOARD_MANAGEMENT_PAGE, "Dashboard Management"),
+]
+
+
+def can_manage_dashboard(user_session=None):
+    """Only an admin who has 'dashboard_management' in their allowed_pages can
+    manage users. This is the single source of truth used by every
+    Dashboard-Management route (page + JSON), so it cannot be bypassed via URL."""
+    user_session = session if user_session is None else user_session
+    allowed_pages = user_session.get("allowed_pages") or []
+    return bool(parse_bool(user_session.get("is_admin", False))) and DASHBOARD_MANAGEMENT_PAGE in allowed_pages
+
+
+def dashboard_management_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not can_manage_dashboard():
+            flash("Access denied.", "error")
+            return redirect_to_allowed_page(session.get("allowed_pages", []))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def dashboard_management_required_json(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not can_manage_dashboard():
+            return jsonify({"success": False, "error": "Access denied."}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+
+def parse_string_list(value):
+    """Normalize an allowed_pages / allowed_departments value from the client
+    (list, comma separated string, or JSON string) into a clean Python list."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                value = parsed
+            else:
+                return [v.strip() for v in value.split(",") if v.strip()]
+        except Exception:
+            return [v.strip() for v in value.split(",") if v.strip()]
+    return [str(v).strip() for v in value if str(v).strip()]
+
+
+def mask_password(password):
+    """Return a non-reversible placeholder so plaintext passwords are never
+    exposed in the UI. The real value is never sent to the browser."""
+    return "********" if password else ""
+
+
+def is_own_lunch_record(record, user_ctx):
+    """Return True when a lunch_breaks record belongs to the currently logged-in user.
+
+    The lunch tracker stores the EMPLOYEE name on each record (employee_name), and the
+    authenticated dashboard user has a display_name. We consider a record the user's
+    OWN when its employee_name matches the user's clean display name. This keeps every
+    OTHER user's records fully visible (including records the current user may have
+    filled for others) while hiding only the current user's own entries."""
+    current_clean = get_clean_display_name((user_ctx or {}).get("display_name", ""))
+    if not current_clean or current_clean == "User":
+        return False
+    emp_name = (record.get("employee_name") or "").strip()
+    if not emp_name:
+        return False
+    return emp_name.strip().lower() == current_clean.strip().lower()
+
+
+@app.route("/dashboard-management", methods=["GET"])
+@login_required
+@dashboard_management_required
+def dashboard_management():
+    return render_template(
+        "dashboard_management.html",
+        allowed_pages=session.get("allowed_pages", []),
+        is_admin=session.get("is_admin", False),
+        can_manage_dashboard=True,
+        display_name=session.get("display_name", "User"),
+        clean_display_name=get_clean_display_name(session.get("display_name", "User")),
+        can_view_activity_log=session.get("can_view_activity_log", False),
+        current_user=get_current_user(),
+        page_options=ALLOWED_PAGES_OPTIONS,
+        department_options=DEPARTMENT_OPTIONS,
+    )
+
+
+def _serialize_dashboard_user(row):
+    """Serialize dashboard users for the admin-only User & Access Management UI."""
+    out = dict(row)
+    raw_password = out.get("password") or ""
+    raw_aml_password = out.get("aml_password") or ""
+    out["password"] = raw_password
+    out["has_aml_password"] = bool(raw_aml_password)
+    out["aml_password"] = raw_aml_password
+    return out
+
+
+@app.route("/dashboard-management/api/users", methods=["GET"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_users():
+    try:
+        resp = get_auth_supabase().table("dashboard_users") \
+            .select("*").order("id", desc=False).execute()
+        users = [_serialize_dashboard_user(u) for u in (resp.data or [])]
+        return jsonify({"success": True, "users": users})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/users", methods=["POST"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_create_user():
+    try:
+        data = request.get_json() or {}
+        email        = (data.get("email") or "").strip().lower()
+        password     = data.get("password") or ""
+        display_name = (data.get("display_name") or "").strip()
+
+        if not email or "@" not in email:
+            return jsonify({"success": False, "error": "A valid email address is required."}), 400
+        if not password:
+            return jsonify({"success": False, "error": "Password is required."}), 400
+        if not display_name:
+            return jsonify({"success": False, "error": "Display name is required."}), 400
+
+        client = get_auth_supabase()
+        existing = client.table("dashboard_users").select("id").eq("email", email).limit(1).execute()
+        if existing.data:
+            return jsonify({"success": False, "error": "A user with this email already exists."}), 409
+
+        record = {
+            "email":                 email,
+            "password":              password,
+            "display_name":          display_name,
+            "allowed_pages":         parse_string_list(data.get("allowed_pages")),
+            "is_admin":              parse_bool(data.get("is_admin")),
+            "is_active":             parse_bool(data.get("is_active", True)),
+            "can_view_activity_log": parse_bool(data.get("can_view_activity_log")),
+            "allowed_departments":   parse_string_list(data.get("allowed_departments")) or None,
+            "aml_username":          (data.get("aml_username") or "").strip() or None,
+            "aml_password":          (data.get("aml_password") or "").strip() or None,
+        }
+        resp = client.table("dashboard_users").insert(record).execute()
+        if resp.data:
+            created = resp.data[0]
+            log_activity("CREATE", target_table="dashboard_users",
+                         target_record_id=created.get("id"),
+                         extra_info=f"Created dashboard user {email}")
+            return jsonify({"success": True, "user": _serialize_dashboard_user(created)}), 201
+        return jsonify({"success": False, "error": "Create failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/users/<int:user_id>", methods=["PUT"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_update_user(user_id):
+    try:
+        data = request.get_json() or {}
+        client = get_auth_supabase()
+        existing_resp = client.table("dashboard_users").select("*").eq("id", user_id).limit(1).execute()
+        if not existing_resp.data:
+            return jsonify({"success": False, "error": "User not found."}), 404
+
+        email        = (data.get("email") or "").strip().lower()
+        display_name = (data.get("display_name") or "").strip()
+        if not email or "@" not in email:
+            return jsonify({"success": False, "error": "A valid email address is required."}), 400
+        if not display_name:
+            return jsonify({"success": False, "error": "Display name is required."}), 400
+
+        dup = client.table("dashboard_users").select("id") \
+            .eq("email", email).neq("id", user_id).limit(1).execute()
+        if dup.data:
+            return jsonify({"success": False, "error": "Another user already has this email."}), 409
+
+        record = {
+            "email":                 email,
+            "display_name":          display_name,
+            "allowed_pages":         parse_string_list(data.get("allowed_pages")),
+            "is_admin":              parse_bool(data.get("is_admin")),
+            "is_active":             parse_bool(data.get("is_active")),
+            "can_view_activity_log": parse_bool(data.get("can_view_activity_log")),
+            "allowed_departments":   parse_string_list(data.get("allowed_departments")) or None,
+            "aml_username":          (data.get("aml_username") or "").strip() or None,
+        }
+        # Password is only replaced when the admin supplies a new one; otherwise the
+        # existing credential (required by the current auth system) is preserved.
+        new_password = (data.get("password") or "").strip()
+        if new_password and new_password != "********":
+            record["password"] = new_password
+        # Same for the AML password: a blank / masked value keeps the existing one.
+        new_aml_pass = (data.get("aml_password") or "").strip()
+        if new_aml_pass and new_aml_pass != "********":
+            record["aml_password"] = new_aml_pass
+
+        upd = client.table("dashboard_users").update(record).eq("id", user_id).execute()
+        if upd.data:
+            log_activity("UPDATE", target_table="dashboard_users", target_record_id=user_id,
+                         extra_info=f"Updated dashboard user {email}")
+            return jsonify({"success": True, "user": _serialize_dashboard_user(upd.data[0])})
+        return jsonify({"success": False, "error": "Update failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/users/<int:user_id>/toggle-active", methods=["POST"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_toggle_active(user_id):
+    try:
+        data = request.get_json() or {}
+        is_active = parse_bool(data.get("is_active"))
+        client = get_auth_supabase()
+        found = client.table("dashboard_users").select("id,email").eq("id", user_id).limit(1).execute()
+        if not found.data:
+            return jsonify({"success": False, "error": "User not found."}), 404
+        upd = client.table("dashboard_users").update({"is_active": is_active}).eq("id", user_id).execute()
+        if upd.data:
+            log_activity("UPDATE", target_table="dashboard_users", target_record_id=user_id,
+                         extra_info=f"Set is_active={is_active} for {found.data[0].get('email')}")
+            return jsonify({"success": True, "user": _serialize_dashboard_user(upd.data[0])})
+        return jsonify({"success": False, "error": "Update failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ============================================================
 # GUI QC — LIST / FILTER / PAGINATION
 # ============================================================
 QC_COLUMNS = [
@@ -7385,8 +7642,14 @@ QC_COLUMNS = [
     "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
     "screenshot_case_report_link", "qc_remarks",
     "new_update_remark", "qc_status", "feature_type",
+    "qc_assigned_date", "qc_approved_date", "total_allotment_date",
     "inserted_date", "inserted_datetime"
 ]
+
+# Search For options shown in the GUI QC Update Report search section.
+# This is a QC-specific list so it does not affect other pages; "App" is added
+# as a new option per the QC page requirement.
+QC_SEARCH_FOR_OPTIONS = list(BS_INVESTMENT_SEARCH_FOR_OPTIONS) + ["App"]
 
 QC_TABLE = "qc_table"
 
@@ -7427,7 +7690,8 @@ QC_EXPORT_COLUMNS = [
     "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
     "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
     "screenshot_case_report_link", "qc_remarks", "new_update_remark",
-    "qc_status", "feature_type", "inserted_date"
+    "qc_status", "feature_type", "inserted_date",
+    "qc_assigned_date", "qc_approved_date", "total_allotment_date"
 ]
 
 QC_IMPORT_ALIASES = {
@@ -7451,6 +7715,9 @@ QC_IMPORT_ALIASES = {
     "new_update_remark": ["new_update_remark", "new update remark", "update remark"],
     "qc_status": ["qc_status", "qc status"],
     "feature_type": ["feature_type", "feature type"],
+    "qc_assigned_date": ["qc_assigned_date", "qc assigned date", "assigned date"],
+    "qc_approved_date": ["qc_approved_date", "qc approved date", "approved date"],
+    "total_allotment_date": ["total_allotment_date", "total allotment date", "allotment date"],
     "inserted_date": ["inserted_date", "inserted date"],
 }
 
@@ -7515,6 +7782,9 @@ def _qc_build_records_from_df(df, input_user_default, force_input_user=None, res
             rec["new_update_remark"] = "NA"
             rec["qc_status"] = None
             rec["approved_by"] = "NA"
+            rec["qc_assigned_date"] = today
+            rec["total_allotment_date"] = today
+            rec["qc_approved_date"] = None
         records.append(rec)
     return records, matched_columns
 
@@ -7572,7 +7842,8 @@ def qc_gui():
         total_pages=total_pages,
         total_rows=total_rows,
         wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
-        search_for_options=BS_INVESTMENT_SEARCH_FOR_OPTIONS,
+        search_for_options=QC_SEARCH_FOR_OPTIONS,
+        scam_type_options=BS_INVESTMENT_SCAM_TYPE_OPTIONS,
         qc_remarks_options=QC_REMARKS_OPTIONS,
         allowed_pages=allowed_pages,
         display_name=session.get("display_name", "User"),
@@ -7843,6 +8114,7 @@ def qc_gui_update():
         if incoming_new_remark is not None:
             record["new_update_remark"] = incoming_new_remark if incoming_new_remark else "NA"
             record["qc_status"] = (existing_qc_remarks == incoming_new_remark)
+            record["qc_approved_date"] = datetime.now().strftime("%Y-%m-%d")
         record["approved_by"] = get_clean_display_name(session.get("display_name", "User"))
         if not record:
             return jsonify({"success": False, "error": "No valid fields to update"})
@@ -7898,7 +8170,7 @@ def qc_gui_tracker_stats():
         all_rows, offset = [], 0
         while True:
             resp = supabase.table(QC_TABLE) \
-                .select("scam_type,search_for,upi_bank_account_wallet,approved_by,input_user,inserted_date,new_update_remark,qc_status") \
+                .select("scam_type,search_for,upi_bank_account_wallet,approved_by,input_user,inserted_date,new_update_remark,qc_status,qc_assigned_date,qc_approved_date,total_allotment_date") \
                 .order("id", desc=False) \
                 .range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
@@ -7914,6 +8186,7 @@ def qc_gui_tracker_stats():
         daily_counts = {}
         daily_qc_status = {}
         user_daily_qc_status = {}
+        allotment_by_date = {}
         for row in all_rows:
             st  = (row.get("scam_type") or "Unknown").strip() or "Unknown"
             sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
@@ -7922,6 +8195,9 @@ def qc_gui_tracker_stats():
             iu  = (row.get("input_user") or "Unknown").strip() or "Unknown"
             updater = ab if ab.upper() not in ("", "NA", "N/A", "UNKNOWN") else "Unknown"
             dt  = (row.get("inserted_date") or "")[:10]
+            allot_dt = (row.get("total_allotment_date") or row.get("qc_assigned_date") or "")[:10]
+            if allot_dt:
+                allotment_by_date[allot_dt] = allotment_by_date.get(allot_dt, 0) + 1
             scam_counts[st] = scam_counts.get(st, 0) + 1
             sf_counts[sf] = sf_counts.get(sf, 0) + 1
             wallet_counts[w] = wallet_counts.get(w, 0) + 1
@@ -7955,6 +8231,7 @@ def qc_gui_tracker_stats():
                 user: {date_key: days[date_key] for date_key in sorted(days, reverse=True)}
                 for user, days in sorted(user_daily_qc_status.items())
             },
+            "allotment_by_date": {k: allotment_by_date[k] for k in sorted(allotment_by_date)},
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

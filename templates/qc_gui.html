@@ -263,10 +263,6 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         </div>
         <div class="modal-body" style="padding:14px 18px;">
             <input type="hidden" id="edit_id">
-            <h3 class="qc-review-title">
-                Update Report Generation By
-                <span class="qc-review-user"><i class="fas fa-user"></i> {{ display_name }}</span>
-            </h3>
             <div class="qc-edit-grid">
                 <!-- LEFT COLUMN — Form fields -->
                 <div class="qc-edit-col">
@@ -304,6 +300,16 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                             <option value="">-- Select --</option>
                             {% for sf in search_for_options %}
                             <option value="{{ sf }}">{{ sf }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Scam Type</label>
+                        <select id="edit_scam_type">
+                            <option value="">-- Select --</option>
+                            {% for st in scam_type_options %}
+                            <option value="{{ st }}">{{ st }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -396,36 +402,39 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             <div class="page-selector">
                 <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changePageFromQC(this.value)">
                     {% if 'scraping' in allowed_pages %}
-                    <option value="scraping">Scraping Data</option>
-                    {% endif %}
-                    {% if 'sheet' in allowed_pages %}
-                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    <option value="scraping">Data Scraping</option>
                     {% endif %}
                     {% if 'social' in allowed_pages %}
                     <option value="social">Social Media Accounts</option>
                     {% endif %}
                     {% if 'investment' in allowed_pages %}
-                    <option value="investment">BS Investment Scam</option>
-                    {% endif %}
-                    {% if 'qc' in allowed_pages %}
-                    <option value="qc" selected>GUI QC Review</option>
+                    <option value="investment">Investment Scam Data</option>
                     {% endif %}
                     {% if 'website_directory' in allowed_pages %}
-                    <option value="website_directory">Scam++ Website Directory</option>
+                    <option value="website_directory">Investment Website Directory</option>
                     {% endif %}
                     {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <option value="allotment">Scam++ Website Allotment</option>
+                    <option value="allotment">Website Case Assignment</option>
                     {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <option value="insights">Scam++ Dashboard</option>
+                    {% if 'sheet' in allowed_pages %}
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
-                    <option value="case_report">Case Report Generator</option>
+                    <option value="case_report">Case &amp; Report Generator</option>
+                    {% endif %}
+                    {% if 'insights' in allowed_pages %}
+                    <option value="insights">User Performance Dashboard</option>
+                    {% endif %}
+                    {% if 'qc' in allowed_pages %}
+                    <option value="qc" selected>QC Review</option>
+                    {% endif %}
+                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    <option value="dashboard_management">User &amp; Access Management</option>
                     {% endif %}
                     {% if 'lunch' in allowed_pages %}
-                    <option value="lunch_break">Lunch Break Tracker</option>
+                    <option value="lunch_break">Break Time Management</option>
                     {% endif %}
-                </select>
+</select>
             </div>
             <!-- Download Template -->
             <a href="/qc-gui-template" class="btn" style="background:#7f8c8d;color:white;">
@@ -539,9 +548,12 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <th>Payment Gateway URL</th>
                     <th>Website URL</th>
                     <th>Web Contact No.</th>
+                    <th>New Update Remark</th>
+                    <th>QC Assigned Date</th>
+                    <th>QC Approved Date</th>
+                    <th>Total Allotment Date</th>
                     {% if is_admin %}
                     <th>QC Remark</th>
-                    <th>New Update Remark</th>
                     <th>QC Status</th>
                     {% endif %}
                 </tr>
@@ -610,15 +622,30 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                         </div>
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
+                    <td>
+                        {% if item.get('new_update_remark') and item['new_update_remark'] not in ['NA','N/A','',None] %}
+                        <span class="qc-remark" title="{{ item['new_update_remark'] }}">{{ item['new_update_remark'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('qc_assigned_date') and item['qc_assigned_date'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#37474f;">{{ item['qc_assigned_date'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('qc_approved_date') and item['qc_approved_date'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#37474f;">{{ item['qc_approved_date'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if item.get('total_allotment_date') and item['total_allotment_date'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#37474f;">{{ item['total_allotment_date'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
                     {% if is_admin %}
                     <td>
                         {% if item.get('qc_remarks') and item['qc_remarks'] not in ['NA','N/A','',None] %}
                         <span class="qc-remark" title="{{ item['qc_remarks'] }}">{{ item['qc_remarks'] }}</span>
-                        {% else %}<span class="na-cell">N/A</span>{% endif %}
-                    </td>
-                    <td>
-                        {% if item.get('new_update_remark') and item['new_update_remark'] not in ['NA','N/A','',None] %}
-                        <span class="qc-remark" title="{{ item['new_update_remark'] }}">{{ item['new_update_remark'] }}</span>
                         {% else %}<span class="na-cell">N/A</span>{% endif %}
                     </td>
                     <td>
@@ -633,7 +660,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="{{ 14 if is_admin else 11 }}">
+                    <td colspan="{{ 17 if is_admin else 15 }}">
                         <div class="empty-state">
                             <i class="fas fa-clipboard-check"></i>
                             <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
@@ -694,6 +721,7 @@ function changePageFromQC(pageType) {
     if (pageType === 'qc') return;
     if (pageType === 'website_directory') { window.location.href = '/website-directory'; return; }
     if (pageType === 'lunch_break') { window.location.href = '/lunch-break'; return; }
+    if (pageType === 'dashboard_management') { window.location.href = '/dashboard-management'; return; }
     if (pageType === 'case_report') { window.location.href = '/case-report'; return; }
     if (pageType === 'allotment') { window.location.href = '/scam-website-allotment'; return; }
     window.location.href = '/?page=' + pageType;
@@ -835,6 +863,8 @@ function _fillEditModal(id, item) {
     document.getElementById('edit_web_contact_no').value = g('web_contact_no');
     document.getElementById('edit_search_for').value = g('search_for');
     document.getElementById('edit_qc_remarks').value = '';
+    const stEl = document.getElementById('edit_scam_type');
+    if (stEl) stEl.value = g('scam_type');
 }
 async function submitEdit() {
     const id = document.getElementById('edit_id').value;
@@ -844,6 +874,7 @@ async function submitEdit() {
     const payload = {
         id,
         search_for: g('edit_search_for'),
+        scam_type: g('edit_scam_type'),
         upi_vpa: g('edit_upi_vpa'),
         web_contact_no: g('edit_web_contact_no'),
         payment_gateway_url: g('edit_payment_gateway_url'),
@@ -937,6 +968,15 @@ async function openQcTracker() {
             dates.forEach(d => {
                 const r = daily[d] || {};
                 html += `<tr><td>${d}</td><td>${r.total || 0}</td><td style="color:#1e8449;font-weight:700;">${r.true || 0}</td><td style="color:#c0392b;font-weight:700;">${r.false || 0}</td></tr>`;
+            });
+            html += '</tbody></table></div>';
+        }
+        const allotDates = Object.keys(data.allotment_by_date || {}).sort().reverse();
+        if (allotDates.length) {
+            html += '<h3 style="font-size:13px;margin:16px 0 8px;color:#2c3e50;">Total Allotment Date</h3>';
+            html += '<div style="overflow-x:auto;"><table class="qc-tracker-table"><thead><tr><th>Date</th><th>Total Allotment</th></tr></thead><tbody>';
+            allotDates.forEach(d => {
+                html += `<tr><td>${d}</td><td>${data.allotment_by_date[d]}</td></tr>`;
             });
             html += '</tbody></table></div>';
         }
