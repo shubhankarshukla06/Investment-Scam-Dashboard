@@ -527,6 +527,17 @@
             .ual-table thead th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 5; white-space: nowrap; }
             .ual-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
             .ual-table tbody tr:hover { background: #f8f9ff; }
+            .ual-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
+            .ual-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #6366f1; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+            .ual-id-cell { color: #9ca3af; font-size: 11px; text-align: center; }
+            .ual-user-name { font-weight: 600; color: #2c3e50; font-size: 12px; }
+            .ual-change-cell { font-size: 11px; }
+            .ual-date-cell { font-size: 11px; color: #374151; white-space: nowrap; }
+            .ual-time-cell { font-size: 11px; color: #6366f1; font-weight: 600; white-space: nowrap; }
+            .ual-field-cell { font-size: 11px; color: #4b5563; font-family: monospace; max-width: 80px; width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .ual-record-cell { font-size: 11px; color: #6b7280; max-width: 70px; width: 70px; text-align: center; }
+            .ual-import-meta { font-size: 11px; color: #374151; }
+            .ual-import-meta i { color: #2ecc71; }
             .ual-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
             .ual-badge-update { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
             .ual-badge-import { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
@@ -537,6 +548,29 @@
             .ual-arrow { color: #9ca3af; font-size: 10px; }
             .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
             .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
+            body.theme-dark .ual-content { background: #1e293b; color: #e6edf7; border: 1px solid rgba(148,163,184,0.18); }
+            body.theme-dark .ual-filters { background: #243044; border-bottom-color: rgba(148,163,184,0.18); }
+            body.theme-dark .ual-search-wrap input,
+            body.theme-dark .ual-filters select { background: #111827; color: #f8fafc; border-color: rgba(148,163,184,0.32); }
+            body.theme-dark .ual-stats { background: #172033; border-bottom-color: rgba(96,165,250,0.25); color: #bfdbfe; }
+            body.theme-dark .ual-table thead th { background: #334155; color: #f8fafc; border-bottom-color: rgba(148,163,184,0.25); }
+            body.theme-dark .ual-table tbody td { color: #e6edf7; border-bottom-color: rgba(148,163,184,0.14); }
+            body.theme-dark .ual-table tbody tr:hover { background: #263449; }
+            body.theme-dark .ual-loading,
+            body.theme-dark .ual-id-cell,
+            body.theme-dark .ual-record-cell,
+            body.theme-dark .ual-empty { color: #cbd5e1; }
+            body.theme-dark .ual-spinner { border-color: #334155; border-top-color: #60a5fa; }
+            body.theme-dark .ual-user-name,
+            body.theme-dark .ual-date-cell,
+            body.theme-dark .ual-change-cell,
+            body.theme-dark .ual-field-cell,
+            body.theme-dark .ual-import-meta { color: #f8fafc; }
+            body.theme-dark .ual-time-cell { color: #93c5fd; }
+            body.theme-dark .ual-page-badge { background: #334155; color: #dbeafe; }
+            body.theme-dark .ual-old { background: #7f1d1d; color: #fecaca; border: 1px solid rgba(248,113,113,0.35); }
+            body.theme-dark .ual-new { background: #14532d; color: #bbf7d0; border: 1px solid rgba(74,222,128,0.35); }
+            body.theme-dark .ual-arrow { color: #cbd5e1; }
             .social-page .edit-col-th { width: 52px; min-width: 52px; }
             .social-page .edit-row-btn {
                 background: #3498db; color: white; border: none;
@@ -1449,7 +1483,7 @@
                     {% if 'qc' in allowed_pages %}
                     <option value="qc" {% if page_type == 'qc' %}selected{% endif %}>QC Review</option>
                     {% endif %}
-                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
                     <option value="dashboard_management" {% if page_type == 'dashboard_management' %}selected{% endif %}>User &amp; Access Management</option>
                     {% endif %}
                     {% if 'lunch' in allowed_pages %}
@@ -5517,7 +5551,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
             }
             function closeUserActivityLog() { document.getElementById('userActivityLogModal').classList.remove('active'); }
             async function _loadUAL() {
-                document.getElementById('ualBody').innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7f8c8d;"><div style="border:3px solid #f3f3f3;border-top:3px solid #6366f1;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div><p>Loading activity log...</p></div>';
+                document.getElementById('ualBody').innerHTML = '<div class="ual-loading"><div class="ual-spinner"></div><p>Loading activity log...</p></div>';
                 document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
                 try {
                     const dateFrom = document.getElementById('ualDateFrom')?.value || '';
@@ -5585,16 +5619,16 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                             <span class="ual-new" title="${log.new_value||''}">${log.new_value||'—'}</span>
                         </div>`;
                     } else if (log.action_type === 'import' && log.extra_info) {
-                        changeHtml = `<span style="font-size:11px;color:#374151;"><i class="fas fa-file-excel" style="color:#2ecc71;"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
+                        changeHtml = `<span class="ual-import-meta"><i class="fas fa-file-excel"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
                     }
                     rows += `<tr>
-                        <td style="color:#9ca3af;font-size:11px;text-align:center;">${log.id||(i+1)}</td>
-                        <td><div style="font-weight:600;color:#2c3e50;font-size:12px;">${log.display_name||'—'}</div></td>
-                        <td style="font-size:11px;">${changeHtml}</td>
-                        <td><div style="font-size:11px;color:#374151;white-space:nowrap;">${date}</div><div style="font-size:11px;color:#6366f1;font-weight:600;white-space:nowrap;">${time}</div></td>
+                        <td class="ual-id-cell">${log.id||(i+1)}</td>
+                        <td><div class="ual-user-name">${log.display_name||'—'}</div></td>
+                        <td class="ual-change-cell">${changeHtml}</td>
+                        <td><div class="ual-date-cell">${date}</div><div class="ual-time-cell">${time}</div></td>
                         <td><span class="ual-page-badge">${pageLabel}</span></td>
-                        <td style="font-size:11px;color:#4b5563;font-family:monospace;max-width:80px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${log.field_name||''}">${log.field_name||'—'}</td>
-                        <td style="font-size:11px;color:#6b7280;max-width:70px;width:70px;text-align:center;">${log.target_record_id||'—'}</td>
+                        <td class="ual-field-cell" title="${log.field_name||''}">${log.field_name||'—'}</td>
+                        <td class="ual-record-cell">${log.target_record_id||'—'}</td>
                         <td>${badge}</td>
                     </tr>`;
                 });
@@ -6027,15 +6061,18 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     });
                     const allPlatforms = [...new Set(rows.map(r => (r.platform || 'Unknown').trim()))].sort();
                     const users = Object.keys(userData).sort((a, b) => userData[b].total - userData[a].total);
-                    const thS = `font-weight:700;color:#1a237e;text-align:center;border:1px solid #3949ab;padding:7px 12px;font-size:12px;white-space:nowrap;background:#e8eaf6;`;
-                    const tdS = `text-align:center;border:1px solid #9fa8da;padding:5px 10px;font-size:12px;`;
-                    const tdNameS = `font-weight:600;color:#1a237e;text-align:left;border:1px solid #3949ab;padding:5px 10px;font-size:12px;background:#f3f4ff;white-space:nowrap;`;
+                    const BG_HEAD = '#c8e6fb';
+                    const BG_TOTAL = '#b3d4f5';
+                    const CLR_TXT = '#042c53';
+                    const thS = `font-weight:600;color:${CLR_TXT};text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:11px;white-space:nowrap;background:${BG_HEAD};`;
+                    const tdS = `text-align:center;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f7fbff;`;
+                    const tdNameS = `font-weight:600;color:${CLR_TXT};text-align:left;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f0faff;white-space:nowrap;`;
                     const thead = document.getElementById('scrapSummaryThead');
                     const tbody = document.getElementById('scrapSummaryTbody');
                     thead.innerHTML = ''; tbody.innerHTML = '';
                     const titleCols = allPlatforms.length + 4; // name + platforms + total + unique + pct
                     thead.innerHTML = `
-                        <tr><th colspan="${titleCols}" style="${thS}font-size:14px;background:#c5cae9;">
+                        <tr><th colspan="${titleCols}" style="${thS}font-size:13px;background:${BG_HEAD};">
                             Scam++ User Wise Scrapping Summary - ${dateStr}
                         </th></tr>
                         <tr>
@@ -6067,7 +6104,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                         });
                         const totPct = totTotal > 0 ? ((totUnique / totTotal) * 100).toFixed(1) + '%' : 'NA';
                         const totalTr = document.createElement('tr');
-                        totalTr.style.background = '#c5cae9';
+                        totalTr.style.background = BG_TOTAL;
                         totalTr.innerHTML = `
                             <td style="${thS}text-align:left;">Total</td>
                             ${allPlatforms.map(p => `<td style="${thS}">${totPlatforms[p] || 'NA'}</td>`).join('')}
@@ -6108,6 +6145,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                         "Fake Account Selling Scam","Job Scam","Currency Exchange Scam",
                         "Loan Scam","Carding Scam","Fake Website Scam","Shopping Scam","Subscription Scam","ChaarDham Booking Scam"
                     ];
+                    const WS_OTHER_PLATFORM = 'Facebook Ad Library';
                     const PLATFORM_ORDER = ['Telegram','Thread','Facebook','Instagram','YouTube','X'];
                     const sortedScamTypes = [...allScamTypesSet].sort((a, b) => {
                         const ia = SCAM_ORDER.indexOf(a), ib = SCAM_ORDER.indexOf(b);
@@ -6118,25 +6156,25 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
 
                     const activePlatforms = PLATFORM_ORDER.filter(p => allPlatformsSet.has(p));
                     [...allPlatformsSet].forEach(p => {
-                        if (!PLATFORM_ORDER.includes(p) && p !== 'FB Ad Library') activePlatforms.push(p);
+                        if (!PLATFORM_ORDER.includes(p) && p !== WS_OTHER_PLATFORM && p !== 'FB Ad Library') activePlatforms.push(p);
                     });
-                    // Always include FB Ad Library for WS non-investment categories
-                    if (!activePlatforms.includes('FB Ad Library')) activePlatforms.push('FB Ad Library');
+                    // Always include Facebook Ad Library for WS non-investment categories
+                    if (!activePlatforms.includes(WS_OTHER_PLATFORM)) activePlatforms.push(WS_OTHER_PLATFORM);
 
                     // --- Build WS columns from website_directory category counts ---
                     // Investment Scam → shown in Telegram row
-                    // All other WD categories → shown in FB Ad Library row
+                    // All other WD categories → shown in Facebook Ad Library row
                     // WS_COLS = all unique WD categories that have count > 0
                     const wdAllCats = Object.keys(wdCatCounts).filter(c => wdCatCounts[c] > 0);
                     const WS_INVESTMENT_CATS = ["Investment Scam"]; // goes under Telegram
-                    // Other WD cats go under FB Ad Library
+                    // Other WD cats go under Facebook Ad Library
                     const WS_OTHER_CATS = wdAllCats.filter(c => !WS_INVESTMENT_CATS.includes(c));
                     const WS_COLS = [...WS_INVESTMENT_CATS.filter(c => wdCatCounts[c] > 0), ...WS_OTHER_CATS];
                     window._wdCatCols = WS_COLS;
 
                     // Pre-fill _wsData from wdCatCounts
                     // Each platform row gets its WS column pre-filled from wdCatCounts
-                    // Investment WD cats → only Telegram row; others → only FB Ad Library row
+                    // Investment WD cats → only Telegram row; others → only Facebook Ad Library row
                     const _wsData = {};
                     activePlatforms.forEach(plat => {
                         _wsData[plat] = {};
@@ -6145,8 +6183,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                                 // Investment category websites → show in Telegram row
                                 _wsData[plat][c] = (plat === 'Telegram') ? (wdCatCounts[c] || '') : '';
                             } else {
-                                // Other categories → show in FB Ad Library row
-                                _wsData[plat][c] = (plat === 'FB Ad Library') ? (wdCatCounts[c] || '') : '';
+                                // Other categories → show in Facebook Ad Library row
+                                _wsData[plat][c] = (plat === WS_OTHER_PLATFORM) ? (wdCatCounts[c] || '') : '';
                             }
                         });
                     });
@@ -6185,7 +6223,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     </tr>`;
                     headHtml += `<tr>
                         ${sortedScamTypes.map(st => `<th style="${thB}background:${BG_SCRAP};">${st}</th>`).join('')}
-                        ${WS_COLS.map(c  => `<th style="${thB}background:${BG_WS};" title="${WS_INVESTMENT_CATS.includes(c) ? 'Investment websites → Telegram row' : 'Other WD categories → FB Ad Library row'}">${c}</th>`).join('')}
+                        ${WS_COLS.map(c  => `<th style="${thB}background:${BG_WS};" title="${WS_INVESTMENT_CATS.includes(c) ? 'Investment websites → Telegram row' : 'Other WD categories → Facebook Ad Library row'}">${c}</th>`).join('')}
                     </tr>`;
                     thead.innerHTML = headHtml;
 
@@ -6629,6 +6667,24 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                 for (const [d,p] of map) { if (u.includes(d)) return p; }
                 return '';
             }
+            function normalizeScrapUrlForCompare(url) {
+                let raw = (url || '').trim();
+                if (!raw) return '';
+                raw = raw.replace(/[\s#/)]+$/g, '');
+                try {
+                    const parsed = new URL(raw.toLowerCase().startsWith('http') ? raw : 'https://' + raw);
+                    const host = parsed.hostname.toLowerCase().replace(/^www\./, '');
+                    const path = decodeURIComponent(parsed.pathname || '').replace(/[\s#/)]+$/g, '').replace(/\/+$/g, '');
+                    const query = parsed.searchParams.toString();
+                    return `${host}${path}${query ? '?' + query : ''}`;
+                } catch(e) {
+                    return raw.toLowerCase()
+                        .replace(/^https?:\/\//, '')
+                        .replace(/^www\./, '')
+                        .replace(/[\s#/)]+$/g, '')
+                        .replace(/\/+$/g, '');
+                }
+            }
             function _extractGroupName(url) {
                 if (!url) return '';
                 try {
@@ -6689,8 +6745,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     const plat = _detectPlatformFromUrl(urlPart);
                     const gn   = _extractGroupName(urlPart);
                     const cn = numPart !== 'NA' ? numPart : _extractChatNumberFromUrl(urlPart);
-                    const urlLower = urlPart.toLowerCase();
-                    const localDup = _scrapRows.some(r => (r.post_url || '').toLowerCase() === urlLower);
+                    const normalizedUrl = normalizeScrapUrlForCompare(urlPart);
+                    const localDup = _scrapRows.some(r => normalizeScrapUrlForCompare(r.post_url || '') === normalizedUrl);
                     _scrapRows.push({
                         _id: _scrapRowIdSeq,
                         _dupStatus: localDup ? 'DUPLICATE' : 'pending',
@@ -6794,8 +6850,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                         }
                     }
                     const urlTrimmed = value.trim().toLowerCase();
-                    if (urlTrimmed && urlTrimmed.startsWith('https://')) {
-                        const sameUrlRows = _scrapRows.filter(r => r._id !== id && (r.post_url || '').trim().toLowerCase() === urlTrimmed);
+                    const normalizedUrl = normalizeScrapUrlForCompare(value);
+                    if (urlTrimmed && urlTrimmed.startsWith('https://') && normalizedUrl) {
+                        const sameUrlRows = _scrapRows.filter(r => r._id !== id && normalizeScrapUrlForCompare(r.post_url || '') === normalizedUrl);
                         if (sameUrlRows.length > 0) {
                             row._dupStatus = 'DUPLICATE';
                         } else {

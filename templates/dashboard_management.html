@@ -28,7 +28,8 @@
       body {
         background: #f5f7fa;
         color: #333;
-        min-height: 100vh;
+        height: 100vh;
+        overflow: hidden;
       }
       :root {
         --fixed-header-space: 100px;
@@ -160,6 +161,10 @@
         padding: 15px;
         padding-top: var(--fixed-header-space);
         padding-bottom: 40px;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
       }
       .page-select {
         padding: 7px 10px;
@@ -225,11 +230,56 @@
         align-items: flex-end;
         gap: 12px;
         flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: white;
+        flex: 0 0 auto;
+      }
+      .filter-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+      }
+      .type-toggle {
+        display: inline-flex;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        overflow: hidden;
+        height: 34px;
+        background: white;
+      }
+      .type-toggle button {
+        border: none;
+        background: white;
+        padding: 0 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #7f8c8d;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          color 0.15s;
+      }
+      .type-toggle button.active {
+        background: #2c3e50;
+        color: #fff;
+      }
+      .type-toggle button:not(.active):hover {
+        background: #f0f3f7;
+        color: #2c3e50;
       }
       .filter-group {
         display: flex;
         flex-direction: column;
         gap: 4px;
+      }
+      .dm-dashboard-controls {
+        display: flex;
+        align-items: flex-end;
+        gap: 12px;
+        flex-wrap: wrap;
       }
       .filter-group label {
         font-size: 11px;
@@ -267,7 +317,9 @@
         background: white;
         border-radius: 10px;
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-        overflow-x: auto;
+        overflow: auto;
+        flex: 1 1 auto;
+        min-height: 0;
       }
       table {
         width: 100%;
@@ -293,26 +345,104 @@
         border-bottom: 1px solid #f0f2f5;
         vertical-align: middle;
       }
-      #dmTable th:nth-child(3),
-      #dmTable td:nth-child(3),
-      #dmTable th:nth-child(10),
-      #dmTable td:nth-child(10),
-      #dmTable th:nth-child(12),
-      #dmTable td:nth-child(12),
+      #dmTable.dm-dashboard-table th:nth-child(3),
+      #dmTable.dm-dashboard-table td:nth-child(3),
+      #dmTable.dm-dashboard-table th:nth-child(10),
+      #dmTable.dm-dashboard-table td:nth-child(10),
+      #dmTable.dm-dashboard-table th:nth-child(12),
+      #dmTable.dm-dashboard-table td:nth-child(12),
       .nowrap-cell {
         white-space: nowrap;
       }
-      #dmTable th:nth-child(3),
-      #dmTable td:nth-child(3) {
+      #dmTable.dm-dashboard-table th:nth-child(3),
+      #dmTable.dm-dashboard-table td:nth-child(3) {
         min-width: 230px;
       }
-      #dmTable th:nth-child(10),
-      #dmTable td:nth-child(10) {
+      #dmTable.dm-dashboard-table th:nth-child(10),
+      #dmTable.dm-dashboard-table td:nth-child(10) {
         min-width: 210px;
       }
-      #dmTable th:nth-child(12),
-      #dmTable td:nth-child(12) {
+      #dmTable.dm-dashboard-table th:nth-child(12),
+      #dmTable.dm-dashboard-table td:nth-child(12) {
         min-width: 175px;
+      }
+      #dmTable.dm-investment-table {
+        min-width: 1520px;
+        table-layout: fixed;
+      }
+      #dmTable.dm-investment-table th,
+      #dmTable.dm-investment-table td {
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      #dmTable.dm-investment-table .inv-col-name {
+        width: 160px;
+      }
+      #dmTable.dm-investment-table .inv-col-type {
+        width: 135px;
+      }
+      #dmTable.dm-investment-table .inv-col-contact {
+        width: 120px;
+      }
+      #dmTable.dm-investment-table .inv-col-mail {
+        width: 270px;
+      }
+      #dmTable.dm-investment-table .inv-col-joining {
+        width: 130px;
+      }
+      #dmTable.dm-investment-table .inv-col-dob {
+        width: 110px;
+      }
+      #dmTable.dm-investment-table .inv-col-duration {
+        width: 105px;
+      }
+      #dmTable.dm-investment-table .inv-col-end-date {
+        width: 230px;
+        white-space: nowrap;
+      }
+      #dmTable.dm-investment-table .inv-col-gui {
+        width: 230px;
+      }
+      #dmTable.dm-investment-table .inv-col-password {
+        width: 145px;
+      }
+      #dmTable.dm-investment-table .inv-col-actions {
+        width: 85px;
+      }
+      #dmTable.dm-status-table {
+        min-width: 1180px;
+      }
+      .status-summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(130px, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+      }
+      .status-card {
+        background: white;
+        border: 1px solid #e1e5eb;
+        border-radius: 8px;
+        padding: 10px 12px;
+        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+      }
+      .status-card-label {
+        color: #7f8c8d;
+        font-size: 10.5px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .status-card-value {
+        color: #2c3e50;
+        font-size: 17px;
+        font-weight: 800;
+        margin-top: 3px;
+        white-space: nowrap;
+      }
+      .status-note {
+        margin-bottom: 10px;
+        color: #7f8c8d;
+        font-size: 12px;
+        font-weight: 600;
       }
       tbody tr:hover {
         background: #f8fafc;
@@ -344,11 +474,29 @@
         background: #f3e5f5;
         color: #6c3483;
       }
+      .tag-orange {
+        background: #fdebd0;
+        color: #b9770e;
+      }
       .secret-cell {
         display: inline-flex;
         align-items: center;
         gap: 5px;
         white-space: nowrap;
+        max-width: 220px;
+      }
+      .secret-cell .secret-value {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+      }
+      /* Investment Scam User: GUI Cred and Password should be single-line */
+      #dmTable td.col-nogui-cred,
+      #dmTable td.col-password-cell {
+        white-space: nowrap;
+        max-width: 240px;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       .secret-toggle {
         width: 26px;
@@ -379,44 +527,79 @@
       }
       .action-buttons {
         display: flex;
-        gap: 8px;
         align-items: center;
-        flex-wrap: nowrap;
-        white-space: nowrap;
+        justify-content: flex-end;
       }
-      .edit-btn,
-      .toggle-btn {
-        background: none;
-        border: 1.5px solid transparent;
+      .action-menu {
+        position: relative;
+      }
+      .action-menu summary {
+        list-style: none;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 1px solid #d8dee8;
+        background: #fff;
+        color: #2471a3;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         cursor: pointer;
-        padding: 5px 9px;
-        border-radius: 5px;
+      }
+      .action-menu summary::-webkit-details-marker {
+        display: none;
+      }
+      .action-menu summary:hover {
+        background: #ebf5fb;
+        border-color: #aed6f1;
+      }
+      .action-menu-list {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 6px);
+        min-width: 150px;
+        background: white;
+        border: 1px solid #d8dee8;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16);
+        padding: 6px;
+        z-index: 90;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .menu-item-btn {
+        background: none;
+        border: 1px solid transparent;
+        cursor: pointer;
+        padding: 7px 10px;
+        border-radius: 6px;
         font-size: 12px;
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        text-align: left;
+        color: #2c3e50;
       }
-      .edit-btn {
+      .menu-item-btn:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+      }
+      .menu-item-btn.menu-edit {
         color: #2471a3;
       }
-      .edit-btn:hover {
-        background: #ebf5fb;
-        border-color: #aed6f1;
-      }
-      .toggle-btn.act {
+      .menu-item-btn.menu-activate {
         color: #1e8449;
       }
-      .toggle-btn.act:hover {
-        background: #e8f8f0;
-        border-color: #a9dfbf;
-      }
-      .toggle-btn.deact {
+      .menu-item-btn.menu-deactivate,
+      .menu-item-btn.menu-delete {
         color: #c0392b;
       }
-      .toggle-btn.deact:hover {
+      .menu-item-btn.menu-delete:hover,
+      .menu-item-btn.menu-deactivate:hover {
         background: #fdecea;
-        border-color: #f1948a;
+        border-color: #f5b7b1;
       }
       .empty-state {
         text-align: center;
@@ -661,6 +844,9 @@
           flex-wrap: wrap;
           justify-content: flex-start;
         }
+        .dm-dashboard-controls {
+          width: 100%;
+        }
       }
       html.theme-dark-preload body,
       body.theme-dark {
@@ -675,6 +861,7 @@
       body.theme-dark .header,
       body.theme-dark .filter-bar,
       body.theme-dark .table-wrap,
+      body.theme-dark .status-card,
       body.theme-dark .modal-box {
         background: #2b3546;
         color: #e2e8f0;
@@ -690,8 +877,13 @@
       body.theme-dark .logo p,
       body.theme-dark .header-username,
       body.theme-dark .hint,
+      body.theme-dark .status-card-label,
+      body.theme-dark .status-note,
       body.theme-dark .empty-state {
         color: #cbd5e1;
+      }
+      body.theme-dark .status-card-value {
+        color: #f1f5f9;
       }
       body.theme-dark input,
       body.theme-dark select,
@@ -833,47 +1025,76 @@
       {% endfor %}{% endif %} {% endwith %}
       <div class="filter-bar">
         <div class="filter-group">
-          <label>Search Users</label>
-          <input
-            type="text"
-            id="dmSearch"
-            placeholder="Search email / name / AML user..."
-            oninput="applyFilters()"
-          />
-        </div>
-        <div class="filter-group">
-          <label>Status</label>
-          <select id="dmStatusFilter" onchange="applyFilters()">
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+          <label>User Type</label>
+          <select id="dmUserType" onchange="switchUserType()">
+            <option value="dashboard">Dashboard User Management</option>
+            <option value="investment">Investment Scam Users</option>
+            <option value="gui_status">GUI Status</option>
           </select>
         </div>
-        <div class="filter-group">
-          <label>Role</label>
-          <select id="dmAdminFilter" onchange="applyFilters()">
-            <option value="all">All</option>
-            <option value="admin">Admin</option>
-            <option value="nonadmin">Non-admin</option>
-          </select>
+        <div
+          id="dmInvFilters"
+          class="dm-dashboard-controls"
+          style="display: none"
+        >
+          <div class="filter-group">
+            <label>User Type Filter</label>
+            <div class="type-toggle" id="dmInvTypeToggle">
+              <button type="button" data-filter="all" class="active">
+                All
+              </button>
+              <button type="button" data-filter="employee">Employee</button>
+              <button type="button" data-filter="intern">Intern</button>
+            </div>
+          </div>
         </div>
-        <div class="filter-actions">
+        <input type="hidden" id="dmSearch" value="" />
+        <div id="dmDashboardFilters" class="dm-dashboard-controls">
+          <div class="filter-group">
+            <label>Status</label>
+            <select id="dmStatusFilter" onchange="applyFilters()">
+              <option value="all">All</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Role</label>
+            <select id="dmAdminFilter" onchange="applyFilters()">
+              <option value="all">All</option>
+              <option value="superadmin">Superadmin</option>
+              <option value="admin">Admin</option>
+              <option value="user">User</option>
+            </select>
+          </div>
+        </div>
+        <div id="dmDashboardActions" class="filter-actions">
           <button class="btn btn-primary" onclick="openCreateModal()">
             <i class="fas fa-plus"></i> Create New User
           </button>
         </div>
+        <div id="dmInvActions" class="filter-actions" style="display: none">
+          <button class="btn btn-primary" onclick="openCreateInvModal()">
+            <i class="fas fa-plus"></i> Add New User
+          </button>
+        </div>
+        <div id="dmStatusActions" class="filter-actions" style="display: none">
+          <button class="btn btn-outline" onclick="loadGuiStatus()">
+            <i class="fas fa-sync-alt"></i> Refresh Status
+          </button>
+        </div>
       </div>
+      <div id="guiStatusSummary" style="display: none"></div>
       <div class="table-wrap">
         <table id="dmTable">
-          <thead>
+          <thead id="dmTableHead">
             <tr>
               <th>ID</th>
               <th>Email</th>
               <th>Display Name</th>
               <th>Password</th>
               <th>Allowed Pages</th>
-              <th>Admin</th>
-              <th>Active</th>
+              <th>Role</th>
               <th>Activity Log</th>
               <th>Allowed Departments</th>
               <th>AML Username</th>
@@ -883,7 +1104,7 @@
           </thead>
           <tbody id="dmTableBody">
             <tr>
-              <td colspan="12">
+              <td colspan="11">
                 <div class="empty-state">
                   <i class="fas fa-spinner fa-spin"></i> Loading users...
                 </div>
@@ -978,16 +1199,24 @@
             </div>
             <div class="check-group">
               <div class="modal-check">
-                <input type="checkbox" id="dm_is_admin" /><label
-                  for="dm_is_admin"
-                  >Admin User</label
+                <label style="font-weight: 600; color: #2c3e50; font-size: 12px"
+                  >Role</label
                 >
-              </div>
-              <div class="modal-check">
-                <input type="checkbox" id="dm_is_active" checked /><label
-                  for="dm_is_active"
-                  >Active</label
+                <select
+                  id="dm_role"
+                  style="
+                    height: 30px;
+                    padding: 4px 8px;
+                    border: 1px solid #ddd;
+                    border-radius: 5px;
+                    font-size: 12px;
+                    background: white;
+                  "
                 >
+                  <option value="user">User</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Superadmin</option>
+                </select>
               </div>
               <div class="modal-check">
                 <input type="checkbox" id="dm_can_view_activity_log" /><label
@@ -1036,6 +1265,129 @@
             class="btn btn-success"
             id="dmSubmitBtn"
             onclick="submitForm()"
+          >
+            <i class="fas fa-check"></i> Save User
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-overlay" id="dmInvFormModal">
+      <div class="modal-box" style="max-width: 720px">
+        <div class="modal-header">
+          <h2 id="dmInvFormTitle">
+            <i class="fas fa-user-plus"></i> Add Investment Scam User
+          </h2>
+          <button class="modal-close" onclick="closeModal('dmInvFormModal')">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Name <span style="color: #e74c3c">*</span></label>
+              <input type="text" id="dmi_name" placeholder="Full name" />
+            </div>
+            <div class="modal-field">
+              <label>User Type <span style="color: #e74c3c">*</span></label>
+              <select id="dmi_user_type">
+                <option value="employee">Employee</option>
+                <option value="intern">Intern</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Contact No.</label>
+              <input
+                type="text"
+                id="dmi_contact_no"
+                placeholder="Phone / mobile"
+              />
+            </div>
+            <div class="modal-field">
+              <label>Mail</label>
+              <input
+                type="email"
+                id="dmi_mail"
+                placeholder="user@example.com"
+              />
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>Joining Date <span style="color: #e74c3c">*</span></label>
+              <input type="date" id="dmi_joining_date" />
+            </div>
+            <div class="modal-field">
+              <label>DOB</label>
+              <input type="date" id="dmi_dob" />
+            </div>
+          </div>
+          <div
+            class="modal-row"
+            id="dmi_intern_duration_row"
+            style="display: none"
+          >
+            <div class="modal-field">
+              <label>Internship Duration (months)</label>
+              <input
+                type="number"
+                id="dmi_internship_duration_months"
+                min="1"
+                max="36"
+                placeholder="e.g. 6"
+              />
+            </div>
+            <div class="modal-field">
+              <label>&nbsp;</label>
+              <p style="font-size: 11px; color: #7f8c8d; margin: 0">
+                Days left will be auto-computed from joining date.
+              </p>
+            </div>
+          </div>
+          <div class="modal-row">
+            <div class="modal-field">
+              <label>GUI Cred. (username)</label>
+              <input
+                type="text"
+                id="dmi_gui_cred"
+                placeholder="GUI portal username"
+              />
+            </div>
+            <div class="modal-field">
+              <label id="dmi_pwd_label"
+                >Password <span style="color: #e74c3c">*</span></label
+              >
+              <div class="password-wrap">
+                <input
+                  type="password"
+                  id="dmi_password"
+                  placeholder="Enter password"
+                  autocomplete="new-password"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  onclick="togglePwd('dmi_password')"
+                  title="Show/hide"
+                >
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-outline"
+            onclick="closeModal('dmInvFormModal')"
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-success"
+            id="dmInvSubmitBtn"
+            onclick="submitInvForm()"
           >
             <i class="fas fa-check"></i> Save User
           </button>
@@ -1125,6 +1477,7 @@
         insights: "User Performance Dashboard",
         qc: "QC Review",
         dashboard_management: "User & Access Management",
+        gui_status: "GUI Status",
         lunch: "Break Time Management",
         lunch_break: "Break Time Management",
       };
@@ -1142,6 +1495,58 @@
           '">********</span>' +
           '<button type="button" class="secret-toggle" onclick="toggleSecret(this)" title="Show password" aria-label="Show password"><i class="fas fa-eye"></i></button>' +
           "</span>"
+        );
+      }
+
+      function dashboardActionMenu(id, email, isActive) {
+        const toggleLabel = isActive ? "Deactivate" : "Activate";
+        const toggleClass = isActive ? "menu-deactivate" : "menu-activate";
+        const toggleIcon = isActive ? "fa-ban" : "fa-check-circle";
+        return (
+          '<details class="action-menu">' +
+          '<summary title="Actions"><i class="fas fa-pencil-alt"></i></summary>' +
+          '<div class="action-menu-list">' +
+          '<button type="button" class="menu-item-btn menu-edit" onclick="openEditModal(' +
+          id +
+          ')"><i class="fas fa-pen"></i> Edit</button>' +
+          '<button type="button" class="menu-item-btn ' +
+          toggleClass +
+          '" onclick="toggleActive(' +
+          id +
+          ", " +
+          !isActive +
+          ", '" +
+          email +
+          '\')"><i class="fas ' +
+          toggleIcon +
+          '"></i> ' +
+          toggleLabel +
+          "</button>" +
+          '<button type="button" class="menu-item-btn menu-delete" onclick="deleteDashboardUser(' +
+          id +
+          ", '" +
+          email +
+          '\')"><i class="fas fa-trash"></i> Delete</button>' +
+          "</div>" +
+          "</details>"
+        );
+      }
+
+      function investmentActionMenu(id, name) {
+        return (
+          '<details class="action-menu">' +
+          '<summary title="Actions"><i class="fas fa-pencil-alt"></i></summary>' +
+          '<div class="action-menu-list">' +
+          '<button type="button" class="menu-item-btn menu-edit" onclick="openEditInvModal(' +
+          id +
+          ')"><i class="fas fa-pen"></i> Edit</button>' +
+          '<button type="button" class="menu-item-btn menu-delete" onclick="deleteInvUser(' +
+          id +
+          ", '" +
+          name +
+          '\')"><i class="fas fa-trash"></i> Delete</button>' +
+          "</div>" +
+          "</details>"
         );
       }
 
@@ -1172,6 +1577,469 @@
         }
       }
 
+      // ------------------------------------------------------------------
+      // User type views (Dashboard User Management / Investment Scam Users)
+      // ------------------------------------------------------------------
+      let dmUserType = "dashboard";
+      let invUsers = []; // Investment Scam Users data (kept separate from dmUsers)
+      let invTypeFilter = "all"; // "all" | "employee" | "intern"
+      let guiStatusRows = [];
+
+      function setupInvToggle() {
+        const wrap = document.getElementById("dmInvTypeToggle");
+        if (!wrap || wrap.dataset.wired === "1") return;
+        wrap.dataset.wired = "1";
+        wrap.querySelectorAll("button").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            wrap
+              .querySelectorAll("button")
+              .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            invTypeFilter = btn.dataset.filter || "all";
+            applyInvFilters();
+          });
+        });
+      }
+
+      const DASHBOARD_HEAD_HTML =
+        "<tr>" +
+        "<th>ID</th>" +
+        "<th>Email</th>" +
+        "<th>Display Name</th>" +
+        "<th>Paasword</th>" +
+        "<th>Allowed Pages</th>" +
+        "<th>Role</th>" +
+        "<th>Activity Log</th>" +
+        "<th>Allowed Departments</th>" +
+        "<th>AML Username</th>" +
+        "<th>AML Password</th>" +
+        "<th>Actions</th>" +
+        "</tr>";
+
+      const INVESTMENT_HEAD_HTML =
+        "<tr>" +
+        '<th class="inv-col-name">Name</th>' +
+        '<th class="inv-col-type">Employee Type</th>' +
+        '<th class="inv-col-contact">Contact No.</th>' +
+        '<th class="inv-col-mail">Mail</th>' +
+        '<th class="inv-col-joining">Joining Date</th>' +
+        '<th class="inv-col-dob">DOB</th>' +
+        '<th class="inv-col-duration">Duration</th>' +
+        '<th class="inv-col-end-date">Internship End Date</th>' +
+        '<th class="inv-col-gui">GUI Cred.</th>' +
+        '<th class="inv-col-password">Password</th>' +
+        '<th class="inv-col-actions">Actions</th>' +
+        "</tr>";
+
+      const GUI_STATUS_HEAD_HTML =
+        "<tr>" +
+        "<th>Page</th>" +
+        "<th>Total Records</th>" +
+        "<th>Latest Value</th>" +
+        "<th>API Load</th>" +
+        "<th>Estimated Data</th>" +
+        "<th>DB Storage</th>" +
+        "<th>Load Status</th>" +
+        "</tr>";
+
+      // Display column -> candidate DB field names (kept snake_case).
+      // Update these to match the exact columns of the Investment Scam Users
+      // table once the backend is wired up.
+      const INV_COLUMNS = [
+        { label: "Name", keys: ["name", "full_name", "employee_name"] },
+        {
+          label: "Employee Type",
+          keys: ["employee_type", "emp_type", "employee_type_name"],
+        },
+        {
+          label: "Contact No.",
+          keys: [
+            "contact_no",
+            "contact_number",
+            "phone",
+            "mobile",
+            "web_contact_no",
+          ],
+        },
+        { label: "Mail", keys: ["mail", "email"] },
+        { label: "Joining Date", keys: ["joining_date", "join_date"] },
+        { label: "DOB", keys: ["dob", "date_of_birth"] },
+        { label: "Duration", keys: ["duration"] },
+        {
+          label: "Internship End Date",
+          keys: ["internship_end_date", "internship_end", "internship_end_dt"],
+        },
+        {
+          label: "GUI Cred.",
+          keys: [
+            "gui_cred",
+            "gui_credentials",
+            "gui_credential",
+            "gui_cred_user",
+          ],
+        },
+        { label: "Paasword", keys: ["paasword", "password", "pwd"] },
+      ];
+
+      function getVal(row, keys) {
+        for (const k of keys) {
+          const v = row[k];
+          if (v !== null && v !== undefined && String(v).trim() !== "")
+            return v;
+        }
+        return "";
+      }
+
+      function switchUserType() {
+        const sel = document.getElementById("dmUserType");
+        dmUserType = (sel && sel.value) || "dashboard";
+        const dashFilters = document.getElementById("dmDashboardFilters");
+        const dashActions = document.getElementById("dmDashboardActions");
+        const invFilters = document.getElementById("dmInvFilters");
+        const invActions = document.getElementById("dmInvActions");
+        const statusActions = document.getElementById("dmStatusActions");
+        const statusSummary = document.getElementById("guiStatusSummary");
+        const head = document.getElementById("dmTableHead");
+        const table = document.getElementById("dmTable");
+        const isDash = dmUserType === "dashboard";
+        const isInv = dmUserType === "investment";
+        const isStatus = dmUserType === "gui_status";
+        if (dashFilters) dashFilters.style.display = isDash ? "" : "none";
+        if (dashActions) dashActions.style.display = isDash ? "" : "none";
+        if (invFilters) invFilters.style.display = isInv ? "" : "none";
+        if (invActions) invActions.style.display = isInv ? "" : "none";
+        if (statusActions) statusActions.style.display = isStatus ? "" : "none";
+        if (statusSummary) {
+          statusSummary.style.display = isStatus ? "" : "none";
+          if (!isStatus) statusSummary.innerHTML = "";
+        }
+        if (table) {
+          table.classList.toggle("dm-dashboard-table", isDash);
+          table.classList.toggle("dm-investment-table", isInv);
+          table.classList.toggle("dm-status-table", isStatus);
+        }
+        if (head) {
+          head.innerHTML = isDash
+            ? DASHBOARD_HEAD_HTML
+            : isInv
+              ? INVESTMENT_HEAD_HTML
+              : GUI_STATUS_HEAD_HTML;
+        }
+        if (isDash) loadUsers();
+        else if (isInv) {
+          setupInvToggle();
+          loadInvestmentScamUsers();
+        } else {
+          loadGuiStatus();
+        }
+      }
+
+      async function loadInvestmentScamUsers() {
+        const body = document.getElementById("dmTableBody");
+        try {
+          const resp = await fetch(
+            "/dashboard-management/api/investment-scam-users",
+            { headers: { Accept: "application/json" } },
+          );
+          if (!resp.ok)
+            throw new Error("Investment Scam Users data could not be loaded.");
+          const data = await resp.json();
+          if (!data.success)
+            throw new Error(
+              data.error || "Failed to load investment scam users.",
+            );
+          invUsers = data.users || [];
+          applyInvFilters();
+        } catch (e) {
+          invUsers = [];
+          body.innerHTML =
+            '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
+            escapeHtml(e.message) +
+            "</div></td></tr>";
+        }
+      }
+
+      function applyInvFilters() {
+        let rows = invUsers.slice();
+        if (invTypeFilter && invTypeFilter !== "all") {
+          rows = rows.filter((u) => {
+            const ut = String(
+              u.employee_type || u.user_type || "Employee",
+            ).toLowerCase();
+            return ut === invTypeFilter;
+          });
+        }
+        renderInvestmentUsers(rows);
+      }
+
+      function formatCount(value) {
+        const n = Number(value || 0);
+        return Number.isFinite(n) ? n.toLocaleString("en-IN") : "0";
+      }
+
+      function formatBytes(value) {
+        const n = Number(value || 0);
+        if (!Number.isFinite(n) || n <= 0) return "—";
+        const units = ["B", "KB", "MB", "GB"];
+        let size = n;
+        let idx = 0;
+        while (size >= 1024 && idx < units.length - 1) {
+          size = size / 1024;
+          idx += 1;
+        }
+        return (
+          (idx === 0 ? size.toFixed(0) : size.toFixed(1)) + " " + units[idx]
+        );
+      }
+
+      function statusTag(status) {
+        const s = String(status || "Unknown");
+        if (s === "Normal") return '<span class="tag tag-green">Normal</span>';
+        if (s === "Medium") return '<span class="tag tag-orange">Medium</span>';
+        if (s === "Heavy") return '<span class="tag tag-red">Heavy</span>';
+        if (s === "Error") return '<span class="tag tag-red">Error</span>';
+        return '<span class="tag tag-gray">Unknown</span>';
+      }
+
+      function renderGuiStatusSummary(totals) {
+        const wrap = document.getElementById("guiStatusSummary");
+        if (!wrap) return;
+        const rpcNote = totals.rpc_error
+          ? "DB storage RPC failed: " + totals.rpc_error
+          : "DB storage is from RPC.";
+        wrap.innerHTML =
+          '<div class="status-summary">' +
+          '<div class="status-card"><div class="status-card-label">Pages</div><div class="status-card-value">' +
+          formatCount(totals.pages) +
+          "</div></div>" +
+          '<div class="status-card"><div class="status-card-label">Total Records</div><div class="status-card-value">' +
+          formatCount(totals.total_rows) +
+          "</div></div>" +
+          '<div class="status-card"><div class="status-card-label">Estimated Data</div><div class="status-card-value">' +
+          formatBytes(totals.estimated_payload_bytes) +
+          "</div></div>" +
+          '<div class="status-card"><div class="status-card-label">DB Storage</div><div class="status-card-value">' +
+          formatBytes(totals.storage_bytes) +
+          "</div></div>" +
+          '<div class="status-card"><div class="status-card-label">Slowest Page</div><div class="status-card-value">' +
+          escapeHtml(totals.slowest_page || "—") +
+          "</div></div>" +
+          "</div>" +
+          '<div class="status-note">' +
+          escapeHtml(rpcNote) +
+          " Total API scan: " +
+          formatCount(totals.total_query_ms) +
+          " ms</div>";
+      }
+
+      async function loadGuiStatus() {
+        const body = document.getElementById("dmTableBody");
+        body.innerHTML =
+          '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Loading GUI status...</div></td></tr>';
+        try {
+          const resp = await fetch("/dashboard-management/api/gui-status", {
+            headers: { Accept: "application/json" },
+          });
+          const data = await resp.json();
+          if (!data.success)
+            throw new Error(data.error || "Failed to load GUI status.");
+          guiStatusRows = data.rows || [];
+          renderGuiStatusSummary(data.totals || {});
+          renderGuiStatusRows(guiStatusRows);
+        } catch (e) {
+          const wrap = document.getElementById("guiStatusSummary");
+          if (wrap) wrap.innerHTML = "";
+          body.innerHTML =
+            '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
+            escapeHtml(e.message) +
+            "</div></td></tr>";
+        }
+      }
+
+      function renderGuiStatusRows(rows) {
+        const body = document.getElementById("dmTableBody");
+        if (!rows.length) {
+          body.innerHTML =
+            '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-chart-line"></i> No GUI status found.</div></td></tr>';
+          return;
+        }
+        body.innerHTML = rows
+          .map((r) => {
+            const latest = r.latest_value
+              ? String(r.latest_value).slice(0, 19).replace("T", " ")
+              : "—";
+            const latestCol = r.latest_column
+              ? " (" + r.latest_column + ")"
+              : "";
+            const storageText =
+              r.storage_source === "RPC"
+                ? formatBytes(r.storage_bytes)
+                : "RPC not configured";
+            return (
+              "<tr>" +
+              '<td class="nowrap-cell">' +
+              escapeHtml(r.page_name || "—") +
+              "</td>" +
+              '<td class="nowrap-cell">' +
+              formatCount(r.total_rows) +
+              "</td>" +
+              '<td class="nowrap-cell">' +
+              escapeHtml(latest + latestCol) +
+              "</td>" +
+              '<td class="nowrap-cell">' +
+              formatCount(r.query_ms) +
+              " ms</td>" +
+              '<td class="nowrap-cell">' +
+              formatBytes(r.estimated_payload_bytes) +
+              "</td>" +
+              '<td class="nowrap-cell">' +
+              escapeHtml(storageText) +
+              "</td>" +
+              "<td>" +
+              statusTag(r.status) +
+              "</td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
+      function parseLocalDate(value) {
+        if (!value) return null;
+        const parts = String(value).slice(0, 10).split("-").map(Number);
+        if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n)))
+          return null;
+        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+        return isNaN(d.getTime()) ? null : d;
+      }
+
+      function formatLocalDate(date) {
+        if (!date || isNaN(date.getTime())) return "";
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, "0");
+        const d = String(date.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d}`;
+      }
+
+      function addMonthsClamped(date, months) {
+        const result = new Date(date.getTime());
+        const originalDay = result.getDate();
+        result.setDate(1);
+        result.setMonth(result.getMonth() + months);
+        const lastDay = new Date(
+          result.getFullYear(),
+          result.getMonth() + 1,
+          0,
+        ).getDate();
+        result.setDate(Math.min(originalDay, lastDay));
+        return result;
+      }
+
+      function parseDurationMonths(durationText) {
+        const match = String(durationText || "").match(/(\d+)\s*months?/i);
+        return match ? parseInt(match[1], 10) : 0;
+      }
+
+      function computeInternshipEndDisplay(u, today) {
+        const durationText = getVal(u, INV_COLUMNS[6].keys);
+        const months =
+          parseDurationMonths(durationText) ||
+          parseInt(u.internship_duration_months, 10) ||
+          0;
+        const joiningDate = parseLocalDate(getVal(u, INV_COLUMNS[4].keys));
+        let endDate = null;
+        if (joiningDate && months > 0) {
+          endDate = addMonthsClamped(joiningDate, months);
+        } else {
+          endDate = parseLocalDate(getVal(u, INV_COLUMNS[7].keys));
+        }
+        if (!endDate) return "—";
+        const todayOnly = new Date(
+          today.getFullYear(),
+          today.getMonth(),
+          today.getDate(),
+        );
+        const daysLeft = Math.ceil(
+          (endDate.getTime() - todayOnly.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        if (daysLeft < 0)
+          return formatLocalDate(endDate) + " - Internship Ended";
+        if (daysLeft === 0) return formatLocalDate(endDate) + " - Ends today";
+        return formatLocalDate(endDate) + " - " + daysLeft + " Days left";
+      }
+
+      function renderInvestmentUsers(rows) {
+        const body = document.getElementById("dmTableBody");
+        if (!rows.length) {
+          body.innerHTML =
+            '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-users"></i>' +
+            ' <strong style="font-size:14px;color:#2c3e50;display:block;margin-bottom:6px;">No Investment Scam Users found</strong></div></td></tr>';
+          return;
+        }
+        const today = new Date();
+        body.innerHTML = rows
+          .map((u) => {
+            const passTxt = secretField(
+              getVal(u, ["paasword", "password", "pwd"]),
+            );
+            const empTypeRaw = String(
+              u.employee_type || u.user_type || "Employee",
+            );
+            const empTypeLower = empTypeRaw.toLowerCase();
+            const isIntern = empTypeLower === "intern";
+            const utTag = isIntern
+              ? '<span class="tag tag-orange">Intern</span>'
+              : '<span class="tag tag-blue">Employee</span>';
+            const durationDisplay = getVal(u, INV_COLUMNS[6].keys);
+            const internEndDisplay = isIntern
+              ? computeInternshipEndDisplay(u, today)
+              : "N/A";
+            const guiCredVal = escapeHtml(getVal(u, INV_COLUMNS[8].keys));
+            return (
+              "<tr>" +
+              '<td class="inv-col-name nowrap-cell" title="' +
+              escapeHtml(getVal(u, INV_COLUMNS[0].keys)) +
+              '">' +
+              escapeHtml(getVal(u, INV_COLUMNS[0].keys)) +
+              "</td>" +
+              '<td class="inv-col-type">' +
+              utTag +
+              "</td>" +
+              '<td class="inv-col-contact nowrap-cell">' +
+              escapeHtml(getVal(u, INV_COLUMNS[2].keys)) +
+              "</td>" +
+              '<td class="inv-col-mail nowrap-cell">' +
+              escapeHtml(getVal(u, INV_COLUMNS[3].keys)) +
+              "</td>" +
+              '<td class="inv-col-joining nowrap-cell">' +
+              escapeHtml(getVal(u, INV_COLUMNS[4].keys)) +
+              "</td>" +
+              '<td class="inv-col-dob nowrap-cell">' +
+              escapeHtml(getVal(u, INV_COLUMNS[5].keys)) +
+              "</td>" +
+              '<td class="inv-col-duration nowrap-cell">' +
+              escapeHtml(durationDisplay || "—") +
+              "</td>" +
+              '<td class="inv-col-end-date">' +
+              escapeHtml(internEndDisplay) +
+              "</td>" +
+              '<td class="inv-col-gui col-nogui-cred" title="' +
+              guiCredVal +
+              '">' +
+              guiCredVal +
+              "</td>" +
+              '<td class="inv-col-password col-password-cell nowrap-cell">' +
+              passTxt +
+              "</td>" +
+              '<td class="inv-col-actions"><div class="action-buttons">' +
+              investmentActionMenu(u.id, escapeHtml(u.name || "")) +
+              "</div></td>" +
+              "</tr>"
+            );
+          })
+          .join("");
+      }
+
       async function loadUsers() {
         const body = document.getElementById("dmTableBody");
         try {
@@ -1191,6 +2059,10 @@
         }
       }
       function applyFilters() {
+        if (dmUserType === "investment") {
+          applyInvFilters();
+          return;
+        }
         const q = (document.getElementById("dmSearch").value || "")
           .trim()
           .toLowerCase();
@@ -1199,8 +2071,27 @@
         let rows = dmUsers.slice();
         if (st === "active") rows = rows.filter((u) => u.is_active);
         if (st === "inactive") rows = rows.filter((u) => !u.is_active);
-        if (rl === "admin") rows = rows.filter((u) => u.is_admin);
-        if (rl === "nonadmin") rows = rows.filter((u) => !u.is_admin);
+        if (rl === "superadmin")
+          rows = rows.filter(
+            (u) =>
+              String(
+                u.role || (u.is_admin ? "admin" : "user"),
+              ).toLowerCase() === "superadmin",
+          );
+        if (rl === "admin")
+          rows = rows.filter((u) => {
+            const r = String(
+              u.role || (u.is_admin ? "admin" : "user"),
+            ).toLowerCase();
+            return r === "admin" || r === "superadmin";
+          });
+        if (rl === "user")
+          rows = rows.filter(
+            (u) =>
+              String(
+                u.role || (u.is_admin ? "admin" : "user"),
+              ).toLowerCase() === "user",
+          );
         if (q) {
           rows = rows.filter((u) => {
             const parts = [
@@ -1221,24 +2112,22 @@
         const body = document.getElementById("dmTableBody");
         if (!rows.length) {
           body.innerHTML =
-            '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-users"></i>' +
+            '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-users"></i>' +
             ' <strong style="font-size:14px;color:#2c3e50;display:block;margin-bottom:6px;">No users found</strong></div></td></tr>';
           return;
         }
         body.innerHTML = rows
           .map((u) => {
             const passTxt = secretField(u.password);
-            const toggleBtn = u.is_active
-              ? '<button class="toggle-btn deact" onclick="toggleActive(' +
-                u.id +
-                ", false, '" +
-                escapeHtml(u.email || "") +
-                '\')"><i class="fas fa-ban"></i> Deactivate</button>'
-              : '<button class="toggle-btn act" onclick="toggleActive(' +
-                u.id +
-                ", true, '" +
-                escapeHtml(u.email || "") +
-                '\')"><i class="fas fa-check-circle"></i> Activate</button>';
+            const role = String(
+              u.role || (u.is_admin ? "admin" : "user"),
+            ).toLowerCase();
+            const roleTag =
+              role === "superadmin"
+                ? '<span class="tag tag-purple">Superadmin</span>'
+                : role === "admin"
+                  ? '<span class="tag tag-blue">Admin</span>'
+                  : '<span class="tag tag-gray">User</span>';
             return (
               '<tr data-status="' +
               (u.is_active ? "active" : "inactive") +
@@ -1259,14 +2148,7 @@
               pagesDropdown(u.allowed_pages) +
               "</td>" +
               "<td>" +
-              (u.is_admin
-                ? '<span class="tag tag-blue">Admin</span>'
-                : '<span class="tag tag-gray">No</span>') +
-              "</td>" +
-              "<td>" +
-              (u.is_active
-                ? '<span class="tag tag-green">Active</span>'
-                : '<span class="tag tag-red">Inactive</span>') +
+              roleTag +
               "</td>" +
               "<td>" +
               (u.can_view_activity_log
@@ -1283,10 +2165,11 @@
               secretField(u.aml_password) +
               "</td>" +
               '<td><div class="action-buttons">' +
-              '<button class="edit-btn" onclick="openEditModal(' +
-              u.id +
-              ')"><i class="fas fa-pencil-alt"></i> Edit</button>' +
-              toggleBtn +
+              dashboardActionMenu(
+                u.id,
+                escapeHtml(u.email || ""),
+                !!u.is_active,
+              ) +
               "</div></td>" +
               "</tr>"
             );
@@ -1334,8 +2217,7 @@
         document.getElementById("dm_password").value = "";
         document.getElementById("dm_aml_username").value = "";
         document.getElementById("dm_aml_password").value = "";
-        document.getElementById("dm_is_admin").checked = false;
-        document.getElementById("dm_is_active").checked = true;
+        document.getElementById("dm_role").value = "user";
         document.getElementById("dm_can_view_activity_log").checked = false;
         document
           .querySelectorAll(".dm_page")
@@ -1393,8 +2275,16 @@
             ? "Leave blank to keep current"
             : "AML portal password";
         document.getElementById("dm_password").value = "";
-        document.getElementById("dm_is_admin").checked = !!u.is_admin;
-        document.getElementById("dm_is_active").checked = u.is_active !== false;
+        const roleVal = String(
+          u.role || (u.is_admin ? "admin" : "user"),
+        ).toLowerCase();
+        document.getElementById("dm_role").value = [
+          "user",
+          "admin",
+          "superadmin",
+        ].includes(roleVal)
+          ? roleVal
+          : "user";
         document.getElementById("dm_can_view_activity_log").checked =
           !!u.can_view_activity_log;
         setFormCheckboxes(".dm_page", u.allowed_pages);
@@ -1410,12 +2300,14 @@
         document
           .querySelectorAll(".dm_dept:checked")
           .forEach((c) => depts.push(c.value));
+        const roleSel = document.getElementById("dm_role").value;
         return {
           email: document.getElementById("dm_email").value,
           display_name: document.getElementById("dm_display_name").value,
           password: document.getElementById("dm_password").value,
-          is_admin: document.getElementById("dm_is_admin").checked,
-          is_active: document.getElementById("dm_is_active").checked,
+          role: roleSel,
+          is_admin: roleSel === "admin" || roleSel === "superadmin",
+          is_active: true,
           can_view_activity_log: document.getElementById(
             "dm_can_view_activity_log",
           ).checked,
@@ -1485,6 +2377,200 @@
         t._timer = setTimeout(() => {
           t.style.display = "none";
         }, 3500);
+      }
+
+      // ===== Investment Scam User modal =====
+      let dmInvEditingId = null;
+      function dmiSetUserTypeUI(ut) {
+        const row = document.getElementById("dmi_intern_duration_row");
+        if (row)
+          row.style.display =
+            String(ut).toLowerCase() === "intern" ? "" : "none";
+      }
+      function dmiReset() {
+        document.getElementById("dmi_name").value = "";
+        document.getElementById("dmi_user_type").value = "employee";
+        dmiSetUserTypeUI("employee");
+        document.getElementById("dmi_contact_no").value = "";
+        document.getElementById("dmi_mail").value = "";
+        document.getElementById("dmi_joining_date").value = "";
+        document.getElementById("dmi_dob").value = "";
+        document.getElementById("dmi_internship_duration_months").value = "";
+        document.getElementById("dmi_gui_cred").value = "";
+        document.getElementById("dmi_password").value = "";
+      }
+      function dmiAttachUserTypeListener() {
+        const sel = document.getElementById("dmi_user_type");
+        if (sel && sel.dataset.wired !== "1") {
+          sel.dataset.wired = "1";
+          sel.addEventListener("change", () => dmiSetUserTypeUI(sel.value));
+        }
+      }
+      function openCreateInvModal() {
+        dmiAttachUserTypeListener();
+        dmInvEditingId = null;
+        dmiReset();
+        document.getElementById("dmInvFormTitle").innerHTML =
+          '<i class="fas fa-user-plus"></i> Add Investment Scam User';
+        document.getElementById("dmInvSubmitBtn").innerHTML =
+          '<i class="fas fa-check"></i> Create User';
+        document.getElementById("dmi_pwd_label").innerHTML =
+          'Password <span style="color:#e74c3c">*</span>';
+        openModal("dmInvFormModal");
+      }
+      function openEditInvModal(id) {
+        const u = invUsers.find((x) => x.id === id);
+        if (!u) {
+          showToast("User not found.", "error");
+          return;
+        }
+        dmiAttachUserTypeListener();
+        dmInvEditingId = id;
+        dmiReset();
+        document.getElementById("dmInvFormTitle").innerHTML =
+          '<i class="fas fa-user-edit"></i> Edit Investment Scam User — #' + id;
+        document.getElementById("dmInvSubmitBtn").innerHTML =
+          '<i class="fas fa-save"></i> Save Changes';
+        document.getElementById("dmi_pwd_label").innerHTML =
+          'Password <span style="color:#7f8c8d">(leave blank to keep current)</span>';
+        document.getElementById("dmi_name").value = u.name || "";
+        const ut = String(
+          u.employee_type || u.user_type || "employee",
+        ).toLowerCase();
+        document.getElementById("dmi_user_type").value =
+          ut === "intern" || ut === "employee" ? ut : "employee";
+        dmiSetUserTypeUI(ut);
+        document.getElementById("dmi_contact_no").value = u.contact_no || "";
+        document.getElementById("dmi_mail").value = u.mail || "";
+        document.getElementById("dmi_joining_date").value =
+          u.joining_date || "";
+        document.getElementById("dmi_dob").value = u.dob || "";
+        document.getElementById("dmi_internship_duration_months").value =
+          parseDurationMonths(u.duration) || u.internship_duration_months || "";
+        document.getElementById("dmi_gui_cred").value = u.gui_cred || "";
+        document.getElementById("dmi_password").value = "";
+        openModal("dmInvFormModal");
+      }
+      function collectInvForm() {
+        const ut = document.getElementById("dmi_user_type").value;
+        return {
+          name: document.getElementById("dmi_name").value.trim(),
+          employee_type: ut,
+          contact_no: document.getElementById("dmi_contact_no").value.trim(),
+          mail: document.getElementById("dmi_mail").value.trim(),
+          joining_date:
+            document.getElementById("dmi_joining_date").value || null,
+          dob: document.getElementById("dmi_dob").value || null,
+          duration_months:
+            ut === "intern"
+              ? parseInt(
+                  document.getElementById("dmi_internship_duration_months")
+                    .value,
+                  10,
+                ) || null
+              : null,
+          gui_cred:
+            document.getElementById("dmi_gui_cred").value.trim() || null,
+          paasword: document.getElementById("dmi_password").value,
+        };
+      }
+      async function submitInvForm() {
+        const payload = collectInvForm();
+        if (!payload.name) {
+          showToast("Name is required.", "error");
+          return;
+        }
+        if (!payload.joining_date) {
+          showToast("Joining date is required.", "error");
+          return;
+        }
+        if (dmInvEditingId === null && !payload.paasword) {
+          showToast("Password is required for a new user.", "error");
+          return;
+        }
+        const btn = document.getElementById("dmInvSubmitBtn");
+        btn.disabled = true;
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        try {
+          let url, method;
+          if (dmInvEditingId === null) {
+            url = "/dashboard-management/api/investment-scam-users";
+            method = "POST";
+          } else {
+            url =
+              "/dashboard-management/api/investment-scam-users/" +
+              dmInvEditingId;
+            method = "PUT";
+          }
+          const resp = await fetch(url, {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await resp.json();
+          if (!data.success) {
+            showToast(data.error || "Save failed.", "error");
+            return;
+          }
+          showToast(
+            dmInvEditingId === null
+              ? "User created successfully."
+              : "User updated successfully.",
+            "success",
+          );
+          closeModal("dmInvFormModal");
+          await loadInvestmentScamUsers();
+        } catch (e) {
+          showToast("Request failed: " + e.message, "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = orig;
+        }
+      }
+
+      async function deleteInvUser(id, name) {
+        if (!confirm('Delete user "' + name + '"? This cannot be undone.'))
+          return;
+        try {
+          const resp = await fetch(
+            "/dashboard-management/api/investment-scam-users/" + id,
+            { method: "DELETE", headers: { Accept: "application/json" } },
+          );
+          const data = await resp.json();
+          if (!data.success) {
+            showToast(data.error || "Delete failed.", "error");
+            return;
+          }
+          showToast("User deleted successfully.", "success");
+          await loadInvestmentScamUsers();
+        } catch (e) {
+          showToast("Request failed: " + e.message, "error");
+        }
+      }
+
+      async function deleteDashboardUser(id, email) {
+        if (
+          !confirm(
+            'Delete dashboard user "' + email + '"? This cannot be undone.',
+          )
+        )
+          return;
+        try {
+          const resp = await fetch("/dashboard-management/api/users/" + id, {
+            method: "DELETE",
+            headers: { Accept: "application/json" },
+          });
+          const data = await resp.json();
+          if (!data.success) {
+            showToast(data.error || "Delete failed.", "error");
+            return;
+          }
+          showToast("Dashboard user deleted successfully.", "success");
+          await loadUsers();
+        } catch (e) {
+          showToast("Request failed: " + e.message, "error");
+        }
       }
 
       function askConfirm(text, onOk) {
@@ -1601,7 +2687,7 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        loadUsers();
+        switchUserType();
         const saved = (function () {
           try {
             return localStorage.getItem("scamGuiTheme") || "light";

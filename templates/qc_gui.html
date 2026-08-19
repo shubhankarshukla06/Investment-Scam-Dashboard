@@ -428,7 +428,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     {% if 'qc' in allowed_pages %}
                     <option value="qc" selected>QC Review</option>
                     {% endif %}
-                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
                     <option value="dashboard_management">User &amp; Access Management</option>
                     {% endif %}
                     {% if 'lunch' in allowed_pages %}

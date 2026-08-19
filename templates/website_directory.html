@@ -179,6 +179,17 @@ tr:hover { background:#f8fffe; }
         .ual-table thead th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 5; white-space: nowrap; }
         .ual-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
         .ual-table tbody tr:hover { background: #f8f9ff; }
+        .ual-loading { text-align: center; padding: 40px 20px; color: #7f8c8d; }
+        .ual-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #6366f1; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+        .ual-id-cell { color: #9ca3af; font-size: 11px; text-align: center; }
+        .ual-user-name { font-weight: 600; color: #2c3e50; font-size: 12px; }
+        .ual-change-cell { font-size: 11px; }
+        .ual-date-cell { font-size: 11px; color: #374151; white-space: nowrap; }
+        .ual-time-cell { font-size: 11px; color: #6366f1; font-weight: 600; white-space: nowrap; }
+        .ual-field-cell { font-size: 11px; color: #4b5563; font-family: monospace; max-width: 80px; width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ual-record-cell { font-size: 11px; color: #6b7280; max-width: 70px; width: 70px; text-align: center; }
+        .ual-import-meta { font-size: 11px; color: #374151; }
+        .ual-import-meta i { color: #2ecc71; }
         .ual-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
         .ual-badge-update { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
         .ual-badge-import { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
@@ -189,6 +200,21 @@ tr:hover { background:#f8fffe; }
         .ual-arrow { color: #9ca3af; font-size: 10px; }
         .ual-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
         .ual-empty i { font-size: 40px; display: block; margin-bottom: 12px; color: #e5e7eb; }
+body.theme-dark .ual-loading,
+body.theme-dark .ual-id-cell,
+body.theme-dark .ual-record-cell,
+body.theme-dark .ual-empty { color:#cbd5e1; }
+body.theme-dark .ual-spinner { border-color:#334155; border-top-color:#60a5fa; }
+body.theme-dark .ual-user-name,
+body.theme-dark .ual-date-cell,
+body.theme-dark .ual-change-cell,
+body.theme-dark .ual-field-cell,
+body.theme-dark .ual-import-meta { color:#f8fafc; }
+body.theme-dark .ual-time-cell { color:#93c5fd; }
+body.theme-dark .ual-page-badge { background:#334155; color:#dbeafe; }
+body.theme-dark .ual-old { background:#7f1d1d; color:#fecaca; border:1px solid rgba(248,113,113,0.35); }
+body.theme-dark .ual-new { background:#14532d; color:#bbf7d0; border:1px solid rgba(74,222,128,0.35); }
+body.theme-dark .ual-arrow { color:#cbd5e1; }
 html.theme-dark-preload body,
 body.theme-dark { background:#202938; color:#e2e8f0; }
 body.theme-dark .fixed-header { background:#202938; border-bottom-color:rgba(148,163,184,0.12); box-shadow:0 8px 22px rgba(15,23,42,0.18); }
@@ -1005,7 +1031,7 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
                     {% if 'qc' in allowed_pages %}
                     <option value="qc">QC Review</option>
                     {% endif %}
-                    {% if is_admin and 'dashboard_management' in allowed_pages %}
+                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
                     <option value="dashboard_management">User &amp; Access Management</option>
                     {% endif %}
                     {% if 'lunch' in allowed_pages %}
@@ -2518,7 +2544,7 @@ function closeUserActivityLog() {
     document.getElementById('userActivityLogModal').classList.remove('active');
 }
 async function _loadUAL() {
-    document.getElementById('ualBody').innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7f8c8d;"><div style="border:3px solid #f3f3f3;border-top:3px solid #6366f1;border-radius:50%;width:30px;height:30px;animation:spin 1s linear infinite;margin:0 auto 15px;"></div><p>Loading activity log...</p></div>';
+    document.getElementById('ualBody').innerHTML = '<div class="ual-loading"><div class="ual-spinner"></div><p>Loading activity log...</p></div>';
     document.getElementById('ualStats').innerHTML = '<i class="fas fa-list"></i> Loading...';
     try {
         const dateFrom = document.getElementById('ualDateFrom')?.value || '';
@@ -2592,16 +2618,16 @@ function _renderUAL(logs) {
                 <span class="ual-new" title="${log.new_value||''}">${log.new_value||'—'}</span>
             </div>`;
         } else if (log.action_type === 'import' && log.extra_info) {
-            changeHtml = `<span style="font-size:11px;color:#374151;"><i class="fas fa-file-excel" style="color:#2ecc71;"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
+            changeHtml = `<span class="ual-import-meta"><i class="fas fa-file-excel"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
         }
         rows += `<tr>
-            <td style="color:#9ca3af;font-size:11px;text-align:center;">${log.id||(i+1)}</td>
-            <td><div style="font-weight:600;color:#2c3e50;font-size:12px;">${log.display_name||'—'}</div></td>
-            <td style="font-size:11px;">${changeHtml}</td>
-            <td><div style="font-size:11px;color:#374151;white-space:nowrap;">${date}</div><div style="font-size:11px;color:#6366f1;font-weight:600;white-space:nowrap;">${time}</div></td>
+            <td class="ual-id-cell">${log.id||(i+1)}</td>
+            <td><div class="ual-user-name">${log.display_name||'—'}</div></td>
+            <td class="ual-change-cell">${changeHtml}</td>
+            <td><div class="ual-date-cell">${date}</div><div class="ual-time-cell">${time}</div></td>
             <td><span class="ual-page-badge">${pageLabel}</span></td>
-            <td style="font-size:11px;color:#4b5563;font-family:monospace;max-width:80px;width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${log.field_name||''}">${log.field_name||'—'}</td>
-            <td style="font-size:11px;color:#6b7280;max-width:70px;width:70px;text-align:center;">${log.target_record_id||'—'}</td>
+            <td class="ual-field-cell" title="${log.field_name||''}">${log.field_name||'—'}</td>
+            <td class="ual-record-cell">${log.target_record_id||'—'}</td>
             <td>${badge}</td>
         </tr>`;
     });

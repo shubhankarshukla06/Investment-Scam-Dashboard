@@ -66,12 +66,12 @@ DEMO_ADMIN = {
     "display_name": "Shubhankar Shukla (Test User)",
     "allowed_pages": ["scraping", "sheet", "social", "investment", "qc"],
     "is_admin": False,
+    "role": "admin",
     "is_active": True,
     "can_view_activity_log": True,
     "allowed_departments": ["ITC","AML", "Investment Scam","dashboard_management","Infringement", "Chargeback"],
     "created_at": "2025-01-01"
 }
-
 
 def parse_bool(value):
     if isinstance(value, bool):
@@ -104,7 +104,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user_id" not in session:
-            flash("Please log in to access the dashboard.", "error")
+            flash("Welcome to Scam Intelligence GUI.", "error")
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
@@ -117,6 +117,7 @@ def get_current_user():
         "display_name": session.get("display_name"),
         "allowed_pages": session.get("allowed_pages", []),
         "is_admin": session.get("is_admin", False),
+        "role": session.get("role", "user"),
         "can_view_activity_log": session.get("can_view_activity_log", False),
         "allowed_departments": session.get("allowed_departments"),
     }
@@ -177,7 +178,7 @@ SOCIAL_PLATFORM_OPTIONS = [
 WEBSITE_DIRECTORY_CATEGORY_OPTIONS = [
     "Job Scam", "Subscription Scam", "Fake Website Scam",
     "Loan Scam", "Government Scheme Scam", "Investment Scam",
-    "LPG Booking Scam", "IPL Tickets Scam", "ChaarDham Booking Scam"
+    "LPG Booking Scam", "IPL Tickets Scam", "Carding Scam",
 ]
 
 WEBSITE_DIRECTORY_SEARCH_FOR_OPTIONS = ["Web", "App"]
@@ -215,6 +216,17 @@ def is_allotment_admin(user_session):
     """Check if user is allowed to allot websites to others / see everyone's allotment"""
     allowed_pages = user_session.get("allowed_pages", [])
     return "allotment_admin" in allowed_pages
+
+
+def is_superadmin(user_session):
+    """True for users whose role is 'superadmin' — full access incl. user management, no dept filter."""
+    return user_session.get("role") == "superadmin"
+
+
+def is_admin_or_above(user_session):
+    """True for users whose role is 'superadmin' or 'admin' — operational admin actions allowed."""
+    return user_session.get("role") in ("superadmin", "admin")
+
 
 ALL_EMPLOYEES = [
     "Parul Satsangi",
@@ -922,6 +934,8 @@ def login():
                 session["display_name"]          = user["display_name"]
                 session["allowed_pages"]         = user.get("allowed_pages") or []
                 session["is_admin"]              = parse_bool(user.get("is_admin", False))
+                session["role"]                  = (user.get("role")
+                                                  or ("admin" if parse_bool(user.get("is_admin", False)) else "user"))
                 session["can_view_activity_log"] = parse_bool(user.get("can_view_activity_log", False))
                 session["allowed_departments"] = user.get("allowed_departments") or None
                 allowed = session["allowed_pages"]
@@ -945,7 +959,7 @@ def get_user_activity_log():
         return jsonify({"success": False, "error": "Access denied."})
     try:
         client = get_auth_supabase()
-        is_admin      = session.get("is_admin", False)
+        is_super       = is_superadmin(session)
         allowed_depts = session.get("allowed_departments")  # None = no dept restriction
         allowed_pages = session.get("allowed_pages", [])
 
@@ -967,8 +981,8 @@ def get_user_activity_log():
             "allotment_admin": "website_allotment",
         }
 
-        # Admin — sab kuch dikhao (but still filter by allowed_pages if not superadmin)
-        if is_admin:
+        # Superadmin — sab kuch dikhao (but still filter by allowed_pages)
+        if is_super:
             allowed_tables = set(PAGE_TABLE_MAP[p] for p in allowed_pages if p in PAGE_TABLE_MAP)
             if "website_directory" in allowed_pages:
                 allowed_tables.add("website_directory")
@@ -1092,11 +1106,11 @@ def scraping_tracker_stats():
         CHUNK = 1000
         rows = []
         offset = 0
-        is_admin = session.get("is_admin", False)
+        is_super       = is_superadmin(session)
         current_clean_name = get_clean_display_name(session.get("display_name", ""))
         while True:
             _q = supabase.table("scrapping_data").select("scam_type,platform")
-            if not is_admin:
+            if not is_super:
                 _q = _q.eq("name", current_clean_name)
             resp = _q \
                 .order("id", desc=False) \
@@ -1180,7 +1194,7 @@ def index():
     if page_type == "scraping":
         try:
             query = supabase.table("scrapping_data").select("*", count='exact')
-            if not session.get("is_admin", False):
+            if not is_superadmin(session):
                 current_clean_name = get_clean_display_name(session.get("display_name", ""))
                 query = query.eq("name", current_clean_name)
             if search_query:
@@ -1348,6 +1362,7 @@ def index():
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
         is_admin=session.get("is_admin", False),
+        role=session.get("role", "user"),
     )
 # ============================================================
 # BS Investment Scam Tracker Stats
@@ -1616,7 +1631,7 @@ def tracker_stats():
 @login_required
 def get_number_type_counts():
     try:
-        is_admin = session.get("is_admin", False)
+        is_super       = is_superadmin(session)
         allowed_depts = session.get("allowed_departments")
         number_types = ["Prepaid", "Postpaid", "Disposable Number"]
         counts = {}
@@ -1625,7 +1640,7 @@ def get_number_type_counts():
                 .select("id", count='exact') \
                 .eq("number_type", nt) \
                 .neq("account_status", "Permanent Block")
-            if not is_admin and allowed_depts:
+            if not is_super and allowed_depts:
                 if len(allowed_depts) == 1:
                     q = q.eq("department", allowed_depts[0])
                 else:
@@ -2297,7 +2312,7 @@ def export():
 
         def _build_query():
             q = supabase.table("scrapping_data").select("*")
-            if not session.get("is_admin", False):
+            if not is_superadmin(session):
                 current_clean_name = get_clean_display_name(session.get("display_name", ""))
                 q = q.eq("name", current_clean_name)
             if search_query:
@@ -2820,15 +2835,15 @@ def get_permanent_block_accounts():
             .select("id,owned_by,number,login_user,login_device,sim_inserted_device,blocked_date,account_create_date,platform,department") \
             .eq("account_status", "Permanent Block")
         # ── Department filter ───────────────────────────────────────────
-        # Always enforce for non-admins; admins see all
-        is_admin     = session.get("is_admin", False)
+        # Always enforce for non-superadmins; superadmins see all
+        is_super       = is_superadmin(session)
         allowed_depts = session.get("allowed_departments")  # None = unrestricted
-        if not is_admin and allowed_depts:
+        if not is_super and allowed_depts:
             if len(allowed_depts) == 1:
                 query = query.eq("department", allowed_depts[0])
             else:
                 query = query.in_("department", allowed_depts)
-        # If is_admin OR allowed_depts is None → no department filter applied
+        # If is_super OR allowed_depts is None → no department filter applied
         # ── Platform filter ────────────────────────────────────────────
         if platform:
             query = query.eq("platform", platform)
@@ -3233,6 +3248,7 @@ def get_session_info():
         "email":         session.get("email", ""),
         "display_name":  session.get("display_name", ""),
         "is_admin":      session.get("is_admin", False),
+        "role":          session.get("role", "user"),
         "allowed_depts": session.get("allowed_departments"),
         "allowed_pages": session.get("allowed_pages", []),
     })
@@ -3400,6 +3416,39 @@ def _extract_facebook_profile_id(*values):
             return m.group(1)
     return ""
 
+def _normalize_scraping_duplicate_url(value):
+    raw = str(value or "").strip()
+    if not raw or raw.upper() in ("NA", "N/A"):
+        return ""
+    raw = re.sub(r"[\s#/)]+$", "", raw)
+    try:
+        parsed = urllib.parse.urlparse(raw if raw.lower().startswith(("http://", "https://")) else "https://" + raw)
+        host = (parsed.netloc or "").lower()
+        if host.startswith("www."):
+            host = host[4:]
+        path = urllib.parse.unquote(parsed.path or "")
+        path = re.sub(r"[\s#/)]+$", "", path).rstrip("/")
+        query = urllib.parse.urlencode(sorted(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)))
+        return f"{host}{path}{'?' + query if query else ''}"
+    except Exception:
+        return re.sub(r"[\s#/)]+$", "", raw.lower()).removeprefix("https://").removeprefix("http://").removeprefix("www.").rstrip("/")
+
+def _scraping_url_lookup_term(value):
+    normalized = _normalize_scraping_duplicate_url(value)
+    if not normalized:
+        return ""
+    try:
+        parsed = urllib.parse.urlparse("https://" + normalized)
+        parts = [p for p in (parsed.path or "").split("/") if p]
+        if parts:
+            return re.sub(r"[^A-Za-z0-9_.-]", "", parts[-1])[:80]
+        qs = urllib.parse.parse_qs(parsed.query)
+        if qs:
+            return re.sub(r"[^A-Za-z0-9_.-]", "", next(iter(qs.values()))[0])[:80]
+    except Exception:
+        pass
+    return re.sub(r"[^A-Za-z0-9_.-]", "", normalized.split("?")[0].split("/")[-1])[:80]
+
 @app.route("/check-scraping-duplicates", methods=["POST"])
 @login_required
 def check_scraping_duplicates():
@@ -3410,8 +3459,12 @@ def check_scraping_duplicates():
             return jsonify({"success": True, "results": []})
         results = []
         facebook_id_counts = {}
+        normalized_url_counts = {}
         for entry in entries:
             platform = str(entry.get("platform", "")).strip()
+            normalized_url = _normalize_scraping_duplicate_url(entry.get("post_url", ""))
+            if normalized_url:
+                normalized_url_counts[normalized_url] = normalized_url_counts.get(normalized_url, 0) + 1
             if platform.lower() != "facebook":
                 continue
             fb_id = _extract_facebook_profile_id(entry.get("post_url", ""), entry.get("group_name", ""))
@@ -3424,19 +3477,21 @@ def check_scraping_duplicates():
             platform = str(entry.get("platform", "")).strip()
             is_facebook = platform.lower() == "facebook"
             facebook_id = _extract_facebook_profile_id(post_url, gn) if is_facebook else ""
+            normalized_url = _normalize_scraping_duplicate_url(post_url)
             # Dono NA hain toh skip
             gn_empty = not gn or gn.upper() in ("NA", "N/A", "")
             cn_empty = not cn or cn.upper() in ("NA", "N/A", "")
-            if gn_empty and cn_empty and not facebook_id:
+            if gn_empty and cn_empty and not facebook_id and not normalized_url:
                 results.append({"status": "NEW", "count": 0})
                 continue
             try:
                 found = []
                 local_facebook_duplicate = bool(facebook_id and facebook_id_counts.get(facebook_id, 0) > 1)
+                local_url_duplicate = bool(normalized_url and normalized_url_counts.get(normalized_url, 0) > 1)
                 if not gn_empty and not cn_empty:
                     # Dono available — AND match
                     res = supabase.table("scrapping_data") \
-                        .select("id, group_name, chat_number, inserted_date") \
+                        .select("id, group_name, post_url, chat_number, inserted_date") \
                         .ilike("group_name", gn) \
                         .ilike("chat_number", cn) \
                         .limit(10).execute()
@@ -3444,14 +3499,14 @@ def check_scraping_duplicates():
                 elif not gn_empty:
                     # Sirf group_name
                     res = supabase.table("scrapping_data") \
-                        .select("id, group_name, chat_number, inserted_date") \
+                        .select("id, group_name, post_url, chat_number, inserted_date") \
                         .ilike("group_name", gn) \
                         .limit(10).execute()
                     found = res.data or []
                 elif not cn_empty:
                     # Sirf chat_number
                     res = supabase.table("scrapping_data") \
-                        .select("id, group_name, chat_number, inserted_date") \
+                        .select("id, group_name, post_url, chat_number, inserted_date") \
                         .ilike("chat_number", cn) \
                         .limit(10).execute()
                     found = res.data or []
@@ -3462,8 +3517,23 @@ def check_scraping_duplicates():
                         .or_(f"post_url.ilike.%id={facebook_id}%,group_name.ilike.%id={facebook_id}%") \
                         .limit(10).execute()
                     found = res.data or []
+                if normalized_url and not found:
+                    lookup_term = _scraping_url_lookup_term(post_url)
+                    if lookup_term:
+                        res = supabase.table("scrapping_data") \
+                            .select("id, group_name, post_url, chat_number, inserted_date") \
+                            .or_(f"post_url.ilike.%{lookup_term}%,group_name.ilike.%{lookup_term}%") \
+                            .limit(25).execute()
+                        candidates = res.data or []
+                        found = [
+                            row for row in candidates
+                            if normalized_url in (
+                                _normalize_scraping_duplicate_url(row.get("post_url", "")),
+                                _normalize_scraping_duplicate_url(row.get("group_name", "")),
+                            )
+                        ]
                 results.append({
-                    "status": "DUPLICATE" if found or local_facebook_duplicate else "NEW",
+                    "status": "DUPLICATE" if found or local_facebook_duplicate or local_url_duplicate else "NEW",
                     "count": len(found),
                     "earliest_date": found[0].get("inserted_date") if found else None,
                 })
@@ -4020,6 +4090,7 @@ def website_directory():
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
         is_admin=session.get("is_admin", False),
+        role=session.get("role", "user"),
     )
 # ============================================================
 # WEBSITE DIRECTORY — IMPORT
@@ -4429,7 +4500,7 @@ def website_directory_summary_stats():
         CHUNK = 1000
         all_rows, offset = [], 0
         while True:
-            q = supabase.table("website_directory").select("category")
+            q = supabase.table("website_directory").select("category,url,final_url")
             if date_on:
                 q = q.eq("date", date_on)
             else:
@@ -4443,11 +4514,55 @@ def website_directory_summary_stats():
             if len(chunk) < CHUNK:
                 break
             offset += CHUNK
+
+        def _clean_category(value):
+            cat = (value or "Unknown").strip() or "Unknown"
+            return "Unknown" if cat.upper() in ("NA", "N/A", "NULL", "UNKNOWN", "") else cat
+
+        def _url_keys(value):
+            raw = (value or "").strip()
+            if not raw or raw.upper() in ("NA", "N/A", "NULL"):
+                return []
+            keys = {raw.lower().rstrip("/")}
+            parsed = urlparse(raw if "://" in raw else f"https://{raw}")
+            host = (parsed.netloc or "").lower()
+            path = (parsed.path or "").strip("/")
+            if host.startswith("www."):
+                host = host[4:]
+            if host:
+                keys.add(host)
+                if path:
+                    keys.add(f"{host}/{path}".rstrip("/"))
+            return [k for k in keys if k]
+
+        known_category_by_url = {}
+        known_rows, known_offset = [], 0
+        while True:
+            known_resp = supabase.table("website_directory") \
+                .select("category,url,final_url") \
+                .order("id", desc=False) \
+                .range(known_offset, known_offset + CHUNK - 1).execute()
+            known_chunk = known_resp.data or []
+            known_rows.extend(known_chunk)
+            if len(known_chunk) < CHUNK:
+                break
+            known_offset += CHUNK
+
+        for row in known_rows:
+            cat = _clean_category(row.get("category"))
+            if cat == "Unknown":
+                continue
+            for key in _url_keys(row.get("url")) + _url_keys(row.get("final_url")):
+                known_category_by_url.setdefault(key, cat)
+
         cat_counts = {}
         for row in all_rows:
-            cat = (row.get("category") or "Unknown").strip() or "Unknown"
-            if cat.upper() in ("NA", "N/A", ""):
-                cat = "Unknown"
+            cat = _clean_category(row.get("category"))
+            if cat == "Unknown":
+                for key in _url_keys(row.get("url")) + _url_keys(row.get("final_url")):
+                    if key in known_category_by_url:
+                        cat = known_category_by_url[key]
+                        break
             cat_counts[cat] = cat_counts.get(cat, 0) + 1
         return jsonify({"success": True, "cat_counts": cat_counts, "total": len(all_rows)})
     except Exception as e:
@@ -4790,6 +4905,7 @@ def scam_website_allotment():
         clean_display_name=clean_display_name,
         can_view_activity_log=session.get("can_view_activity_log", False),
         is_admin=session.get("is_admin", False),
+        role=session.get("role", "user"),
     )
 
 
@@ -6387,7 +6503,7 @@ def delete_case_report(report_id):
         record = resp.data[0]
         current_user = get_clean_display_name(session.get("display_name", "User"))
         # User apna hi data delete kar sake — kisi aur ka report delete na ho
-        if not session.get("is_admin", False) and record.get("input_user") != current_user:
+        if not is_admin_or_above(session) and record.get("input_user") != current_user:
             return jsonify({"status": "error", "message": "You can only delete your own reports."}), 403
         filename = record["filename"]
         try:
@@ -7206,7 +7322,8 @@ def lunch_break():
         "lunch_break.html",
         items=items,
         total=total,
-        is_admin=is_admin,
+        is_admin=is_admin_or_above(session),
+        role=session.get("role", "user"),
         visible_employees=visible_employees,
         all_employees=ALL_EMPLOYEES,
         date_from=date_from,
@@ -7388,27 +7505,93 @@ DASHBOARD_MANAGEMENT_PAGE = "dashboard_management"
 
 # Full set of page keys a user can be granted (for the Allowed Pages picker).
 ALLOWED_PAGES_OPTIONS = [
-    ("scraping",          "Scraping Data"),
+    ("scraping",          "Data Scraping"),
     ("sheet",             "Summary & Sheet Generator"),
     ("social",            "Social Media Accounts"),
-    ("investment",        "BS Investment Scam"),
-    ("qc",                "GUI QC Review"),
-    ("website_directory", "Scam++ Website Directory"),
-    ("allotment",         "Scam++ Website Allotment"),
-    ("insights",          "Scam++ Dashboard"),
-    ("case_report",       "Case Report Generator"),
-    ("lunch",             "Lunch Break Tracker"),
-    (DASHBOARD_MANAGEMENT_PAGE, "Dashboard Management"),
+    ("investment",        "Investment Scam Data"),
+    ("qc",                "QC Review"),
+    ("website_directory", "Investment Website Directory"),
+    ("allotment",         "Website Case Assignment"),
+    ("allotment_admin",   "Website Case Assignment Admin"),
+    ("insights",          "User Performance Dashboard"),
+    ("case_report",       "Case & Report Generator"),
+    ("lunch",             "Break Time Management"),
+    (DASHBOARD_MANAGEMENT_PAGE, "User & Access Management"),
+]
+
+INVESTMENT_SCAM_USERS_TABLE = "investment_scam_users"
+
+GUI_STATUS_TABLES = [
+    {
+        "page_key": "scraping",
+        "page_name": "Data Scraping",
+        "table": "scrapping_data",
+        "date_columns": ["created_at", "updated_at", "Inserted_date", "inserted_date", "id"],
+    },
+    {
+        "page_key": "social",
+        "page_name": "Social Media Accounts",
+        "table": "social_media_accounts",
+        "date_columns": ["updated_at", "created_at", "blocked_date", "account_create_date", "id"],
+    },
+    {
+        "page_key": "investment",
+        "page_name": "Investment Scam Data",
+        "table": "BS_Investment_Scam",
+        "date_columns": ["Inserted_date", "created_at", "updated_at", "Id"],
+    },
+    {
+        "page_key": "website_directory",
+        "page_name": "Investment Website Directory",
+        "table": "website_directory",
+        "date_columns": ["updated_at", "created_at", "date", "id"],
+    },
+    {
+        "page_key": "allotment",
+        "page_name": "Website Case Assignment",
+        "table": "website_allotment",
+        "date_columns": ["updated_at", "created_at", "allotted_date", "id"],
+    },
+    {
+        "page_key": "case_report",
+        "page_name": "Case & Report Generator",
+        "table": "reports",
+        "date_columns": ["created_at", "updated_at", "id"],
+    },
+    {
+        "page_key": "lunch",
+        "page_name": "Break Time Management",
+        "table": "lunch_breaks",
+        "date_columns": ["date", "updated_at", "created_at", "id"],
+    },
+    {
+        "page_key": "qc",
+        "page_name": "QC Review",
+        "table": "qc_table",
+        "date_columns": ["updated_at", "created_at", "inserted_datetime", "inserted_date", "id"],
+    },
+    {
+        "page_key": "dashboard_management",
+        "page_name": "Dashboard Users",
+        "table": "dashboard_users",
+        "date_columns": ["updated_at", "created_at", "id"],
+    },
+    {
+        "page_key": "investment_users",
+        "page_name": "Investment Scam Users",
+        "table": INVESTMENT_SCAM_USERS_TABLE,
+        "date_columns": ["updated_at", "created_at", "joining_date", "id"],
+    },
 ]
 
 
 def can_manage_dashboard(user_session=None):
-    """Only an admin who has 'dashboard_management' in their allowed_pages can
+    """Only a superadmin who has 'dashboard_management' in their allowed_pages can
     manage users. This is the single source of truth used by every
     Dashboard-Management route (page + JSON), so it cannot be bypassed via URL."""
     user_session = session if user_session is None else user_session
     allowed_pages = user_session.get("allowed_pages") or []
-    return bool(parse_bool(user_session.get("is_admin", False))) and DASHBOARD_MANAGEMENT_PAGE in allowed_pages
+    return is_superadmin(user_session) and DASHBOARD_MANAGEMENT_PAGE in allowed_pages
 
 
 def dashboard_management_required(f):
@@ -7477,7 +7660,7 @@ def dashboard_management():
     return render_template(
         "dashboard_management.html",
         allowed_pages=session.get("allowed_pages", []),
-        is_admin=session.get("is_admin", False),
+        is_admin=is_admin_or_above(session),
         can_manage_dashboard=True,
         display_name=session.get("display_name", "User"),
         clean_display_name=get_clean_display_name(session.get("display_name", "User")),
@@ -7499,6 +7682,104 @@ def _serialize_dashboard_user(row):
     return out
 
 
+def _estimate_json_bytes(rows):
+    try:
+        return len(json.dumps(rows or [], default=str).encode("utf-8"))
+    except Exception:
+        return 0
+
+
+def _format_status_level(total_rows, query_ms, storage_bytes):
+    if storage_bytes and storage_bytes >= 50 * 1024 * 1024:
+        return "Heavy"
+    if total_rows >= 50000 or query_ms >= 1500:
+        return "Heavy"
+    if storage_bytes and storage_bytes >= 10 * 1024 * 1024:
+        return "Medium"
+    if total_rows >= 10000 or query_ms >= 600:
+        return "Medium"
+    return "Normal"
+
+
+def _load_table_storage_map(client):
+    try:
+        resp = client.rpc("get_table_storage_stats").execute()
+        rows = resp.data or []
+        return {
+            (r.get("table_name") or r.get("table") or r.get("relname") or "").lower(): r
+            for r in rows
+            if r.get("table_name") or r.get("table") or r.get("relname")
+        }, None
+    except Exception as e:
+        return {}, str(e)
+
+
+def _latest_value_for_table(client, table_name, date_columns):
+    for col in date_columns:
+        try:
+            resp = client.table(table_name).select(col).order(col, desc=True).limit(1).execute()
+            if resp.data:
+                return resp.data[0].get(col), col
+        except Exception:
+            continue
+    return None, None
+
+
+def _table_status_row(client, cfg, storage_map):
+    started = time.perf_counter()
+    row = {
+        "page_key": cfg["page_key"],
+        "page_name": cfg["page_name"],
+        "table": cfg["table"],
+        "total_rows": 0,
+        "latest_value": None,
+        "latest_column": None,
+        "query_ms": 0,
+        "sample_rows": 0,
+        "sample_bytes": 0,
+        "estimated_payload_bytes": 0,
+        "storage_bytes": None,
+        "table_bytes": None,
+        "index_bytes": None,
+        "storage_source": "RPC not configured",
+        "status": "Unknown",
+        "error": None,
+    }
+    try:
+        count_resp = client.table(cfg["table"]).select("*", count="exact").limit(1).execute()
+        row["total_rows"] = count_resp.count if count_resp.count is not None else 0
+
+        latest_value, latest_column = _latest_value_for_table(client, cfg["table"], cfg["date_columns"])
+        row["latest_value"] = latest_value
+        row["latest_column"] = latest_column
+
+        sample_resp = client.table(cfg["table"]).select("*").limit(25).execute()
+        sample_rows = sample_resp.data or []
+        row["sample_rows"] = len(sample_rows)
+        row["sample_bytes"] = _estimate_json_bytes(sample_rows)
+        if row["sample_rows"] and row["total_rows"]:
+            row["estimated_payload_bytes"] = int((row["sample_bytes"] / row["sample_rows"]) * row["total_rows"])
+
+        storage = storage_map.get(cfg["table"].lower()) if storage_map else None
+        if storage:
+            row["storage_bytes"] = storage.get("total_bytes") or storage.get("total_size")
+            row["table_bytes"] = storage.get("table_bytes") or storage.get("table_size")
+            row["index_bytes"] = storage.get("index_bytes") or storage.get("index_size")
+            row["storage_source"] = "RPC"
+
+        row["query_ms"] = int((time.perf_counter() - started) * 1000)
+        row["status"] = _format_status_level(
+            int(row["total_rows"] or 0),
+            row["query_ms"],
+            int(row["storage_bytes"] or 0),
+        )
+    except Exception as e:
+        row["query_ms"] = int((time.perf_counter() - started) * 1000)
+        row["status"] = "Error"
+        row["error"] = str(e)
+    return row
+
+
 @app.route("/dashboard-management/api/users", methods=["GET"])
 @login_required
 @dashboard_management_required_json
@@ -7508,6 +7789,197 @@ def dashboard_management_users():
             .select("*").order("id", desc=False).execute()
         users = [_serialize_dashboard_user(u) for u in (resp.data or [])]
         return jsonify({"success": True, "users": users})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/gui-status", methods=["GET"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_gui_status():
+    try:
+        client = get_auth_supabase()
+        started = time.perf_counter()
+        storage_map, rpc_error = _load_table_storage_map(client)
+        rows = [_table_status_row(client, cfg, storage_map) for cfg in GUI_STATUS_TABLES]
+        totals = {
+            "pages": len(rows),
+            "tables_ok": sum(1 for r in rows if not r.get("error")),
+            "tables_error": sum(1 for r in rows if r.get("error")),
+            "total_rows": sum(int(r.get("total_rows") or 0) for r in rows),
+            "estimated_payload_bytes": sum(int(r.get("estimated_payload_bytes") or 0) for r in rows),
+            "storage_bytes": sum(int(r.get("storage_bytes") or 0) for r in rows if r.get("storage_bytes")),
+            "slowest_page": None,
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_query_ms": 0,
+            "rpc_error": rpc_error,
+        }
+        if rows:
+            totals["slowest_page"] = max(rows, key=lambda r: int(r.get("query_ms") or 0)).get("page_name")
+        totals["total_query_ms"] = int((time.perf_counter() - started) * 1000)
+        return jsonify({"success": True, "rows": rows, "totals": totals})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/investment-scam-users", methods=["GET"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_investment_scam_users():
+    try:
+        resp = get_auth_supabase().table(INVESTMENT_SCAM_USERS_TABLE) \
+            .select("*").order("id", desc=False).execute()
+        return jsonify({"success": True, "users": resp.data or []})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+def _investment_user_duration_payload(employee_type, duration_months):
+    employee_type = (employee_type or "employee").strip().lower()
+    if employee_type not in ("employee", "intern"):
+        employee_type = "employee"
+    if employee_type != "intern":
+        return "Employee", None, None, None
+
+    try:
+        months = int(duration_months or 0)
+    except (TypeError, ValueError):
+        months = 0
+    if months <= 0:
+        return "Intern", None, None, "Internship duration (months) is required for interns."
+    return "Intern", f"{months} Months", months, None
+
+
+def _calculate_internship_end_date(joining_date, months):
+    if not joining_date or not months:
+        return None
+    try:
+        start = datetime.strptime(str(joining_date)[:10], "%Y-%m-%d").date()
+        month_index = start.month - 1 + int(months)
+        year = start.year + month_index // 12
+        month = month_index % 12 + 1
+        last_day = (datetime(year + (month // 12), (month % 12) + 1, 1) - timedelta(days=1)).day
+        day = min(start.day, last_day)
+        return datetime(year, month, day).strftime("%Y-%m-%d")
+    except Exception:
+        return None
+
+
+@app.route("/dashboard-management/api/investment-scam-users", methods=["POST"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_create_investment_scam_user():
+    try:
+        data = request.get_json() or {}
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "Name is required."}), 400
+        joining_date = (data.get("joining_date") or "").strip() or None
+        if not joining_date:
+            return jsonify({"success": False, "error": "Joining date is required."}), 400
+        employee_type, duration, duration_months, duration_error = _investment_user_duration_payload(
+            data.get("employee_type") or data.get("user_type"),
+            data.get("duration_months") or data.get("internship_duration_months"),
+        )
+        if duration_error:
+            return jsonify({"success": False, "error": duration_error}), 400
+        password = data.get("paasword") or ""
+        if not password:
+            return jsonify({"success": False, "error": "Password is required."}), 400
+
+        record = {
+            "name": name,
+            "employee_type": employee_type,
+            "contact_no": (data.get("contact_no") or "").strip() or None,
+            "mail":      (data.get("mail") or "").strip() or None,
+            "joining_date": joining_date,
+            "dob":       (data.get("dob") or "").strip() or None,
+            "duration":   duration,
+            "internship_end_date": _calculate_internship_end_date(joining_date, duration_months),
+            "gui_cred":  (data.get("gui_cred") or "").strip() or None,
+            "paasword":  password,
+        }
+        client = get_auth_supabase()
+        resp = client.table(INVESTMENT_SCAM_USERS_TABLE).insert(record).execute()
+        if resp.data:
+            created = resp.data[0]
+            log_activity("CREATE", target_table=INVESTMENT_SCAM_USERS_TABLE,
+                         target_record_id=created.get("id"),
+                         extra_info=f"Created investment scam user {name}")
+            return jsonify({"success": True, "user": created}), 201
+        return jsonify({"success": False, "error": "Create failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/investment-scam-users/<int:user_id>", methods=["PUT"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_update_investment_scam_user(user_id):
+    try:
+        data = request.get_json() or {}
+        client = get_auth_supabase()
+        existing = client.table(INVESTMENT_SCAM_USERS_TABLE) \
+            .select("id").eq("id", user_id).limit(1).execute()
+        if not existing.data:
+            return jsonify({"success": False, "error": "User not found."}), 404
+
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "Name is required."}), 400
+        joining_date = (data.get("joining_date") or "").strip() or None
+        if not joining_date:
+            return jsonify({"success": False, "error": "Joining date is required."}), 400
+
+        employee_type, duration, duration_months, duration_error = _investment_user_duration_payload(
+            data.get("employee_type") or data.get("user_type"),
+            data.get("duration_months") or data.get("internship_duration_months"),
+        )
+        if duration_error:
+            return jsonify({"success": False, "error": duration_error}), 400
+
+        record = {
+            "name": name,
+            "employee_type": employee_type,
+            "contact_no": (data.get("contact_no") or "").strip() or None,
+            "mail":      (data.get("mail") or "").strip() or None,
+            "joining_date": joining_date,
+            "dob":       (data.get("dob") or "").strip() or None,
+            "duration":   duration,
+            "internship_end_date": _calculate_internship_end_date(joining_date, duration_months),
+            "gui_cred":  (data.get("gui_cred") or "").strip() or None,
+        }
+        new_pw = (data.get("paasword") or "").strip()
+        if new_pw:
+            record["paasword"] = new_pw
+
+        upd = client.table(INVESTMENT_SCAM_USERS_TABLE).update(record).eq("id", user_id).execute()
+        if upd.data:
+            log_activity("UPDATE", target_table=INVESTMENT_SCAM_USERS_TABLE,
+                         target_record_id=user_id,
+                         extra_info=f"Updated investment scam user {name}")
+            return jsonify({"success": True, "user": upd.data[0]})
+        return jsonify({"success": False, "error": "Update failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/investment-scam-users/<int:user_id>", methods=["DELETE"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_delete_investment_scam_user(user_id):
+    try:
+        client = get_auth_supabase()
+        existing = client.table(INVESTMENT_SCAM_USERS_TABLE) \
+            .select("id,name").eq("id", user_id).limit(1).execute()
+        if not existing.data:
+            return jsonify({"success": False, "error": "User not found."}), 404
+        name = existing.data[0].get("name") or f"id={user_id}"
+        d = client.table(INVESTMENT_SCAM_USERS_TABLE).delete().eq("id", user_id).execute()
+        log_activity("DELETE", target_table=INVESTMENT_SCAM_USERS_TABLE,
+                     target_record_id=user_id,
+                     extra_info=f"Deleted investment scam user {name}")
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -7540,6 +8012,8 @@ def dashboard_management_create_user():
             "display_name":          display_name,
             "allowed_pages":         parse_string_list(data.get("allowed_pages")),
             "is_admin":              parse_bool(data.get("is_admin")),
+            "role":                  (data.get("role")
+                                      or ("admin" if parse_bool(data.get("is_admin")) else "user")),
             "is_active":             parse_bool(data.get("is_active", True)),
             "can_view_activity_log": parse_bool(data.get("can_view_activity_log")),
             "allowed_departments":   parse_string_list(data.get("allowed_departments")) or None,
@@ -7586,6 +8060,8 @@ def dashboard_management_update_user(user_id):
             "display_name":          display_name,
             "allowed_pages":         parse_string_list(data.get("allowed_pages")),
             "is_admin":              parse_bool(data.get("is_admin")),
+            "role":                  (data.get("role")
+                                      or ("admin" if parse_bool(data.get("is_admin")) else "user")),
             "is_active":             parse_bool(data.get("is_active")),
             "can_view_activity_log": parse_bool(data.get("can_view_activity_log")),
             "allowed_departments":   parse_string_list(data.get("allowed_departments")) or None,
@@ -7607,6 +8083,24 @@ def dashboard_management_update_user(user_id):
                          extra_info=f"Updated dashboard user {email}")
             return jsonify({"success": True, "user": _serialize_dashboard_user(upd.data[0])})
         return jsonify({"success": False, "error": "Update failed."}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/dashboard-management/api/users/<int:user_id>", methods=["DELETE"])
+@login_required
+@dashboard_management_required_json
+def dashboard_management_delete_user(user_id):
+    try:
+        client = get_auth_supabase()
+        found = client.table("dashboard_users").select("id,email").eq("id", user_id).limit(1).execute()
+        if not found.data:
+            return jsonify({"success": False, "error": "User not found."}), 404
+        email = found.data[0].get("email") or f"id={user_id}"
+        client.table("dashboard_users").delete().eq("id", user_id).execute()
+        log_activity("DELETE", target_table="dashboard_users", target_record_id=user_id,
+                     extra_info=f"Deleted dashboard user {email}")
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -7801,7 +8295,7 @@ def qc_gui():
     qc_wallet     = request.args.get("qc_wallet",     "").strip()
     qc_date_from  = request.args.get("qc_date_from",  "").strip()
     qc_date_to    = request.args.get("qc_date_to",    "").strip()
-    is_admin = session.get("is_admin", False)
+    is_super_or_admin = is_admin_or_above(session)
     page = int(request.args.get("page_num", 1))
     items = []
     total_rows = 0
@@ -7818,7 +8312,7 @@ def qc_gui():
             query = query.gte("inserted_date", qc_date_from)
         if qc_date_to:
             query = query.lte("inserted_date", qc_date_to)
-        if not is_admin:
+        if not is_super_or_admin:
             query = query.or_("new_update_remark.is.null,new_update_remark.eq.NA,new_update_remark.eq.N/A")
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
@@ -7848,7 +8342,8 @@ def qc_gui():
         allowed_pages=allowed_pages,
         display_name=session.get("display_name", "User"),
         clean_display_name=clean_display_name,
-        is_admin=is_admin,
+        is_admin=is_super_or_admin,
+        role=session.get("role", "user"),
     )
 
 
@@ -7858,7 +8353,7 @@ def qc_gui_import():
     if "qc" not in session.get("allowed_pages", []):
         flash("Access denied.", "error")
         return redirect("/qc-gui")
-    if not session.get("is_admin", False):
+    if not is_admin_or_above(session):
         flash("Import is available for admin users only.", "error")
         return redirect("/qc-gui")
     temp_path = None
@@ -7905,7 +8400,7 @@ def qc_gui_import():
 def qc_gui_users():
     if "qc" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Access denied."})
-    if not session.get("is_admin", False):
+    if not is_admin_or_above(session):
         return jsonify({"success": False, "error": "Admin access required."})
     current_user_name = get_clean_display_name(session.get("display_name", "User")).strip()
     try:
@@ -7943,7 +8438,7 @@ def qc_gui_allotment():
     if "qc" not in session.get("allowed_pages", []):
         flash("Access denied.", "error")
         return redirect("/qc-gui")
-    if not session.get("is_admin", False):
+    if not is_admin_or_above(session):
         flash("QC Allotment is available for admin users only.", "error")
         return redirect("/qc-gui")
     temp_path = None
@@ -8163,7 +8658,7 @@ def qc_gui_delete():
 def qc_gui_tracker_stats():
     if "qc" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Access denied."})
-    if not session.get("is_admin", False):
+    if not is_admin_or_above(session):
         return jsonify({"success": False, "error": "Admin access required."})
     try:
         CHUNK = 1000
