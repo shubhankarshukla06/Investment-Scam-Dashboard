@@ -960,7 +960,9 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
-        transition: opacity 0.16s ease, visibility 0.16s ease;
+        transition:
+          opacity 0.16s ease,
+          visibility 0.16s ease;
       }
       .loading-overlay.active {
         opacity: 1;
@@ -979,176 +981,6 @@
         to {
           transform: rotate(360deg);
         }
-      }
-
-      /* Generate Reports banner */
-      .gr-banner {
-        border: 1.5px solid #a3d4ed;
-        border-left: 5px solid #3aa8e0;
-        border-radius: 8px;
-        background: linear-gradient(135deg, #e8f4fb 0%, #d6ecf5 100%);
-        padding: 14px 18px;
-        margin: 16px 0 18px;
-        box-shadow: 0 2px 8px rgba(58, 168, 224, 0.1);
-        animation: grSlideIn 0.25s ease-out;
-      }
-      @keyframes grSlideIn {
-        from {
-          opacity: 0;
-          transform: translateY(-6px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      .gr-banner-header {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 13px;
-        font-weight: 700;
-        color: #1c6fa6;
-        margin-bottom: 10px;
-      }
-      .gr-banner-header i {
-        font-size: 15px;
-        color: #3aa8e0;
-      }
-      .gr-banner-body {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: flex-end;
-      }
-      .gr-file-input-wrap {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex: 1;
-        min-width: 240px;
-        background: white;
-        border: 1.5px solid #a3d4ed;
-        border-radius: 6px;
-        padding: 6px 10px;
-      }
-      .gr-file-input-wrap input[type="file"] {
-        font-size: 12px;
-        color: #1c6fa6;
-        flex: 1;
-      }
-      .gr-btn {
-        background: #3aa8e0;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 8px 16px;
-        font-size: 12.5px;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        transition: background 0.15s ease;
-      }
-      .gr-btn:hover {
-        background: #1c6fa6;
-      }
-      .gr-btn:disabled {
-        background: #a3d4ed;
-        cursor: not-allowed;
-      }
-      .gr-btn-secondary {
-        background: white;
-        color: #3aa8e0;
-        border: 1.5px solid #3aa8e0;
-      }
-      .gr-btn-secondary:hover {
-        background: #e8f4fb;
-        color: #1c6fa6;
-      }
-      .gr-btn-stop {
-        background: #e74c3c;
-        color: white;
-        border: none;
-      }
-      .gr-btn-stop:hover {
-        background: #c0392b;
-      }
-      .gr-btn-ready {
-        background: #1f9d55 !important;
-        color: #fff !important;
-        border-color: #1f9d55 !important;
-        box-shadow:
-          0 0 0 3px rgba(31, 157, 85, 0.18),
-          0 8px 18px rgba(31, 157, 85, 0.22);
-      }
-      .gr-btn-ready:hover {
-        background: #16834a !important;
-      }
-      .gr-progress-section {
-        margin-top: 12px;
-        display: none;
-        background: white;
-        border: 1px solid #a3d4ed;
-        border-radius: 6px;
-        padding: 12px 14px;
-      }
-      .gr-progress-section.active {
-        display: block;
-      }
-      .gr-progress-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
-      }
-      .gr-progress-spinner {
-        width: 18px;
-        height: 18px;
-        border: 2.5px solid #cde8f5;
-        border-top: 2.5px solid #3aa8e0;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        flex-shrink: 0;
-      }
-      .gr-progress-row.gr-done .gr-progress-spinner {
-        display: none;
-      }
-      .gr-progress-label {
-        font-size: 12.5px;
-        font-weight: 600;
-        color: #1c6fa6;
-        flex: 1;
-      }
-      .gr-progress-path {
-        font-size: 11px;
-        color: #3d85ad;
-        font-family: monospace;
-        word-break: break-all;
-        margin-bottom: 8px;
-        max-height: 34px;
-        overflow-y: auto;
-      }
-      .gr-progress-track {
-        background: #cde8f5;
-        border-radius: 10px;
-        height: 10px;
-        overflow: hidden;
-      }
-      .gr-progress-fill {
-        background: linear-gradient(90deg, #3aa8e0, #7ec8e3);
-        height: 100%;
-        width: 0%;
-        transition: width 0.3s ease;
-        border-radius: 10px;
-      }
-      .gr-progress-stats {
-        font-size: 11px;
-        color: #3aa8e0;
-        margin-top: 6px;
-        font-weight: 600;
       }
     </style>
   </head>
@@ -1187,40 +1019,38 @@
               style="border: 2px solid #2c3e50; font-weight: 600"
               onchange="changeCaseReportPage(this.value)"
             >
-                    {% if 'scraping' in allowed_pages %}
-                    <option value="scraping">Data Scraping</option>
-                    {% endif %}
-                    {% if 'social' in allowed_pages %}
-                    <option value="social">Social Media Accounts</option>
-                    {% endif %}
-                    {% if 'investment' in allowed_pages %}
-                    <option value="investment">Investment Scam Data</option>
-                    {% endif %}
-                    {% if 'website_directory' in allowed_pages %}
-                    <option value="website_directory">Investment Website Directory</option>
-                    {% endif %}
-                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <option value="allotment">Website Case Assignment</option>
-                    {% endif %}
-                    {% if 'sheet' in allowed_pages %}
-                    <option value="sheet">Summary &amp; Sheet Generator</option>
-                    {% endif %}
-                    {% if 'case_report' in allowed_pages %}
-                    <option value="case_report" selected>Case &amp; Report Generator</option>
-                    {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <option value="insights">User Performance Dashboard</option>
-                    {% endif %}
-                    {% if 'qc' in allowed_pages %}
-                    <option value="qc">QC Review</option>
-                    {% endif %}
-                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-                    <option value="dashboard_management">User &amp; Access Management</option>
-                    {% endif %}
-                    {% if 'lunch' in allowed_pages %}
-                    <option value="lunch_break">Break Time Management</option>
-                    {% endif %}
-</select>
+              {% if 'scraping' in allowed_pages %}
+              <option value="scraping">Data Scraping</option>
+              {% endif %} {% if 'social' in allowed_pages %}
+              <option value="social">Social Media Accounts</option>
+              {% endif %} {% if 'investment' in allowed_pages %}
+              <option value="investment">Investment Scam Data</option>
+              {% endif %} {% if 'website_directory' in allowed_pages %}
+              <option value="website_directory">
+                Investment Website Directory
+              </option>
+              {% endif %} {% if 'allotment' in allowed_pages or
+              'allotment_admin' in allowed_pages %}
+              <option value="allotment">Website Case Assignment</option>
+              {% endif %} {% if 'sheet' in allowed_pages %}
+              <option value="sheet">Summary &amp; Sheet Generator</option>
+              {% endif %} {% if 'case_report' in allowed_pages %}
+              <option value="case_report" selected>
+                Case &amp; Report Generator
+              </option>
+              {% endif %} {% if 'insights' in allowed_pages %}
+              <option value="insights">User Performance Dashboard</option>
+              {% endif %} {% if 'qc' in allowed_pages %}
+              <option value="qc">QC Review</option>
+              {% endif %} {% if role == 'superadmin' and 'dashboard_management'
+              in allowed_pages %}
+              <option value="dashboard_management">
+                User &amp; Access Management
+              </option>
+              {% endif %} {% if 'lunch' in allowed_pages %}
+              <option value="lunch_break">Break Time Management</option>
+              {% endif %}
+            </select>
           </div>
           <button
             id="commonDetailsBtn"
@@ -1238,15 +1068,6 @@
             style="height: 34px; font-size: 12px"
           >
             <i class="fas fa-table"></i> View Data
-          </button>
-          <button
-            id="generateReportsBtn"
-            type="button"
-            class="btn btn-outline-secondary"
-            onclick="toggleGenerateReportsBanner()"
-            style="height: 34px; font-size: 12px"
-          >
-            <i class="fas fa-file-excel"></i> Generate Reports
           </button>
           <button
             class="btn btn-outline"
@@ -1279,91 +1100,6 @@
     </div>
     <!-- MAIN -->
     <div class="container">
-      <!-- GENERATE REPORTS BANNER (bulk Excel upload) -->
-      <div id="generateReportsBanner" class="gr-banner d-none">
-        <div class="gr-banner-header">
-          <i class="fas fa-file-excel"></i>
-          <span>Generate Reports in Bulk — Upload Excel File</span>
-          <button
-            type="button"
-            onclick="toggleGenerateReportsBanner()"
-            title="Close banner"
-            style="
-              margin-left: auto;
-              background: transparent;
-              border: none;
-              color: #3aa8e0;
-              font-size: 16px;
-              cursor: pointer;
-              padding: 2px 6px;
-            "
-          >
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
-        <div class="gr-banner-body">
-          <div style="flex: 1; min-width: 280px">
-            <div class="gr-file-input-wrap">
-              <i class="fas fa-paperclip" style="color: #3aa8e0"></i>
-              <input type="file" id="grExcelFile" accept=".xlsx,.xls" />
-              <span
-                id="grFileNameLabel"
-                style="
-                  font-size: 11.5px;
-                  color: #3d85ad;
-                  max-width: 140px;
-                  overflow: hidden;
-                  text-overflow: ellipsis;
-                  white-space: nowrap;
-                "
-              ></span>
-            </div>
-          </div>
-          <button
-            id="grStartBtn"
-            type="button"
-            class="gr-btn"
-            onclick="uploadGrExcel()"
-          >
-            <i class="fas fa-cloud-upload-alt"></i> Upload &amp; Start
-          </button>
-          <button
-            id="grStopBtn"
-            type="button"
-            class="gr-btn gr-btn-stop d-none"
-            onclick="stopGrJob()"
-          >
-            <i class="fas fa-stop-circle"></i> Stop
-          </button>
-          <button
-            id="grDownloadBtn"
-            type="button"
-            class="gr-btn gr-btn-secondary d-none"
-            onclick="downloadGrFile()"
-          >
-            <i class="fas fa-download"></i> Download Results
-          </button>
-        </div>
-
-        <div id="grProgressSection" class="gr-progress-section">
-          <div class="gr-progress-row" id="grProgressRow">
-            <div class="gr-progress-spinner"></div>
-            <span id="grProgressLabel" class="gr-progress-label"
-              >Reading Excel…</span
-            >
-          </div>
-          <div id="grProgressPath" class="gr-progress-path"></div>
-          <div class="gr-progress-track">
-            <div
-              id="grProgressFill"
-              class="gr-progress-fill"
-              style="width: 0%"
-            ></div>
-          </div>
-          <div id="grProgressStats" class="gr-progress-stats">0 / 0 rows</div>
-        </div>
-      </div>
-
       <!-- VIEW DATA POPUP MODAL -->
       <div class="modal-overlay" id="viewDataModal">
         <div class="modal-box" style="max-width: 1550px; width: 97%">
@@ -3412,7 +3148,10 @@
           return;
         }
         if (pageType === "case_report") return;
-        if (pageType === "dashboard_management") { window.location.href = "/dashboard-management"; return; }
+        if (pageType === "dashboard_management") {
+          window.location.href = "/dashboard-management";
+          return;
+        }
         window.location.href = "/?page=" + pageType;
       }
       function showLoading() {
@@ -3427,241 +3166,6 @@
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) hideLoading();
       });
-
-      // =================== Generate Reports (bulk Excel) ===================
-      let _grJobId = null;
-      let _grPollTimer = null;
-      let _grUploadedFilename = null;
-
-      function toggleGenerateReportsBanner() {
-        const banner = document.getElementById("generateReportsBanner");
-        const btn = document.getElementById("generateReportsBtn");
-        if (!banner) return;
-        const willShow = banner.classList.contains("d-none");
-        banner.classList.toggle("d-none");
-        [
-          "singleScreenshotCard",
-          "commonDetailsPanel",
-          "singleTransactionCard",
-          "progressSection",
-          "resultSection",
-          "errorSection",
-        ].forEach((id) => {
-          const el = document.getElementById(id);
-          if (el) el.classList.toggle("bulk-mode-hidden", willShow);
-        });
-        if (btn) {
-          btn.classList.toggle("btn-outline-secondary", !willShow);
-          btn.classList.toggle("btn-generate", willShow);
-        }
-      }
-
-      // show selected filename label
-      document.addEventListener("DOMContentLoaded", function () {
-        const fileInput = document.getElementById("grExcelFile");
-        const label = document.getElementById("grFileNameLabel");
-        if (fileInput && label) {
-          fileInput.addEventListener("change", function () {
-            if (fileInput.files && fileInput.files[0]) {
-              label.textContent = fileInput.files[0].name;
-            } else {
-              label.textContent = "";
-            }
-          });
-        }
-      });
-
-      function _grSetProgress(completed, total, label, currentPath) {
-        const fillEl = document.getElementById("grProgressFill");
-        const statsEl = document.getElementById("grProgressStats");
-        const labelEl = document.getElementById("grProgressLabel");
-        const pathEl = document.getElementById("grProgressPath");
-        const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-        if (fillEl) fillEl.style.width = pct + "%";
-        if (statsEl)
-          statsEl.textContent =
-            completed + " / " + total + " rows  (" + pct + "%)";
-        if (labelEl) labelEl.textContent = label || "Processing…";
-        if (pathEl && currentPath) pathEl.textContent = currentPath;
-        if (label !== "__keep_done__") {
-          document.getElementById("grProgressRow")?.classList.remove("gr-done");
-        }
-      }
-
-      function _grSetStoppedUI() {
-        const stopBtn = document.getElementById("grStopBtn");
-        const startBtn = document.getElementById("grStartBtn");
-        const fileInput = document.getElementById("grExcelFile");
-        if (stopBtn) {
-          stopBtn.classList.add("d-none");
-          stopBtn.disabled = false;
-        }
-        if (startBtn) startBtn.disabled = false;
-        if (fileInput) fileInput.disabled = false;
-      }
-
-      async function uploadGrExcel() {
-        const fileInput = document.getElementById("grExcelFile");
-        const startBtn = document.getElementById("grStartBtn");
-        const stopBtn = document.getElementById("grStopBtn");
-        const dlBtn = document.getElementById("grDownloadBtn");
-        const progress = document.getElementById("grProgressSection");
-
-        if (!fileInput.files || !fileInput.files[0]) {
-          alert("Please select an Excel file first.");
-          return;
-        }
-
-        // reset UI
-        document.getElementById("grProgressRow")?.classList.remove("gr-done");
-        if (dlBtn) {
-          dlBtn.classList.add("d-none");
-          dlBtn.classList.remove("gr-btn-ready");
-        }
-        if (progress) progress.classList.add("active");
-        _grSetProgress(0, 0, "Uploading file…", "");
-        if (startBtn) startBtn.disabled = true;
-        if (fileInput) fileInput.disabled = true;
-        if (stopBtn) stopBtn.classList.remove("d-none");
-
-        const form = new FormData();
-        form.append("excel_file", fileInput.files[0]);
-
-        try {
-          const resp = await fetch("/bulk-generate-cases", {
-            method: "POST",
-            body: form,
-          });
-          const data = await resp.json();
-          if (!resp.ok || data.status !== "success") {
-            _grSetStoppedUI();
-            _grSetProgress(
-              0,
-              0,
-              "Upload failed: " + (data.message || "Unknown error"),
-              "",
-            );
-            return;
-          }
-          _grJobId = data.job_id;
-          _grUploadedFilename = fileInput.files[0].name;
-          if (startBtn) startBtn.disabled = true;
-          _pollGrStatus();
-        } catch (err) {
-          _grSetStoppedUI();
-          _grSetProgress(0, 0, "Network error: " + err.message, "");
-        }
-      }
-
-      function _pollGrStatus() {
-        if (_grPollTimer) clearTimeout(_grPollTimer);
-        if (!_grJobId) return;
-        fetch("/bulk-generate-cases-status/" + _grJobId)
-          .then((r) => r.json())
-          .then((data) => {
-            if (!data || data.status === "error") {
-              _grSetStoppedUI();
-              _grSetProgress(
-                0,
-                0,
-                "Job lost: " + ((data && data.message) || ""),
-                "",
-              );
-              return;
-            }
-            const completed = data.completed || 0;
-            const total = data.total || 0;
-            const pathTxt =
-              data.current_path ||
-              (data.results && data.results.length
-                ? data.results[data.results.length - 1].title || ""
-                : "");
-            let phaseLabel = "Processing…";
-            if (data.phase === "reading") phaseLabel = "Reading Excel rows…";
-            if (data.phase === "generating")
-              phaseLabel =
-                "Generating case " + (completed + 1) + " of " + total + "…";
-            if (data.phase === "finalizing")
-              phaseLabel = "Building output Excel…";
-            _grSetProgress(completed, total, phaseLabel, pathTxt);
-
-            if (data.status === "running") {
-              _grPollTimer = setTimeout(_pollGrStatus, 1500);
-              return;
-            }
-
-            // finished (success / failed / stopped)
-            if (data.status === "success") {
-              _grSetProgress(
-                total,
-                total,
-                "Done! " + total + " row(s) processed.",
-                "",
-              );
-              document
-                .getElementById("grProgressRow")
-                ?.classList.add("gr-done");
-            } else if (data.status === "stopped") {
-              _grSetProgress(
-                completed,
-                total,
-                "Stopped at " + completed + " / " + total + ".",
-                "",
-              );
-            } else if (data.status === "failed") {
-              _grSetProgress(
-                completed,
-                total,
-                "Failed: " + (data.message || ""),
-                "",
-              );
-            }
-            _grSetStoppedUI();
-            // show download button if available
-            if (data.final_excel) {
-              const dl = document.getElementById("grDownloadBtn");
-              if (dl) {
-                dl.classList.remove("d-none");
-                dl.classList.add("gr-btn-ready");
-              }
-              const stopBtn = document.getElementById("grStopBtn");
-              if (stopBtn) stopBtn.classList.add("d-none");
-            }
-          })
-          .catch((err) => {
-            _grSetProgress(0, 0, "Polling error: " + err.message, "");
-            _grPollTimer = setTimeout(_pollGrStatus, 3000);
-          });
-      }
-
-      async function stopGrJob() {
-        if (!_grJobId) return;
-        try {
-          await fetch("/stop-bulk-generate-job/" + _grJobId, {
-            method: "POST",
-          });
-          const stopBtn = document.getElementById("grStopBtn");
-          if (stopBtn) stopBtn.disabled = true;
-        } catch (err) {
-          // ignore — status poll will pick up the state eventually
-        }
-      }
-
-      function downloadGrFile() {
-        if (!_grJobId) return;
-        window.location.href = "/download-bulk-generate/" + _grJobId;
-      }
-
-      // filename label sync (in case DOMContentLoaded already fired)
-      (function () {
-        const fi = document.getElementById("grExcelFile");
-        const lb = document.getElementById("grFileNameLabel");
-        if (fi && lb) {
-          fi.addEventListener("change", function () {
-            lb.textContent = fi.files && fi.files[0] ? fi.files[0].name : "";
-          });
-        }
-      })();
 
       createSlot();
       selectTxType("upi"); // default UPI section open

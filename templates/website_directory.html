@@ -610,6 +610,18 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
                             <input type="date" id="ins_bulk_date">
                         </div>
                         <div class="form-group">
+                            <label>Invitation Code</label>
+                            <input type="text" id="ins_bulk_invitation_code" placeholder="Common invitation code">
+                        </div>
+                        <div class="form-group">
+                            <label>ID</label>
+                            <input type="text" id="ins_bulk_login_id" placeholder="Common login ID / username">
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="text" id="ins_bulk_password" placeholder="Common password">
+                        </div>
+                        <div class="form-group">
                             <label>Search For</label>
                             <select id="ins_bulk_search_for">
                                 <option value="">-- Select --</option>
@@ -2352,6 +2364,10 @@ function switchInsertTab(tab) {
     if (!isSingle) {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('ins_bulk_date').value = today;
+        ['ins_bulk_invitation_code','ins_bulk_login_id','ins_bulk_password'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
         document.getElementById('ins_bulk_url_input').value = '';
         document.getElementById('ins_bulk_url_count').textContent = '';
         document.getElementById('ins_bulk_preview_area').style.display = 'none';
@@ -2371,19 +2387,21 @@ async function parseInsBulkUrls() {
     if (!lines.length) { showToast('First Paste URLs!', 'err'); return; }
     const gf = id => (document.getElementById(id) || {}).value || '';
     const common = {
-        date:           gf('ins_bulk_date'),
-        search_for:     gf('ins_bulk_search_for'),
-        group_app_name: gf('ins_bulk_group_app_name'),
-        name:           _loggedInName,
-        remark:         'IPG',
-        origin:         gf('ins_bulk_origin'),
-        category:       gf('ins_bulk_category'),
+        date:            gf('ins_bulk_date'),
+        invitation_code: gf('ins_bulk_invitation_code'),
+        login_id:        gf('ins_bulk_login_id'),
+        password:        gf('ins_bulk_password'),
+        search_for:      gf('ins_bulk_search_for'),
+        group_app_name:  gf('ins_bulk_group_app_name'),
+        name:            _loggedInName,
+        remark:          'IPG',
+        origin:          gf('ins_bulk_origin'),
+        category:        gf('ins_bulk_category'),
     };
     _insBulkRows = lines.map(url => ({
         url,
         final_url: url,
-        invitation_code: '',
-        number: '', email: '', login_id: '', password: '',
+        number: '', email: '',
         automated_website: '', payment_gateway: '',
         _status: 'checking',
         ...common
