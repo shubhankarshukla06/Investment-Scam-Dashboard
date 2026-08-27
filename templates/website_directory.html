@@ -2,11 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Scam Intelligence GUI</title>
-<link rel="icon" type="image/png" href="/static/favicon.png">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 (function () {
     try {
@@ -16,6 +11,12 @@
     } catch (e) {}
 })();
 </script>
+<style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scam Intelligence GUI</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
 body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
@@ -278,7 +279,7 @@ body.theme-dark {
     font-family:Inter,'Segoe UI',Roboto,sans-serif;
     scrollbar-color:#475569 #111827;
 }
-html.theme-switching * { transition:background-color .26s ease,border-color .26s ease,color .26s ease,box-shadow .26s ease,opacity .26s ease; }
+html.theme-switching * { transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease; }
 body.theme-dark ::-webkit-scrollbar { width:8px; height:8px; }
 body.theme-dark ::-webkit-scrollbar-track { background:#111827; }
 body.theme-dark ::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
@@ -462,7 +463,15 @@ body.theme-dark select option { background:#0F172A !important; color:#F8FAFC !im
 html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
-    transition:background-color .26s ease, color .26s ease, border-color .26s ease, box-shadow .26s ease, opacity .26s ease !important;
+    transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease !important;
+}
+html.theme-switching .fixed-header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+html.theme-switching .table-container *,
+html.theme-switching .ual-table * {
+    transition: none !important;
 }
 body.theme-dark .header:hover,
 body.theme-dark .t-card:hover,
@@ -474,6 +483,11 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
 </style>
 </head>
 <body>
+<script>
+if (document.documentElement.classList.contains('theme-dark-preload')) {
+    document.body.classList.add('theme-dark');
+}
+</script>
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 <!-- Tracker Modal -->
 <div class="modal-overlay" id="trackerModal">
@@ -1506,7 +1520,7 @@ function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
     if (animate) document.documentElement.classList.add('theme-switching');
     document.body.classList.toggle('theme-dark', selectedMode === 'dark');
-    document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
+    document.documentElement.classList.remove('theme-dark-preload');
     try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
     const select = document.getElementById('themeModeSelect');
     if (select) select.value = selectedMode;
@@ -2401,9 +2415,19 @@ async function parseInsBulkUrls() {
         origin:          gf('ins_bulk_origin'),
         category:        gf('ins_bulk_category'),
     };
+    // Final URL cleaning — Investment Scam ke liye single entry jaisa
+    // "clean URL" (scheme + hostname only, no path/query/hash) lagu karo.
+    // Baaki categories mein pasted URL hi final_url banega (existing behaviour).
+    const bulkCleanFinalUrl = (rawUrl) => {
+        if ((common.category || '') === 'Investment Scam') {
+            const { finalUrl } = extractUrlParts(rawUrl);
+            return finalUrl || rawUrl;
+        }
+        return rawUrl;
+    };
     _insBulkRows = lines.map(url => ({
         url,
-        final_url: url,
+        final_url: bulkCleanFinalUrl(url),
         number: '', email: '',
         automated_website: '', payment_gateway: '',
         _status: 'checking',

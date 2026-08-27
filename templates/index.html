@@ -2,11 +2,6 @@
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Scam Intelligence GUI</title>
-        <link rel="icon" type="image/png" href="/static/favicon.png">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
         <script>
             (function () {
                 try {
@@ -16,6 +11,12 @@
                 } catch (e) {}
             })();
         </script>
+        <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Scam Intelligence GUI</title>
+        <link rel="icon" type="image/png" href="/static/favicon.png">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
             body { background: #f5f7fa; color: #333; min-height: 100vh; overflow-x: hidden; }
@@ -922,7 +923,7 @@
                 font-family: Inter, 'Segoe UI', Roboto, sans-serif;
                 scrollbar-color: #475569 #111827;
             }
-            html.theme-switching * { transition: background-color 0.26s ease, border-color 0.26s ease, color 0.26s ease, box-shadow 0.26s ease, opacity 0.26s ease; }
+            html.theme-switching * { transition: background-color 0.26s ease, border-color 0.26s ease, color 0.26s ease; }
             body.theme-dark ::-webkit-scrollbar { width: 8px; height: 8px; }
             body.theme-dark ::-webkit-scrollbar-track { background: #111827; }
             body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
@@ -1157,10 +1158,29 @@
             .pagination {
                 border-radius: 12px;
             }
-            html.theme-switching *,
-            html.theme-switching *::before,
-            html.theme-switching *::after {
-                transition: background-color .26s ease, color .26s ease, border-color .26s ease, box-shadow .26s ease, opacity .26s ease !important;
+            html.theme-switching * {
+                transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease !important;
+            }
+            /* Disable the fixed-header blur during the switch so the browser does not
+               re-rasterize the backdrop over the whole viewport on every animation frame.
+               The header keeps its semi-transparent background, so there is no visible pop. */
+            html.theme-switching .fixed-header {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            /* BOTTLENECK FIX: large DB-backed tables (.table-container, the scraping input
+               grid, the activity log, the sheet preview) can contain thousands of
+               <tr>/<td> nodes. Transitioning every cell individually on a theme switch is
+               what causes the stutter on the Data Scraping / Social / Investment pages
+               (their trees are far larger than Summary / Sheet Generator). Let those grids
+               update instantly while the surrounding chrome (header, cards, inputs, buttons,
+               modals) still cross-fades smoothly. This cuts the animated-node count from
+               thousands to a few dozen -> no per-frame jank. */
+            html.theme-switching .table-container *,
+            html.theme-switching #scrapInsertRowsArea *,
+            html.theme-switching .ual-table *,
+            html.theme-switching .preview-table-container * {
+                transition: none !important;
             }
             body.theme-dark .scraping-page .filter-group select,
             body.theme-dark .investment-page .filter-group select,
@@ -1242,6 +1262,11 @@
         </style>
     </head>
     <body>
+    <script>
+    if (document.documentElement.classList.contains('theme-dark-preload')) {
+        document.body.classList.add('theme-dark');
+    }
+    </script>
         <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
         <!-- Social Tracker Modal -->
         <div class="tracker-modal" id="trackerModal">
@@ -1628,7 +1653,7 @@
                             <tr>
                                 <th class="scrap-action-col" style="display:none;">Action</th>
                                 <th>ID</th>
-                                <th>Share Status</th>
+                                <th class="share-status-col" style="{% if not request.args.get('share_status') %}display:none;{% endif %}">Share Status</th>
                                 <th>Name</th>
                                 <th>Platform</th>
                                 <th>Post URL</th>
@@ -1649,7 +1674,7 @@
                                     </button>
                                 </td>
                                 <td><strong style="color:#2c3e50;">#{{ item["id"] }}</strong></td>
-                                <td>
+                                <td class="share-status-col" style="{% if not request.args.get('share_status') %}display:none;{% endif %}">
                                     {% if item.get("share_status") and item["share_status"] not in ["NA","N/A",""] %}
                                     <span style="background:#f3e5f5;color:#6a1a9a;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">{{ item["share_status"] }}</span>
                                     {% else %}
@@ -2281,7 +2306,7 @@
                                     style="width:100%;padding:7px 8px;border:1px solid {% if social_status_filter %}#3498db{% else %}#ddd{% endif %};border-radius:5px;font-size:12px;height:32px;background:{% if social_status_filter %}#ebf5fb{% else %}white{% endif %};cursor:pointer;outline:none;">
                                     <option value="">All Status (excl. Perm. Block)</option>
                                     <option value="Active" {% if social_status_filter == 'Active' %}selected{% endif %}>🟢 Active</option>
-                                    <option value="Block" {% if social_status_filter == 'Block' %}selected{% endif %}>🔴 Block</option>
+                                    <option value="Temporarily Block" {% if social_status_filter == 'Temporarily Block' %}selected{% endif %}>🔴 Temporarily Block</option>
                                     <option value="Restricted" {% if social_status_filter == 'Restricted' %}selected{% endif %}>🟡 Restricted</option>
                                     <option value="Frozen" {% if social_status_filter == 'Frozen' %}selected{% endif %}>🔵 Frozen</option>
                                 </select>
@@ -2342,7 +2367,7 @@
                                 <th data-col="account_status">Account Status</th>
                                 <th data-col="review_status">Review Status</th>
                                 <th data-col="number_type">Number Type</th>
-                                <th data-col="blocked_date">Blocked Date</th>
+                                <th data-col="blocked_date">Temporarily Blocked Date</th>
                                 <th data-col="unblocked_date">Unblocked Date</th>
                                 <th data-col="account_create_date">Account Create Date</th>
                                 <th data-col="sim_operator">Sim Operator</th>
@@ -2910,17 +2935,17 @@
                 }
             }
             const PLATFORM_ACCOUNT_STATUS = {
-                "Facebook":["Active","Block","Restricted","Permanent Block"],
-                "Instagram":["Active","Block","Permanent Block"],
+                "Facebook":["Active","Temporarily Block","Restricted","Permanent Block"],
+                "Instagram":["Active","Temporarily Block","Permanent Block"],
                 "Telegram":["Active","Frozen","Permanent Block"],
-                "WhatsApp":["Active","Block","Permanent Block","Restricted"],
-                "Amazon":["Active","Block","Permanent Block"],
-                "Gmail Accounts":["Active","Block","Permanent Block"],
-                "Total Numbers":["Active","Block","Permanent Block"]
+                "WhatsApp":["Active","Temporarily Block","Permanent Block","Restricted"],
+                "Amazon":["Active","Temporarily Block","Permanent Block"],
+                "Gmail Accounts":["Active","Temporarily Block","Permanent Block"],
+                "Total Numbers":["Active","Temporarily Block","Permanent Block"]
             };
-            const STATUS_BG_CLASS = { 'Active':'status-bg-active','Block':'status-bg-block','Blocked':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
-            const STATUS_NAME_CLASS = { 'Active':'color-active','Block':'color-block','Blocked':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
-            const STATUS_COUNT_CLASS = { 'Active':'count-active','Block':'count-block','Blocked':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
+            const STATUS_BG_CLASS = { 'Active':'status-bg-active','Temporarily Block':'status-bg-block','Block':'status-bg-block','Blocked':'status-bg-block','Restricted':'status-bg-restricted','Frozen':'status-bg-frozen','Permanent Block':'status-bg-permanent' };
+            const STATUS_NAME_CLASS = { 'Active':'color-active','Temporarily Block':'color-block','Block':'color-block','Blocked':'color-block','Restricted':'color-restricted','Frozen':'color-frozen','Permanent Block':'color-permanent' };
+            const STATUS_COUNT_CLASS = { 'Active':'count-active','Temporarily Block':'count-block','Block':'count-block','Blocked':'count-block','Restricted':'count-restricted','Frozen':'count-frozen','Permanent Block':'count-permanent' };
             let trackerCurrentView = 'active';
             let cachedTrackerStats = null;
             let scrapingCurrentView = 'scam';
@@ -2937,7 +2962,7 @@
                 const selectedMode = mode === 'dark' ? 'dark' : 'light';
                 if (animate) document.documentElement.classList.add('theme-switching');
                 document.body.classList.toggle('theme-dark', selectedMode === 'dark');
-                document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
+                document.documentElement.classList.remove('theme-dark-preload');
                 try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
                 const select = document.getElementById('themeModeSelect');
                 if (select) select.value = selectedMode;
@@ -3309,13 +3334,13 @@
                 }
             }
             const PLATFORM_STATUS_MAP = {
-                "Facebook":       ["Active","Block","Restricted","Permanent Block"],
-                "Instagram":      ["Active","Block","Permanent Block"],
+                "Facebook":       ["Active","Temporarily Block","Restricted","Permanent Block"],
+                "Instagram":      ["Active","Temporarily Block","Permanent Block"],
                 "Telegram":       ["Active","Frozen","Permanent Block"],
-                "WhatsApp":       ["Active","Block","Permanent Block","Restricted"],
-                "Amazon":         ["Active","Block","Permanent Block"],
-                "Gmail Accounts": ["Active","Block","Permanent Block"],
-                "Total Numbers":  ["Active","Block","Permanent Block"]
+                "WhatsApp":       ["Active","Temporarily Block","Permanent Block","Restricted"],
+                "Amazon":         ["Active","Temporarily Block","Permanent Block"],
+                "Gmail Accounts": ["Active","Temporarily Block","Permanent Block"],
+                "Total Numbers":  ["Active","Temporarily Block","Permanent Block"]
             };
             const DRAWER_FIELDS = [
                 { key: 'login_user',          label: 'Login User',         type: 'text' },
@@ -3329,7 +3354,7 @@
                 { key: 'account_status',      label: 'Account Status',     type: 'status_select' },
                 { key: 'review_status',       label: 'Review Status',      type: 'review_select' },
                 { key: 'account_create_date', label: 'Account Create Date',type: 'date' },
-                { key: 'blocked_date',        label: 'Blocked Date',       type: 'date' },
+                { key: 'blocked_date',        label: 'Temporarily Blocked Date', type: 'date' },
                 { key: 'unblock_date',        label: 'Unblock Date',       type: 'date' },
                 { key: 'recharge_date',       label: 'Recharge Date',      type: 'date' },
                 { key: 'sim_buy_date',        label: 'SIM Buy Date',       type: 'date' },
@@ -3367,7 +3392,7 @@
                     div.className = 'edit-drawer-field';
                     let inputHtml = '';
                     if (field.type === 'status_select') {
-                        const statuses = PLATFORM_STATUS_MAP[platform] || ['Active','Block','Restricted','Frozen','Permanent Block'];
+                        const statuses = PLATFORM_STATUS_MAP[platform] || ['Active','Temporarily Block','Restricted','Frozen','Permanent Block'];
                         const opts = statuses.map(s => `<option value="${s}" ${currentVal === s ? 'selected' : ''}>${s}</option>`).join('');
                         inputHtml = `<select id="edf_${field.key}" onchange="_editDrawerChanges['${field.key}']=this.value">
                             ${opts}
@@ -5693,10 +5718,10 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                 number:              { label: 'Number',               type: 'text',   placeholder: 'e.g. +91XXXXXXXXXX' },
                 login_device:        { label: 'Login Device',         type: 'text',   placeholder: 'e.g. Redmi Note 12' },
                 sim_inserted_device: { label: 'SIM Inserted Device',  type: 'text',   placeholder: 'e.g. Samsung Galaxy' },
-                account_status:      { label: 'Account Status',       type: 'select', options: ['Active','Block','Restricted','Frozen','Permanent Block'] },
+                account_status:      { label: 'Account Status',       type: 'select', options: ['Active','Temporarily Block','Restricted','Frozen','Permanent Block'] },
                 review_status:       { label: 'Review Status',        type: 'select', options: ['NA','Send','Appeal Submit','Video Verification Done'] },
                 number_type:         { label: 'Number Type',          type: 'select', options: ['Prepaid','Postpaid','Disposable Number','NA'] },
-                blocked_date:        { label: 'Blocked Date',         type: 'date' },
+                blocked_date:        { label: 'Temporarily Blocked Date', type: 'date' },
                 unblock_date:        { label: 'Unblock Date',         type: 'date' },
                 account_create_date: { label: 'Account Create Date',  type: 'date' },
                 sim_operator:        { label: 'SIM Operator',         type: 'text',   placeholder: 'e.g. Jio, Airtel' },

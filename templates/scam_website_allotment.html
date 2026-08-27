@@ -2,9 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Scam++ Website Allotment</title>
-<link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script>
 (function () {
     try {
@@ -14,6 +11,10 @@
     } catch (e) {}
 })();
 </script>
+<style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+<title>Scam++ Website Allotment</title>
+<link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     :root{ --fixed-header-space: 92px; --allot-filter-space: 102px; }
     * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
@@ -43,7 +44,7 @@
     .filters { background:#fff; border-radius:8px; padding:10px 12px; margin-bottom:10px; box-shadow:0 1px 4px rgba(0,0,0,0.06); position:sticky; top:calc(var(--fixed-header-space) - 6px); z-index:900; }
     .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px; }
     .filters-header h2 { font-size:14px; display:flex; align-items:center; gap:8px; }
-    .filters-grid { display:grid; grid-template-columns:1.1fr 1.1fr 1fr 1fr 1fr auto; gap:8px; align-items:end; }
+    .filters-grid { display:grid; grid-template-columns:1.1fr 1fr 1fr 1fr 1.3fr auto; gap:8px; align-items:end; }
     .filter-group label { font-size:11px; font-weight:600; color:#555; display:flex; align-items:center; gap:5px; margin-bottom:4px; }
     .filter-group input, .filter-group select { width:100%; padding:5px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; height:30px; }
     .search-box { position:relative; }
@@ -145,7 +146,7 @@
         font-family:Inter,'Segoe UI',Roboto,sans-serif;
         scrollbar-color:#475569 #111827;
     }
-    html.theme-switching * { transition:background-color .26s ease,border-color .26s ease,color .26s ease,box-shadow .26s ease,opacity .26s ease; }
+    html.theme-switching * { transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease; }
     body.theme-dark ::-webkit-scrollbar { width:8px; height:8px; }
     body.theme-dark ::-webkit-scrollbar-track { background:#111827; }
     body.theme-dark ::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
@@ -294,7 +295,14 @@
     html.theme-switching *,
     html.theme-switching *::before,
     html.theme-switching *::after {
-        transition:background-color .26s ease, color .26s ease, border-color .26s ease, box-shadow .26s ease, opacity .26s ease !important;
+        transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease !important;
+    }
+    html.theme-switching .fixed-header {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    html.theme-switching .table-wrap * {
+        transition: none !important;
     }
     body.theme-dark .header:hover,
     body.theme-dark .btn:hover,
@@ -304,6 +312,11 @@
 </style>
 </head>
 <body>
+<script>
+if (document.documentElement.classList.contains('theme-dark-preload')) {
+    document.body.classList.add('theme-dark');
+}
+</script>
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
 <div class="toast" id="toast"></div>
 
@@ -411,12 +424,23 @@
                     <i class="fas fa-chart-pie"></i> Loading...
                 </span>
                 <span class="target-completed-banner-mini" id="targetCompletedBanner" style="{% if not target_completed %}display:none;{% endif %}">
-                    <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}! You've successfully completed your target.Keep up the consistency! 🎉
+                    <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}!, target complete! Keep this streak alive. 🔥
                 </span>
             </div>
         </div>
         <form method="GET" action="/scam-website-allotment" id="filterForm">
             <div class="filters-grid">
+                {% if is_admin_allot %}
+                <div class="filter-group">
+                    <label><i class="fas fa-user-check"></i> Allotted User Name</label>
+                    <select name="sa_alloted_user" onchange="this.form.submit()">
+                        <option value="">All Users</option>
+                        {% for uname, ucount in allotment_user_counts %}
+                        <option value="{{ uname }}" {% if sa_alloted_user == uname %}selected{% endif %}>{{ uname.split('(')[0].strip() }} ({{ ucount }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
                 <div class="filter-group">
                     <label><i class="fas fa-tags"></i> Category</label>
                     <select name="sa_category" onchange="this.form.submit()">
@@ -446,12 +470,12 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label><i class="fas fa-calendar"></i> Date From</label>
-                    <input type="date" id="saDateFrom" name="sa_date_from" value="{{ sa_date_from }}" onchange="this.form.submit()">
-                </div>
-                <div class="filter-group">
-                    <label><i class="fas fa-calendar"></i> Date To</label>
-                    <input type="date" id="saDateTo" name="sa_date_to" value="{{ sa_date_to }}" onchange="this.form.submit()">
+                    <label><i class="fas fa-calendar"></i> Date</label>
+                    <div style="display:flex; gap:6px; align-items:flex-end;">
+                        <input type="date" id="saDateFrom" name="sa_date_from" value="{{ sa_date_from }}" onchange="this.form.submit()" title="Date From" style="flex:1; min-width:0;">
+                        <span style="color:#7f8c8d; font-size:12px;">–</span>
+                        <input type="date" id="saDateTo" name="sa_date_to" value="{{ sa_date_to }}" onchange="this.form.submit()" title="Date To" style="flex:1; min-width:0;">
+                    </div>
                 </div>
                 <div class="filter-group filter-actions">
                     <button type="submit" class="btn btn-primary" style="height:30px;">
@@ -766,7 +790,7 @@ function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
     if (animate) document.documentElement.classList.add('theme-switching');
     document.body.classList.toggle('theme-dark', selectedMode === 'dark');
-    document.documentElement.classList.toggle('theme-dark-preload', selectedMode === 'dark');
+    document.documentElement.classList.remove('theme-dark-preload');
     try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
     const select = document.getElementById('themeModeSelect');
     if (select) select.value = selectedMode;

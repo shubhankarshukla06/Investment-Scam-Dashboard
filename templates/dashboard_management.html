@@ -2,13 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>User &amp; Access Management — Scam Intelligence GUI</title>
-    <link rel="icon" type="image/png" href="/static/favicon.png" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
     <script>
       (function () {
         try {
@@ -17,6 +10,14 @@
         } catch (e) {}
       })();
     </script>
+    <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User &amp; Access Management — Scam Intelligence GUI</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <style>
       * {
         margin: 0;
@@ -933,6 +934,11 @@
     </style>
   </head>
   <body>
+  <script>
+  if (document.documentElement.classList.contains('theme-dark-preload')) {
+      document.body.classList.add('theme-dark');
+  }
+  </script>
     <div class="fixed-header">
       <div class="header">
         <div class="logo">
@@ -2648,10 +2654,7 @@
       function setGuiTheme(mode) {
         const selectedMode = mode === "dark" ? "dark" : "light";
         document.body.classList.toggle("theme-dark", selectedMode === "dark");
-        document.documentElement.classList.toggle(
-          "theme-dark-preload",
-          selectedMode === "dark",
-        );
+        document.documentElement.classList.remove("theme-dark-preload");
         try {
           localStorage.setItem("scamGuiTheme", selectedMode);
         } catch (e) {}

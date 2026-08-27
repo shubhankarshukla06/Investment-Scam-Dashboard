@@ -9,7 +9,7 @@ import json
 from pathlib import Path
 import tempfile
 from werkzeug.utils import secure_filename
-from supabase import create_client, Client
+from supabase import create_client, Client, ClientOptions
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
 import re
@@ -54,10 +54,20 @@ app.permanent_session_lifetime = timedelta(hours=8)
 # AUTH HELPERS
 # ============================================================
     
+# Cap PostgREST timeouts below Cloudflare's ~60s wait window so a slow
+# Supabase query fails fast inside Python with a clear exception, instead
+# of being silently killed by Cloudflare with a 522 "Connection timed out"
+# page that breaks downstream `json.loads(error)` paths.
+_SUPABASE_CLIENT_OPTS = ClientOptions(
+    postgrest_client_timeout=30,   # select/insert/update/delete queries
+    storage_client_timeout=30,    # file storage
+    function_client_timeout=30,   # edge functions
+)
+
 def get_auth_supabase():
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
-    return create_client(url, key)
+    return create_client(url, key, options=_SUPABASE_CLIENT_OPTS)
 
 DEMO_ADMIN = {
     "id": 0,
@@ -155,7 +165,8 @@ IFSC_MAPPING_PATH = EXCEL_FOLDER_PATH / "ifsc_mapping.xlsx"
 
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
-    os.environ.get("SUPABASE_KEY")
+    os.environ.get("SUPABASE_KEY"),
+    options=_SUPABASE_CLIENT_OPTS,
 )
 social_supabase: Client = supabase
 
@@ -238,14 +249,42 @@ ALL_EMPLOYEES = [
 ]
 
 PLATFORM_ACCOUNT_STATUS = {
-    "Facebook": ["Active", "Block", "Restricted", "Permanent Block"],
-    "Instagram": ["Active", "Block", "Permanent Block"],
+    "Facebook": ["Active", "Temporarily Block", "Restricted", "Permanent Block"],
+    "Instagram": ["Active", "Temporarily Block", "Permanent Block"],
     "Telegram": ["Active", "Frozen", "Permanent Block"],
-    "WhatsApp": ["Active", "Block", "Permanent Block", "Restricted"],
-    "Amazon": ["Active", "Block", "Permanent Block"],
-    "Gmail Accounts": ["Active", "Block", "Permanent Block"],
-    "Total Numbers": ["Active", "Block", "Permanent Block"],
+    "WhatsApp": ["Active", "Temporarily Block", "Permanent Block", "Restricted"],
+    "Amazon": ["Active", "Temporarily Block", "Permanent Block"],
+    "Gmail Accounts": ["Active", "Temporarily Block", "Permanent Block"],
+    "Total Numbers": ["Active", "Temporarily Block", "Permanent Block"],
 }
+TEMPORARY_BLOCK_STATUS = "Temporarily Block"
+LEGACY_TEMPORARY_BLOCK_STATUSES = {"Block", "Blocked"}
+
+
+def normalize_social_account_status(value):
+    """Canonicalize old social-account block status values.
+
+    Older rows/UI builds used "Block" (and a few display helpers also tolerated
+    "Blocked"). The current product label and database value is
+    "Temporarily Block".
+    """
+    status = str(value or "").strip()
+    if status in LEGACY_TEMPORARY_BLOCK_STATUSES:
+        return TEMPORARY_BLOCK_STATUS
+    return status or "Active"
+
+
+def normalize_social_account_row(row):
+    normalized = dict(row or {})
+    normalized["account_status"] = normalize_social_account_status(normalized.get("account_status"))
+    return normalized
+
+
+def apply_social_status_filter(query, status):
+    normalized_status = normalize_social_account_status(status)
+    if normalized_status == TEMPORARY_BLOCK_STATUS:
+        return query.in_("account_status", [TEMPORARY_BLOCK_STATUS, *LEGACY_TEMPORARY_BLOCK_STATUSES])
+    return query.eq("account_status", normalized_status)
 
 BS_INVESTMENT_COLUMNS = [
     "id", "bank_account_number", "bank_name", "upi_vpa", "screenshot",
@@ -1261,14 +1300,14 @@ def index():
                 query = query.eq("account_status", "Permanent Block")
             else:
                 if social_status_filter:
-                    query = query.eq("account_status", social_status_filter)
+                    query = apply_social_status_filter(query, social_status_filter)
                 else:
                     query = query.neq("account_status", "Permanent Block")
             query = query.order("id", desc=False)
             offset = (page - 1) * PER_PAGE
             query = query.range(offset, offset + PER_PAGE - 1)
             response = query.execute()
-            items = [dict(row) for row in (response.data or [])]
+            items = [normalize_social_account_row(row) for row in (response.data or [])]
             total_rows = response.count or 0
             total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
             print(f"[DEBUG] Social items: {len(items)}, total: {total_rows}")
@@ -1456,7 +1495,7 @@ def _csv_text(rows, fieldnames, include_bom=False, include_header=False):
     return output.getvalue()
 
 
-def _stream_supabase_csv(build_query, order_column, download_name, chunk_size=1000):
+def _stream_supabase_csv(build_query, order_column, download_name, chunk_size=1000, row_transform=None):
     def generate():
         offset = 0
         fieldnames = None
@@ -1464,6 +1503,8 @@ def _stream_supabase_csv(build_query, order_column, download_name, chunk_size=10
         while True:
             resp = build_query().order(order_column, desc=False).range(offset, offset + chunk_size - 1).execute()
             rows = resp.data or []
+            if row_transform:
+                rows = [row_transform(row) for row in rows]
 
             if rows:
                 if fieldnames is None:
@@ -1573,7 +1614,7 @@ def tracker_stats():
                 dept_map = {}
                 num_type_map = {}
                 for item in all_rows:
-                    status = (item.get('account_status') or 'Active').strip()
+                    status = normalize_social_account_status(item.get('account_status'))
                     dept = (item.get('department') or 'Unknown').strip()
                     num_type = (item.get('number_type') or 'Unknown').strip()
                     if not dept or dept in ('NA', 'N/A', ''):
@@ -1704,8 +1745,9 @@ def social_import():
                 if ' ' in v: v = v.split(' ')[0]
                 if 'T' in v: v = v.split('T')[0]
                 return v
-            else:
-                return v if v else "NA"
+            if col == 'account_status':
+                return normalize_social_account_status(v) if v else "NA"
+            return v if v else "NA"
         records = []
         for i, (_, row) in enumerate(df.iterrows()):
             record = {}
@@ -1733,6 +1775,8 @@ def social_export():
         social_search = request.args.get("social_search", "").strip()
         social_platform = request.args.get("social_platform", "").strip()
         social_permanent_block = request.args.get("permanent_block", "").strip()
+        social_status_filter = request.args.get("social_status", "").strip()
+        social_department_filter = request.args.get("social_department", "").strip()
 
         def _build_social_query():
             q = social_supabase.table("social_media_accounts").select("*")
@@ -1755,12 +1799,18 @@ def social_export():
                 )
             if social_platform and social_platform not in ["", "All Platforms"]:
                 q = q.eq("platform", social_platform)
+            if social_department_filter:
+                q = q.eq("department", social_department_filter)
             if social_permanent_block == "true":
                 q = q.eq("account_status", "Permanent Block")
+            elif social_status_filter:
+                q = apply_social_status_filter(q, social_status_filter)
+            else:
+                q = q.neq("account_status", "Permanent Block")
             return q
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return _stream_supabase_csv(_build_social_query, "id", f"social_media_accounts_{timestamp}.csv")
+        return _stream_supabase_csv(_build_social_query, "id", f"social_media_accounts_{timestamp}.csv", row_transform=normalize_social_account_row)
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=social")
@@ -2779,10 +2829,12 @@ def save_social_field():
         DATE_FIELDS = {'blocked_date', 'unblock_date', 'recharge_date', 'account_create_date', 'sim_buy_date'}
         if field in DATE_FIELDS:
             save_value = None if (not value or value.upper() in ('NA', 'N/A', 'NONE', 'NULL', '')) else value
+        elif field == 'account_status':
+            save_value = normalize_social_account_status(value) if value else "NA"
         else:
             save_value = value if value else "NA"
         update_payload = {field: save_value}
-        if field == 'account_status' and value == 'Permanent Block':
+        if field == 'account_status' and save_value == 'Permanent Block':
             update_payload['blocked_date'] = datetime.now().strftime("%Y-%m-%d")
         response = social_supabase.table("social_media_accounts").update(update_payload).eq("id", account_id).execute()
         if hasattr(response, 'data'):
@@ -3449,6 +3501,31 @@ def _scraping_url_lookup_term(value):
         pass
     return re.sub(r"[^A-Za-z0-9_.-]", "", normalized.split("?")[0].split("/")[-1])[:80]
 
+def _normalize_chat_number(value):
+    """Return a stripped, lowercase chat number, or '' if NA / missing.
+
+    NA, N/A, None, blank/whitespace are all treated as "no chat number info".
+    Used so duplicate detection compares chat numbers case-insensitively.
+    """
+    raw = str(value or "").strip()
+    if not raw or raw.upper() in ("NA", "N/A"):
+        return ""
+    return raw.lower()
+
+
+def _chat_numbers_match(input_cn, existing_cn):
+    """Return True only if both chat numbers are concrete and equal (case-insensitive).
+
+    Returns False when either side is NA / missing. That is the whole point:
+    if post URL or group name already exists in the database but its chat number
+    is missing OR different from the new row's chat number, the new row is NOT a
+    duplicate and the data should still be inserted.
+    """
+    a = _normalize_chat_number(input_cn)
+    b = _normalize_chat_number(existing_cn)
+    return bool(a) and bool(b) and a == b
+
+
 @app.route("/check-scraping-duplicates", methods=["POST"])
 @login_required
 def check_scraping_duplicates():
@@ -3511,12 +3588,19 @@ def check_scraping_duplicates():
                         .limit(10).execute()
                     found = res.data or []
                 if is_facebook and facebook_id and not found:
+                    # Facebook-profile ID match hua; chat number bhi match hona
+                    # chahiye — alag chat_number ke saath URL match duplicate nahi hai
+                    # aur naya row insert hona chahiye.
                     res = supabase.table("scrapping_data") \
                         .select("id, group_name, post_url, chat_number, inserted_date") \
                         .eq("platform", "Facebook") \
                         .or_(f"post_url.ilike.%id={facebook_id}%,group_name.ilike.%id={facebook_id}%") \
-                        .limit(10).execute()
-                    found = res.data or []
+                        .limit(25).execute()
+                    candidates = res.data or []
+                    found = [
+                        r for r in candidates
+                        if _chat_numbers_match(cn, r.get("chat_number"))
+                    ]
                 if normalized_url and not found:
                     lookup_term = _scraping_url_lookup_term(post_url)
                     if lookup_term:
@@ -3525,9 +3609,14 @@ def check_scraping_duplicates():
                             .or_(f"post_url.ilike.%{lookup_term}%,group_name.ilike.%{lookup_term}%") \
                             .limit(25).execute()
                         candidates = res.data or []
+                        # Same post_url/group_name hone ke baad bhi chat_number
+                        # match hona chahiye — URL match alone duplicate nahi hai.
+                        # Agar existing record ka chat_number alag ya NA hai,
+                        # toh naya row insert allow karo.
                         found = [
                             row for row in candidates
-                            if normalized_url in (
+                            if _chat_numbers_match(cn, row.get("chat_number"))
+                            and normalized_url in (
                                 _normalize_scraping_duplicate_url(row.get("post_url", "")),
                                 _normalize_scraping_duplicate_url(row.get("group_name", "")),
                             )
@@ -4804,6 +4893,7 @@ def scam_website_allotment():
     sa_remark     = request.args.get("sa_remark", "").strip()
     sa_date_from  = request.args.get("sa_date_from", "").strip()
     sa_date_to    = request.args.get("sa_date_to", "").strip()
+    sa_alloted_user = request.args.get("sa_alloted_user", "").strip()
     # Default view — koi bhi date filter na diya ho toh aaj ka allotment dikhao
     if not sa_date_from and not sa_date_to:
         today_str = datetime.now().strftime("%Y-%m-%d")
@@ -4815,13 +4905,22 @@ def scam_website_allotment():
     total_rows = 0
     total_pages = 1
     try:
-        query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("*", count="exact")
+        # Fetch only the page rows first. We deliberately do NOT pass
+        # `count="exact"` here — on a large `website_allotment` table the
+        # combined `select("*", count="exact")` query forces Postgres to
+        # materialize a full COUNT, which can take >60s and gets killed
+        # upstream by Cloudflare with a 522 "Connection timed out" page
+        # that breaks downstream JSON parsing.
+        query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("*")
 
         # Data isolation — plain "allotment" users only see rows allotted to their own name.
         # ilike wildcard so old records saved with "(Role)" suffix and new clean-name
         # records both match against the logged-in user's clean display name.
         if not is_admin_allot:
             query = query.ilike("alloted_user_name", f"{clean_display_name_filter}%")
+
+        if sa_alloted_user:
+            query = query.eq("alloted_user_name", sa_alloted_user)
 
         if sa_search:
             lt = f"%{sa_search}%"
@@ -4852,10 +4951,96 @@ def scam_website_allotment():
         query = query.range(offset, offset + PER_PAGE - 1)
         resp = query.execute()
         items = resp.data or []
-        total_rows = resp.count or 0
-        total_pages = max(1, math.ceil(total_rows / PER_PAGE))
+
+        # Separate, lightweight COUNT. We use `select("id")` (cheapest
+        # projection), restrict to a single row with `range(0, 0)`, and
+        # ask PostgREST for an exact count via the `count` kwarg. This
+        # query plan only needs an index on `id` (which is the primary
+        # key) and times out orders of magnitude less often than the old
+        # combined `count="exact"` on `select("*")`. We isolate it in
+        # its own try/except so a slow COUNT never blocks the rows we
+        # already have — pagination falls back to a "1+ pages" estimate.
+        try:
+            count_query = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("id", count="exact")
+            if not is_admin_allot:
+                count_query = count_query.ilike("alloted_user_name", f"{clean_display_name_filter}%")
+            if sa_alloted_user:
+                count_query = count_query.eq("alloted_user_name", sa_alloted_user)
+            if sa_search:
+                lt = f"%{sa_search}%"
+                count_query = count_query.or_(
+                    f"final_url.ilike.{lt},"
+                    f"login_id.ilike.{lt},"
+                    f"password.ilike.{lt},"
+                    f"remark.ilike.{lt},"
+                    f"category.ilike.{lt},"
+                    f"search_for.ilike.{lt},"
+                    f"alloted_user_name.ilike.{lt}"
+                )
+            if sa_category:
+                count_query = count_query.eq("category", sa_category)
+            if sa_search_for:
+                count_query = count_query.eq("search_for", sa_search_for)
+            if sa_remark == "PENDING":
+                count_query = count_query.or_("remark.is.null,remark.eq.,remark.eq.NA")
+            elif sa_remark:
+                count_query = count_query.eq("remark", sa_remark)
+            if sa_date_from:
+                count_query = count_query.gte("allotted_at", sa_date_from + " 00:00:00")
+            if sa_date_to:
+                count_query = count_query.lte("allotted_at", sa_date_to + " 23:59:59")
+            count_resp = count_query.range(0, 0).execute()
+            total_rows = count_resp.count or 0
+        except Exception as count_exc:
+            # COUNT timed out / 522 / any DB hiccup — show rows anyway,
+            # and report "1 page" so the pagination control is at worst
+            # disabled on the first page load instead of crashing the page.
+            print(f"[ALLOTMENT] count query failed: {count_exc}")
+            total_rows = len(items)
+            if total_rows >= PER_PAGE:
+                total_rows = (offset + PER_PAGE) + 1  # at least one more page exists
+
+        total_pages = max(1, math.ceil(total_rows / PER_PAGE)) if total_rows else 1
     except Exception as e:
         flash(f"Error fetching website allotment: {e}", "error")
+
+    # Admin-only: list of users who have websites allotted, with their counts,
+    # so the "Allotted User Name" filter dropdown can show how many each user has.
+    allotment_user_counts = []
+    if is_admin_allot:
+        try:
+            # Cap the loop at 10k rows so a large `website_allotment` table
+            # cannot push this past the 30s Supabase client timeout (and
+            # trigger a Cloudflare 522). If a user's allotment date filter
+            # is set we narrow the scan to that window via the date fields
+            # already requested in `sa_date_from` / `sa_date_to`.
+            _uc_counter = {}
+            _uc_start = 0
+            _UC_PAGE = 1000
+            _UC_MAX_ROWS = 10000  # hard cap to protect request latency
+            _uc_rows_seen = 0
+            while _uc_rows_seen < _UC_MAX_ROWS:
+                _uc_q = supabase.table(WEBSITE_ALLOTMENT_TABLE).select("alloted_user_name")
+                # Narrow the scan with the same date window the table is
+                # showing, so on a big table the loop only walks today's
+                # allotment instead of all history.
+                if sa_date_from:
+                    _uc_q = _uc_q.gte("allotted_at", sa_date_from + " 00:00:00")
+                if sa_date_to:
+                    _uc_q = _uc_q.lte("allotted_at", sa_date_to + " 23:59:59")
+                _uc_resp = _uc_q.range(_uc_start, _uc_start + _UC_PAGE - 1).execute()
+                _uc_rows = _uc_resp.data or []
+                for _uc_r in _uc_rows:
+                    _uc_n = (_uc_r.get("alloted_user_name") or "").strip()
+                    if _uc_n and _uc_n not in ("NA", "N/A"):
+                        _uc_counter[_uc_n] = _uc_counter.get(_uc_n, 0) + 1
+                _uc_rows_seen += len(_uc_rows)
+                if len(_uc_rows) < _UC_PAGE:
+                    break
+                _uc_start += _UC_PAGE
+            allotment_user_counts = sorted(_uc_counter.items(), key=lambda kv: (-kv[1], kv[0]))
+        except Exception:
+            allotment_user_counts = []
 
     target_completed = False
     if not is_admin_allot:
@@ -4892,6 +5077,8 @@ def scam_website_allotment():
         sa_remark=sa_remark,
         sa_date_from=sa_date_from,
         sa_date_to=sa_date_to,
+        sa_alloted_user=sa_alloted_user,
+        allotment_user_counts=allotment_user_counts,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
@@ -5203,6 +5390,7 @@ def scam_website_allotment_export():
         sa_category   = request.args.get("sa_category", "").strip()
         sa_search_for = request.args.get("sa_search_for", "").strip()
         sa_remark     = request.args.get("sa_remark", "").strip()
+        sa_alloted_user = request.args.get("sa_alloted_user", "").strip()
         sa_date_from  = request.args.get("sa_date_from", "").strip()
         sa_date_to    = request.args.get("sa_date_to", "").strip()
         if sa_search:
@@ -5220,6 +5408,8 @@ def scam_website_allotment_export():
             query = query.or_("remark.is.null,remark.eq.,remark.eq.NA")
         elif sa_remark:
             query = query.eq("remark", sa_remark)
+        if sa_alloted_user:
+            query = query.eq("alloted_user_name", sa_alloted_user)
         if sa_date_from:
             query = query.gte("allotted_at", sa_date_from + " 00:00:00")
         if sa_date_to:
@@ -6736,14 +6926,14 @@ def social_download_template():
     ]
 
     PLATFORM_STATUS_OPTIONS = {
-        'Facebook':       ['Active','Block','Restricted','Permanent Block'],
-        'Instagram':      ['Active','Block','Permanent Block'],
+        'Facebook':       ['Active','Temporarily Block','Restricted','Permanent Block'],
+        'Instagram':      ['Active','Temporarily Block','Permanent Block'],
         'Telegram':       ['Active','Frozen','Permanent Block'],
-        'WhatsApp':       ['Active','Block','Permanent Block','Restricted'],
-        'Amazon':         ['Active','Block','Permanent Block'],
-        'Gmail Accounts': ['Active','Block','Permanent Block'],
-        'Total Numbers':  ['Active','Block','Permanent Block'],
-        '':               ['Active','Block','Restricted','Frozen','Permanent Block'],
+        'WhatsApp':       ['Active','Temporarily Block','Permanent Block','Restricted'],
+        'Amazon':         ['Active','Temporarily Block','Permanent Block'],
+        'Gmail Accounts': ['Active','Temporarily Block','Permanent Block'],
+        'Total Numbers':  ['Active','Temporarily Block','Permanent Block'],
+        '':               ['Active','Temporarily Block','Restricted','Frozen','Permanent Block'],
     }
 
     REVIEW_STATUS_OPTIONS = ['NA','Send','Appeal Submit','Video Verification Done']

@@ -2,10 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="/static/favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Scam Intelligence GUI</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         (function () {
             try {
@@ -15,6 +11,11 @@
             } catch (e) {}
         })();
     </script>
+    <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — Scam Intelligence GUI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; }
         body { background: linear-gradient(180deg, #a8d8f0 0%, #c5e8f7 25%, #ddf0fb 50%, #eef8fe 75%, #f5fbff 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; overflow: hidden; }
@@ -117,6 +118,11 @@
     </style>
 </head>
 <body>
+<script>
+if (document.documentElement.classList.contains('theme-dark-preload')) {
+    document.body.classList.add('theme-dark');
+}
+</script>
     <!-- Pixel Truth logo — fixed top-left corner, rectangular -->
     <a href="https://pixeltruth.com" target="_blank" rel="noopener noreferrer" class="pixel-logo-corner" title="Pixel Truth">
         <img src="data:image/png;base64,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" alt="Pixel Truth" class="pixel-logo-img">
@@ -163,7 +169,7 @@
             let savedMode = 'light';
             try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
             document.body.classList.toggle('theme-dark', savedMode === 'dark');
-            document.documentElement.classList.toggle('theme-dark-preload', savedMode === 'dark');
+            document.documentElement.classList.remove('theme-dark-preload');
         })();
         function togglePwd() {
             const pwd = document.getElementById('password'), icon = document.getElementById('toggleIcon');
