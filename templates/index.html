@@ -7175,6 +7175,11 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     const v = val => val && !['NA', 'N/A', '', null].includes(String(val));
                     const esc = str => (str || '').replace(/'/g, "\\'");
                     const today = new Date().toISOString().split('T')[0];
+                    // Match the server-side conditional: Share Status column is
+                    // hidden unless the user has applied the `share_status` filter.
+                    // Without this, freshly prepended (inserted) rows would show an
+                    // extra "Share Status" column that doesn't exist in the header.
+                    const shareStatusHidden = !new URLSearchParams(window.location.search).get('share_status');
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td class="scrap-action-col" style="${_scrapActionVisible ? '' : 'display:none;'}">
@@ -7183,7 +7188,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                             </button>
                         </td>
                         <td><strong style="color:#2c3e50;">#${item.id}</strong></td>
-                        <td>
+                        <td class="share-status-col" style="${shareStatusHidden ? 'display:none;' : ''}">
                             ${v(item.share_status)
                                 ? `<span style="background:#f3e5f5;color:#6a1a9a;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:600;">${item.share_status}</span>`
                                 : '<span style="color:#95a5a6;">N/A</span>'}
