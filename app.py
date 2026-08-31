@@ -73,10 +73,10 @@ DEMO_ADMIN = {
     "id": 0,
     "email": "test123@gmail.com",
     "password": "test123",
-    "display_name": "Shubhankar Shukla (Test User)",
-    "allowed_pages": ["scraping", "sheet", "social", "investment", "qc"],
+    "display_name": "Test User - (Testing Only)",
+    "allowed_pages": ["qc"],
     "is_admin": False,
-    "role": "admin",
+    "role": "user",
     "is_active": True,
     "can_view_activity_log": True,
     "allowed_departments": ["ITC","AML", "Investment Scam","dashboard_management","Infringement", "Chargeback"],
@@ -2755,7 +2755,7 @@ def _close_debug_driver(driver, temp_csv_path=None):
 @login_required
 def summary_source_from_gui():
     if "sheet" not in session.get("allowed_pages", []):
-        return jsonify({"success": False, "error": "Sheet page access nahi hai"}), 403
+        return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
     data = request.get_json() or {}
     date_from = str(data.get("date_from", "")).strip()
     date_to = str(data.get("date_to", "")).strip()
@@ -3332,7 +3332,7 @@ def get_department_data_proxy():
 def insert_social_record():
     try:
         if "social" not in session.get("allowed_pages", []):
-            return jsonify({"success": False, "error": "Social page access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Didnt have social page access"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
@@ -3394,7 +3394,7 @@ def insert_social_record():
 def insert_scraping_record():
     try:
         if "scraping" not in session.get("allowed_pages", []):
-            return jsonify({"success": False, "error": "Scraping page access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Didnt have scrapping page access"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data provided"})
@@ -4371,7 +4371,7 @@ def website_directory_tracker_stats():
 def website_directory_insert():
     try:
         if "website_directory" not in session.get("allowed_pages", []):
-            return jsonify({"success": False, "error": "Website directory access nahi hai"}), 403
+            return jsonify({"success": False, "error": "Didnt have Website directory access"}), 403
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "No data"})
@@ -6068,8 +6068,8 @@ def aml_submit_chunk(driver, title_text, input_text, description_text, image_chu
             print(f"[AML SUBMIT] Could not save debug artifacts: {dbg_exc}")
         raise RuntimeError(
             f"'left_image[]' field not found on report generation page "
-            f"(current URL: {driver.current_url}). Ho sakta hai session login page "
-            f"pe redirect ho gaya ho, ya field name/URL badal gaya ho. Debug "
+            f"(current URL: {driver.current_url}). Possible causes: AML GUI layout changed, "
+            f"captcha not solved, or session expired. "
             f"screenshot/HTML id={debug_id} saved in {debug_dir}"
         )
     left_img.send_keys(image_chunk[0])
@@ -8447,6 +8447,7 @@ def qc_gui_tracker_stats():
         daily_qc_status = {}
         user_daily_qc_status = {}
         allotment_by_date = {}
+        allotment_by_user_date = {}
         for row in all_rows:
             st  = (row.get("scam_type") or "Unknown").strip() or "Unknown"
             sf  = (row.get("search_for") or "Unknown").strip() or "Unknown"
@@ -8458,6 +8459,8 @@ def qc_gui_tracker_stats():
             allot_dt = (row.get("total_allotment_date") or row.get("qc_assigned_date") or "")[:10]
             if allot_dt:
                 allotment_by_date[allot_dt] = allotment_by_date.get(allot_dt, 0) + 1
+                user_allot = allotment_by_user_date.setdefault(iu, {})
+                user_allot[allot_dt] = user_allot.get(allot_dt, 0) + 1
             scam_counts[st] = scam_counts.get(st, 0) + 1
             sf_counts[sf] = sf_counts.get(sf, 0) + 1
             wallet_counts[w] = wallet_counts.get(w, 0) + 1
@@ -8492,6 +8495,10 @@ def qc_gui_tracker_stats():
                 for user, days in sorted(user_daily_qc_status.items())
             },
             "allotment_by_date": {k: allotment_by_date[k] for k in sorted(allotment_by_date)},
+            "allotment_by_user_date": {
+                user: {date_key: counts[date_key] for date_key in sorted(counts, reverse=True)}
+                for user, counts in sorted(allotment_by_user_date.items())
+            },
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})

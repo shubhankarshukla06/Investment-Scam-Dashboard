@@ -412,7 +412,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             <div class="sub">Unique names</div>
         </div>
         <div class="stat-card orange">
-            <div class="label"><i class="fas fa-clock"></i> Avg Break</div>
+            <div class="label"><i class="fas fa-clock"></i> Average Break</div>
             <div class="value" id="statAvg">—</div>
             <div class="sub">minutes</div>
         </div>
@@ -940,7 +940,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         const end    = document.getElementById('editEnd').value;
         const remark = document.getElementById('editRemark').value.trim();
         if (!date || !start || !end) {
-            showToast('Date aur times required hain!', 'error'); return;
+            showToast('Date & times are required!', 'error'); return;
         }
         const btn = document.getElementById('editSubmitBtn');
         btn.disabled = true;

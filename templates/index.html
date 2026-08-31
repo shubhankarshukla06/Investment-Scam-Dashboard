@@ -1895,6 +1895,9 @@
                             <div class="summary-preview-header">
                             <h4><i class="fas fa-table" style="color:#5c6bc0;"></i> Summary Result: <span id="summaryPreviewTitle" style="color:#5c6bc0;"></span></h4>
                             <div style="display:flex;gap:8px;align-items:center;">
+                                <button class="summary-export-btn" id="summaryRefreshBtn" onclick="refreshSummary()" title="Refresh — re-fetch GUI &amp; EDTMS, keep existing data" style="background:#3498db;">
+                                    <i class="fas fa-sync-alt"></i> Refresh
+                                </button>
                                 <button class="summary-export-btn" onclick="copySummaryAsImage()" title="Copy as Image" style="background:#2ecc71;">
                                     <i class="fas fa-copy"></i> Copy Image
                                 </button>
@@ -1912,6 +1915,20 @@
                                     <thead id="summaryResultHead"></thead>
                                     <tbody id="summaryResultBody"></tbody>
                                 </table>
+                                </div>
+                            </div>
+                            <!-- COMPARE SUMMARY — System values vs EDTMS values -->
+                            <div id="compareSummaryWrapper" style="display:none;margin-top:18px;width:100%;">
+                            <div id="compareSummaryHeader" style="background:#5c6bc0;color:white;text-align:center;padding:10px 16px;font-size:14px;font-weight:700;letter-spacing:0.3px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:center;gap:8px;">
+                                <i class="fas fa-balance-scale"></i> Compare Summary (GUI vs EDTMS)
+                            </div>
+                                <div class="summary-table-wrap" id="compareSummaryTableWrap" style="border-radius:0 0 6px 6px;border-top:none;">
+                                    <table class="summary-table" id="compareResultTable" style="font-size:12px;width:100%;table-layout:auto;">
+                                        <thead id="compareResultHead"></thead>
+                                        <tbody id="compareResultBody"></tbody>
+                                    </table>
+                                </div>
+                                <div id="compareSummaryLegend" style="margin-top:8px;font-size:11px;color:#7f8c8d;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:8px 10px;background:#f8f9fa;border-radius:6px;border:1px solid #e9ecef;"></div>
                             </div>
                         </div>
                     </div>
@@ -4263,10 +4280,19 @@
                 const header = document.getElementById('summaryTableHeader');
                 const readyEl = document.getElementById('summaryReadyMsg');
                 const waitEl = document.getElementById('summaryNotReadyMsg');
+                // NEW — wipe the Compare Summary on reset
+                const compareWrapper = document.getElementById('compareSummaryWrapper');
+                const compareThead = document.getElementById('compareResultHead');
+                const compareTbody = document.getElementById('compareResultBody');
+                const compareLegend = document.getElementById('compareSummaryLegend');
                 if (title) title.textContent = '';
                 if (thead) thead.innerHTML = '';
                 if (tbody) tbody.innerHTML = '';
                 if (header) header.style.display = 'none';
+                if (compareThead) compareThead.innerHTML = '';
+                if (compareTbody) compareTbody.innerHTML = '';
+                if (compareLegend) compareLegend.innerHTML = '';
+                if (compareWrapper) compareWrapper.style.display = 'none';
                 if (section) section.classList.remove('show');
                 if (readyEl) readyEl.style.display = 'none';
                 if (waitEl) {
@@ -4499,6 +4525,55 @@
                     generateCategorySummary();
                 }
             }
+            // ── Refresh: re-fetch live GUI + EDTMS data WITHOUT re-reading the source file ──
+            // Keeps the already-loaded Excel/GUI source data (summaryParsedData) intact and
+            // only re-pulls freshly inserted GUI rows (aml source) and newly added EDTMS/MIS
+            // remarks + scrapping/website-directory counts, then re-renders the summary.
+            async function refreshSummary() {
+                const summaryType = document.getElementById('summaryTypeSelect')?.value;
+                if (!summaryType) { showToast('No summary to refresh — generate one first.', true); return; }
+                if (!summaryParsedData.length) { showToast('No data loaded to refresh.', true); return; }
+
+                const btn = document.getElementById('summaryRefreshBtn');
+                const prevHtml = btn ? btn.innerHTML : '';
+                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...'; }
+                showToast('Refreshing summary data...', false, false);
+                try {
+                    const source = document.getElementById('summarySourceSelect')?.value || 'aml';
+                    if (source === 'aml') {
+                        const dateFrom = document.getElementById('summaryGuiDateFrom')?.value;
+                        const dateTo   = document.getElementById('summaryGuiDateTo')?.value;
+                        if (!dateFrom || !dateTo) {
+                            showToast('GUI date range missing — keeping existing GUI data.', true);
+                        } else {
+                            try {
+                                const resp = await fetch('/summary-source-from-gui', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
+                                });
+                                const data = await resp.json();
+                                if (!resp.ok || !data.success) throw new Error(data.error || 'GUI refresh failed');
+                                summaryHeaders = data.headers || [];
+                                summaryParsedData = data.rows || [];
+                                summaryAmlDataCache = { headers: summaryHeaders, rows: summaryParsedData };
+                                const fnEl = document.getElementById('summaryFileName');
+                                if (fnEl) fnEl.textContent = `GUI export (${summaryParsedData.length} rows)`;
+                                showToast(`GUI data refreshed: ${summaryParsedData.length} rows`, false, true);
+                            } catch (guiErr) {
+                                showToast('GUI refresh failed (' + guiErr.message + ') — using existing data.', true);
+                            }
+                        }
+                    }
+                    // Re-generate: re-fetches EDTMS/MIS remarks (and scrapping/wd) and re-renders.
+                    // For the 'upload' (Excel) source, summaryParsedData is kept untouched.
+                    generateSummary();
+                } catch (err) {
+                    showToast('Refresh failed: ' + err.message, true);
+                } finally {
+                    if (btn) { btn.disabled = false; btn.innerHTML = prevHtml || '<i class="fas fa-sync-alt"></i> Refresh'; }
+                }
+            }
             async function generateUsersSummary() {
                 const userColCandidates = ['input_user','Input_user','user','User','login_user','Login_user','username','Username','name','Name'];
                 let userCol = null;
@@ -4522,13 +4597,32 @@
                 }
 
                 // ── Date range from uploaded file ──────────────────────────
-                let minDate = null, maxDate = null;
+                // Normalize any date string to ISO YYYY-MM-DD so we can compare
+                // source-file dates (e.g. "29-08-2026", DD-MM-YYYY) with EDTMS
+                // record dates (e.g. "2026-08-29T00:00:00.000Z"). Without this,
+                // a raw string compare excludes every EDTMS record and EDTMS
+                // values come back empty.
+                const toIsoDate = (s) => {
+                    if (!s) return null;
+                    const str = String(s).trim();
+                    if (!str) return null;
+                    const mIso = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+                    if (mIso) return `${mIso[1]}-${mIso[2].padStart(2,'0')}-${mIso[3].padStart(2,'0')}`;
+                    const mDmy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+                    if (mDmy) return `${mDmy[3]}-${mDmy[2].padStart(2,'0')}-${mDmy[1].padStart(2,'0')}`;
+                    return null;
+                };
+                let minDate = null, maxDate = null, isoMinDate = null, isoMaxDate = null;
                 if (dateCol) {
                     summaryParsedData.forEach(row => {
                         const d = (row[dateCol] || '').trim();
                         if (!d || d.toUpperCase() === 'NA') return;
+                        const iso = toIsoDate(d);
+                        if (!iso) return;
                         if (!minDate || d < minDate) minDate = d;
                         if (!maxDate || d > maxDate) maxDate = d;
+                        if (!isoMinDate || iso < isoMinDate) isoMinDate = iso;
+                        if (!isoMaxDate || iso > isoMaxDate) isoMaxDate = iso;
                     });
                 }
                 // ── Quality Check: count rows where Approved_by != input_user ──
@@ -4594,18 +4688,48 @@
 
                     if (Array.isArray(misRaw) && misRaw.length > 0) {
                         const filtered = misRaw.filter(record => {
-                            if (!minDate && !maxDate) return true;
+                            if (!isoMinDate && !isoMaxDate) return true;
                             const recDate = record.date || record.Date || record.inserted_date || record.Inserted_date || '';
-                            const d = recDate.toString().split('T')[0];
-                            if (!d) return true;
-                            if (minDate && d < minDate) return false;
-                            if (maxDate && d > maxDate) return false;
+                            const isoRec = toIsoDate(recDate);
+                            if (!isoRec) return true;
+                            if (isoMinDate && isoRec < isoMinDate) return false;
+                            if (isoMaxDate && isoRec > isoMaxDate) return false;
                             return true;
                         });
 
                         const misNameFields = ['user_name','username','name','Name','employee_name','emp_name','user'];
                         const misCredFields = ['Credential_Making','credentials','credential_count','creds','Credentials'];
                         const misRemarkFields = ['remark','remarks','Remark','Remarks','status','Status'];
+                        // EDTMS -> User Summary comparison field candidates
+                        // Each key maps to a User Summary column. We try every candidate
+                        // in order; first one with a non-empty value wins per record.
+                        const EDTMS_COMPARE_FIELDS = {
+                            sm:        ['investment_sm_case', 'Investment_sm_case', 'SM_Case', 'sm_case'],
+                            web:       ['investment_web_case', 'Investment_web_case', 'Web_Case', 'web_case'],
+                            app:       ['IS_App', 'is_app', 'Is_app', 'IS_app', 'app_case', 'App_Case'],
+                            scrapping: ['investment_scam_scrap', 'Investment_scam_scrap', 'scrap', 'scrap_count', 'Scrap'],
+                            qc:        ['Total_Qc', 'total_qc', 'Total_QC', 'QC_Total', 'qc_total'],
+                            ws:        ['Website_Searching', 'website_searching', 'Website_Search', 'website_search', 'WS_Count'],
+                            creds:     ['Credential_Making', 'credential_making', 'Credentials', 'Credential_Count']
+                        };
+                        const getFieldCi = (record, candidates) => {
+                            // Direct match first
+                            for (const c of candidates) {
+                                if (record[c] !== undefined && record[c] !== null && String(record[c]).trim() !== '') {
+                                    return record[c];
+                                }
+                            }
+                            // Fallback: case-insensitive scan of record keys
+                            const lowerMap = {};
+                            Object.keys(record).forEach(k => { lowerMap[k.toLowerCase()] = k; });
+                            for (const c of candidates) {
+                                const realKey = lowerMap[c.toLowerCase()];
+                                if (realKey && record[realKey] !== undefined && record[realKey] !== null && String(record[realKey]).trim() !== '') {
+                                    return record[realKey];
+                                }
+                            }
+                            return null;
+                        };
 
                         filtered.forEach(record => {
                             let misPerson = '';
@@ -4630,14 +4754,29 @@
                                     remark = String(record[f]).trim(); break;
                                 }
                             }
+                            // NEW: aggregate EDTMS comparison values for each metric
+                            const edtmsVals = {};
+                            for (const [metricKey, candidates] of Object.entries(EDTMS_COMPARE_FIELDS)) {
+                                const val = getFieldCi(record, candidates);
+                                edtmsVals[metricKey] = (val !== null && val !== undefined) ? (parseInt(val) || 0) : 0;
+                            }
                             // Store under both keys so matching catches either form
                             const canonicalKey = cleanMisCleaned || cleanMisOriginal;
                             if (!misDataByUser[canonicalKey]) {
-                                misDataByUser[canonicalKey] = { credentials: 0, remark: '', rawName: misPerson };
+                                misDataByUser[canonicalKey] = {
+                                    credentials: 0,
+                                    remark: '',
+                                    rawName: misPerson,
+                                    edtms: { sm: 0, web: 0, app: 0, scrapping: 0, qc: 0, ws: 0, creds: 0 }
+                                };
                             }
                             misDataByUser[canonicalKey].credentials += creds;
                             if (remark && !misDataByUser[canonicalKey].remark) {
                                 misDataByUser[canonicalKey].remark = remark;
+                            }
+                            // Aggregate EDTMS comparison values per user across the date range
+                            for (const metricKey of Object.keys(EDTMS_COMPARE_FIELDS)) {
+                                misDataByUser[canonicalKey].edtms[metricKey] += edtmsVals[metricKey];
                             }
                         });
 
@@ -4763,7 +4902,9 @@
                         absent: isAbsent,
                         partial: isPartial,
                         displayName: isAbsent ? u.replace('__absent__', '') :
-                                     isPartial ? u.replace('__partial__', '') : u
+                                     isPartial ? u.replace('__partial__', '') : u,
+                        // EDTMS comparison values (per-user aggregate for the selected date range)
+                        edtms: { sm: 0, web: 0, app: 0, scrapping: 0, qc: 0, ws: 0, creds: 0 }
                     };
                 });
 
@@ -4879,6 +5020,18 @@
                     }
                     userData[excelUser].credentials = credentials;
                     userData[excelUser].remark = remark;
+                    // Copy EDTMS comparison values (system-fresh object so per-user mutation is safe)
+                    if (misBestMatch && misBestMatch.edtms) {
+                        userData[excelUser].edtms = {
+                            sm: misBestMatch.edtms.sm || 0,
+                            web: misBestMatch.edtms.web || 0,
+                            app: misBestMatch.edtms.app || 0,
+                            scrapping: misBestMatch.edtms.scrapping || 0,
+                            qc: misBestMatch.edtms.qc || 0,
+                            ws: misBestMatch.edtms.ws || 0,
+                            creds: misBestMatch.edtms.creds || 0
+                        };
+                    }
                 });
 
                 // ── Date string for header ─────────────────────────────────
@@ -4894,6 +5047,7 @@
 
                 lastSummaryResult = { type: 'users_detailed', userData, users, dateStr };
                 renderUsersSummaryTable(userData, users, dateStr);
+                renderCompareSummaryTable(userData, users, dateStr);
             }
             function generateCategorySummary() {
                 let scamTypeCol = null;
@@ -5157,33 +5311,282 @@
                 section.classList.add('show');
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+            // ── COMPARE SUMMARY — GUI vs EDTMS side-by-side ───────────────────────
+            // Each metric cell shows the GUI (system) value alongside the EDTMS value, with a
+            // green/red background for instant match/mismatch verification.
+            function renderCompareSummaryTable(userData, users, dateStr) {
+                const wrapper = document.getElementById('compareSummaryWrapper');
+                if (!wrapper) return;
+
+                const thead = document.getElementById('compareResultHead');
+                const tbody = document.getElementById('compareResultBody');
+                const legend = document.getElementById('compareSummaryLegend');
+                const header = document.getElementById('compareSummaryHeader');
+                if (!thead || !tbody) return;
+
+                // Metric config: [userDataKey, EDTMS key, display label]
+                // userData key is the *system* value; EDTMS key matches the per-user aggregate.
+                const METRICS = [
+                    ['sm',        'sm',        'SM Cases'],
+                    ['web',       'web',       'Web Cases'],
+                    ['app',       'app',       'App Cases'],
+                    ['scrapping', 'scrapping', 'Scrapping'],
+                    ['qualityCheck', 'qc',     'Quality Check'],
+                    ['webSearching', 'ws',     'Web Searching'],
+                    ['credentials', 'creds',   'Credentials']
+                ];
+
+                // Normalize "NA", "", undefined → null; everything else → integer
+                const normalizeVal = (v) => {
+                    if (v === null || v === undefined) return null;
+                    const s = String(v).trim();
+                    if (!s || s.toUpperCase() === 'NA' || s.toUpperCase() === 'N/A' || s.toUpperCase() === 'NULL') return null;
+                    const n = parseInt(s);
+                    return isNaN(n) ? null : n;
+                };
+                // Two values for a metric + their match status
+                const compareVals = (sysRaw, edtmsRaw) => {
+                    const a = normalizeVal(sysRaw);
+                    const b = normalizeVal(edtmsRaw);
+                    // Both effectively empty → match (no data on either side)
+                    if (a === null && b === null) return { match: true, sys: 'NA', edtms: 'NA' };
+                    if (a === null)  return { match: false, sys: 'NA', edtms: b };
+                    if (b === null)  return { match: false, sys: a,  edtms: 'NA' };
+                    return { match: a === b, sys: a, edtms: b };
+                };
+
+                const thS = `font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:5px 8px;font-size:11px;white-space:nowrap;background:#c8e6fb;`;
+                const thMetricS = `font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:12px;white-space:nowrap;background:#b3d4f5;`;
+
+                // ── Header rows ─────────────────────────────────────────────
+                let theadHtml = '';
+                // First row: Name | <metric colspan=2> x N | Match
+                theadHtml += `<tr>`;
+                theadHtml += `<th rowspan="2" style="${thS}">Name</th>`;
+                METRICS.forEach(([_, __, label]) => {
+                    theadHtml += `<th colspan="2" style="${thMetricS}">${label}</th>`;
+                });
+                theadHtml += `<th rowspan="2" style="${thMetricS}">Match</th>`;
+                theadHtml += `</tr>`;
+                // Second row: System | EDTMS sub-headers per metric
+                theadHtml += `<tr>`;
+                METRICS.forEach(() => {
+                    theadHtml += `<th style="${thS}">GUI</th>`;
+                    theadHtml += `<th style="${thS}">EDTMS</th>`;
+                });
+                theadHtml += `</tr>`;
+                thead.innerHTML = theadHtml;
+
+                // ── Body rows ───────────────────────────────────────────────
+                let totalMatched = 0;
+                let totalChecked = 0;
+                let bodyHtml = '';
+
+                users.forEach(user => {
+                    const d = userData[user];
+                    const isAbsent  = d.absent;
+                    const isPartial = d.partial;
+                    const cleanUser = (isAbsent || isPartial) ? d.displayName : excelNameToApiName(user);
+
+                    const tdNameAbsent = `font-weight:700;color:#7f1d1d;text-align:left;border:1px solid #b3d9f7;padding:5px 10px;font-size:12px;background:#fde8d8;white-space:nowrap;`;
+                    const tdNamePresent = `font-weight:600;color:#042c53;text-align:left;border:1px solid #7ab8e8;padding:5px 10px;font-size:12px;background:#f0faff;white-space:nowrap;`;
+
+                    if (isAbsent) {
+                        bodyHtml += `<tr>`;
+                        bodyHtml += `<td style="${tdNameAbsent}">${cleanUser}</td>`;
+                        METRICS.forEach(() => {
+                            bodyHtml += `<td colspan="2" style="font-weight:700;color:#7f1d1d;text-align:center;border:1px solid #b3d9f7;padding:5px;background:#fde8d8;font-size:11px;">AB</td>`;
+                        });
+                        bodyHtml += `<td style="font-weight:700;color:#7f1d1d;text-align:center;border:1px solid #b3d9f7;padding:5px;background:#fde8d8;font-size:11px;">—</td>`;
+                        bodyHtml += `</tr>`;
+                        return;
+                    }
+
+                    // ── EDTMS not filled: no EDTMS data for this user → merge & center a notice ──
+                    const edtmsObj = (d.edtms && typeof d.edtms === 'object') ? d.edtms : {};
+                    const hasEdtmsData = Object.values(edtmsObj).some(v => (parseInt(v) || 0) !== 0);
+                    if (!hasEdtmsData) {
+                        bodyHtml += `<tr>`;
+                        bodyHtml += `<td style="${tdNamePresent}">${cleanUser}</td>`;
+                        bodyHtml += `<td colspan="${METRICS.length * 2}" style="font-weight:700;color:#8a5a00;text-align:center;border:1px solid #b3d9f7;padding:8px;background:#fff4e0;font-size:12px;letter-spacing:0.3px;">EDTMS Not Filled Yet</td>`;
+                        bodyHtml += `<td style="font-weight:700;color:#7f1d1d;text-align:center;border:1px solid #b3d9f7;padding:5px;background:#fde8d8;font-size:11px;">—</td>`;
+                        bodyHtml += `</tr>`;
+                        return;
+                    }
+
+                    let userMatched = 0;
+                    const userCellCount = METRICS.length;
+                    bodyHtml += `<tr>`;
+                    bodyHtml += `<td style="${tdNamePresent}">${cleanUser}</td>`;
+
+                    METRICS.forEach(([sysKey, edtmsKey, _label]) => {
+                        const sysVal   = d[sysKey] != null ? d[sysKey] : 0;
+                        const edtmsVal = (d.edtms && d.edtms[edtmsKey] != null) ? d.edtms[edtmsKey] : 0;
+                        const result = compareVals(sysVal, edtmsVal);
+
+                        totalChecked++;
+                        if (result.match) {
+                            userMatched++;
+                            totalMatched++;
+                        }
+
+                        const cellBg   = result.match ? '#d5f5e3' : '#fadbd8';  // green vs soft red
+                        const cellText = result.match ? '#1e7e34' : '#a93226';  // dark green vs dark red
+
+                        // GUI cell
+                        bodyHtml +=
+                            `<td style="text-align:center;border:1px solid #b3d9f7;padding:5px 6px;font-size:12px;background:${cellBg};color:${cellText};font-weight:600;">${result.sys}</td>`;
+                        // EDTMS cell
+                        bodyHtml +=
+                            `<td style="text-align:center;border:1px solid #b3d9f7;padding:5px 6px;font-size:12px;background:${cellBg};color:${cellText};font-weight:600;">${result.edtms}</td>`;
+                    });
+
+                    // Per-user match summary cell
+                    const userPct  = userCellCount > 0 ? Math.round((userMatched / userCellCount) * 100) : 0;
+                    const userPill = userMatched === userCellCount
+                        ? '#27ae60'                       // fully green
+                        : (userMatched === 0 ? '#e74c3c'  // fully red
+                                             : '#f39c12'); // partial — amber
+                    const userTxt = `${userMatched}/${userCellCount}${userMatched !== userCellCount ? ' (' + userPct + '%)' : ''}`;
+                    bodyHtml +=
+                        `<td style="text-align:center;border:1px solid #b3d9f7;padding:5px;font-size:11px;background:${userPill};color:#fff;font-weight:700;">${userTxt}</td>`;
+                    bodyHtml += `</tr>`;
+                });
+
+                // ── Total row ───────────────────────────────────────────────
+                bodyHtml += `<tr>`;
+                bodyHtml += `<td style="${thMetricS}">Total</td>`;
+                METRICS.forEach(([sysKey, edtmsKey, _label]) => {
+                    let sysSum = 0, edtmsSum = 0;
+                    users.forEach(user => {
+                        const d = userData[user];
+                        if (!d || d.absent) return;
+                        sysSum   += normalizeVal(d[sysKey]) || 0;
+                        edtmsSum += normalizeVal(d.edtms && d.edtms[edtmsKey]) || 0;
+                    });
+                    bodyHtml += `<td style="${thMetricS}">${sysSum || 'NA'}</td>`;
+                    bodyHtml += `<td style="${thMetricS}">${edtmsSum || 'NA'}</td>`;
+                });
+                const overallPct = totalChecked > 0 ? Math.round((totalMatched / totalChecked) * 100) : 0;
+                const overallPill = totalMatched === totalChecked
+                    ? '#27ae60'
+                    : (totalMatched === 0 ? '#e74c3c' : '#f39c12');
+                const overallTxt = `${totalMatched}/${totalChecked}` + (totalMatched !== totalChecked ? ` (${overallPct}%)` : '');
+                bodyHtml += `<td style="background:${overallPill};color:#fff;font-weight:700;text-align:center;border:1px solid #7ab8e8;padding:6px 10px;font-size:12px;">${overallTxt}</td>`;
+                bodyHtml += `</tr>`;
+
+                tbody.innerHTML = bodyHtml;
+
+                // ── Header date stamp ───────────────────────────────────────
+                if (header) {
+                    // Update the header text to include the date — keep it minimal so we don't break layout
+                    const baseText = `<i class="fas fa-balance-scale"></i> Compare Summary (GUI vs EDTMS) - ${dateStr}`;
+                    header.innerHTML = baseText;
+                }
+
+                // ── Legend summary bar ──────────────────────────────────────
+                if (legend) {
+                    const mismatched = totalChecked - totalMatched;
+                    legend.innerHTML = `
+                        <span style="display:inline-flex;align-items:center;gap:5px;">
+                            <span style="display:inline-block;width:12px;height:12px;background:#d5f5e3;border:1px solid #27ae60;border-radius:2px;vertical-align:middle;"></span>
+                            <strong>Match</strong> — System value equals EDTMS value
+                        </span>
+                        <span style="display:inline-flex;align-items:center;gap:5px;">
+                            <span style="display:inline-block;width:12px;height:12px;background:#fadbd8;border:1px solid #e74c3c;border-radius:2px;vertical-align:middle;"></span>
+                            <strong>Mismatch</strong> — Verify EDTMS entry vs system record
+                        </span>
+                        <span style="margin-left:auto;font-weight:700;color:#2c3e50;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+                            Overall:
+                            <span style="background:${overallPill};color:#fff;padding:3px 9px;border-radius:10px;font-size:11px;">${totalMatched}/${totalChecked} ${totalMatched !== totalChecked ? '(' + overallPct + '%)' : ''}</span>
+                            <span style="color:#7f8c8d;font-weight:500;font-size:11px;">(${mismatched} need verification)</span>
+                        </span>
+                    `;
+                }
+
+                wrapper.style.display = 'block';
+
+                // Stash compare stats so exportSummaryCSV can include them
+                if (typeof lastSummaryResult === 'object' && lastSummaryResult) {
+                    lastSummaryResult.compareStats = {
+                        totalMatched, totalChecked, overallPct, dateStr
+                    };
+                }
+            }
             function exportSummaryCSV() {
                 if (!lastSummaryResult) { showToast('No summary to export', true); return; }
                 const escCSV = v => { const s = String(v===null||v===undefined?'':v); return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:''+s; };
                 let lines = [];
-                const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/-/g,'');
+                const ts = new Date().toISOString().slice(0,19).replace(/[T:]/g,'_').replace(/[-:]/g,'');
                 let filename = `summary_${lastSummaryResult.type}_${ts}.csv`;
                 if (lastSummaryResult.type === 'users_detailed') {
                     filename = `Scam_Plus_Summary_${ts}.csv`;
-                    lines = ['Name,SM Cases,Web Cases,App Cases,Total Cases,Scrapping,Quality Check,Web Searching,Credentials,Remark'];
-                    const { userData, users, dateStr } = lastSummaryResult;
+                    // Header — System values + EDTMS comparison values + match status + remark
+                    lines = ['Name,SM Cases,Web Cases,App Cases,Total Cases,Scrapping,Quality Check,Web Searching,Credentials,Remark,EDTMS SM,EDTMS Web,EDTMS App,EDTMS Scrap,EDTMS QC,EDTMS WS,EDTMS Creds,Match Summary'];
+                    const { userData, users } = lastSummaryResult;
+                    // Helper: convert any value (null/undefined/'NA'/0) into a normalized cell
+                    const normCell = (v) => {
+                        if (v === null || v === undefined) return 'NA';
+                        const s = String(v).trim();
+                        if (!s || s.toUpperCase() === 'NA' || s.toUpperCase() === 'N/A') return 'NA';
+                        return s;
+                    };
+                    const compareNorm = (sysRaw, edtmsRaw) => {
+                        const a = normCell(sysRaw);
+                        const b = normCell(edtmsRaw);
+                        if (a === 'NA' && b === 'NA') return 'Match';
+                        if (a === b) return 'Match';
+                        return 'Mismatch';
+                    };
+                    let totals = { match: 0, mismatch: 0, cells: 0 };
                     users.forEach(user => {
                         const d = userData[user];
+                        if (!d || d.absent) return;
+                        const sysVals = [d.sm, d.web, d.app, d.total, d.scrapping, d.qualityCheck, d.webSearching, d.credentials];
+                        const edtms = d.edtms || {};
+                        const edtmsVals = [edtms.sm, edtms.web, edtms.app, edtms.scrapping, edtms.qc, edtms.ws, edtms.creds];
+                        // Per-metric match: compare only the seven metrics that exist on both sides.
+                        // (Total Cases + Remark are system-only columns; we deliberately skip them
+                        // in the EDTMS comparison so the export mirrors what the Compare Summary shows.)
+                        const cmpMetrics = ['sm','web','app','scrapping','qc','ws','creds'];
+                        let userMatch = 0, userChecked = 0;
+                        const matchDetails = cmpMetrics.map(k => {
+                            const eq = compareNorm({sm:d.sm, web:d.web, app:d.app, scrapping:d.scrapping, qc:d.qualityCheck, webSearching:d.webSearching, credentials:d.credentials}[k], edtms[k]);
+                            userChecked++;
+                            if (eq === 'Match') userMatch++;
+                            totals.cells++;
+                            if (eq === 'Match') totals.match++; else totals.mismatch++;
+                            return eq;
+                        });
+                        const matchSummary = `${userMatch}/${userChecked} matches`;
                         lines.push([
                             escCSV(d.displayName || user),
-                            d.sm || 'NA', d.web || 'NA', d.app || 'NA', d.total,
-                            d.scrapping || 'NA', d.qualityCheck || 'NA',
-                            d.webSearching || 'NA', d.credentials || 'NA',
-                            escCSV(d.remark || '')
+                            normCell(d.sm),   normCell(d.web), normCell(d.app), normCell(d.total),
+                            normCell(d.scrapping), normCell(d.qualityCheck),
+                            normCell(d.webSearching), normCell(d.credentials),
+                            escCSV(d.remark || ''),
+                            normCell(edtms.sm),   normCell(edtms.web),
+                            normCell(edtms.app),   normCell(edtms.scrapping),
+                            normCell(edtms.qc),    normCell(edtms.ws),
+                            normCell(edtms.creds),
+                            matchSummary
                         ].join(','));
                     });
                     const t = Object.values(userData).reduce((acc, d) => {
-                        acc.sm += d.sm; acc.web += d.web; acc.app += d.app; acc.total += d.total;
-                        acc.scrapping += d.scrapping; acc.qualityCheck += d.qualityCheck;
-                        acc.webSearching += d.webSearching; acc.credentials += d.credentials;
+                        acc.sm += d.sm||0; acc.web += d.web||0; acc.app += d.app||0; acc.total += d.total||0;
+                        acc.scrapping += d.scrapping||0; acc.qualityCheck += d.qualityCheck||0;
+                        acc.webSearching += d.webSearching||0; acc.credentials += d.credentials||0;
+                        acc.edtmsSm   += (d.edtms && d.edtms.sm) || 0;
+                        acc.edtmsWeb  += (d.edtms && d.edtms.web) || 0;
+                        acc.edtmsApp  += (d.edtms && d.edtms.app) || 0;
+                        acc.edtmsSc   += (d.edtms && d.edtms.scrapping) || 0;
+                        acc.edtmsQc   += (d.edtms && d.edtms.qc) || 0;
+                        acc.edtmsWs   += (d.edtms && d.edtms.ws) || 0;
+                        acc.edtmsCr   += (d.edtms && d.edtms.creds) || 0;
                         return acc;
-                    }, { sm:0, web:0, app:0, total:0, scrapping:0, qualityCheck:0, webSearching:0, credentials:0 });
-                    lines.push(`Total,${t.sm||'NA'},${t.web||'NA'},${t.app||'NA'},${t.total},${t.scrapping||'NA'},${t.qualityCheck||'NA'},${t.webSearching||'NA'},${t.credentials||'NA'},NA`);
+                    }, { sm:0, web:0, app:0, total:0, scrapping:0, qualityCheck:0, webSearching:0, credentials:0,
+                         edtmsSm:0, edtmsWeb:0, edtmsApp:0, edtmsSc:0, edtmsQc:0, edtmsWs:0, edtmsCr:0 });
+                    lines.push(`Total,${t.sm||'NA'},${t.web||'NA'},${t.app||'NA'},${t.total},${t.scrapping||'NA'},${t.qualityCheck||'NA'},${t.webSearching||'NA'},${t.credentials||'NA'},NA,${t.edtmsSm||'NA'},${t.edtmsWeb||'NA'},${t.edtmsApp||'NA'},${t.edtmsSc||'NA'},${t.edtmsQc||'NA'},${t.edtmsWs||'NA'},${t.edtmsCr||'NA'},${totals.match}/${totals.cells} matches`);
                 } else
                 if (lastSummaryResult.type === 'category_detailed') {
                     filename = `IS_Category_Wise_Summary_${ts}.csv`;
@@ -5228,13 +5631,21 @@
                         });
                     }
                     showToast('Generating image...', false, false);
-                    const tableEl = wrapper.querySelector('table') || wrapper;
-                    const clone = tableEl.cloneNode(true);
+                    // Build a temporary staging container with User Summary table + (optionally)
+                    // the Compare Summary table + legend, stacked vertically.
                     const tempDiv = document.createElement('div');
-                    tempDiv.style.cssText = 'position:absolute;top:-9999px;left:-9999px;background:#ffffff;display:inline-block;margin:0;padding:0;';
-                    tempDiv.appendChild(clone);
+                    tempDiv.style.cssText = 'position:absolute;top:-9999px;left:-9999px;background:#ffffff;padding:8px;display:inline-block;margin:0;';
+
+                    const userTable = wrapper.querySelector('table');
+                    if (userTable) {
+                        const userClone = userTable.cloneNode(true);
+                        userClone.style.display = 'table';
+                        tempDiv.appendChild(userClone);
+                    }
+                    // NOTE: The Compare Summary is intentionally NOT included in the copied
+                    // image — only the Scam++ (User) Summary is captured.
                     document.body.appendChild(tempDiv);
-                    const canvas = await html2canvas(clone, {
+                    const canvas = await html2canvas(tempDiv, {
                         backgroundColor: '#ffffff',
                         scale: 2,
                         useCORS: true,
