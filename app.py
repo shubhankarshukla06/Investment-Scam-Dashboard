@@ -8060,11 +8060,15 @@ def qc_gui():
     qc_wallet     = request.args.get("qc_wallet",     "").strip()
     qc_date_from  = request.args.get("qc_date_from",  "").strip()
     qc_date_to    = request.args.get("qc_date_to",    "").strip()
+    qc_status     = request.args.get("qc_status",     "").strip()
     is_super_or_admin = is_admin_or_above(session)
     page = int(request.args.get("page_num", 1))
     items = []
     total_rows = 0
     total_pages = 1
+    today_qc_count = 0
+    range_qc_count = 0
+    range_qc_label = ""
     try:
         query = supabase.table(QC_TABLE).select("*", count="exact")
         if qc_search:
@@ -8077,8 +8081,11 @@ def qc_gui():
             query = query.gte("inserted_date", qc_date_from)
         if qc_date_to:
             query = query.lte("inserted_date", qc_date_to)
-        if not is_super_or_admin:
-            query = query.or_("new_update_remark.is.null,new_update_remark.eq.NA,new_update_remark.eq.N/A")
+        # QC Status filter: Pending (qc_status IS NULL - never reviewed) or QC Done (qc_status IS NOT NULL)
+        if qc_status == "pending":
+            query = query.is_("qc_status", "null")
+        elif qc_status == "done":
+            query = query.not_.is_("qc_status", "null")
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -8086,6 +8093,37 @@ def qc_gui():
         items = resp.data or []
         total_rows = resp.count or 0
         total_pages = max(1, math.ceil(total_rows / PER_PAGE))
+
+        # Today's QC count for the current user (records they reviewed today)
+        current_user_name = get_clean_display_name(session.get("display_name", "User"))
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        qc_count_resp = (
+            supabase.table(QC_TABLE)
+            .select("id", count="exact")
+            .eq("approved_by", current_user_name)
+            .eq("qc_approved_date", today_str)
+            .execute()
+        )
+        today_qc_count = qc_count_resp.count or 0
+
+        # Selected-date-range QC count for the current user (when a date range filter is applied)
+        if qc_date_from or qc_date_to:
+            rq = (
+                supabase.table(QC_TABLE)
+                .select("id", count="exact")
+                .eq("approved_by", current_user_name)
+            )
+            if qc_date_from:
+                rq = rq.gte("qc_approved_date", qc_date_from)
+            if qc_date_to:
+                rq = rq.lte("qc_approved_date", qc_date_to)
+            rq_resp = rq.execute()
+            range_qc_count = rq_resp.count or 0
+            if qc_date_from and qc_date_to and qc_date_from != qc_date_to:
+                range_qc_label = f"{qc_date_from} → {qc_date_to}"
+            else:
+                single = qc_date_from or qc_date_to
+                range_qc_label = single
     except Exception as e:
         flash(f"Error fetching QC data: {e}", "error")
 
@@ -8097,9 +8135,13 @@ def qc_gui():
         qc_wallet=qc_wallet,
         qc_date_from=qc_date_from,
         qc_date_to=qc_date_to,
+        qc_status=qc_status,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
+        today_qc_count=today_qc_count,
+        range_qc_count=range_qc_count,
+        range_qc_label=range_qc_label,
         wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
         search_for_options=QC_SEARCH_FOR_OPTIONS,
         scam_type_options=BS_INVESTMENT_SCAM_TYPE_OPTIONS,
@@ -8456,6 +8498,7 @@ def qc_gui_tracker_stats():
             iu  = (row.get("input_user") or "Unknown").strip() or "Unknown"
             updater = ab if ab.upper() not in ("", "NA", "N/A", "UNKNOWN") else "Unknown"
             dt  = (row.get("inserted_date") or "")[:10]
+            qc_dt = (row.get("qc_approved_date") or "")[:10]
             allot_dt = (row.get("total_allotment_date") or row.get("qc_assigned_date") or "")[:10]
             if allot_dt:
                 allotment_by_date[allot_dt] = allotment_by_date.get(allot_dt, 0) + 1
@@ -8468,18 +8511,19 @@ def qc_gui_tracker_stats():
             input_user_counts[iu] = input_user_counts.get(iu, 0) + 1
             if dt:
                 daily_counts[dt] = daily_counts.get(dt, 0) + 1
-                bucket = daily_qc_status.setdefault(dt, {"total": 0, "true": 0, "false": 0})
-                if row.get("new_update_remark") and str(row.get("new_update_remark")).strip().upper() not in ("", "NA", "N/A"):
-                    bucket["total"] += 1
-                    user_bucket = user_daily_qc_status.setdefault(updater, {})
-                    user_day = user_bucket.setdefault(dt, {"total": 0, "true": 0, "false": 0})
-                    user_day["total"] += 1
-                    if row.get("qc_status") is True:
-                        bucket["true"] += 1
-                        user_day["true"] += 1
-                    elif row.get("qc_status") is False:
-                        bucket["false"] += 1
-                        user_day["false"] += 1
+            # User-wise daily QC status keyed by qc_approved_date (the date QC was completed)
+            if qc_dt and row.get("new_update_remark") and str(row.get("new_update_remark")).strip().upper() not in ("", "NA", "N/A"):
+                bucket = daily_qc_status.setdefault(qc_dt, {"total": 0, "true": 0, "false": 0})
+                bucket["total"] += 1
+                user_bucket = user_daily_qc_status.setdefault(updater, {})
+                user_day = user_bucket.setdefault(qc_dt, {"total": 0, "true": 0, "false": 0})
+                user_day["total"] += 1
+                if row.get("qc_status") is True:
+                    bucket["true"] += 1
+                    user_day["true"] += 1
+                elif row.get("qc_status") is False:
+                    bucket["false"] += 1
+                    user_day["false"] += 1
         return jsonify({
             "success": True,
             "total": len(all_rows),
