@@ -7949,6 +7949,19 @@ QC_SEARCH_FIELDS = [
 ]
 
 QC_EXPORT_COLUMNS = [
+    "id", "gui_id", "input_user", "approved_by", "scam_type",
+    "search_for", "upi_bank_account_wallet", "bank_name",
+    "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
+    "web_contact_no", "payment_gateway_url", "website_url", "screenshot",
+    "screenshot_case_report_link", "qc_remarks", "new_update_remark",
+    "qc_status", "feature_type", "inserted_date",
+    "qc_assigned_date", "qc_approved_date", "total_allotment_date"
+]
+
+# Blank import-template columns. Deliberately excludes the DB primary key `id`:
+# `id` is aliased to gui_id in QC_IMPORT_ALIASES, so surfacing it in the template
+# would mislead importers into overwriting gui_id. gui_id remains the unique key.
+QC_TEMPLATE_COLUMNS = [
     "gui_id", "input_user", "approved_by", "scam_type",
     "search_for", "upi_bank_account_wallet", "bank_name",
     "bank_account_number", "upi_vpa", "ifsc_code", "ac_holder_name",
@@ -8529,7 +8542,7 @@ def qc_gui_template():
         return redirect("/qc-gui")
     try:
         output = io.StringIO()
-        csv.writer(output).writerow(QC_EXPORT_COLUMNS)
+        csv.writer(output).writerow(QC_TEMPLATE_COLUMNS)
         output.seek(0)
         return send_file(
             io.BytesIO(output.getvalue().encode("utf-8-sig")),
