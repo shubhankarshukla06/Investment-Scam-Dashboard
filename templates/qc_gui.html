@@ -47,10 +47,10 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
 .page-select { padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; min-width:185px; height:34px; }
 .page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
-.filters { background:white; border-radius:8px; padding:8px 10px; margin-bottom:9px; margin-top:4px; box-shadow:0 1px 8px rgba(0,0,0,0.08); border-top:2px solid #27ae60; }
-.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px; }
+.filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.08); }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px; }
 .filters-header h2 { font-size:13px; color:#2c3e50; }
-.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:7px; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
 .filter-group { display:flex; flex-direction:column; gap:3px; }
 .filter-group label { font-size:11px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
 .filter-group input, .filter-group select { width:100%; padding:5px 9px; border:1px solid #ddd; border-radius:5px; font-size:11.5px; background:white; cursor:pointer; height:30px; outline:none; }
@@ -64,7 +64,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .date-range-sep { font-size:11px; color:#7f8c8d; white-space:nowrap; }
 .clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
 .clear-btn:hover { background:#c0392b; }
-.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 270px); }
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 310px); }
 table { width:max-content; min-width:100%; border-collapse:collapse; }
 th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
 th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
@@ -226,6 +226,37 @@ body.theme-dark .filters-header [style*="background: #fff5e6"] {
     color:#FCD9A6 !important;
     border:1px solid rgba(240,201,135,.35);
 }
+/* ── QC Status row highlights (light theme) ── */
+tr.qc-row-pending   { background-color:#fff7d6 !important; }
+tr.qc-row-pending:hover   { background-color:#ffefb3 !important; }
+tr.qc-row-done-true { background-color:#e8f8f0 !important; }
+tr.qc-row-done-true:hover { background-color:#d4f1de !important; }
+tr.qc-row-done-false{ background-color:#fdecea !important; }
+tr.qc-row-done-false:hover{ background-color:#f9d5d0 !important; }
+/* ── QC Status row highlights (dark theme) ── */
+body.theme-dark tr.qc-row-pending    { background-color:rgba(245,158,11,.16)  !important; }
+body.theme-dark tr.qc-row-pending:hover   { background-color:rgba(245,158,11,.28)  !important; }
+body.theme-dark tr.qc-row-done-true  { background-color:rgba(22,163,74,.18)   !important; }
+body.theme-dark tr.qc-row-done-true:hover { background-color:rgba(22,163,74,.30)   !important; }
+body.theme-dark tr.qc-row-done-false { background-color:rgba(220,38,38,.18)   !important; }
+body.theme-dark tr.qc-row-done-false:hover{ background-color:rgba(220,38,38,.30)   !important; }
+/* ── User view (non-admin): Rejected rows must NOT be highlighted ── */
+table.user-view tr.qc-row-done-false { background-color: transparent !important; }
+table.user-view tr.qc-row-done-false:hover { background-color:#f4f6f8 !important; }
+body.theme-dark table.user-view tr.qc-row-done-false { background-color: transparent !important; }
+body.theme-dark table.user-view tr.qc-row-done-false:hover { background-color: rgba(255,255,255,.04) !important; }
+/* Auto-allotment chip & legend swatches */
+.auto-allot-chip { font-size:12px; color:#7f8c8d; font-weight:600; background:#f3e8ff; border:1px solid #c4b5fd; padding:3px 10px; border-radius:12px; display:inline-flex; align-items:center; gap:6px; }
+.auto-allot-chip i { color:#7c3aed; }
+body.theme-dark .auto-allot-chip { background:rgba(124,58,237,.18); color:#DDD6FE; border-color:rgba(167,139,250,.35); }
+body.theme-dark .auto-allot-chip i { color:#C4B5FD; }
+.qc-legend { display:inline-flex; align-items:center; gap:6px; font-size:11px; color:#6b7280; font-weight:600; }
+.qc-legend .swatch { display:inline-block; width:11px; height:11px; border-radius:3px; border:1px solid rgba(0,0,0,.06); }
+.qc-legend .swatch.pending   { background:#fff7d6; border-color:#fde68a; }
+.qc-legend .swatch.done-true { background:#e8f8f0; border-color:#86efac; }
+.qc-legend .swatch.done-false{ background:#fdecea; border-color:#fca5a5; }
+body.theme-dark .qc-legend { color:#CBD5E1; }
+body.theme-dark .qc-legend .swatch { border-color:rgba(255,255,255,.18); }
 body.theme-dark .empty-state h3,
 body.theme-dark .empty-state p { color:#CBD5E1 !important; }
 html.theme-switching body,
@@ -416,7 +447,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 <div style="min-width:0;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
                         <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
-                        <span class="header-username"><i class="fas fa-user-circle" style="color:#32d3a2;font-size:11px;"></i> {{ display_name }}</span>
+                        <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
                     </div>
                     <p style="margin-top:2px;">GUI QC Review</p>
                 </div>
@@ -474,6 +505,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 <input type="hidden" name="qc_wallet" value="{{ qc_wallet }}">
                 <input type="hidden" name="qc_date_from" value="{{ qc_date_from }}">
                 <input type="hidden" name="qc_date_to" value="{{ qc_date_to }}">
+                <input type="hidden" name="qc_status" value="{{ qc_status }}">
                 <button type="submit" class="btn btn-primary" onclick="showToast('Downloading QC Data...', '')">
                     <i class="fas fa-file-export"></i> Export
                 </button>
@@ -516,6 +548,22 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <i class="fas fa-calendar-check" style="color:#e67e22;"></i> {{ range_qc_label }} QC: {{ range_qc_count }}
                 </span>
                 {% endif %}
+                {% if is_admin %}
+                <span class="auto-allot-chip"
+                      title="Auto daily allotment: system daily marks up to {{ auto_allotment.limit }} pending records with today's qc_assigned_date for {{ clean_display_name }}.">
+                    <i class="fas fa-magic"></i>
+                    Today's Auto-Allot:
+                    {{ (auto_allotment.already_today if auto_allotment is defined else 0) }}/{{ auto_allotment.limit }}
+                    <span style="opacity:.75;font-weight:500;">
+                        (pending: {{ auto_allotment.total_pending if auto_allotment is defined else 0 }}{% if auto_allotment.newly_assigned %} • +{{ auto_allotment.newly_assigned }} new today{% endif %})
+                    </span>
+                </span>
+                {% endif %}
+                <span class="qc-legend" title="Row tint by QC status">
+                    <span class="swatch pending"></span> Pending
+                    <span class="swatch done-true"></span> QC&nbsp;Done
+                    {% if is_admin %}<span class="swatch done-false"></span> QC&nbsp;Rejected{% endif %}
+                </span>
                 <button class="clear-btn" onclick="window.location.href='/qc-gui'">
                     <i class="fas fa-times"></i> Clear Filters
                 </button>
@@ -542,13 +590,26 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label><i class="fas fa-tasks"></i> QC Status</label>
+                    <label><i class="fas fa-tasks"></i> QC Status
+                        {% if qc_status_default %}<span style="font-size:10px;color:#27ae60;font-weight:700;margin-left:4px;" title="Default view — only Pending records shown until you change the filter">(default)</span>{% endif %}
+                    </label>
+                    {% if is_admin %}
+                    {# Admin end: full status control incl. Rejected #}
                     <select name="qc_status" onchange="this.form.submit()"
-                        class="{{ 'active-filter' if qc_status else '' }}">
-                        <option value="" {{ 'selected' if not qc_status else '' }}>All</option>
-                        <option value="pending" {{ 'selected' if qc_status == 'pending' else '' }}>Pending</option>
+                        class="{{ 'active-filter' if qc_status in ('all', 'done', 'rejected') else '' }}">
+                        <option value="pending" {{ 'selected' if not qc_status or qc_status == 'pending' else '' }}>Pending</option>
+                        <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>QC Done</option>
+                        <option value="rejected" {{ 'selected' if qc_status == 'rejected' else '' }}>QC Rejected</option>
+                        <option value="all" {{ 'selected' if qc_status == 'all' else '' }}>All</option>
+                    </select>
+                    {% else %}
+                    {# User end: limited to Pending / QC Done only — Rejected & All are admin-only #}
+                    <select name="qc_status" onchange="this.form.submit()"
+                        class="{{ 'active-filter' if qc_status == 'done' else '' }}">
+                        <option value="pending" {{ 'selected' if not qc_status or qc_status == 'pending' else '' }}>Pending</option>
                         <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>QC Done</option>
                     </select>
+                    {% endif %}
                 </div>
                 <div class="filter-group" style="grid-column:span 2;">
                     <label><i class="fas fa-calendar-alt"></i> Date Range</label>
@@ -564,8 +625,8 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         </form>
     </div>
     <!-- Table -->
-    <div class="table-container">
-        <table id="qcTable">
+            <div class="table-container">
+        <table id="qcTable" class="{{ '' if is_admin else 'user-view' }}">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -593,7 +654,8 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             <tbody>
                 {% if items %}
                 {% for item in items %}
-                <tr id="qc-row-{{ item.id }}">
+                {% set qss = item.get('qc_status') %}
+                <tr id="qc-row-{{ item.id }}" class="{% if qss is sameas true %}qc-row-done-true{% elif qss is sameas false %}qc-row-done-false{% else %}qc-row-pending{% endif %}">
                     <td>
                         <a href="javascript:void(0);" onclick="openEditModal({{ item.id }})"
                            style="color:#1e8449;font-weight:700;text-decoration:none;border-bottom:1px dashed #1e8449;padding-bottom:1px;"

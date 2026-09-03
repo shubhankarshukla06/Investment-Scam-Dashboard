@@ -51,9 +51,9 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .theme-select { min-width:118px; }
 /* Filters */
 .filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.08); }
-.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px; }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
 .filters-header h2 { font-size:14px; color:#2c3e50; }
-.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
 .filter-group { display:flex; flex-direction:column; gap:4px; }
 .filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
 .filter-group input, .filter-group select { width:100%; padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height:34px; outline:none; }
@@ -68,7 +68,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
 .clear-btn:hover { background:#c0392b; }
 /* Table */
-.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 300px); }
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 310px); }
 table { width:max-content; min-width:100%; border-collapse:collapse; }
 th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
 th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
@@ -1023,7 +1023,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 <div style="min-width:0;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
                         <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
-                        <span class="header-username"><i class="fas fa-user-circle" style="color:#32d3a2;font-size:11px;"></i> {{ display_name }}</span>
+                        <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
                     </div>
                     <p style="margin-top:2px;">Scam++ Website Directory</p>
                 </div>

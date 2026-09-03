@@ -92,7 +92,6 @@ def parse_bool(value):
         return value != 0
     return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
 
-
 def fetch_user_by_email(email: str):
     if email.lower().strip() == DEMO_ADMIN["email"]:
         return DEMO_ADMIN
@@ -7912,6 +7911,12 @@ QC_SEARCH_FOR_OPTIONS = list(BS_INVESTMENT_SEARCH_FOR_OPTIONS) + ["App"]
 
 QC_TABLE = "qc_table"
 
+# Daily QC allotment per user (auto-pick pending records each day).
+# When the user logs in / opens /qc-gui, the system auto-marks up to this many
+# pending records with qc_assigned_date=today so the user clearly sees today's
+# workload without changing who is responsible for the QC.
+AUTO_QC_DAILY_LIMIT = 70
+
 # Columns in qc_table whose Postgres type is integer — need numeric conversion so
 # empty / "NA" cells become NULL instead of an unparseable string at insert time.
 QC_INT_COLUMNS = {"gui_id", "bank_account_number", "web_contact_no"}
@@ -8048,6 +8053,94 @@ def _qc_build_records_from_df(df, input_user_default, force_input_user=None, res
     return records, matched_columns
 
 
+def _auto_allot_qc_for_user(user_name, daily_limit=AUTO_QC_DAILY_LIMIT):
+    """
+    Daily QC auto-allotment for the given user.
+
+    Ensures the user has up to ``daily_limit`` records marked with
+    ``qc_assigned_date = today`` and ``qc_status IS NULL``. The remaining
+    pending records (``qc_status IS NULL``) stay in the pool and will be
+    picked up on subsequent days.
+
+    The function is idempotent — calling it multiple times on the same day
+    is a no-op once today's allotment reaches ``daily_limit``. It is safe to
+    call on every page load.
+
+    Returns a small dict with allotment counters (already_today,
+    newly_assigned, total_pending, limit) so the UI can show a status chip.
+    """
+    empty = {"already_today": 0, "newly_assigned": 0, "total_pending": 0, "limit": daily_limit}
+    if not user_name or user_name == "User":
+        return empty
+    try:
+        today = datetime.now().strftime("%Y-%m-%d")
+        # Records already assigned to *today* for this user (still pending).
+        resp_today = (
+            supabase.table(QC_TABLE)
+            .select("id", count="exact")
+            .eq("input_user", user_name)
+            .eq("qc_assigned_date", today)
+            .is_("qc_status", "null")
+            .execute()
+        )
+        already_today = resp_today.count or 0
+
+        # Remaining pool: pending records NOT yet slotted into today.
+        resp_pending = (
+            supabase.table(QC_TABLE)
+            .select("id", count="exact")
+            .eq("input_user", user_name)
+            .is_("qc_status", "null")
+            .neq("qc_assigned_date", today)
+            .execute()
+        )
+        pending_pool = resp_pending.count or 0
+        total_pending = already_today + pending_pool
+
+        if pending_pool == 0 or already_today >= daily_limit:
+            return {
+                "already_today": already_today,
+                "newly_assigned": 0,
+                "total_pending": total_pending,
+                "limit": daily_limit,
+            }
+
+        need = min(daily_limit - already_today, pending_pool)
+
+        # Pick the oldest ``need`` records (FIFO) from the pending pool.
+        resp_pick = (
+            supabase.table(QC_TABLE)
+            .select("id")
+            .eq("input_user", user_name)
+            .is_("qc_status", "null")
+            .neq("qc_assigned_date", today)
+            .order("id", desc=False)
+            .limit(need)
+            .execute()
+        )
+        ids = [r["id"] for r in (resp_pick.data or [])]
+        if ids:
+            CHUNK = 200
+            for i in range(0, len(ids), CHUNK):
+                (
+                    supabase.table(QC_TABLE)
+                    .update({"qc_assigned_date": today})
+                    .in_("id", ids[i:i + CHUNK])
+                    .execute()
+                )
+
+        return {
+            "already_today": already_today,
+            "newly_assigned": len(ids),
+            "total_pending": total_pending,
+            "limit": daily_limit,
+        }
+    except Exception as e:
+        # Auto-allotment must never break the page render.
+        print(f"[AUTO QC ALLOT] {user_name}: {e}")
+        return {**empty, "error": str(e)}
+
+
 @app.route("/qc-gui", methods=["GET"])
 @login_required
 def qc_gui():
@@ -8060,8 +8153,19 @@ def qc_gui():
     qc_wallet     = request.args.get("qc_wallet",     "").strip()
     qc_date_from  = request.args.get("qc_date_from",  "").strip()
     qc_date_to    = request.args.get("qc_date_to",    "").strip()
-    qc_status     = request.args.get("qc_status",     "").strip()
     is_super_or_admin = is_admin_or_above(session)
+    raw_qc_status = request.args.get("qc_status",     "").strip().lower()
+    # Default QC Status view = "pending" when the user hasn't picked anything.
+    # The user must select "All" / "QC Done" / "QC Rejected" explicitly to override.
+    if raw_qc_status in ("pending", "done", "all", "rejected"):
+        qc_status = raw_qc_status
+    else:
+        qc_status = "pending"
+    # Status views (rejected / all) are admin-only. Non-admins are restricted to
+    # pending / done so they can never see rejected records via a crafted URL.
+    if not is_super_or_admin and qc_status not in ("pending", "done"):
+        qc_status = "pending"
+    qc_status_default = not raw_qc_status  # True => URL had no qc_status => we defaulted it
     page = int(request.args.get("page_num", 1))
     items = []
     total_rows = 0
@@ -8069,7 +8173,12 @@ def qc_gui():
     today_qc_count = 0
     range_qc_count = 0
     range_qc_label = ""
+    auto_allotment = {"already_today": 0, "newly_assigned": 0, "total_pending": 0, "limit": AUTO_QC_DAILY_LIMIT}
     try:
+        current_user_name = get_clean_display_name(session.get("display_name", "User"))
+        # ── Auto daily QC allotment for the current user (idempotent) ──
+        auto_allotment = _auto_allot_qc_for_user(current_user_name, daily_limit=AUTO_QC_DAILY_LIMIT)
+
         query = supabase.table(QC_TABLE).select("*", count="exact")
         if qc_search:
             lt = f"%{qc_search}%"
@@ -8077,15 +8186,30 @@ def qc_gui():
             query = query.or_(or_parts)
         if qc_wallet:
             query = query.eq("upi_bank_account_wallet", qc_wallet)
+        # Data isolation for non-admins: Pending = records allotted to me
+        # (input_user), QC Done = records I personally completed (approved_by).
+        # Admins keep the global view of every record.
+        if not is_super_or_admin and current_user_name and current_user_name != "User":
+            if qc_status == "done":
+                query = query.eq("approved_by", current_user_name)
+            elif qc_status == "pending":
+                query = query.eq("input_user", current_user_name)
+        # Date range filter: when filtering by QC Done, the user means the
+        # date the QC was completed (qc_approved_date), not when the record
+        # was inserted. For Pending (default) / All, keep inserted_date.
+        date_field = "qc_approved_date" if qc_status == "done" else "inserted_date"
         if qc_date_from:
-            query = query.gte("inserted_date", qc_date_from)
+            query = query.gte(date_field, qc_date_from)
         if qc_date_to:
-            query = query.lte("inserted_date", qc_date_to)
+            query = query.lte(date_field, qc_date_to)
         # QC Status filter: Pending (qc_status IS NULL - never reviewed) or QC Done (qc_status IS NOT NULL)
         if qc_status == "pending":
             query = query.is_("qc_status", "null")
         elif qc_status == "done":
             query = query.not_.is_("qc_status", "null")
+        elif qc_status == "rejected":
+            query = query.eq("qc_status", False)
+        # "all" → no status filter applied
         query = query.order("id", desc=True)
         offset = (page - 1) * PER_PAGE
         query = query.range(offset, offset + PER_PAGE - 1)
@@ -8095,7 +8219,6 @@ def qc_gui():
         total_pages = max(1, math.ceil(total_rows / PER_PAGE))
 
         # Today's QC count for the current user (records they reviewed today)
-        current_user_name = get_clean_display_name(session.get("display_name", "User"))
         today_str = datetime.now().strftime("%Y-%m-%d")
         qc_count_resp = (
             supabase.table(QC_TABLE)
@@ -8136,12 +8259,15 @@ def qc_gui():
         qc_date_from=qc_date_from,
         qc_date_to=qc_date_to,
         qc_status=qc_status,
+        qc_status_default=qc_status_default,
         page_num=page,
         total_pages=total_pages,
         total_rows=total_rows,
         today_qc_count=today_qc_count,
         range_qc_count=range_qc_count,
         range_qc_label=range_qc_label,
+        auto_allotment=auto_allotment,
+        auto_qc_daily_limit=AUTO_QC_DAILY_LIMIT,
         wallet_options=BS_INVESTMENT_WALLET_OPTIONS,
         search_for_options=QC_SEARCH_FOR_OPTIONS,
         scam_type_options=BS_INVESTMENT_SCAM_TYPE_OPTIONS,
@@ -8310,6 +8436,15 @@ def qc_gui_export():
         qc_wallet     = request.args.get("qc_wallet",     "").strip()
         qc_date_from  = request.args.get("qc_date_from",  "").strip()
         qc_date_to    = request.args.get("qc_date_to",    "").strip()
+        raw_qc_status = request.args.get("qc_status",     "").strip().lower()
+        # Mirror the page's default behavior: no qc_status means "pending".
+        if raw_qc_status in ("pending", "done", "all", "rejected"):
+            qc_status = raw_qc_status
+        else:
+            qc_status = "pending"
+        # Status views (rejected / all) are admin-only — enforce server-side too.
+        if not is_admin_or_above(session) and qc_status not in ("pending", "done"):
+            qc_status = "pending"
 
         def _build_qc_query():
             q = supabase.table(QC_TABLE).select(",".join(QC_EXPORT_COLUMNS))
@@ -8319,10 +8454,29 @@ def qc_gui_export():
                 q = q.or_(or_parts)
             if qc_wallet:
                 q = q.eq("upi_bank_account_wallet", qc_wallet)
+            # Data isolation for non-admins (mirror the page behaviour).
+            if not is_admin_or_above(session):
+                current_user_name = get_clean_display_name(session.get("display_name", "User"))
+                if current_user_name and current_user_name != "User":
+                    if qc_status == "done":
+                        q = q.eq("approved_by", current_user_name)
+                    elif qc_status == "pending":
+                        q = q.eq("input_user", current_user_name)
+            # Same date-field rule as the page: done → qc_approved_date,
+            # pending/all → inserted_date.
+            date_field = "qc_approved_date" if qc_status == "done" else "inserted_date"
             if qc_date_from:
-                q = q.gte("inserted_date", qc_date_from)
+                q = q.gte(date_field, qc_date_from)
             if qc_date_to:
-                q = q.lte("inserted_date", qc_date_to)
+                q = q.lte(date_field, qc_date_to)
+            # Mirror the page's QC Status filter as well so exports stay
+            # consistent with what the user is looking at.
+            if qc_status == "pending":
+                q = q.is_("qc_status", "null")
+            elif qc_status == "done":
+                q = q.not_.is_("qc_status", "null")
+            elif qc_status == "rejected":
+                q = q.eq("qc_status", False)
             return q
 
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
