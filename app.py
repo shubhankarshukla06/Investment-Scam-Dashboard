@@ -8404,6 +8404,37 @@ def qc_gui_allotment():
             flash("QC Allotment Error: No rows found in file.", "error")
             return redirect("/qc-gui")
 
+        # De-duplicate by gui_id so the SAME source data is never allotted
+        # twice or to two different users (one QC case = exactly one row).
+        gui_ids = [r.get("gui_id") for r in records if r.get("gui_id") not in (None, "", "NA")]
+        existing_ids = set()
+        if gui_ids:
+            try:
+                resp_exist = (
+                    supabase.table(QC_TABLE)
+                    .select("gui_id")
+                    .in_("gui_id", gui_ids)
+                    .execute()
+                )
+                existing_ids = {(r.get("gui_id") or "").strip() for r in (resp_exist.data or [])}
+            except Exception:
+                existing_ids = set()
+        before_count = len(records)
+        records = [
+            r for r in records
+            if not (r.get("gui_id") not in (None, "", "NA")
+                    and (r.get("gui_id") or "").strip() in existing_ids)
+        ]
+        skipped = before_count - len(records)
+
+        if not records:
+            flash(
+                f"QC Allotment: all {before_count} record(s) already exist in QC \u2014 "
+                f"duplicates skipped. Nothing new allotted to {allot_user}.",
+                "error",
+            )
+            return redirect("/qc-gui")
+
         CHUNK = 500
         for i in range(0, len(records), CHUNK):
             supabase.table(QC_TABLE).insert(records[i:i + CHUNK]).execute()
@@ -8413,7 +8444,11 @@ def qc_gui_allotment():
             target_table=QC_TABLE,
             extra_info={"file_name": filename, "records_count": len(records), "allot_user": allot_user}
         )
-        flash(f"QC Allotment done! {len(records)} cases allotted to {allot_user}.", "success")
+        flash(
+            f"QC Allotment done! {len(records)} new case(s) allotted to {allot_user}."
+            + (f" {skipped} duplicate(s) skipped." if skipped else ""),
+            "success",
+        )
     except Exception as e:
         flash(f"QC Allotment Error: {str(e)}", "error")
     finally:
