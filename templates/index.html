@@ -2524,7 +2524,7 @@
         {% if 'insights' in allowed_pages %}
         <div class="page-content insights-page {% if page_type == 'insights' %}active{% endif %}" style="flex-direction:column;gap:12px;overflow-y:visible;">
             <!-- FILTER BAR -->
-            <div style="background:white;border-radius:8px;padding:8px 12px;box-shadow:0 1px 8px rgba(0,0,0,0.08);position:sticky;top:0;z-index:100;">
+            <div style="background:white;border-radius:8px;padding:8px 12px;box-shadow:0 1px 8px rgba(0,0,0,0.08);position:sticky;top:var(--fixed-header-space);z-index:900;">
                 <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr)) auto;gap:6px;align-items:end;">
                     <div style="display:flex;flex-direction:column;gap:3px;min-width:0;">
                         <label style="font-size:9px;font-weight:700;color:#7f8c8d;text-transform:uppercase;">Date From</label>

@@ -7941,12 +7941,16 @@ QC_REMARKS_OPTIONS = [
 ]
 
 QC_SEARCH_FIELDS = [
-    "gui_id", "input_user", "approved_by", "scam_type", "search_for",
-    "upi_bank_account_wallet", "bank_name", "bank_account_number",
-    "upi_vpa", "ifsc_code", "ac_holder_name", "web_contact_no",
+    "input_user", "approved_by", "scam_type", "search_for",
+    "upi_bank_account_wallet", "bank_name",
+    "upi_vpa", "ifsc_code", "ac_holder_name",
     "payment_gateway_url", "website_url", "qc_remarks",
     "new_update_remark", "feature_type"
 ]
+
+# Integer/numeric columns — searched via exact match (.eq) instead of ILIKE,
+# because PostgreSQL's ~~ (ILIKE) operator cannot be applied to non-text types.
+QC_NUMERIC_SEARCH_FIELDS = ["gui_id", "bank_account_number", "web_contact_no"]
 
 QC_EXPORT_COLUMNS = [
     "id", "gui_id", "input_user", "approved_by", "scam_type",
@@ -8196,6 +8200,9 @@ def qc_gui():
         if qc_search:
             lt = f"%{qc_search}%"
             or_parts = ",".join(f"{f}.ilike.{lt}" for f in QC_SEARCH_FIELDS)
+            if qc_search.isdigit():
+                num_parts = ",".join(f"{f}.eq.{qc_search}" for f in QC_NUMERIC_SEARCH_FIELDS)
+                or_parts = or_parts + "," + num_parts
             query = query.or_(or_parts)
         if qc_wallet:
             query = query.eq("upi_bank_account_wallet", qc_wallet)
@@ -8417,8 +8424,9 @@ def qc_gui_allotment():
             flash("QC Allotment Error: No rows found in file.", "error")
             return redirect("/qc-gui")
 
-        # De-duplicate by gui_id so the SAME source data is never allotted
-        # twice or to two different users (one QC case = exactly one row).
+        # De-duplicate by gui_id WITHIN the same user so a user is never
+        # allotted the same case twice. Different users can each receive
+        # their own copy of the same gui_id (per-user allotment).
         gui_ids = [r.get("gui_id") for r in records if r.get("gui_id") not in (None, "", "NA")]
         existing_ids = set()
         if gui_ids:
@@ -8427,16 +8435,17 @@ def qc_gui_allotment():
                     supabase.table(QC_TABLE)
                     .select("gui_id")
                     .in_("gui_id", gui_ids)
+                    .eq("input_user", allot_user)
                     .execute()
                 )
-                existing_ids = {(r.get("gui_id") or "").strip() for r in (resp_exist.data or [])}
+                existing_ids = {str(r.get("gui_id") or "").strip() for r in (resp_exist.data or [])}
             except Exception:
                 existing_ids = set()
         before_count = len(records)
         records = [
             r for r in records
             if not (r.get("gui_id") not in (None, "", "NA")
-                    and (r.get("gui_id") or "").strip() in existing_ids)
+                    and str(r.get("gui_id") or "").strip() in existing_ids)
         ]
         skipped = before_count - len(records)
 
@@ -8449,18 +8458,27 @@ def qc_gui_allotment():
             return redirect("/qc-gui")
 
         CHUNK = 500
+        inserted = 0
+        insert_errors = 0
         for i in range(0, len(records), CHUNK):
-            supabase.table(QC_TABLE).insert(records[i:i + CHUNK]).execute()
+            chunk = records[i:i + CHUNK]
+            try:
+                resp = supabase.table(QC_TABLE).insert(chunk).execute()
+                inserted += len(resp.data or [])
+            except Exception as ex:
+                insert_errors += len(chunk)
+                print(f"[QC ALLOT] insert error (chunk {i}): {ex}")
 
         log_activity(
             action_type="import",
             target_table=QC_TABLE,
-            extra_info={"file_name": filename, "records_count": len(records), "allot_user": allot_user}
+            extra_info={"file_name": filename, "records_count": inserted, "allot_user": allot_user}
         )
         flash(
-            f"QC Allotment done! {len(records)} new case(s) allotted to {allot_user}."
-            + (f" {skipped} duplicate(s) skipped." if skipped else ""),
-            "success",
+            f"QC Allotment done! {inserted} new case(s) allotted to {allot_user}."
+            + (f" {skipped} duplicate(s) skipped." if skipped else "")
+            + (f" {insert_errors} failed to insert." if insert_errors else ""),
+            "success" if inserted else "error",
         )
     except Exception as e:
         flash(f"QC Allotment Error: {str(e)}", "error")
@@ -8499,6 +8517,9 @@ def qc_gui_export():
             if qc_search:
                 lt = f"%{qc_search}%"
                 or_parts = ",".join(f"{f}.ilike.{lt}" for f in QC_SEARCH_FIELDS)
+                if qc_search.isdigit():
+                    num_parts = ",".join(f"{f}.eq.{qc_search}" for f in QC_NUMERIC_SEARCH_FIELDS)
+                    or_parts = or_parts + "," + num_parts
                 q = q.or_(or_parts)
             if qc_wallet:
                 q = q.eq("upi_bank_account_wallet", qc_wallet)
@@ -8749,6 +8770,8 @@ def qc_gui_tracker_stats():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
+
+# ============================================================
 
 if __name__ == "__main__":
     EXCEL_FOLDER_PATH.mkdir(exist_ok=True)

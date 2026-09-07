@@ -548,21 +548,10 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <i class="fas fa-calendar-check" style="color:#e67e22;"></i> {{ range_qc_label }} QC: {{ range_qc_count }}
                 </span>
                 {% endif %}
-                {% if is_admin %}
-                <span class="auto-allot-chip"
-                      title="Auto daily allotment: system daily marks up to {{ auto_allotment.limit }} pending records with today's qc_assigned_date for {{ clean_display_name }}.">
-                    <i class="fas fa-magic"></i>
-                    Today's Auto-Allot:
-                    {{ (auto_allotment.already_today if auto_allotment is defined else 0) }}/{{ auto_allotment.limit }}
-                    <span style="opacity:.75;font-weight:500;">
-                        (pending: {{ auto_allotment.total_pending if auto_allotment is defined else 0 }}{% if auto_allotment.newly_assigned %} • +{{ auto_allotment.newly_assigned }} new today{% endif %})
-                    </span>
-                </span>
-                {% endif %}
                 <span class="qc-legend" title="Row tint by QC status">
                     <span class="swatch pending"></span> Pending
-                    <span class="swatch done-true"></span> QC&nbsp;Done
-                    {% if is_admin %}<span class="swatch done-false"></span> QC&nbsp;Rejected{% endif %}
+                    <span class="swatch done-true"></span> True
+                    {% if is_admin %}<span class="swatch done-false"></span> False{% endif %}
                 </span>
                 <button class="clear-btn" onclick="window.location.href='/qc-gui'">
                     <i class="fas fa-times"></i> Clear Filters
@@ -598,16 +587,16 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <select name="qc_status" onchange="this.form.submit()"
                         class="{{ 'active-filter' if qc_status in ('all', 'done', 'rejected') else '' }}">
                         <option value="pending" {{ 'selected' if not qc_status or qc_status == 'pending' else '' }}>Pending</option>
-                        <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>QC Done</option>
-                        <option value="rejected" {{ 'selected' if qc_status == 'rejected' else '' }}>QC Rejected</option>
+                        <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>True</option>
+                        <option value="rejected" {{ 'selected' if qc_status == 'rejected' else '' }}>False</option>
                         <option value="all" {{ 'selected' if qc_status == 'all' else '' }}>All</option>
                     </select>
                     {% else %}
-                    {# User end: limited to Pending / QC Done only — Rejected & All are admin-only #}
+                    {# User end: limited to Pending / True only — False & All are admin-only #}
                     <select name="qc_status" onchange="this.form.submit()"
                         class="{{ 'active-filter' if qc_status == 'done' else '' }}">
                         <option value="pending" {{ 'selected' if not qc_status or qc_status == 'pending' else '' }}>Pending</option>
-                        <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>QC Done</option>
+                        <option value="done" {{ 'selected' if qc_status == 'done' else '' }}>True</option>
                     </select>
                     {% endif %}
                 </div>
@@ -646,6 +635,9 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     {% endif %}
                     <th>QC Assigned Date</th>
                     <th>QC Approved Date</th>
+                    {% if is_admin %}
+                    <th>Approved By</th>
+                    {% endif %}
                     {% if is_admin %}
                     <th>QC Status</th>
                     {% endif %}
@@ -740,6 +732,13 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     </td>
                     {% if is_admin %}
                     <td>
+                        {% if item.get('approved_by') and item['approved_by'] not in ['NA','N/A','',None] %}
+                        <span style="font-size:11px;color:#8e44ad;font-weight:600;">{{ item['approved_by'] }}</span>
+                        {% else %}<span class="na-cell">N/A</span>{% endif %}
+                    </td>
+                    {% endif %}
+                    {% if is_admin %}
+                    <td>
                         {% if item.get('qc_status') is sameas true %}
                         <span style="font-size:10px;background:#e8f8f0;color:#1e8449;padding:2px 8px;border-radius:20px;font-weight:700;">True</span>
                         {% elif item.get('qc_status') is sameas false %}
@@ -751,7 +750,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="{{ 16 if is_admin else 14 }}">
+                    <td colspan="{{ 17 if is_admin else 14 }}">
                         <div class="empty-state">
                             <i class="fas fa-clipboard-check"></i>
                             <h3 style="font-size:15px;color:#2c3e50;margin-bottom:8px;">No records found</h3>
@@ -1047,6 +1046,15 @@ function _qcTrackerInRange(dateKey) {
     return true;
 }
 
+function _qcPrevDayKey() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 function renderQcTracker() {
     const content = document.getElementById('qcTrackerContent');
     const summary = document.getElementById('qcTrackerFilterSummary');
@@ -1148,16 +1156,19 @@ function renderQcTracker() {
         html += '</tbody></table></div>';
     }
 
-    // --- User Wise Daily QC (reviewer = approved_by) — filtered by date range ---
+    // --- User Wise Daily QC (reviewer = approved_by) — PREVIOUS DAY ONLY ---
+    // Per spec this section shows ONLY the previous day's QC data; no other dates
+    // (and the date-range filter) are applied here.
+    const prevDayKey = _qcPrevDayKey();
     const userRows = [];
     Object.keys(userDaily).sort().forEach(user => {
         Object.keys(userDaily[user] || {}).sort().reverse().forEach(dateKey => {
-            if (!_qcTrackerInRange(dateKey)) return;
+            if (dateKey !== prevDayKey) return;
             const r = userDaily[user][dateKey] || {};
             userRows.push({ user, dateKey, total: r.total || 0, trueCount: r.true || 0, falseCount: r.false || 0 });
         });
     });
-    html += '<h3 style="font-size:13px;margin:16px 0 8px;color:#2c3e50;">User Wise Daily QC</h3>';
+    html += '<h3 style="font-size:13px;margin:16px 0 8px;color:#2c3e50;">User Wise Daily QC (Previous Day: ' + prevDayKey + ')</h3>';
     if (!userRows.length) {
         html += '<div class="empty-state"><i class="fas fa-user-check"></i><p>No user-wise QC data found for the selected range.</p></div>';
     } else {
