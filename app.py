@@ -7915,7 +7915,7 @@ QC_TABLE = "qc_table"
 # When the user logs in / opens /qc-gui, the system auto-marks up to this many
 # pending records with qc_assigned_date=today so the user clearly sees today's
 # workload without changing who is responsible for the QC.
-AUTO_QC_DAILY_LIMIT = 70
+AUTO_QC_DAILY_LIMIT = 100
 
 # Columns in qc_table whose Postgres type is integer — need numeric conversion so
 # empty / "NA" cells become NULL instead of an unparseable string at insert time.
@@ -8222,11 +8222,15 @@ def qc_gui():
             query = query.gte(date_field, qc_date_from)
         if qc_date_to:
             query = query.lte(date_field, qc_date_to)
-        # QC Status filter: Pending (qc_status IS NULL - never reviewed) or QC Done (qc_status IS NOT NULL)
+        # QC Status filter (UI labels: Pending / True / False / All):
+        #   pending  -> qc_status IS NULL  (never reviewed)
+        #   done     -> qc_status = True   (reviewed and approved)
+        #   rejected -> qc_status = False  (reviewed and rejected)
+        #   all      -> no status filter
         if qc_status == "pending":
             query = query.is_("qc_status", "null")
         elif qc_status == "done":
-            query = query.not_.is_("qc_status", "null")
+            query = query.eq("qc_status", True)
         elif qc_status == "rejected":
             query = query.eq("qc_status", False)
         # "all" → no status filter applied
@@ -8540,10 +8544,12 @@ def qc_gui_export():
                 q = q.lte(date_field, qc_date_to)
             # Mirror the page's QC Status filter as well so exports stay
             # consistent with what the user is looking at.
+            # pending -> qc_status IS NULL, done -> qc_status = True,
+            # rejected -> qc_status = False, all -> no filter.
             if qc_status == "pending":
                 q = q.is_("qc_status", "null")
             elif qc_status == "done":
-                q = q.not_.is_("qc_status", "null")
+                q = q.eq("qc_status", True)
             elif qc_status == "rejected":
                 q = q.eq("qc_status", False)
             return q
