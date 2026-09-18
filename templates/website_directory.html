@@ -20,17 +20,19 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
 body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
-.fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background:#f5f7fa; padding:12px 15px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
-.header { background:white; border-radius:8px; padding:12px 15px; box-shadow:0 1px 8px rgba(0,0,0,0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:8px; }
+.fixed-header { position:fixed; top:0; left:0; right:0; z-index:1000; background: #ffffff; padding:12px 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border-bottom:1px solid #e1e5eb; }
+.header { padding:12px 15px; display:flex; justify-content:space-between; align-items:center; flex-wrap:nowrap; gap:16px; }
+body.theme-dark .header { background: transparent !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; }
+body.theme-dark .header:hover { transform: none !important; box-shadow: none !important; }
 .logo { min-width:0; flex:1 1 auto; }
 .logo h1 { font-size:18px; color:#2c3e50; }
 .logo-sub { display:flex; align-items:center; gap:10px; }
-.header-username { font-size:12px; color:#7f8c8d; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
-.logo p { color:#7f8c8d; font-size:12px; margin-top:2px; font-weight:600; }
+.header-username { font-size:12px; color: #44525e; font-weight:500; border-left:1.5px solid #dde3ed; padding-left:10px; white-space:nowrap; }
+.logo p { color: #44525e; font-size:12px; margin-top:2px; font-weight:600; }
 .header-actions { display:flex; gap:6px; align-items:center; justify-content:flex-end; flex:0 0 auto; flex-wrap:nowrap; }
 .btn { padding:6px 12px; border:none; border-radius:5px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:5px; font-size:12px; transition:all 0.2s; white-space:nowrap; height:34px; }
 .btn-primary  { background:#3498db; color:white; }
-.btn-primary:hover  { background:#2980b9; }
+.btn-primary:hover  { background:#3498db; }
 .btn-success  { background:#2ecc71; color:white; }
 .btn-success:hover  { background:#27ae60; }
 .btn-warning  { background:#f39c12; color:white; }
@@ -42,7 +44,7 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .btn-purple   { background:#8e44ad; color:white; }
 .btn-purple:hover   { background:#6c3483; }
 :root { --fixed-header-space: 72px; }
-.container { padding:10px 15px 30px; padding-top:var(--fixed-header-space); }
+.container { width:100%; max-width:none; margin:0; box-sizing:border-box; padding:10px 15px 30px; padding-top:var(--fixed-header-space); height:100vh; max-height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 /* Page Selector */
 .page-selector { display:flex; align-items:center; gap:6px; }
 .page-selector label { font-weight:600; color:#2c3e50; font-size:12px; white-space:nowrap; }
@@ -50,29 +52,30 @@ body { background:#f5f7fa; color:#333; min-height:100vh; overflow-x:hidden; }
 .page-select:focus { outline:none; border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.2); }
 .theme-select { min-width:118px; }
 /* Filters */
-.filters { background:white; border-radius:8px; padding:12px; margin-bottom:12px; box-shadow:0 1px 8px rgba(0,0,0,0.08); }
-.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
-.filters-header h2 { font-size:14px; color:#2c3e50; }
-.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-.filter-group { display:flex; flex-direction:column; gap:4px; }
-.filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap:4px; }
-.filter-group input, .filter-group select { width:100%; padding:7px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height:34px; outline:none; }
+.filters { padding: 12px; margin-bottom: 12px; margin-left: -15px; margin-right: -15px; flex-shrink:0; }
+.filters-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap:wrap; gap:8px; }
+.filters-header h2 { font-size:14px; color:#2c3e50; margin:0; }
+.filters-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap: 12px; }
+.filter-group { display:flex; flex-direction:column; gap: 5px; }
+.filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap: 5px; }
+.filter-group input, .filter-group select { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; background:white; cursor:pointer; height: 34px; outline:none; }
 .filter-group input:focus, .filter-group select:focus { border-color:#3498db; box-shadow:0 0 0 2px rgba(52,152,219,0.2); }
 .filter-group input.active-filter, .filter-group select.active-filter { border-color:#3498db; background:#ebf5fb; }
 .search-box { position:relative; }
 .search-box input { padding-left:30px !important; }
 .search-icon { position:absolute; left:8px; top:50%; transform:translateY(-50%); color:#7f8c8d; font-size:13px; }
 .date-range-group { display:flex; gap:5px; align-items:center; }
-.date-range-group input { flex:1; height:34px; }
+.date-range-group input { flex:1; height: 34px; }
 .date-range-sep { font-size:11px; color:#7f8c8d; white-space:nowrap; }
-.clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px; height:30px; }
+.clear-btn { background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:5px; height:30px; }
 .clear-btn:hover { background:#c0392b; }
 /* Table */
-.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow-x:auto; overflow-y:auto; width:100%; max-height:calc(100vh - 310px); }
+.table-container { background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); overflow:auto; width:100%; flex:1 1 auto; min-height:0; }
 table { width:max-content; min-width:100%; border-collapse:collapse; }
 th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
 th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
 th:last-child { border-right:none; }
+th[data-col="id"], td[data-col="id"] { width:58px; min-width:58px; max-width:58px; padding-right:6px; }
 tr:hover { background:#f8fffe; }
 /* Column width overrides */
 .col-inv-code { max-width:90px; min-width:70px; }
@@ -88,9 +91,9 @@ tr:hover { background:#f8fffe; }
 .field-cell { display:flex; align-items:center; gap:4px; }
 .na-cell { color:#95a5a6; font-style:italic; font-size:11px; }
 /* Pagination */
-.pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:8px; background:white; border-radius:8px; box-shadow:0 1px 8px rgba(0,0,0,0.08); margin-top:10px; }
+.pagination { display:flex; justify-content:center; align-items:center; gap:8px; padding:8px 15px; margin-left:-15px; margin-right:-15px; margin-top:18px; flex-shrink:0; }
 .pag-btn { padding:5px 10px; background:#3498db; color:white; border:none; border-radius:5px; cursor:pointer; font-size:12px; height:30px; }
-.pag-btn:hover:not(:disabled) { background:#2980b9; }
+.pag-btn:hover:not(:disabled) { background:#3498db; }
 .pag-btn:disabled { background:#bdc3c7; cursor:not-allowed; }
 .pag-info { color:#7f8c8d; font-size:12px; }
 /* Modals */
@@ -113,7 +116,7 @@ tr:hover { background:#f8fffe; }
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:#27ae60; box-shadow:0 0 0 2px rgba(39,174,96,0.12); }
 /* Tracker */
 .tracker-body { padding:20px; overflow-y:auto; flex-grow:1; }
-.tracker-banner { background:linear-gradient(135deg,#3498db,#2980b9); border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; color:white; }
+.tracker-banner { background:linear-gradient(135deg,#3498db,#3498db); border-radius:8px; padding:14px 18px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; color:white; }
 .tracker-banner .bl { font-size:13px; font-weight:600; opacity:0.9; display:flex; align-items:center; gap:8px; }
 .tracker-banner .bn { font-size:24px; font-weight:800; }
 .t-section-title { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; letter-spacing:1px; margin:14px 0 10px; display:flex; align-items:center; gap:8px; }
@@ -222,10 +225,16 @@ body.theme-dark .fixed-header { background:#202938; border-bottom-color:rgba(148
 body.theme-dark .header,
 body.theme-dark .filters,
 body.theme-dark .table-container,
-body.theme-dark .pagination,
 body.theme-dark .modal-box,
 body.theme-dark .t-card,
 body.theme-dark .ual-content { background:#2b3546; color:#e2e8f0; box-shadow:0 8px 22px rgba(15,23,42,0.22); border-color:rgba(148,163,184,0.12); }
+body.theme-dark .filters,
+body.theme-dark .filter-bar {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
 body.theme-dark .logo h1,
 body.theme-dark .filters-header h2,
 body.theme-dark .filter-group label,
@@ -272,7 +281,7 @@ body.theme-dark [style*="color: #95a5a6"] { color:#aab4c3 !important; }
 body.theme-dark tbody tr { background:#2b3546; }
 body.theme-dark tbody tr:nth-child(even) { background:#283347; }
 body.theme-dark tbody tr:hover { background:#334155; }
-body.theme-dark .pagination { background:#2b3546; }
+body.theme-dark .pagination { background:transparent !important; border:none !important; border-radius:0 !important; box-shadow:none !important; }
 body.theme-dark {
     background:#0F172A;
     color:#F8FAFC;
@@ -294,7 +303,6 @@ body.theme-dark .fixed-header {
 body.theme-dark .header,
 body.theme-dark .filters,
 body.theme-dark .table-container,
-body.theme-dark .pagination,
 body.theme-dark .modal-box,
 body.theme-dark .t-card,
 body.theme-dark .ual-content {
@@ -446,18 +454,19 @@ body.theme-dark .filter-group input.active-filter {
     border-color:#3B82F6 !important;
 }
 body.theme-dark select option { background:#0F172A !important; color:#F8FAFC !important; }
-.btn,
-.page-select,
 .search-box input,
 .filter-group select,
 .filter-group input,
 .date-range-group input {
+    border-radius:5px;
+}
+.btn,
+.page-select {
     border-radius:10px;
 }
 .header,
 .filters,
-.table-container,
-.pagination {
+.table-container {
     border-radius:12px;
 }
 html.theme-switching *,
@@ -481,6 +490,7 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
     transform:none !important;
 }
 </style>
+    <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
 </head>
 <body>
 <script>
@@ -492,7 +502,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
 <!-- Tracker Modal -->
 <div class="modal-overlay" id="trackerModal">
     <div class="modal-box" style="max-width:820px;">
-        <div class="modal-hdr" style="background:linear-gradient(135deg,#3498db,#2980b9);">
+        <div class="modal-hdr" style="background:linear-gradient(135deg,#3498db,#3498db);">
             <h2><i class="fas fa-chart-bar"></i> Website Directory Tracker</h2>
             <button class="modal-close" onclick="closeModal('trackerModal')"><i class="fas fa-times"></i></button>
         </div>
@@ -1043,25 +1053,25 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <option value="investment">Investment Scam Data</option>
                     {% endif %}
                     {% if 'website_directory' in allowed_pages %}
-                    <option value="website_directory" selected>Investment Website Directory</option>
+                    <option value="website_directory" selected>Website Directory</option>
                     {% endif %}
                     {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <option value="allotment">Website Case Assignment</option>
+                    <option value="allotment">Case Assignment</option>
                     {% endif %}
                     {% if 'sheet' in allowed_pages %}
-                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    <option value="sheet">Summary &amp; Reports</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
                     <option value="case_report">Case &amp; Report Generator</option>
                     {% endif %}
                     {% if 'insights' in allowed_pages %}
-                    <option value="insights">User Performance Dashboard</option>
+                    <option value="insights">Dashboard</option>
                     {% endif %}
                     {% if 'qc' in allowed_pages %}
                     <option value="qc">QC Review</option>
                     {% endif %}
                     {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-                    <option value="dashboard_management">User &amp; Access Management</option>
+                    <option value="dashboard_management">GUI Management</option>
                     {% endif %}
                     {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break">Break Time Management</option>
@@ -1109,6 +1119,41 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>
+    </div>
+    <div class="secondary-page-nav" aria-label="Page navigation">
+        {% if 'scraping' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('scraping')">Data Scraping</button>
+        {% endif %}
+        {% if 'social' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('social')">Social Media Accounts</button>
+        {% endif %}
+        {% if 'investment' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('investment')">Investment Scam Data</button>
+        {% endif %}
+        {% if 'website_directory' in allowed_pages %}
+        <button type="button" class="page-nav-btn active" onclick="changePageFromWD('website_directory')">Website Directory</button>
+        {% endif %}
+        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('allotment')">Case Assignment</button>
+        {% endif %}
+        {% if 'sheet' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
+        {% endif %}
+        {% if 'case_report' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('case_report')">Case &amp; Report Generator</button>
+        {% endif %}
+        {% if 'insights' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('insights')">Dashboard</button>
+        {% endif %}
+        {% if 'qc' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('qc')">QC Review</button>
+        {% endif %}
+        {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('dashboard_management')">GUI Management</button>
+        {% endif %}
+        {% if 'lunch' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('lunch_break')">Break Time Management</button>
+        {% endif %}
     </div>
 </div>
 <div class="container">
@@ -1194,7 +1239,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         <table id="wdTable">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th data-col="id">ID</th>
                     <th>Date</th>
                     <th>Name</th>
                     <th class="col-url">URL</th>
@@ -1216,7 +1261,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 {% if items %}
                 {% for item in items %}
                 <tr id="wd-row-{{ item.id }}">
-                    <td><strong style="color:#1e8449;">#{{ item.id }}</strong></td>
+                    <td data-col="id"><strong style="color:#1e8449;">#{{ item.id }}</strong></td>
                     <td>
                         {% if item.get('date') and item['date'] not in ['NA','N/A','',None] %}
                         <span style="font-size:11px;font-weight:600;color:#2c3e50;">{{ item['date'] }}</span>
@@ -1677,7 +1722,7 @@ function renderTracker(data) {
             html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;">';
             users.forEach(user => {
                 html += `<div style="background:#ebf5fb;border:1px solid #aed6f1;border-radius:6px;padding:5px 10px;display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:700;color:#2980b9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;" title="${user}">${user}</span>
+                    <span style="font-size:11px;font-weight:700;color:#3498db;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;" title="${user}">${user}</span>
                     <span style="background:#3498db;color:white;font-size:11px;font-weight:800;padding:1px 8px;border-radius:10px;white-space:nowrap;">${userTotals[user]}</span>
                 </div>`;
             });
@@ -1939,7 +1984,7 @@ function prependRow(item) {
     tr.id = `wd-row-${item.id}`;
     _wdItems[item.id] = item;
     tr.innerHTML = `
-        <td><strong style="color:#1e8449;">#${item.id}</strong></td>
+        <td data-col="id"><strong style="color:#1e8449;">#${item.id}</strong></td>
         <td><span style="font-size:11px;font-weight:600;color:#2c3e50;">${item.date||'N/A'}</span></td>
         <td><span style="font-size:11px;">${(item.name||'N/A').substring(0,25)}</span></td>
         <td class="col-url">${v(item.url)?`<div class="field-cell"><a href="${item.url}" target="_blank" class="url-link">${item.url.substring(0,35)}${item.url.length>35?'...':''}</a><button class="copy-btn" onclick="copyText('${esc(item.url)}','URL')"><i class="fas fa-copy"></i></button></div>`:'<span class="na-cell">N/A</span>'}</td>
@@ -2569,8 +2614,8 @@ function syncFixedHeaderSpace(){
     const header=document.querySelector('.fixed-header');
     if(!header)return;
     const h=header.getBoundingClientRect().height;
-    if(h<30||h>120)return;
-    const space=Math.ceil(h+14);
+    if(h<30)return;
+    const space=Math.ceil(h+18);
     document.documentElement.style.setProperty('--fixed-header-space', `${space}px`);
 }
 function syncWithRAF(){
@@ -2682,7 +2727,7 @@ function _renderUAL(logs) {
             changeHtml = `<span class="ual-import-meta"><i class="fas fa-file-excel"></i> ${log.extra_info.file_name||'file'} &nbsp;•&nbsp; <strong>${log.extra_info.records_count||0}</strong> records</span>`;
         }
         rows += `<tr>
-            <td class="ual-id-cell">${log.id||(i+1)}</td>
+            <td class="ual-id-cell" data-col="id">${log.id||(i+1)}</td>
             <td><div class="ual-user-name">${log.display_name||'—'}</div></td>
             <td class="ual-change-cell">${changeHtml}</td>
             <td><div class="ual-date-cell">${date}</div><div class="ual-time-cell">${time}</div></td>

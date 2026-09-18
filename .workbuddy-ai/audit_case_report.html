@@ -982,7 +982,7 @@
         }
       }
     </style>
-      <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+      <link rel="stylesheet" href="/static/gui-base.css">
 </head>
   <body>
   <script>
@@ -1008,7 +1008,7 @@
                             class="fas fa-user-circle"
                             style="color: #3498db; font-size: 11px"
                           ></i>
-                          {{ display_name }}</span
+                          Admin Test</span
                         >
                     </div>
                     <p style="margin-top:2px;">Generate PDF reports</p>
@@ -1025,37 +1025,31 @@
               style="border: 2px solid #2c3e50; font-weight: 600"
               onchange="changeCaseReportPage(this.value)"
             >
-              {% if 'scraping' in allowed_pages %}
+              
               <option value="scraping">Data Scraping</option>
-              {% endif %} {% if 'social' in allowed_pages %}
+               
               <option value="social">Social Media Accounts</option>
-              {% endif %} {% if 'investment' in allowed_pages %}
+               
               <option value="investment">Investment Scam Data</option>
-              {% endif %} {% if 'website_directory' in allowed_pages %}
+               
               <option value="website_directory">
-                Website Directory
+                Investment Website Directory
               </option>
-              {% endif %} {% if 'allotment' in allowed_pages or
-              'allotment_admin' in allowed_pages %}
-              <option value="allotment">Case Assignment</option>
-              {% endif %} {% if 'sheet' in allowed_pages %}
-              <option value="sheet">Summary &amp; Reports</option>
-              {% endif %} {% if 'case_report' in allowed_pages %}
+               
+              <option value="allotment">Website Case Assignment</option>
+               
+              <option value="sheet">Summary &amp; Sheet Generator</option>
+               
               <option value="case_report" selected>
                 Case &amp; Report Generator
               </option>
-              {% endif %} {% if 'insights' in allowed_pages %}
-              <option value="insights">Dashboard</option>
-              {% endif %} {% if 'qc' in allowed_pages %}
+               
+              <option value="insights">User Performance Dashboard</option>
+               
               <option value="qc">QC Review</option>
-              {% endif %} {% if role == 'superadmin' and 'dashboard_management'
-              in allowed_pages %}
-              <option value="dashboard_management">
-                GUI Management
-              </option>
-              {% endif %} {% if 'lunch' in allowed_pages %}
+                
               <option value="lunch_break">Break Time Management</option>
-              {% endif %}
+              
             </select>
           </div>
           <button
@@ -1102,41 +1096,6 @@
             <i class="fas fa-sign-out-alt"></i>
           </a>
         </div>
-      </div>
-      <div class="secondary-page-nav" aria-label="Page navigation">
-        {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-        {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn active" onclick="changeCaseReportPage('case_report')">Case &amp; Report Generator</button>
-        {% endif %}
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('qc')">QC Review</button>
-        {% endif %}
-        {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeCaseReportPage('lunch_break')">Break Time Management</button>
-        {% endif %}
       </div>
     </div>
     <!-- MAIN -->

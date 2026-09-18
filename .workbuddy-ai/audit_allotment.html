@@ -13,7 +13,7 @@
 </script>
 <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
 <title>Scam++ Website Allotment</title>
-<link rel="icon" href="{{ url_for('static', filename='favicon.png') }}">
+<link rel="icon" href="/static/favicon.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     :root{ --fixed-header-space: 72px; --allot-filter-space: 102px; }
@@ -43,17 +43,17 @@
     .container { width:100%; max-width:none; margin:0; box-sizing:border-box; padding-top: var(--fixed-header-space); padding-left:15px; padding-right:15px; padding-bottom:40px; height:100vh; max-height:100vh; display:flex; flex-direction:column; overflow:hidden; }
     .flash-message { padding:10px 16px; border-radius:6px; margin-bottom:12px; background:#eafaf1; font-size:13px; display:flex; align-items:center; gap:8px; }
     .flash-message.error { background:#fdecea; }
-    .filters { padding: 12px; margin-bottom: 12px; margin-left: -15px; margin-right: -15px; flex-shrink:0; }
-    .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom: 12px; }
-    .filters-header h2 { font-size:14px; display:flex; align-items:center; gap:6px; margin:0; }
-    .filters-grid { display:grid; gap: 12px; align-items:end; }
-    .filter-group label { font-size:12px; font-weight:600; color:#2c3e50; display:flex; align-items:center; gap: 5px; margin-bottom: 5px; }
-    .filter-group input, .filter-group select { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:5px; font-size:12px; height:34px; }
+    .filters { padding: 6px 15px; margin-bottom: 6px; margin-left: -15px; margin-right: -15px; flex-shrink:0; }
+    .filters-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom: 5px; }
+    .filters-header h2 { font-size:13px; display:flex; align-items:center; gap:6px; margin:0; }
+    .filters-grid { display:grid; gap: 6px; align-items:end; }
+    .filter-group label { font-size:10.5px; font-weight:600; color:#555; display:flex; align-items:center; gap: 3px; margin-bottom: 2px; }
+    .filter-group input, .filter-group select { width:100%; padding:4px 8px; border:1px solid #ddd; border-radius:5px; font-size:12px; height:28px; }
     .search-box { position:relative; }
     .search-icon { position:absolute; left:9px; top:50%; transform:translateY(-50%); color:#95a5a6; font-size:12px; }
     .search-box input { padding-left:26px; }
-    .clear-btn { background:#95a5a6; color:#fff; border:none; border-radius:5px; padding:5px 10px; font-size:12px; font-weight:600; cursor:pointer; height:30px; display:flex; align-items:center; gap:5px; }
-    .filter-actions { display:flex; gap:8px; align-items:end; }
+    .clear-btn { background:#95a5a6; color:#fff; border:none; border-radius:5px; padding:4px 10px; font-size:12px; font-weight:600; cursor:pointer; height:28px; display:flex; align-items:center; gap:5px; }
+    .filter-actions { display:flex; gap:6px; align-items:end; }
     .table-wrap { background:#fff; border-radius:8px; overflow:auto; flex:1 1 auto; min-height:0; box-shadow:0 1px 4px rgba(0,0,0,0.06); }
     table { width:100%; border-collapse:collapse; font-size:12.5px; }
     thead th { background:#2c3e50; color:#fff; text-align:left; padding:10px 12px; white-space:nowrap; position:sticky; top:0; z-index:20; }
@@ -288,12 +288,10 @@
         border-color:#3B82F6 !important;
     }
     body.theme-dark select option { background:#0F172A !important; color:#F8FAFC !important; }
+    .btn,
+    .page-select,
     .filter-group select,
     .filter-group input {
-        border-radius:5px;
-    }
-    .btn,
-    .page-select {
         border-radius:10px;
     }
     .header,
@@ -319,7 +317,7 @@
         transform:none !important;
     }
 </style>
-    <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+    <link rel="stylesheet" href="/static/gui-base.css">
 </head>
 <body>
 <script>
@@ -336,64 +334,59 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         <div class="logo">
             <div class="logo-title-row">
                 <h1>Scam Intelligence GUI</h1>
-                <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
+                <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> Admin Test</span>
             </div>
             <p>Scam++ Website Allotment</p>
         </div>
         <div class="header-controls">
             <div class="page-selector">
                 <select class="page-select" style="border:2px solid #2c3e50;font-weight:600;" onchange="changeAllotmentPage(this.value)">
-                    {% if 'scraping' in allowed_pages %}
+                    
                     <option value="scraping">Data Scraping</option>
-                    {% endif %}
-                    {% if 'social' in allowed_pages %}
+                    
+                    
                     <option value="social">Social Media Accounts</option>
-                    {% endif %}
-                    {% if 'investment' in allowed_pages %}
+                    
+                    
                     <option value="investment">Investment Scam Data</option>
-                    {% endif %}
-                    {% if 'website_directory' in allowed_pages %}
-                    <option value="website_directory">Website Directory</option>
-                    {% endif %}
-                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <option value="allotment" selected>Case Assignment</option>
-                    {% endif %}
-                    {% if 'sheet' in allowed_pages %}
-                    <option value="sheet">Summary &amp; Reports</option>
-                    {% endif %}
-                    {% if 'case_report' in allowed_pages %}
+                    
+                    
+                    <option value="website_directory">Investment Website Directory</option>
+                    
+                    
+                    <option value="allotment" selected>Website Case Assignment</option>
+                    
+                    
+                    <option value="sheet">Summary &amp; Sheet Generator</option>
+                    
+                    
                     <option value="case_report">Case &amp; Report Generator</option>
-                    {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <option value="insights">Dashboard</option>
-                    {% endif %}
-                    {% if 'qc' in allowed_pages %}
+                    
+                    
+                    <option value="insights">User Performance Dashboard</option>
+                    
+                    
                     <option value="qc">QC Review</option>
-                    {% endif %}
-                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-                    <option value="dashboard_management">GUI Management</option>
-                    {% endif %}
-                    {% if 'lunch' in allowed_pages %}
+                    
+                    
+                    <option value="dashboard_management">User &amp; Access Management</option>
+                    
+                    
                     <option value="lunch_break">Break Time Management</option>
-                    {% endif %}
+                    
 </select>
             </div>
 
             <div class="header-actions">
-            {% if is_admin_allot %}
-            <!-- Website Allot (admin only) -->
-            <button type="button" class="btn btn-success" onclick="openAllotModal()">
-                <i class="fas fa-user-plus"></i> Website Allot
-            </button>
-            {% endif %}
+            
             <!-- Export -->
             <form action="/scam-website-allotment-export" method="GET" style="display:inline;" id="exportForm">
-                <input type="hidden" name="sa_search"     value="{{ sa_search }}">
-                <input type="hidden" name="sa_category"   value="{{ sa_category }}">
-                <input type="hidden" name="sa_search_for" value="{{ sa_search_for }}">
-                <input type="hidden" name="sa_remark"     value="{{ sa_remark }}">
-                <input type="hidden" name="sa_date_from"  value="{{ sa_date_from }}">
-                <input type="hidden" name="sa_date_to"    value="{{ sa_date_to }}">
+                <input type="hidden" name="sa_search"     value="">
+                <input type="hidden" name="sa_category"   value="">
+                <input type="hidden" name="sa_search_for" value="">
+                <input type="hidden" name="sa_remark"     value="">
+                <input type="hidden" name="sa_date_from"  value="2026-09-17">
+                <input type="hidden" name="sa_date_to"    value="2026-09-17">
                 <button type="submit" class="btn btn-primary" onclick="showToast('Downloading Allotment Sheet...', '')">
                     <i class="fas fa-file-export"></i> Export
                 </button>
@@ -414,52 +407,12 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             </div>
         </div>
     </div>
-    <div class="secondary-page-nav" aria-label="Page navigation">
-        {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn active" onclick="changeAllotmentPage('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-        {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('case_report')">Case &amp; Report Generator</button>
-        {% endif %}
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('qc')">QC Review</button>
-        {% endif %}
-        {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('lunch_break')">Break Time Management</button>
-        {% endif %}
-    </div>
 </div>
 
 <div class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}{% for category, message in messages %}
-    <div class="flash-message {% if category == 'error' %}error{% endif %}">
-        <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
-        {{ message }}
-    </div>
-    {% endfor %}{% endif %}
-    {% endwith %}
+    
+    
+    
     <!-- Filters -->
     <div class="filters">
         <div class="filters-header">
@@ -468,58 +421,82 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 <span id="allotmentCountBadge" style="background:#eaf4fd;color:#1a5276;border:1px solid #aed6f1;padding:5px 12px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap;">
                     <i class="fas fa-chart-pie"></i> Loading...
                 </span>
-                <span class="target-completed-banner-mini" id="targetCompletedBanner" style="{% if not target_completed %}display:none;{% endif %}">
-                    <i class="fas fa-trophy"></i> ⭐ Congratulations, {{ clean_display_name }}!, target complete! Keep this streak alive. 🔥
+                <span class="target-completed-banner-mini" id="targetCompletedBanner" style="display:none;">
+                    <i class="fas fa-trophy"></i> ⭐ Congratulations, Admin Test!, target complete! Keep this streak alive. 🔥
                 </span>
             </div>
         </div>
         <form method="GET" action="/scam-website-allotment" id="filterForm">
-            <div class="filters-grid" style="{% if is_admin_allot %}grid-template-columns: 1.3fr 1fr 1fr 1fr 1.3fr auto;{% else %}grid-template-columns: 1fr 1fr 1fr 1.4fr auto;{% endif %}">
-                {% if is_admin_allot %}
-                <div class="filter-group">
-                    <label><i class="fas fa-user-check"></i> Allotted User Name</label>
-                    <select name="sa_alloted_user" onchange="this.form.submit()">
-                        <option value="">All Users</option>
-                        {% for uname, ucount in allotment_user_counts %}
-                        <option value="{{ uname }}" {% if sa_alloted_user == uname %}selected{% endif %}>{{ uname.split('(')[0].strip() }} ({{ ucount }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                {% endif %}
+            <div class="filters-grid" style="grid-template-columns: 1fr 1fr 1fr 1.4fr auto;">
+                
                 <div class="filter-group">
                     <label><i class="fas fa-tags"></i> Category</label>
                     <select name="sa_category" onchange="this.form.submit()">
                         <option value="">All Categories</option>
-                        {% for cat in wd_category_options %}
-                        <option value="{{ cat }}" {% if sa_category == cat %}selected{% endif %}>{{ cat }}</option>
-                        {% endfor %}
+                        
+                        <option value="Job Scam" >Job Scam</option>
+                        
+                        <option value="Subscription Scam" >Subscription Scam</option>
+                        
+                        <option value="Fake Website Scam" >Fake Website Scam</option>
+                        
+                        <option value="Loan Scam" >Loan Scam</option>
+                        
+                        <option value="Government Scheme Scam" >Government Scheme Scam</option>
+                        
+                        <option value="Investment Scam" >Investment Scam</option>
+                        
+                        <option value="LPG Booking Scam" >LPG Booking Scam</option>
+                        
+                        <option value="IPL Tickets Scam" >IPL Tickets Scam</option>
+                        
+                        <option value="Carding Scam" >Carding Scam</option>
+                        
                     </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-mobile-alt"></i> Search For</label>
                     <select name="sa_search_for" onchange="this.form.submit()">
                         <option value="">All</option>
-                        {% for sf in wd_search_for_options %}
-                        <option value="{{ sf }}" {% if sa_search_for == sf %}selected{% endif %}>{{ sf }}</option>
-                        {% endfor %}
+                        
+                        <option value="Web" >Web</option>
+                        
+                        <option value="App" >App</option>
+                        
                     </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-flag"></i> Remark</label>
                     <select name="sa_remark" onchange="this.form.submit()">
                         <option value="">All</option>
-                        <option value="PENDING" {% if sa_remark == 'PENDING' %}selected{% endif %}>Pending (No Remark)</option>
-                        {% for rm in allotment_remark_options %}
-                        <option value="{{ rm }}" {% if sa_remark == rm %}selected{% endif %}>{{ rm }}</option>
-                        {% endfor %}
+                        <option value="PENDING" >Pending (No Remark)</option>
+                        
+                        <option value="Found On GUI" >Found On GUI</option>
+                        
+                        <option value="Website Not Working" >Website Not Working</option>
+                        
+                        <option value="OTP-Based Login" >OTP-Based Login</option>
+                        
+                        <option value="UPI Not Available" >UPI Not Available</option>
+                        
+                        <option value="System Under Maintenance" >System Under Maintenance</option>
+                        
+                        <option value="Login Issues" >Login Issues</option>
+                        
+                        <option value="Payment Processing Error" >Payment Processing Error</option>
+                        
+                        <option value="Deposit Section Issues" >Deposit Section Issues</option>
+                        
+                        <option value="Need New Credentials" >Need New Credentials</option>
+                        
                     </select>
                 </div>
                 <div class="filter-group">
                     <label><i class="fas fa-calendar"></i> Date</label>
                     <div style="display:flex; gap:6px; align-items:flex-end;">
-                        <input type="date" id="saDateFrom" name="sa_date_from" value="{{ sa_date_from }}" onchange="this.form.submit()" title="Date From" style="flex:1; min-width:0;">
+                        <input type="date" id="saDateFrom" name="sa_date_from" value="2026-09-17" onchange="this.form.submit()" title="Date From" style="flex:1; min-width:0;">
                         <span style="color:#7f8c8d; font-size:12px;">–</span>
-                        <input type="date" id="saDateTo" name="sa_date_to" value="{{ sa_date_to }}" onchange="this.form.submit()" title="Date To" style="flex:1; min-width:0;">
+                        <input type="date" id="saDateTo" name="sa_date_to" value="2026-09-17" onchange="this.form.submit()" title="Date To" style="flex:1; min-width:0;">
                     </div>
                 </div>
                 <div class="filter-group filter-actions">
@@ -547,289 +524,35 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <th>Remark</th>
                     <th>Search For</th>
                     <th>Category</th>
-                    {% if is_admin_allot %}
-                    <th>Action</th>
-                    {% endif %}
+                    
                 </tr>
             </thead>
             <!-- Action column now includes both Edit (reassign) and Delete buttons for admins -->
             <tbody>
-                {% for item in items %}
-                <tr data-allot-id="{{ item.id }}" data-allot-json='{{ item | tojson | safe }}'>
-                    <td>
-                        {% if item.get('allotted_at') and item['allotted_at'] not in ['NA','N/A','',None] %}
-                        <span style="font-size:11px;font-weight:600;color:#2c3e50;">{{ item['allotted_at'].split('T')[0] }}</span>
-                        {% else %}-{% endif %}
-                    </td>
-                    <td>
-                        {% if item.get('alloted_user_name') and item['alloted_user_name'] not in ['NA','N/A','',None] %}
-                        {{ item['alloted_user_name'].split('(')[0].strip() }}
-                        {% else %}-{% endif %}
-                    </td>
-                    <td>
-                        {% if item.category == 'Investment Scam' %}
-                            {% if item.final_url %}
-                            <a href="{{ item.final_url if item.final_url.startswith('http') else 'https://' + item.final_url }}" target="_blank" rel="noopener" class="website-link" title="{{ item.final_url }}">{{ item.final_url }}</a>
-                            {% else %}-{% endif %}
-                        {% else %}
-                            {% set display_url = item.url if item.url else item.final_url %}
-                            {% if display_url %}
-                            <a href="{{ display_url if display_url.startswith('http') else 'https://' + display_url }}" target="_blank" rel="noopener" class="website-link" title="{{ display_url }}">{{ display_url }}</a>
-                            {% else %}-{% endif %}
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if item.login_id and item.login_id not in ['NA','N/A','',None] %}
-                        <span class="copy-field"><span class="copy-field-text">{{ item.login_id }}</span><button type="button" class="copy-icon-btn" onclick="copyText('{{ item.login_id }}', 'Login ID')" title="Copy Login ID"><i class="fas fa-copy"></i></button></span>
-                        {% else %}-{% endif %}
-                    </td>
-                    <td>
-                        {% if item.password and item.password not in ['NA','N/A','',None] %}
-                        <span class="copy-field"><span class="copy-field-text">{{ item.password }}</span><button type="button" class="copy-icon-btn" onclick="copyText('{{ item.password }}', 'Password')" title="Copy Password"><i class="fas fa-copy"></i></button></span>
-                        {% else %}-{% endif %}
-                    </td>
-                    <td>
-                        <div style="display:flex;align-items:center;gap:6px;">
-                            <select class="allot-remark-select" id="remarkSelect_{{ item.id }}" style="padding:4px 6px;border:1px solid #ddd;border-radius:5px;font-size:11px;min-width:170px;">
-                                {% if not item.remark or item.remark|upper in ['NA', 'N/A'] %}
-                                <option value="" selected hidden>-- Select --</option>
-                                {% endif %}
-                                <option value="Found On GUI" {% if item.remark == 'Found On GUI' %}selected{% endif %}>Found On GUI</option>
-                                <option value="Website Not Working" {% if item.remark == 'Website Not Working' %}selected{% endif %}>Website Not Working</option>
-                                <option value="OTP-Based Login" {% if item.remark == 'OTP-Based Login' %}selected{% endif %}>OTP-Based Login</option>
-                                <option value="UPI Not Available" {% if item.remark == 'UPI Not Available' %}selected{% endif %}>UPI Not Available</option>
-                                <option value="System Under Maintenance" {% if item.remark == 'System Under Maintenance' %}selected{% endif %}>System Under Maintenance</option>
-                                <option value="Login Issues" {% if item.remark == 'Login Issues' %}selected{% endif %}>Login Issues</option>
-                                <option value="Payment Processing Error" {% if item.remark == 'Payment Processing Error' %}selected{% endif %}>Payment Processing Error</option>
-                                <option value="Deposit Section Issues" {% if item.remark == 'Deposit Section Issues' %}selected{% endif %}>Deposit Section Issues</option>
-                                <option value="Need New Credentials" {% if item.remark == 'Need New Credentials' %}selected{% endif %}>Need New Credentials</option>
-                            </select>
-                            <button type="button" onclick="updateAllotRemark({{ item.id }})"
-                                style="background:#3498db;color:#fff;border:none;padding:4px 10px;border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;white-space:nowrap;">
-                                <i class="fas fa-save"></i> Update
-                            </button>
-                        </div>
-                    </td>
-                    <td>{{ item.search_for or '-' }}</td>
-                    <td>{{ item.category or '-' }}</td>
-                    {% if is_admin_allot %}
-                    <td>
-                        <select onchange="handleAllotmentAction(this, {{ item.id }}, '{{ (item.alloted_user_name or '')|replace("'", "\\'") }}')"
-                            style="padding:5px 8px;border:1px solid #ddd;border-radius:5px;font-size:11px;font-weight:600;background:#fff;min-width:105px;">
-                            <option value="">Action</option>
-                            <option value="edit">Edit User</option>
-                            <option value="delete">Delete</option>
-                        </select>
-                    </td>
-                    {% endif %}
-                </tr>
-                {% else %}
+                
                 <tr>
-                    <td colspan="{{ 9 if is_admin_allot else 8 }}">
+                    <td colspan="8">
                         <div class="empty-state">
                             <i class="fas fa-inbox" style="font-size:28px;margin-bottom:8px;display:block;"></i>
                             No allotment records found.
                         </div>
                     </td>
                 </tr>
-                {% endfor %}
+                
             </tbody>
         </table>
     </div>
 
-    {% if total_pages > 1 %}
-    <div class="pagination">
-        <button onclick="goToPage({{ page_num - 1 }})" {% if page_num <= 1 %}disabled{% endif %}>
-            <i class="fas fa-chevron-left"></i> Prev
-        </button>
-        <span style="font-size:12px;">Page {{ page_num }} of {{ total_pages }}</span>
-        <button onclick="goToPage({{ page_num + 1 }})" {% if page_num >= total_pages %}disabled{% endif %}>
-            Next <i class="fas fa-chevron-right"></i>
-        </button>
-    </div>
-    {% endif %}
+    
 </div>
 
-{% if is_admin_allot %}
-<!-- Website Allot Modal (admin only) -->
-<div class="modal-overlay" id="allotModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2><i class="fas fa-user-plus"></i> Website Allot
-                <span id="allotTotalBadge" style="font-size:12px;font-weight:600;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:20px;margin-left:8px;"></span>
-            </h2>
-            <button class="modal-close" onclick="closeModal('allotModal')"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <!-- ── ALLOT MODE TABS ── -->
-            <div style="display:flex;gap:0;border-bottom:2px solid #e9ecef;margin-bottom:14px;">
-                <button type="button" id="allotTabBrowse" onclick="switchAllotTab('browse')"
-                    style="padding:8px 18px;border:none;background:#2c3e50;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">
-                    <i class="fas fa-list"></i> Browse List
-                </button>
-                <button type="button" id="allotTabPaste" onclick="switchAllotTab('paste')"
-                    style="padding:8px 18px;border:none;background:#fff;color:#7f8c8d;font-size:12px;font-weight:700;cursor:pointer;border-left:1px solid #e9ecef;">
-                    <i class="fas fa-paste"></i> Paste URLs (Bulk)
-                </button>
-            </div>
 
-            <!-- ── PASTE URLS TAB CONTENT ── -->
-            <div id="allotPasteContent" style="display:none;margin-bottom:14px;">
-                <div style="display:flex;gap:10px;align-items:flex-start;">
-                    <textarea id="allotBulkUrlInput" rows="5" placeholder="https://site1.com&#10;https://site2.com&#10;https://site3.com"
-                        oninput="onAllotBulkUrlInput()"
-                        style="flex:1;padding:10px 12px;border:1.5px solid #aed6f1;border-radius:6px;font-size:12px;font-family:monospace;resize:vertical;outline:none;color:#2c3e50;background:#fff;line-height:1.6;min-height:100px;box-sizing:border-box;"></textarea>
-                    <div>
-                        <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
-                        <select id="allotBulkUserSelect" onchange="syncAllotUserSelects(this.value)" style="width:100%;min-width:170px;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                            <option value="">Loading users...</option>
-                        </select>
-                    </div>
-                    <div style="display:flex;flex-direction:column;gap:8px;min-width:140px;">
-                        <span id="allotBulkUrlCount" style="font-size:11px;color:#7f8c8d;"></span>
-                        <button type="button" onclick="matchAllotBulkUrls()" id="allotBulkMatchBtn"
-                            style="padding:8px 14px;background:#3498db;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center;">
-                            <i class="fas fa-search"></i> Match &amp; Select All
-                        </button>
-                        <button type="button" onclick="clearAllotBulkPaste()"
-                            style="padding:6px 12px;background:#95a5a6;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">
-                            <i class="fas fa-times"></i> Clear
-                        </button>
-                    </div>
-                </div>
-                <div id="allotBulkSummary" style="display:none;margin-top:10px;gap:8px;flex-wrap:wrap;"></div>
-            </div>
 
-            <div class="allot-toolbar" id="allotBrowseToolbar">
-                <div class="allot-search">
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search</label>
-                    <input type="text" id="allotSearchBox" oninput="filterAllotRows()" placeholder="Search name / URL / category..." style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                </div>
-                <div class="allot-user">
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Allot To User</label>
-                    <select id="allotUserSelect" onchange="syncAllotUserSelects(this.value)" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                        <option value="">Loading users...</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Category</label>
-                    <select id="allotCategoryFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                        <option value="">All Categories</option>
-                        {% for cat in wd_category_options %}
-                        <option value="{{ cat }}">{{ cat }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Search For</label>
-                    <select id="allotSearchForFilter" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                        <option value="">All</option>
-                        {% for sf in wd_search_for_options %}
-                        <option value="{{ sf }}">{{ sf }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Status</label>
-                    <select id="allotStatusFilter" onchange="filterAllotRows()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                        <option value="">All</option>
-                        <option value="available">Available</option>
-                        <option value="allotted">Allotted</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date From</label>
-                    <input type="date" id="allotDateFromFilter" value="{{ sa_date_from }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                </div>
-                <div>
-                    <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:4px;">Date To</label>
-                    <input type="date" id="allotDateToFilter" value="{{ sa_date_to }}" onchange="loadAllotSource()" style="width:100%;padding:7px 9px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:34px;">
-                </div>
-                <button type="button" class="btn btn-primary allot-refresh" onclick="loadAllotSource()">
-                    <i class="fas fa-sync-alt"></i> Refresh List
-                </button>
-            </div>
-            <div style="border:1px solid #ddd;border-radius:6px;overflow:auto;max-height:420px;" id="allotTableWrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:34px;"><input type="checkbox" id="allotSelectAll" onclick="toggleAllAllot(this)"></th>
-                            <th>Date</th>
-                            <th>Website</th>
-                            <th>Category</th>
-                            <th>Search For</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="allotTbody">
-                        <tr><td colspan="6"><div class="empty-state">Click "Website Allot" to load websites...</div></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <span id="allotSelectedCount" style="font-size:12px;color:#7f8c8d;margin-right:auto;">0 selected</span>
-            <button type="button" class="clear-btn" onclick="closeModal('allotModal')">Cancel</button>
-            <button type="button" class="btn btn-success" id="allotSubmitBtn" onclick="submitAllotment()">
-                <i class="fas fa-check"></i> Allot Selected
-            </button>
-        </div>
-    </div>
-</div>
-{% endif %}
 
-{% if is_admin_allot %}
-
-<!-- Reassign (Change User) Modal (admin only) -->
-<div class="modal-overlay" id="reassignModal">
-    <div class="modal-content" style="max-width:420px;">
-        <div class="modal-header" style="background:#3498db;">
-            <h2><i class="fas fa-user-edit"></i> Change Allotted User</h2>
-            <button class="modal-close" onclick="closeModal('reassignModal')"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-            <p style="font-size:12px;color:#7f8c8d;margin-bottom:10px;">
-                Currently allotted to: <strong id="reassignCurrentUser" style="color:#2c3e50;"></strong>
-            </p>
-            <label style="font-size:11px;font-weight:600;color:#555;display:block;margin-bottom:5px;">New User</label>
-            <select id="reassignUserSelect" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;height:36px;">
-                <option value="">Loading users...</option>
-            </select>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="clear-btn" onclick="closeModal('reassignModal')">Cancel</button>
-            <button type="button" class="btn btn-primary" id="reassignSubmitBtn" onclick="submitReassign()">
-                <i class="fas fa-check"></i> OK, Reassign
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Delete Allotment Confirm Modal (admin only) -->
-<div class="modal-overlay" id="deleteAllotmentModal">
-    <div class="modal-content" style="max-width:400px;">
-        <div class="modal-header" style="background:#e74c3c;">
-            <h2><i class="fas fa-trash"></i> Delete Allotment?</h2>
-            <button class="modal-close" onclick="closeModal('deleteAllotmentModal')"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body" style="text-align:center;padding:24px;">
-            <div style="font-size:40px;color:#e74c3c;margin-bottom:12px;"><i class="fas fa-exclamation-triangle"></i></div>
-            <p style="font-size:13px;color:#2c3e50;margin-bottom:6px;">Delete this allotment record?</p>
-            <p style="font-size:11px;color:#7f8c8d;">This is permanent and cannot be undone.</p>
-        </div>
-        <div class="modal-footer" style="justify-content:center;gap:12px;">
-            <button type="button" class="clear-btn" onclick="closeModal('deleteAllotmentModal')">Cancel</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteAllotmentBtn" onclick="confirmDeleteAllotment()">
-                <i class="fas fa-trash"></i> Yes, Delete
-            </button>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
 <script>
-const IS_ADMIN_ALLOT = {{ 'true' if is_admin_allot else 'false' }};
+const IS_ADMIN_ALLOT = false;
 
 function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';

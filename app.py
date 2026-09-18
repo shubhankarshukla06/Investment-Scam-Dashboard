@@ -3792,6 +3792,88 @@ def my_scraping_count():
 # ============================================================
 # INSIGHTS — BS Investment Scam Analytics
 # ============================================================
+def _normalize_base_number(upi_vpa):
+    """Extract the base 10-digit mobile number from a UPI handle.
+
+    '8824734691@nyes'        -> '8824734691'
+    '8824734691-2@axl'      -> '8824734691'
+    '9610034317-4@ibl'      -> '9610034317'
+    Ignores the @handle and any -2/-3/-4 suffix variation. Returns None when
+    there is no valid 10-digit base number (e.g. bank-account-only rows).
+    """
+    if not upi_vpa:
+        return None
+    s = str(upi_vpa).strip()
+    if not s or s.upper() in ("NA", "N/A", "NONE", "NULL"):
+        return None
+    core = s.split("@")[0] if "@" in s else s
+    core = re.sub(r"-+\d+$", "", core)          # drop trailing -2 / -3 / -4
+    if re.fullmatch(r"\d{10}", core):
+        return core
+    m = re.search(r"\d{10}", core)              # fallback: first 10-digit run
+    return m.group(0) if m else None
+
+
+def _is_bs_investment_sm_search_for(value):
+    search_for = (value or "").strip().lower()
+    return search_for in {sf.lower() for sf in BS_INVESTMENT_SM_SEARCH_FOR_VALUES}
+
+
+def _get_upi_handle(upi_vpa):
+    if not upi_vpa:
+        return None
+    upi = str(upi_vpa).strip()
+    if not upi or upi.upper() in ("NA", "N/A", "NONE", "NULL") or "@" not in upi:
+        return None
+    handle = upi.rsplit("@", 1)[1].strip().lower()
+    return handle or None
+
+
+def _number_case_metrics(rows):
+    number_map = {}
+    user_map = {}
+    for row in rows:
+        if not _is_bs_investment_sm_search_for(row.get("search_for")):
+            continue
+        base = _normalize_base_number(row.get("upi_vpa"))
+        handle = _get_upi_handle(row.get("upi_vpa"))
+        if not base or not handle:
+            continue
+
+        number_info = number_map.setdefault(base, {"handles": set(), "cases": 0})
+        number_info["handles"].add(handle)
+        number_info["cases"] += 1
+
+        user = (row.get("input_user") or "Unknown").strip() or "Unknown"
+        user_numbers = user_map.setdefault(user, {})
+        user_info = user_numbers.setdefault(base, {"handles": set(), "cases": 0})
+        user_info["handles"].add(handle)
+        user_info["cases"] += 1
+
+    qualified_numbers = {
+        base: info
+        for base, info in number_map.items()
+        if len(info["handles"]) > 1
+    }
+    user_stats = {}
+    for user, numbers in user_map.items():
+        qualified_user_numbers = {
+            base: info
+            for base, info in numbers.items()
+            if len(info["handles"]) > 1
+        }
+        user_stats[user] = {
+            "total_unique_numbers": len(qualified_user_numbers),
+            "total_number_cases": sum(info["cases"] for info in qualified_user_numbers.values()),
+        }
+
+    return {
+        "total_unique_numbers": len(qualified_numbers),
+        "total_number_cases": sum(info["cases"] for info in qualified_numbers.values()),
+        "users": user_stats,
+    }
+
+
 @app.route("/investment-insights-data", methods=["GET"])
 @login_required
 def investment_insights_data():
@@ -3804,6 +3886,13 @@ def investment_insights_data():
         scam_type   = request.args.get("scam_type",   "").strip()
         wallet      = request.args.get("wallet",      "").strip()
         input_user  = request.args.get("input_user",  "").strip()
+        def _parse_iso_date(value):
+            try:
+                return datetime.strptime(value[:10], "%Y-%m-%d").date() if value else None
+            except ValueError:
+                return None
+        requested_start = _parse_iso_date(date_from)
+        requested_end = _parse_iso_date(date_to)
         is_sm_search = search_for in ("__SM__", "SM Counts")
         CHUNK = 1000
         all_rows, offset = [], 0
@@ -3883,12 +3972,13 @@ def investment_insights_data():
             buckets = {}
             current_date = start_date
             while current_date <= end_date:
-                buckets[current_date] = {"cases": 0, "upis": set(), "banks": set()}
+                buckets[current_date] = {"cases": 0, "upis": set(), "banks": set(), "rows": []}
                 current_date += timedelta(days=1)
             for row, parsed_date in dated_rows:
                 if parsed_date not in buckets:
                     continue
                 buckets[parsed_date]["cases"] += 1
+                buckets[parsed_date]["rows"].append(row)
                 wallet_val = (row.get("upi_bank_account_wallet") or "").strip()
                 upi_val = (row.get("upi_vpa") or "").strip()
                 bank_val = (row.get("bank_account_number") or "").strip()
@@ -3902,23 +3992,31 @@ def investment_insights_data():
                 "cases": [buckets[d]["cases"] for d in ordered_dates],
                 "upi": [len(buckets[d]["upis"]) for d in ordered_dates],
                 "bank": [len(buckets[d]["banks"]) for d in ordered_dates],
+                "number": [_number_case_metrics(buckets[d]["rows"])["total_unique_numbers"] for d in ordered_dates],
             }
         def _trend_metric(current_value, previous_value):
             delta = current_value - previous_value
             pct = None if previous_value == 0 else round((delta / previous_value) * 100, 1)
             return {"current": current_value, "previous": previous_value, "delta": delta, "percent": pct}
         if dated_rows:
-            trend_end = max(parsed_date for _, parsed_date in dated_rows)
-            trend_start = trend_end - timedelta(days=29)
+            data_max_date = max(parsed_date for _, parsed_date in dated_rows)
+            trend_end = requested_end or data_max_date
+            trend_start = requested_start or (trend_end - timedelta(days=29))
+            if trend_start > trend_end:
+                trend_start, trend_end = trend_end, trend_start
+            period_days = max((trend_end - trend_start).days + 1, 1)
             prev_end = trend_start - timedelta(days=1)
-            prev_start = prev_end - timedelta(days=29)
+            prev_start = prev_end - timedelta(days=period_days - 1)
             current_trend = _trend_bucket(trend_start, trend_end)
             previous_trend = _trend_bucket(prev_start, prev_end)
         else:
-            trend_end = datetime.utcnow().date()
-            trend_start = trend_end - timedelta(days=29)
+            trend_end = requested_end or datetime.utcnow().date()
+            trend_start = requested_start or (trend_end - timedelta(days=29))
+            if trend_start > trend_end:
+                trend_start, trend_end = trend_end, trend_start
+            period_days = max((trend_end - trend_start).days + 1, 1)
             prev_end = trend_start - timedelta(days=1)
-            prev_start = prev_end - timedelta(days=29)
+            prev_start = prev_end - timedelta(days=period_days - 1)
             current_trend = {"cases": 0, "upi": 0, "bank": 0}
             previous_trend = {"cases": 0, "upi": 0, "bank": 0}
         trend_30d = {
@@ -4018,6 +4116,8 @@ def investment_insights_data():
                 "unique_upi":  len(u_upi_set),
                 "unique_bank": len(u_bank_set),
             }
+        # ── Number-based SM cases: base number qualifies only with 2+ UPI handles ──
+        number_case_metrics = _number_case_metrics(rows)
         return jsonify({
             "success": True,
             "total_rows": len(rows),
@@ -4032,6 +4132,10 @@ def investment_insights_data():
             "sf_counts":    sf_counts,
             "user_stats":   user_stats,
             "all_input_users": sorted(list({(r.get("input_user") or "Unknown").strip() for r in rows if r.get("input_user")})),
+            "user_number_cases_total": number_case_metrics["total_unique_numbers"],
+            "user_number_cases_unique_total": number_case_metrics["total_unique_numbers"],
+            "user_number_cases_case_total": number_case_metrics["total_number_cases"],
+            "user_number_cases_by_user": number_case_metrics["users"],
             "bank_counts": sorted_banks,
             "monthly_counts": monthly_counts,
         })
@@ -5626,7 +5730,6 @@ AML_PASSWORD_INPUT_XPATH = "/html/body/div/div/div/div/div/form/div[2]/input"
 AML_CAPTCHA_IMG_XPATH    = "//img[contains(@id,'captcha') or contains(@src,'captcha')]"
 AML_CAPTCHA_INPUT_XPATH  = "//input[contains(@name,'captcha') or contains(@id,'captcha')]"
 AML_LOGIN_BUTTON_XPATH   = "/html/body/div/div/div/div/div/form/button"
-
 AML_TITLE1_XPATH       = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[1]"
 AML_INPUT1_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[2]"
 AML_DESCRIPTION1_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[3]/textarea"
@@ -5748,11 +5851,9 @@ def aml_get_hex_captcha_text_with_easyocr(captcha_bytes):
     text = "".join(_EASYOCR_READER.readtext(captcha_bytes, detail=0, allowlist="0123456789abcdef"))
     return re.sub(r"[^0-9a-f]", "", text.lower())
 
-
 def aml_solve_gui_download_captcha(session_obj):
     img = session_obj.get(urllib.parse.urljoin(AML_GUI_BASE_URL, "captcha.php"), timeout=30).content
     return aml_get_captcha_text_from_bytes(img)
-
 
 def aml_get_captcha_text_with_tesseract(captcha_bytes):
     img = Image.open(io.BytesIO(captcha_bytes)).convert("L")
@@ -5822,11 +5923,9 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
         raise last_error
     return ""
 
-
 def aml_get_captcha_text(captcha_element):
     # Backward-compatible helper for the old Selenium path.
     return aml_get_captcha_text_from_bytes(captcha_element.screenshot_as_png)
-
 
 def aml_extract_pdf_links_from_html(html_text, base_url):
     """Extract generated PDF links from AML response HTML/JSON/JS/plain text.
@@ -6130,7 +6229,6 @@ def aml_submit_chunk(driver, title_text, input_text, description_text, image_chu
             if href and href not in seen:
                 seen.add(href)
                 hrefs.append(href)
-
         # Investment Scam Final Sheet ke liye fixed sequence chahiye:
         # mfilterit -> npci -> without_header
         def _link_sort_key(href):
@@ -6184,16 +6282,9 @@ def aml_submit_chunk(driver, title_text, input_text, description_text, image_chu
 
     return {"npci": result_text, "all": all_links or result_text}
 
-
 def aml_submit_chunk_requests(session_obj, title_text, input_text, description_text, image_chunk):
-    """Submit one AML regenerate chunk without Selenium/Chromium.
-
-    image_chunk: list of 1-4 image paths. Returns the same shape as aml_submit_chunk():
-    {"npci": <npci-link>, "all": <comma-separated-links>}.
-    """
     if len(image_chunk) < 1:
         return None
-
     report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
     report_page.raise_for_status()
     if not re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
@@ -6229,9 +6320,6 @@ def aml_submit_chunk_requests(session_obj, title_text, input_text, description_t
             files.append((field_name, (filename, fh, "image/png")))
 
         def _attach_empty(field_name):
-            # Browser submits an empty multipart part for file inputs left blank.
-            # This matters for 1/3-image cases where right_image[] exists in the form
-            # but the user has not selected a file.
             upload_debug.append(f"{field_name}=EMPTY")
             files.append((field_name, ("", io.BytesIO(b""), "application/octet-stream")))
 
@@ -6323,8 +6411,6 @@ def _regen_job_response(job):
         "final_excel": job["final_excel"],
         "message": job["message"],
     }
-
-
 def _write_regen_job_snapshot(job_id):
     with REGEN_JOBS_LOCK:
         job = REGEN_JOBS.get(job_id)
@@ -7270,17 +7356,17 @@ DASHBOARD_MANAGEMENT_PAGE = "dashboard_management"
 # Full set of page keys a user can be granted (for the Allowed Pages picker).
 ALLOWED_PAGES_OPTIONS = [
     ("scraping",          "Data Scraping"),
-    ("sheet",             "Summary & Sheet Generator"),
+    ("sheet",             "Summary & Reports"),
     ("social",            "Social Media Accounts"),
     ("investment",        "Investment Scam Data"),
     ("qc",                "QC Review"),
-    ("website_directory", "Investment Website Directory"),
-    ("allotment",         "Website Case Assignment"),
-    ("allotment_admin",   "Website Case Assignment Admin"),
-    ("insights",          "User Performance Dashboard"),
+    ("website_directory", "Website Directory"),
+    ("allotment",         "Case Assignment"),
+    ("allotment_admin",   "Case Assignment Admin"),
+    ("insights",          "Dashboard"),
     ("case_report",       "Case & Report Generator"),
     ("lunch",             "Break Time Management"),
-    (DASHBOARD_MANAGEMENT_PAGE, "User & Access Management"),
+    (DASHBOARD_MANAGEMENT_PAGE, "GUI Management"),
 ]
 
 INVESTMENT_SCAM_USERS_TABLE = "investment_scam_users"
@@ -7306,13 +7392,13 @@ GUI_STATUS_TABLES = [
     },
     {
         "page_key": "website_directory",
-        "page_name": "Investment Website Directory",
+        "page_name": "Website Directory",
         "table": "website_directory",
         "date_columns": ["updated_at", "created_at", "date", "id"],
     },
     {
         "page_key": "allotment",
-        "page_name": "Website Case Assignment",
+        "page_name": "Case Assignment",
         "table": "website_allotment",
         "date_columns": ["updated_at", "created_at", "allotted_date", "id"],
     },
@@ -7347,6 +7433,9 @@ GUI_STATUS_TABLES = [
         "date_columns": ["updated_at", "created_at", "joining_date", "id"],
     },
 ]
+
+GUI_STATUS_CACHE_TTL_SECONDS = 60
+_GUI_STATUS_CACHE = {"expires_at": 0, "payload": None}
 
 
 def can_manage_dashboard(user_session=None):
@@ -7436,7 +7525,7 @@ def dashboard_management():
 
 
 def _serialize_dashboard_user(row):
-    """Serialize dashboard users for the admin-only User & Access Management UI."""
+    """Serialize dashboard users for the admin-only GUI Management UI."""
     out = dict(row)
     raw_password = out.get("password") or ""
     raw_aml_password = out.get("aml_password") or ""
@@ -7489,7 +7578,8 @@ def _latest_value_for_table(client, table_name, date_columns):
     return None, None
 
 
-def _table_status_row(client, cfg, storage_map):
+def _table_status_row(cfg, storage_map):
+    client = get_auth_supabase()
     started = time.perf_counter()
     row = {
         "page_key": cfg["page_key"],
@@ -7510,19 +7600,12 @@ def _table_status_row(client, cfg, storage_map):
         "error": None,
     }
     try:
-        count_resp = client.table(cfg["table"]).select("*", count="exact").limit(1).execute()
+        count_resp = client.table(cfg["table"]).select("*", count="exact").limit(0).execute()
         row["total_rows"] = count_resp.count if count_resp.count is not None else 0
 
         latest_value, latest_column = _latest_value_for_table(client, cfg["table"], cfg["date_columns"])
         row["latest_value"] = latest_value
         row["latest_column"] = latest_column
-
-        sample_resp = client.table(cfg["table"]).select("*").limit(25).execute()
-        sample_rows = sample_resp.data or []
-        row["sample_rows"] = len(sample_rows)
-        row["sample_bytes"] = _estimate_json_bytes(sample_rows)
-        if row["sample_rows"] and row["total_rows"]:
-            row["estimated_payload_bytes"] = int((row["sample_bytes"] / row["sample_rows"]) * row["total_rows"])
 
         storage = storage_map.get(cfg["table"].lower()) if storage_map else None
         if storage:
@@ -7530,6 +7613,7 @@ def _table_status_row(client, cfg, storage_map):
             row["table_bytes"] = storage.get("table_bytes") or storage.get("table_size")
             row["index_bytes"] = storage.get("index_bytes") or storage.get("index_size")
             row["storage_source"] = "RPC"
+            row["estimated_payload_bytes"] = int(row["storage_bytes"] or 0)
 
         row["query_ms"] = int((time.perf_counter() - started) * 1000)
         row["status"] = _format_status_level(
@@ -7550,7 +7634,10 @@ def _table_status_row(client, cfg, storage_map):
 def dashboard_management_users():
     try:
         resp = get_auth_supabase().table("dashboard_users") \
-            .select("*").order("id", desc=False).execute()
+            .select(
+                "id,email,display_name,password,allowed_pages,role,is_admin,"
+                "can_view_activity_log,allowed_departments,aml_username,aml_password,is_active"
+            ).order("id", desc=False).execute()
         users = [_serialize_dashboard_user(u) for u in (resp.data or [])]
         return jsonify({"success": True, "users": users})
     except Exception as e:
@@ -7562,10 +7649,23 @@ def dashboard_management_users():
 @dashboard_management_required_json
 def dashboard_management_gui_status():
     try:
+        force_refresh = request.args.get("refresh") in ("1", "true", "yes")
+        now = time.time()
+        if not force_refresh and _GUI_STATUS_CACHE["payload"] and _GUI_STATUS_CACHE["expires_at"] > now:
+            return jsonify(_GUI_STATUS_CACHE["payload"])
+
         client = get_auth_supabase()
         started = time.perf_counter()
         storage_map, rpc_error = _load_table_storage_map(client)
-        rows = [_table_status_row(client, cfg, storage_map) for cfg in GUI_STATUS_TABLES]
+        with ThreadPoolExecutor(max_workers=min(6, len(GUI_STATUS_TABLES))) as executor:
+            future_map = {
+                executor.submit(_table_status_row, cfg, storage_map): idx
+                for idx, cfg in enumerate(GUI_STATUS_TABLES)
+            }
+            ordered_rows = [None] * len(GUI_STATUS_TABLES)
+            for future in as_completed(future_map):
+                ordered_rows[future_map[future]] = future.result()
+        rows = [row for row in ordered_rows if row]
         totals = {
             "pages": len(rows),
             "tables_ok": sum(1 for r in rows if not r.get("error")),
@@ -7581,7 +7681,10 @@ def dashboard_management_gui_status():
         if rows:
             totals["slowest_page"] = max(rows, key=lambda r: int(r.get("query_ms") or 0)).get("page_name")
         totals["total_query_ms"] = int((time.perf_counter() - started) * 1000)
-        return jsonify({"success": True, "rows": rows, "totals": totals})
+        payload = {"success": True, "rows": rows, "totals": totals}
+        _GUI_STATUS_CACHE["payload"] = payload
+        _GUI_STATUS_CACHE["expires_at"] = now + GUI_STATUS_CACHE_TTL_SECONDS
+        return jsonify(payload)
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -7888,7 +7991,6 @@ def dashboard_management_toggle_active(user_id):
         return jsonify({"success": False, "error": "Update failed."}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 # ============================================================
 # GUI QC — LIST / FILTER / PAGINATION

@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en">
-  <head>
+  <head><base href="http://localhost:8765/">
     <meta charset="UTF-8" />
     <script>
       (function () {
@@ -12,7 +12,7 @@
     </script>
     <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GUI Management — Scam Intelligence GUI</title>
+    <title>User &amp; Access Management — Scam Intelligence GUI</title>
     <link rel="icon" type="image/png" href="/static/favicon.png" />
     <link
       rel="stylesheet"
@@ -274,7 +274,7 @@
       .filter-group {
         display: flex;
         flex-direction: column;
-        gap: 5px;
+        gap: 4px;
       }
       .dm-dashboard-controls {
         display: flex;
@@ -283,15 +283,15 @@
         flex-wrap: wrap;
       }
       .filter-group label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #2c3e50;
+        font-size: 11px;
+        font-weight: 700;
+        color: #7f8c8d;
         text-transform: uppercase;
-        letter-spacing: 0;
+        letter-spacing: 0.5px;
       }
       .filter-group input,
       .filter-group select {
-        padding: 8px 10px;
+        padding: 7px 10px;
         border: 1px solid #ddd;
         border-radius: 5px;
         font-size: 12px;
@@ -321,10 +321,6 @@
         overflow: auto;
         flex: 1 1 auto;
         min-height: 0;
-        transition: opacity 0.12s ease;
-      }
-      .table-wrap.is-loading {
-        opacity: 0.72;
       }
       table {
         width: 100%;
@@ -349,13 +345,6 @@
         font-size: 12.5px;
         border-bottom: 1px solid #f0f2f5;
         vertical-align: middle;
-      }
-      th[data-col="id"],
-      td[data-col="id"] {
-        width: 58px;
-        min-width: 58px;
-        max-width: 58px;
-        padding-right: 6px;
       }
       #dmTable.dm-dashboard-table th:nth-child(3),
       #dmTable.dm-dashboard-table td:nth-child(3),
@@ -943,7 +932,7 @@
         color: #f1f5f9 !important;
       }
     </style>
-      <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+      <link rel="stylesheet" href="/static/gui-base.css?v=20260917-layout4">
 </head>
   <body>
   <script>
@@ -964,7 +953,7 @@
                 class="fas fa-user-circle"
                 style="color: #3498db; font-size: 11px"
               ></i>
-              {{ display_name }}</span
+              Admin Test</span
             >
           </div>
           <p>Manage users, permissions &amp; credentials</p>
@@ -976,34 +965,33 @@
               style="border: 2px solid #2c3e50; font-weight: 600"
               onchange="changeDmPage(this.value)"
             >
-              {% if 'scraping' in allowed_pages %}
+              
               <option value="scraping">Data Scraping</option>
-              {% endif %} {% if 'social' in allowed_pages %}
+               
               <option value="social">Social Media Accounts</option>
-              {% endif %} {% if 'investment' in allowed_pages %}
+               
               <option value="investment">Investment Scam Data</option>
-              {% endif %} {% if 'website_directory' in allowed_pages %}
+               
               <option value="website_directory">
-                Website Directory
+                Investment Website Directory
               </option>
-              {% endif %} {% if 'allotment' in allowed_pages or
-              'allotment_admin' in allowed_pages %}
-              <option value="allotment">Case Assignment</option>
-              {% endif %} {% if 'sheet' in allowed_pages %}
-              <option value="sheet">Summary &amp; Reports</option>
-              {% endif %} {% if 'case_report' in allowed_pages %}
+               
+              <option value="allotment">Website Case Assignment</option>
+               
+              <option value="sheet">Summary &amp; Sheet Generator</option>
+               
               <option value="case_report">Case &amp; Report Generator</option>
-              {% endif %} {% if 'insights' in allowed_pages %}
-              <option value="insights">Dashboard</option>
-              {% endif %} {% if 'qc' in allowed_pages %}
+               
+              <option value="insights">User Performance Dashboard</option>
+               
               <option value="qc">QC Review</option>
-              {% endif %} {% if can_manage_dashboard %}
+               
               <option value="dashboard_management" selected>
-                GUI Management
+                User &amp; Access Management
               </option>
-              {% endif %} {% if 'lunch' in allowed_pages %}
+               
               <option value="lunch_break">Break Time Management</option>
-              {% endif %}
+              
             </select>
           </div>
           <button
@@ -1033,49 +1021,9 @@
           ></a>
         </div>
       </div>
-      <div class="secondary-page-nav" aria-label="Page navigation">
-        {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-        {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('case_report')">Case &amp; Report Generator</button>
-        {% endif %}
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('qc')">QC Review</button>
-        {% endif %}
-        {% if can_manage_dashboard %}
-        <button type="button" class="page-nav-btn active" onclick="changeDmPage('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('lunch_break')">Break Time Management</button>
-        {% endif %}
-      </div>
     </div>
     <div class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %} {% if
-      messages %}{% for cat, msg in messages %}
-      <div class="flash {{ 'error' if cat == 'error' else 'success' }}">
-        <i class="fas fa-info-circle"></i> {{ msg }}
-      </div>
-      {% endfor %}{% endif %} {% endwith %}
+        
       <div class="filter-bar">
         <div class="filter-group">
           <label>User Type</label>
@@ -1132,7 +1080,7 @@
           </button>
         </div>
         <div id="dmStatusActions" class="filter-actions" style="display: none">
-          <button class="btn btn-outline" onclick="loadGuiStatus(true)">
+          <button class="btn btn-outline" onclick="loadGuiStatus()">
             <i class="fas fa-sync-alt"></i> Refresh Status
           </button>
         </div>
@@ -1282,31 +1230,166 @@
           <div class="modal-field">
             <label>Allowed Pages</label>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
-              {% for key, label in page_options %}
+              
               <div class="modal-check">
                 <input
                   type="checkbox"
                   class="dm_page"
-                  value="{{ key }}"
-                  id="dm_page_{{ key }}"
-                /><label for="dm_page_{{ key }}">{{ label }}</label>
+                  value="scraping"
+                  id="dm_page_scraping"
+                /><label for="dm_page_scraping">Data Scraping</label>
               </div>
-              {% endfor %}
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="sheet"
+                  id="dm_page_sheet"
+                /><label for="dm_page_sheet">Summary &amp; Sheet Generator</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="social"
+                  id="dm_page_social"
+                /><label for="dm_page_social">Social Media Accounts</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="investment"
+                  id="dm_page_investment"
+                /><label for="dm_page_investment">Investment Scam Data</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="qc"
+                  id="dm_page_qc"
+                /><label for="dm_page_qc">QC Review</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="website_directory"
+                  id="dm_page_website_directory"
+                /><label for="dm_page_website_directory">Investment Website Directory</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="allotment"
+                  id="dm_page_allotment"
+                /><label for="dm_page_allotment">Website Case Assignment</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="allotment_admin"
+                  id="dm_page_allotment_admin"
+                /><label for="dm_page_allotment_admin">Website Case Assignment Admin</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="insights"
+                  id="dm_page_insights"
+                /><label for="dm_page_insights">User Performance Dashboard</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="case_report"
+                  id="dm_page_case_report"
+                /><label for="dm_page_case_report">Case &amp; Report Generator</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="lunch"
+                  id="dm_page_lunch"
+                /><label for="dm_page_lunch">Break Time Management</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_page"
+                  value="dashboard_management"
+                  id="dm_page_dashboard_management"
+                /><label for="dm_page_dashboard_management">User &amp; Access Management</label>
+              </div>
+              
             </div>
           </div>
           <div class="modal-field">
             <label>Allowed Departments</label>
             <div style="display: flex; flex-wrap: wrap; gap: 8px">
-              {% for dept in department_options %}
+              
               <div class="modal-check">
                 <input
                   type="checkbox"
                   class="dm_dept"
-                  value="{{ dept }}"
-                  id="dm_dept_{{ loop.index }}"
-                /><label for="dm_dept_{{ loop.index }}">{{ dept }}</label>
+                  value="AML"
+                  id="dm_dept_1"
+                /><label for="dm_dept_1">AML</label>
               </div>
-              {% endfor %}
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_dept"
+                  value="Investment Scam"
+                  id="dm_dept_2"
+                /><label for="dm_dept_2">Investment Scam</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_dept"
+                  value="ITC"
+                  id="dm_dept_3"
+                /><label for="dm_dept_3">ITC</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_dept"
+                  value="Infringement"
+                  id="dm_dept_4"
+                /><label for="dm_dept_4">Infringement</label>
+              </div>
+              
+              <div class="modal-check">
+                <input
+                  type="checkbox"
+                  class="dm_dept"
+                  value="Chargeback"
+                  id="dm_dept_5"
+                /><label for="dm_dept_5">Chargeback</label>
+              </div>
+              
             </div>
           </div>
         </div>
@@ -1522,14 +1605,14 @@
         scraping: "Data Scraping",
         social: "Social Media Accounts",
         investment: "Investment Scam Data",
-        website_directory: "Website Directory",
-        allotment: "Case Assignment",
-        allotment_admin: "Case Assignment Admin",
-        sheet: "Summary & Reports",
+        website_directory: "Investment Website Directory",
+        allotment: "Website Case Assignment",
+        allotment_admin: "Website Case Assignment Admin",
+        sheet: "Summary & Sheet Generator",
         case_report: "Case & Report Generator",
-        insights: "Dashboard",
+        insights: "User Performance Dashboard",
         qc: "QC Review",
-        dashboard_management: "GUI Management",
+        dashboard_management: "User & Access Management",
         gui_status: "GUI Status",
         lunch: "Break Time Management",
         lunch_break: "Break Time Management",
@@ -1637,29 +1720,6 @@
       let invUsers = []; // Investment Scam Users data (kept separate from dmUsers)
       let invTypeFilter = "all"; // "all" | "employee" | "intern"
       let guiStatusRows = [];
-      let dmUsersLoaded = false;
-      let invUsersLoaded = false;
-      let guiStatusLoaded = false;
-      let dmRequestSeq = 0;
-
-      function setTableLoading(message, colspan) {
-        const body = document.getElementById("dmTableBody");
-        const wrap = document.querySelector(".table-wrap");
-        if (wrap) wrap.classList.add("is-loading");
-        if (body) {
-          body.innerHTML =
-            '<tr><td colspan="' +
-            colspan +
-            '"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i> ' +
-            escapeHtml(message) +
-            "</div></td></tr>";
-        }
-      }
-
-      function clearTableLoading() {
-        const wrap = document.querySelector(".table-wrap");
-        if (wrap) wrap.classList.remove("is-loading");
-      }
 
       function setupInvToggle() {
         const wrap = document.getElementById("dmInvTypeToggle");
@@ -1767,7 +1827,6 @@
       }
 
       function switchUserType() {
-        const requestId = ++dmRequestSeq;
         const sel = document.getElementById("dmUserType");
         dmUserType = (sel && sel.value) || "dashboard";
         const dashFilters = document.getElementById("dmDashboardFilters");
@@ -1802,31 +1861,17 @@
               ? INVESTMENT_HEAD_HTML
               : GUI_STATUS_HEAD_HTML;
         }
-        if (isDash) {
-          setTableLoading("Loading users...", 11);
-          loadUsers(false, requestId);
-        }
+        if (isDash) loadUsers();
         else if (isInv) {
           setupInvToggle();
-          setTableLoading("Loading investment scam users...", 11);
-          loadInvestmentScamUsers(false, requestId);
+          loadInvestmentScamUsers();
         } else {
-          setTableLoading("Loading GUI status...", 7);
-          loadGuiStatus(false, requestId);
+          loadGuiStatus();
         }
       }
 
-      async function loadInvestmentScamUsers(force, requestId) {
-        requestId = requestId || ++dmRequestSeq;
+      async function loadInvestmentScamUsers() {
         const body = document.getElementById("dmTableBody");
-        if (!force && invUsersLoaded) {
-          if (dmUserType === "investment" && requestId === dmRequestSeq) {
-            applyInvFilters();
-            clearTableLoading();
-          }
-          return;
-        }
-        setTableLoading("Loading investment scam users...", 11);
         try {
           const resp = await fetch(
             "/dashboard-management/api/investment-scam-users",
@@ -1840,19 +1885,13 @@
               data.error || "Failed to load investment scam users.",
             );
           invUsers = data.users || [];
-          invUsersLoaded = true;
-          if (dmUserType !== "investment" || requestId !== dmRequestSeq) return;
           applyInvFilters();
-          clearTableLoading();
         } catch (e) {
-          if (dmUserType !== "investment" || requestId !== dmRequestSeq) return;
           invUsers = [];
-          invUsersLoaded = false;
           body.innerHTML =
-            '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
+            '<tr><td colspan="10"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
             escapeHtml(e.message) +
             "</div></td></tr>";
-          clearTableLoading();
         }
       }
 
@@ -1929,41 +1968,27 @@
           " ms</div>";
       }
 
-      async function loadGuiStatus(force, requestId) {
-        requestId = requestId || ++dmRequestSeq;
+      async function loadGuiStatus() {
         const body = document.getElementById("dmTableBody");
-        if (!force && guiStatusLoaded) {
-          if (dmUserType === "gui_status" && requestId === dmRequestSeq) {
-            renderGuiStatusRows(guiStatusRows);
-            clearTableLoading();
-          }
-          return;
-        }
-        setTableLoading("Loading GUI status...", 7);
+        body.innerHTML =
+          '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i> Loading GUI status...</div></td></tr>';
         try {
-          const url = "/dashboard-management/api/gui-status" + (force ? "?refresh=1" : "");
-          const resp = await fetch(url, {
+          const resp = await fetch("/dashboard-management/api/gui-status", {
             headers: { Accept: "application/json" },
           });
           const data = await resp.json();
           if (!data.success)
             throw new Error(data.error || "Failed to load GUI status.");
           guiStatusRows = data.rows || [];
-          guiStatusLoaded = true;
-          if (dmUserType !== "gui_status" || requestId !== dmRequestSeq) return;
           renderGuiStatusSummary(data.totals || {});
           renderGuiStatusRows(guiStatusRows);
-          clearTableLoading();
         } catch (e) {
-          if (dmUserType !== "gui_status" || requestId !== dmRequestSeq) return;
-          guiStatusLoaded = false;
           const wrap = document.getElementById("guiStatusSummary");
           if (wrap) wrap.innerHTML = "";
           body.innerHTML =
             '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
             escapeHtml(e.message) +
             "</div></td></tr>";
-          clearTableLoading();
         }
       }
 
@@ -2151,17 +2176,8 @@
           .join("");
       }
 
-      async function loadUsers(force, requestId) {
-        requestId = requestId || ++dmRequestSeq;
+      async function loadUsers() {
         const body = document.getElementById("dmTableBody");
-        if (!force && dmUsersLoaded) {
-          if (dmUserType === "dashboard" && requestId === dmRequestSeq) {
-            applyFilters();
-            clearTableLoading();
-          }
-          return;
-        }
-        setTableLoading("Loading users...", 11);
         try {
           const resp = await fetch("/dashboard-management/api/users", {
             headers: { Accept: "application/json" },
@@ -2170,18 +2186,12 @@
           if (!data.success)
             throw new Error(data.error || "Failed to load users.");
           dmUsers = data.users || [];
-          dmUsersLoaded = true;
-          if (dmUserType !== "dashboard" || requestId !== dmRequestSeq) return;
           applyFilters();
-          clearTableLoading();
         } catch (e) {
-          if (dmUserType !== "dashboard" || requestId !== dmRequestSeq) return;
-          dmUsersLoaded = false;
           body.innerHTML =
             '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
             escapeHtml(e.message) +
             "</div></td></tr>";
-          clearTableLoading();
         }
       }
       function applyFilters() {
@@ -2486,7 +2496,7 @@
             "success",
           );
           closeModal("dmFormModal");
-          await loadUsers(true);
+          await loadUsers();
         } catch (e) {
           showToast("Request failed: " + e.message, "error");
         } finally {
@@ -2646,7 +2656,7 @@
             "success",
           );
           closeModal("dmInvFormModal");
-          await loadInvestmentScamUsers(true);
+          await loadInvestmentScamUsers();
         } catch (e) {
           showToast("Request failed: " + e.message, "error");
         } finally {
@@ -2669,7 +2679,7 @@
             return;
           }
           showToast("User deleted successfully.", "success");
-          await loadInvestmentScamUsers(true);
+          await loadInvestmentScamUsers();
         } catch (e) {
           showToast("Request failed: " + e.message, "error");
         }
@@ -2693,7 +2703,7 @@
             return;
           }
           showToast("Dashboard user deleted successfully.", "success");
-          await loadUsers(true);
+          await loadUsers();
         } catch (e) {
           showToast("Request failed: " + e.message, "error");
         }
@@ -2738,7 +2748,7 @@
                 return;
               }
               showToast("User " + action + "d successfully.", "success");
-              await loadUsers(true);
+              await loadUsers();
             } catch (e) {
               showToast("Request failed: " + e.message, "error");
             }
