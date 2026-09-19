@@ -10,7 +10,13 @@
         } catch (e) {}
       })();
     </script>
-    <style>html.theme-dark-preload,html.theme-dark-preload body{background:#202938;color:#e2e8f0;}</style>
+    <style>
+      html.theme-dark-preload,
+      html.theme-dark-preload body {
+        background: #202938;
+        color: #e2e8f0;
+      }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GUI Management — Scam Intelligence GUI</title>
     <link rel="icon" type="image/png" href="/static/favicon.png" />
@@ -458,6 +464,36 @@
       }
       tbody tr:hover {
         background: #f8fafc;
+      }
+      tbody tr.dm-role-superadmin {
+        background: #fbf5ff;
+      }
+      tbody tr.dm-role-superadmin:hover {
+        background: #f4eaff;
+      }
+      tbody tr.dm-role-admin {
+        background: #f1f7ff;
+      }
+      tbody tr.dm-role-admin:hover {
+        background: #e6f1ff;
+      }
+      tbody tr.dm-role-user {
+        background: #f8fafc;
+      }
+      tbody tr.dm-role-user:hover {
+        background: #eef3f8;
+      }
+      tbody tr.dm-role-intern {
+        background: #fff8ec;
+      }
+      tbody tr.dm-role-intern:hover {
+        background: #fff0d6;
+      }
+      tbody tr.dm-role-employee {
+        background: #f2fbf7;
+      }
+      tbody tr.dm-role-employee:hover {
+        background: #e7f7ef;
       }
       .tag {
         display: inline-block;
@@ -921,6 +957,36 @@
       body.theme-dark tbody tr:hover {
         background: #334155;
       }
+      body.theme-dark tbody tr.dm-role-superadmin {
+        background: rgba(168, 85, 247, 0.14);
+      }
+      body.theme-dark tbody tr.dm-role-superadmin:hover {
+        background: rgba(168, 85, 247, 0.22);
+      }
+      body.theme-dark tbody tr.dm-role-admin {
+        background: rgba(59, 130, 246, 0.13);
+      }
+      body.theme-dark tbody tr.dm-role-admin:hover {
+        background: rgba(59, 130, 246, 0.22);
+      }
+      body.theme-dark tbody tr.dm-role-user {
+        background: rgba(148, 163, 184, 0.09);
+      }
+      body.theme-dark tbody tr.dm-role-user:hover {
+        background: rgba(148, 163, 184, 0.16);
+      }
+      body.theme-dark tbody tr.dm-role-intern {
+        background: rgba(245, 158, 11, 0.14);
+      }
+      body.theme-dark tbody tr.dm-role-intern:hover {
+        background: rgba(245, 158, 11, 0.23);
+      }
+      body.theme-dark tbody tr.dm-role-employee {
+        background: rgba(34, 197, 94, 0.11);
+      }
+      body.theme-dark tbody tr.dm-role-employee:hover {
+        background: rgba(34, 197, 94, 0.2);
+      }
       body.theme-dark tbody td {
         color: #e6edf7;
         border-bottom-color: rgba(148, 163, 184, 0.12);
@@ -943,14 +1009,17 @@
         color: #f1f5f9 !important;
       }
     </style>
-      <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
-</head>
+    <link
+      rel="stylesheet"
+      href="/static/gui-base.css?v=20260918-secondary-nav2"
+    />
+  </head>
   <body>
-  <script>
-  if (document.documentElement.classList.contains('theme-dark-preload')) {
-      document.body.classList.add('theme-dark');
-  }
-  </script>
+    <script>
+      if (document.documentElement.classList.contains("theme-dark-preload")) {
+        document.body.classList.add("theme-dark");
+      }
+    </script>
     <div class="fixed-header">
       <div class="header">
         <div class="logo">
@@ -983,9 +1052,7 @@
               {% endif %} {% if 'investment' in allowed_pages %}
               <option value="investment">Investment Scam Data</option>
               {% endif %} {% if 'website_directory' in allowed_pages %}
-              <option value="website_directory">
-                Website Directory
-              </option>
+              <option value="website_directory">Website Directory</option>
               {% endif %} {% if 'allotment' in allowed_pages or
               'allotment_admin' in allowed_pages %}
               <option value="allotment">Case Assignment</option>
@@ -1035,37 +1102,90 @@
       </div>
       <div class="secondary-page-nav" aria-label="Page navigation">
         {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-        {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('case_report')">Case &amp; Report Generator</button>
-        {% endif %}
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('qc')">QC Review</button>
-        {% endif %}
-        {% if can_manage_dashboard %}
-        <button type="button" class="page-nav-btn active" onclick="changeDmPage('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeDmPage('lunch_break')">Break Time Management</button>
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('scraping')"
+        >
+          Data Scraping
+        </button>
+        {% endif %} {% if 'social' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('social')"
+        >
+          Social Media Accounts
+        </button>
+        {% endif %} {% if 'investment' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('investment')"
+        >
+          Investment Scam Data
+        </button>
+        {% endif %} {% if 'website_directory' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('website_directory')"
+        >
+          Website Directory
+        </button>
+        {% endif %} {% if 'allotment' in allowed_pages or 'allotment_admin' in
+        allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('allotment')"
+        >
+          Case Assignment
+        </button>
+        {% endif %} {% if 'sheet' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('sheet')"
+        >
+          Summary &amp; Reports
+        </button>
+        {% endif %} {% if 'case_report' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('case_report')"
+        >
+          Case &amp; Report Generator
+        </button>
+        {% endif %} {% if 'insights' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('insights')"
+        >
+          Dashboard
+        </button>
+        {% endif %} {% if 'qc' in allowed_pages %}
+        <button type="button" class="page-nav-btn" onclick="changeDmPage('qc')">
+          QC Review
+        </button>
+        {% endif %} {% if can_manage_dashboard %}
+        <button
+          type="button"
+          class="page-nav-btn active"
+          onclick="changeDmPage('dashboard_management')"
+        >
+          GUI Management
+        </button>
+        {% endif %} {% if 'lunch' in allowed_pages %}
+        <button
+          type="button"
+          class="page-nav-btn"
+          onclick="changeDmPage('lunch_break')"
+        >
+          Break Time Management
+        </button>
         {% endif %}
       </div>
     </div>
@@ -1382,7 +1502,7 @@
             style="display: none"
           >
             <div class="modal-field">
-              <label>Internship Duration (months)</label>
+              <label>Internship Duration / End Date</label>
               <input
                 type="number"
                 id="dmi_internship_duration_months"
@@ -1392,10 +1512,8 @@
               />
             </div>
             <div class="modal-field">
-              <label>&nbsp;</label>
-              <p style="font-size: 11px; color: #7f8c8d; margin: 0">
-                Days left will be auto-computed from joining date.
-              </p>
+              <label>Internship End Date</label>
+              <input type="date" id="dmi_internship_end_date" />
             </div>
           </div>
           <div class="modal-row">
@@ -1679,7 +1797,7 @@
 
       const DASHBOARD_HEAD_HTML =
         "<tr>" +
-        "<th data-col=\"id\">ID</th>" +
+        '<th data-col="id">ID</th>' +
         "<th>Email</th>" +
         "<th>Display Name</th>" +
         "<th>Paasword</th>" +
@@ -1805,8 +1923,7 @@
         if (isDash) {
           setTableLoading("Loading users...", 11);
           loadUsers(false, requestId);
-        }
-        else if (isInv) {
+        } else if (isInv) {
           setupInvToggle();
           setTableLoading("Loading investment scam users...", 11);
           loadInvestmentScamUsers(false, requestId);
@@ -1941,7 +2058,9 @@
         }
         setTableLoading("Loading GUI status...", 7);
         try {
-          const url = "/dashboard-management/api/gui-status" + (force ? "?refresh=1" : "");
+          const url =
+            "/dashboard-management/api/gui-status" +
+            (force ? "?refresh=1" : "");
           const resp = await fetch(url, {
             headers: { Accept: "application/json" },
           });
@@ -2051,18 +2170,25 @@
         return match ? parseInt(match[1], 10) : 0;
       }
 
+      function monthDiffFloor(startDate, endDate) {
+        if (!startDate || !endDate || endDate < startDate) return 0;
+        let months =
+          (endDate.getFullYear() - startDate.getFullYear()) * 12 +
+          (endDate.getMonth() - startDate.getMonth());
+        if (endDate.getDate() < startDate.getDate()) months -= 1;
+        return Math.max(months, 0);
+      }
+
       function computeInternshipEndDisplay(u, today) {
+        let endDate = parseLocalDate(getVal(u, INV_COLUMNS[7].keys));
         const durationText = getVal(u, INV_COLUMNS[6].keys);
         const months =
           parseDurationMonths(durationText) ||
           parseInt(u.internship_duration_months, 10) ||
           0;
         const joiningDate = parseLocalDate(getVal(u, INV_COLUMNS[4].keys));
-        let endDate = null;
-        if (joiningDate && months > 0) {
+        if (!endDate && joiningDate && months > 0) {
           endDate = addMonthsClamped(joiningDate, months);
-        } else {
-          endDate = parseLocalDate(getVal(u, INV_COLUMNS[7].keys));
         }
         if (!endDate) return "—";
         const todayOnly = new Date(
@@ -2098,6 +2224,7 @@
             );
             const empTypeLower = empTypeRaw.toLowerCase();
             const isIntern = empTypeLower === "intern";
+            const roleClass = isIntern ? "dm-role-intern" : "dm-role-employee";
             const utTag = isIntern
               ? '<span class="tag tag-orange">Intern</span>'
               : '<span class="tag tag-blue">Employee</span>';
@@ -2107,7 +2234,9 @@
               : "N/A";
             const guiCredVal = escapeHtml(getVal(u, INV_COLUMNS[8].keys));
             return (
-              "<tr>" +
+              '<tr class="' +
+              roleClass +
+              '">' +
               '<td class="inv-col-name nowrap-cell" title="' +
               escapeHtml(getVal(u, INV_COLUMNS[0].keys)) +
               '">' +
@@ -2248,6 +2377,12 @@
             const role = String(
               u.role || (u.is_admin ? "admin" : "user"),
             ).toLowerCase();
+            const roleClass =
+              role === "superadmin"
+                ? "dm-role-superadmin"
+                : role === "admin"
+                  ? "dm-role-admin"
+                  : "dm-role-user";
             const roleTag =
               role === "superadmin"
                 ? '<span class="tag tag-purple">Superadmin</span>'
@@ -2255,10 +2390,12 @@
                   ? '<span class="tag tag-blue">Admin</span>'
                   : '<span class="tag tag-gray">User</span>';
             return (
-              '<tr data-status="' +
+              '<tr class="' +
+              roleClass +
+              '" data-status="' +
               (u.is_active ? "active" : "inactive") +
               '">' +
-              "<td data-col=\"id\">" +
+              '<td data-col="id">' +
               u.id +
               "</td>" +
               '<td style="font-weight:600;color:#2c3e50;">' +
@@ -2507,21 +2644,63 @@
 
       // ===== Investment Scam User modal =====
       let dmInvEditingId = null;
+      let dmiInternshipEndSource = "months";
       function dmiSetUserTypeUI(ut) {
         const row = document.getElementById("dmi_intern_duration_row");
         if (row)
           row.style.display =
             String(ut).toLowerCase() === "intern" ? "" : "none";
       }
+      function dmiSyncInternshipEndFromMonths() {
+        const joiningDate = parseLocalDate(
+          document.getElementById("dmi_joining_date").value,
+        );
+        const months =
+          parseInt(
+            document.getElementById("dmi_internship_duration_months").value,
+            10,
+          ) || 0;
+        const endInput = document.getElementById("dmi_internship_end_date");
+        if (!endInput) return;
+        endInput.value =
+          joiningDate && months > 0
+            ? formatLocalDate(addMonthsClamped(joiningDate, months))
+            : "";
+      }
+      function dmiSyncInternshipMonthsFromEndDate() {
+        const joiningDate = parseLocalDate(
+          document.getElementById("dmi_joining_date").value,
+        );
+        const endDate = parseLocalDate(
+          document.getElementById("dmi_internship_end_date").value,
+        );
+        const monthsInput = document.getElementById(
+          "dmi_internship_duration_months",
+        );
+        if (!monthsInput) return;
+        monthsInput.value =
+          joiningDate && endDate
+            ? monthDiffFloor(joiningDate, endDate) || ""
+            : "";
+      }
+      function dmiSyncInternshipFields() {
+        if (dmiInternshipEndSource === "date") {
+          dmiSyncInternshipMonthsFromEndDate();
+        } else {
+          dmiSyncInternshipEndFromMonths();
+        }
+      }
       function dmiReset() {
         document.getElementById("dmi_name").value = "";
         document.getElementById("dmi_user_type").value = "employee";
         dmiSetUserTypeUI("employee");
+        dmiInternshipEndSource = "months";
         document.getElementById("dmi_contact_no").value = "";
         document.getElementById("dmi_mail").value = "";
         document.getElementById("dmi_joining_date").value = "";
         document.getElementById("dmi_dob").value = "";
         document.getElementById("dmi_internship_duration_months").value = "";
+        document.getElementById("dmi_internship_end_date").value = "";
         document.getElementById("dmi_gui_cred").value = "";
         document.getElementById("dmi_password").value = "";
       }
@@ -2530,6 +2709,29 @@
         if (sel && sel.dataset.wired !== "1") {
           sel.dataset.wired = "1";
           sel.addEventListener("change", () => dmiSetUserTypeUI(sel.value));
+        }
+        const joining = document.getElementById("dmi_joining_date");
+        const months = document.getElementById(
+          "dmi_internship_duration_months",
+        );
+        const endDate = document.getElementById("dmi_internship_end_date");
+        if (joining && joining.dataset.dmiWired !== "1") {
+          joining.dataset.dmiWired = "1";
+          joining.addEventListener("change", dmiSyncInternshipFields);
+        }
+        if (months && months.dataset.dmiWired !== "1") {
+          months.dataset.dmiWired = "1";
+          months.addEventListener("input", () => {
+            dmiInternshipEndSource = "months";
+            dmiSyncInternshipEndFromMonths();
+          });
+        }
+        if (endDate && endDate.dataset.dmiWired !== "1") {
+          endDate.dataset.dmiWired = "1";
+          endDate.addEventListener("change", () => {
+            dmiInternshipEndSource = "date";
+            dmiSyncInternshipMonthsFromEndDate();
+          });
         }
       }
       function openCreateInvModal() {
@@ -2571,8 +2773,14 @@
         document.getElementById("dmi_joining_date").value =
           u.joining_date || "";
         document.getElementById("dmi_dob").value = u.dob || "";
-        document.getElementById("dmi_internship_duration_months").value =
+        const durationMonths =
           parseDurationMonths(u.duration) || u.internship_duration_months || "";
+        document.getElementById("dmi_internship_duration_months").value =
+          durationMonths;
+        document.getElementById("dmi_internship_end_date").value =
+          u.internship_end_date || "";
+        dmiInternshipEndSource = u.internship_end_date ? "date" : "months";
+        dmiSyncInternshipFields();
         document.getElementById("dmi_gui_cred").value = u.gui_cred || "";
         document.getElementById("dmi_password").value = "";
         openModal("dmInvFormModal");
@@ -2595,6 +2803,10 @@
                   10,
                 ) || null
               : null,
+          internship_end_date:
+            ut === "intern"
+              ? document.getElementById("dmi_internship_end_date").value || null
+              : null,
           gui_cred:
             document.getElementById("dmi_gui_cred").value.trim() || null,
           paasword: document.getElementById("dmi_password").value,
@@ -2608,6 +2820,17 @@
         }
         if (!payload.joining_date) {
           showToast("Joining date is required.", "error");
+          return;
+        }
+        if (
+          payload.employee_type === "intern" &&
+          !payload.duration_months &&
+          !payload.internship_end_date
+        ) {
+          showToast(
+            "Enter internship duration in months or internship end date.",
+            "error",
+          );
           return;
         }
         if (dmInvEditingId === null && !payload.paasword) {

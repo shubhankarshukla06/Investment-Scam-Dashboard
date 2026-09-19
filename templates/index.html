@@ -1354,6 +1354,39 @@
         </style>
         <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
         <style>
+            body.page-sheet {
+                height: auto !important;
+                max-height: none !important;
+                min-height: 100vh !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+            }
+            body.page-sheet .container {
+                height: auto !important;
+                max-height: none !important;
+                min-height: 100vh !important;
+                overflow: visible !important;
+                padding-bottom: 48px !important;
+            }
+            body.page-sheet .sheet-page.active {
+                height: auto !important;
+                max-height: none !important;
+                min-height: 0 !important;
+                overflow: visible !important;
+            }
+            body.page-sheet .summary-preview-section,
+            body.page-sheet #summaryTableWrapper,
+            body.page-sheet #compareSummaryWrapper {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            body.page-sheet .summary-table-wrap,
+            body.page-sheet #scrapSummaryTableWrapper {
+                overflow-x: auto !important;
+                overflow-y: visible !important;
+                max-height: none !important;
+            }
             body.page-social,
             body.page-investment,
             body.page-insights {
@@ -6325,40 +6358,115 @@
                 showToast('Summary exported successfully!', false, true);
             }
             // ─── Copy Summary as Image ───────
-            async function copySummaryAsImage() {
-                const wrapper = document.getElementById('summaryTableWrapper');
-                if (!wrapper) { showToast('No summary to copy', true); return; }
-                try {
-                    if (!window.html2canvas) {
-                        await new Promise((resolve, reject) => {
-                            const script = document.createElement('script');
-                            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                            script.onload = resolve; script.onerror = reject;
-                            document.head.appendChild(script);
-                        });
-                    }
-                    showToast('Generating image...', false, false);
-                    // Build a temporary staging container with User Summary table + (optionally)
-                    // the Compare Summary table + legend, stacked vertically.
-                    const tempDiv = document.createElement('div');
-                    tempDiv.style.cssText = 'position:absolute;top:-9999px;left:-9999px;background:#ffffff;padding:8px;display:inline-block;margin:0;';
+            async function ensureHtml2CanvasLoaded() {
+                if (window.html2canvas) return;
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+            }
 
-                    const userTable = wrapper.querySelector('table');
-                    if (userTable) {
-                        const userClone = userTable.cloneNode(true);
-                        userClone.style.display = 'table';
-                        tempDiv.appendChild(userClone);
-                    }
-                    // NOTE: The Compare Summary is intentionally NOT included in the copied
-                    // image — only the Scam++ (User) Summary is captured.
-                    document.body.appendChild(tempDiv);
+            function cloneRenderedSummaryTable(sourceTable) {
+                const sourceRect = sourceTable.getBoundingClientRect();
+                const captureWidth = Math.ceil(Math.max(sourceRect.width, sourceTable.scrollWidth));
+                const captureTable = document.createElement('table');
+                const captureBody = document.createElement('tbody');
+
+                captureTable.className = sourceTable.className;
+                captureTable.style.cssText = [
+                    'border-collapse:' + (sourceTable.style.borderCollapse || 'collapse'),
+                    'table-layout:' + (sourceTable.style.tableLayout || 'auto'),
+                    'font-size:' + (sourceTable.style.fontSize || getComputedStyle(sourceTable).fontSize),
+                    'width:' + captureWidth + 'px',
+                    'min-width:' + captureWidth + 'px',
+                    'max-width:none'
+                ].join(';');
+
+                const sourceRows = [
+                    ...Array.from(sourceTable.tHead ? sourceTable.tHead.rows : []),
+                    ...Array.from(sourceTable.tBodies).flatMap(body => Array.from(body.rows)),
+                    ...Array.from(sourceTable.tFoot ? sourceTable.tFoot.rows : [])
+                ];
+
+                sourceRows.forEach(sourceRow => {
+                    const row = document.createElement('tr');
+                    row.style.cssText = sourceRow.getAttribute('style') || '';
+                    Array.from(sourceRow.cells).forEach(sourceCell => {
+                        const cell = document.createElement('td');
+                        const computed = getComputedStyle(sourceCell);
+                        cell.innerHTML = sourceCell.innerHTML;
+                        cell.colSpan = sourceCell.colSpan || 1;
+                        cell.rowSpan = sourceCell.rowSpan || 1;
+                        cell.style.cssText = sourceCell.getAttribute('style') || '';
+                        cell.style.display = 'table-cell';
+                        cell.style.boxSizing = 'border-box';
+                        cell.style.textAlign = computed.textAlign;
+                        cell.style.verticalAlign = computed.verticalAlign;
+                        cell.style.fontWeight = computed.fontWeight;
+                        cell.style.fontSize = computed.fontSize;
+                        cell.style.color = computed.color;
+                        cell.style.backgroundColor = computed.backgroundColor;
+                        cell.style.borderTop = computed.borderTop;
+                        cell.style.borderRight = computed.borderRight;
+                        cell.style.borderBottom = computed.borderBottom;
+                        cell.style.borderLeft = computed.borderLeft;
+                        cell.style.paddingTop = computed.paddingTop;
+                        cell.style.paddingRight = computed.paddingRight;
+                        cell.style.paddingBottom = computed.paddingBottom;
+                        cell.style.paddingLeft = computed.paddingLeft;
+                        cell.style.whiteSpace = computed.whiteSpace;
+                        cell.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+                        cell.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
+                        row.appendChild(cell);
+                    });
+                    captureBody.appendChild(row);
+                });
+
+                captureTable.appendChild(captureBody);
+                return { clone: captureTable, width: captureWidth };
+            }
+
+            async function copyRenderedTableAsImage(sourceTable, filename) {
+                await ensureHtml2CanvasLoaded();
+                if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
+
+                const { clone, width } = cloneRenderedSummaryTable(sourceTable);
+                const tempDiv = document.createElement('div');
+                tempDiv.style.cssText = [
+                    'position:absolute',
+                    'top:-9999px',
+                    'left:-9999px',
+                    'background:#ffffff',
+                    'padding:0',
+                    'margin:0',
+                    'display:block',
+                    'overflow:visible',
+                    'width:' + width + 'px'
+                ].join(';');
+                tempDiv.appendChild(clone);
+                document.body.appendChild(tempDiv);
+
+                try {
+                    const rect = clone.getBoundingClientRect();
+                    const totalW = Math.ceil(Math.max(rect.width, clone.scrollWidth, width));
+                    const totalH = Math.ceil(Math.max(rect.height, clone.scrollHeight));
                     const canvas = await html2canvas(tempDiv, {
                         backgroundColor: '#ffffff',
                         scale: 2,
                         useCORS: true,
                         logging: false,
+                        width: totalW,
+                        height: totalH,
+                        windowWidth: totalW,
+                        windowHeight: totalH,
+                        scrollX: 0,
+                        scrollY: 0
                     });
-                    document.body.removeChild(tempDiv);
                     const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
                     if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
                         try {
@@ -6369,12 +6477,29 @@
                             console.warn('Clipboard write failed:', e);
                         }
                     }
+
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url; a.download = 'summary.png';
-                    document.body.appendChild(a); a.click();
-                    document.body.removeChild(a); URL.revokeObjectURL(url);
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
                     showToast('Downloaded as image!', false, true);
+                } finally {
+                    document.body.removeChild(tempDiv);
+                }
+            }
+
+            async function copySummaryAsImage() {
+                const wrapper = document.getElementById('summaryTableWrapper');
+                const table = wrapper ? wrapper.querySelector('#summaryResultTable') : null;
+                if (!wrapper || !table) { showToast('No summary to copy', true); return; }
+                if (!lastSummaryResult) { showToast('Generate a summary first.', true); return; }
+                try {
+                    showToast('Generating image...', false, false);
+                    await copyRenderedTableAsImage(table, 'summary.png');
                 } catch(e) {
                     showToast('Error: ' + e.message, true);
                 }
@@ -7565,38 +7690,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                 }
                 async function copyScrapSummaryAsImage() {
                     const wrapper = document.getElementById('scrapSummaryTableWrapper');
-                    if (!wrapper) { showToast('No summary to copy', true); return; }
+                    const table = wrapper ? wrapper.querySelector('#scrapSummaryTable') : null;
+                    if (!wrapper || !table) { showToast('No summary to copy', true); return; }
                     try {
-                        if (!window.html2canvas) {
-                            await new Promise((resolve, reject) => {
-                                const s = document.createElement('script');
-                                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                                s.onload = resolve; s.onerror = reject;
-                                document.head.appendChild(s);
-                            });
-                        }
+                        if (!_lastScrapSummary) { showToast('No summary to copy', true); return; }
                         showToast('Generating image...', false, false);
-                        const tableEl = wrapper.querySelector('table') || wrapper;
-                        const clone = tableEl.cloneNode(true);
-                        const tempDiv = document.createElement('div');
-                        tempDiv.style.cssText = 'position:absolute;top:-9999px;left:-9999px;background:#fff;display:inline-block;margin:0;padding:0;';
-                        tempDiv.appendChild(clone);
-                        document.body.appendChild(tempDiv);
-                        const canvas = await html2canvas(clone, {
-                            backgroundColor: '#fff', scale: 2, useCORS: true, logging: false,
-                        });
-                        document.body.removeChild(tempDiv);
-                        const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
-                        if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem !== 'undefined') {
-                            try {
-                                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                                showToast('Summary copied as image!', false, true); return;
-                            } catch(e) {}
-                        }
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href = url; a.download = 'scrapping_summary.png';
-                        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
-                        showToast('Image downloaded!', false, true);
+                        await copyRenderedTableAsImage(table, 'scrapping_summary.png');
                     } catch(e) { showToast('Error: ' + e.message, true); }
                 }
                 function fetchDupCheckerLastDate() {

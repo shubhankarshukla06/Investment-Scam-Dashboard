@@ -7701,20 +7701,50 @@ def dashboard_management_investment_scam_users():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-def _investment_user_duration_payload(employee_type, duration_months):
+def _parse_iso_date(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+    except Exception:
+        return None
+
+
+def _whole_months_between(start_value, end_value):
+    start = _parse_iso_date(start_value)
+    end = _parse_iso_date(end_value)
+    if not start or not end or end < start:
+        return None
+    months = (end.year - start.year) * 12 + (end.month - start.month)
+    if end.day < start.day:
+        months -= 1
+    return max(months, 0)
+
+
+def _investment_user_duration_payload(employee_type, duration_months, internship_end_date=None, joining_date=None):
     employee_type = (employee_type or "employee").strip().lower()
     if employee_type not in ("employee", "intern"):
         employee_type = "employee"
     if employee_type != "intern":
-        return "Employee", None, None, None
+        return "Employee", None, None, None, None
+
+    clean_end_date = str(internship_end_date or "").strip() or None
+    if clean_end_date and not _parse_iso_date(clean_end_date):
+        return "Intern", None, None, None, "Internship end date must be a valid date."
 
     try:
         months = int(duration_months or 0)
     except (TypeError, ValueError):
         months = 0
-    if months <= 0:
-        return "Intern", None, None, "Internship duration (months) is required for interns."
-    return "Intern", f"{months} Months", months, None
+    if months <= 0 and clean_end_date:
+        months = _whole_months_between(joining_date, clean_end_date) or 0
+    if months <= 0 and not clean_end_date:
+        return "Intern", None, None, None, "Enter internship duration in months or internship end date."
+
+    duration = f"{months} Months" if months > 0 else None
+    if not clean_end_date and months > 0:
+        clean_end_date = _calculate_internship_end_date(joining_date, months)
+    return "Intern", duration, months, clean_end_date, None
 
 
 def _calculate_internship_end_date(joining_date, months):
@@ -7744,9 +7774,11 @@ def dashboard_management_create_investment_scam_user():
         joining_date = (data.get("joining_date") or "").strip() or None
         if not joining_date:
             return jsonify({"success": False, "error": "Joining date is required."}), 400
-        employee_type, duration, duration_months, duration_error = _investment_user_duration_payload(
+        employee_type, duration, duration_months, internship_end_date, duration_error = _investment_user_duration_payload(
             data.get("employee_type") or data.get("user_type"),
             data.get("duration_months") or data.get("internship_duration_months"),
+            data.get("internship_end_date"),
+            joining_date,
         )
         if duration_error:
             return jsonify({"success": False, "error": duration_error}), 400
@@ -7762,7 +7794,7 @@ def dashboard_management_create_investment_scam_user():
             "joining_date": joining_date,
             "dob":       (data.get("dob") or "").strip() or None,
             "duration":   duration,
-            "internship_end_date": _calculate_internship_end_date(joining_date, duration_months),
+            "internship_end_date": internship_end_date,
             "gui_cred":  (data.get("gui_cred") or "").strip() or None,
             "paasword":  password,
         }
@@ -7798,9 +7830,11 @@ def dashboard_management_update_investment_scam_user(user_id):
         if not joining_date:
             return jsonify({"success": False, "error": "Joining date is required."}), 400
 
-        employee_type, duration, duration_months, duration_error = _investment_user_duration_payload(
+        employee_type, duration, duration_months, internship_end_date, duration_error = _investment_user_duration_payload(
             data.get("employee_type") or data.get("user_type"),
             data.get("duration_months") or data.get("internship_duration_months"),
+            data.get("internship_end_date"),
+            joining_date,
         )
         if duration_error:
             return jsonify({"success": False, "error": duration_error}), 400
@@ -7813,7 +7847,7 @@ def dashboard_management_update_investment_scam_user(user_id):
             "joining_date": joining_date,
             "dob":       (data.get("dob") or "").strip() or None,
             "duration":   duration,
-            "internship_end_date": _calculate_internship_end_date(joining_date, duration_months),
+            "internship_end_date": internship_end_date,
             "gui_cred":  (data.get("gui_cred") or "").strip() or None,
         }
         new_pw = (data.get("paasword") or "").strip()
@@ -8260,6 +8294,38 @@ def _auto_allot_qc_for_user(user_name, daily_limit=AUTO_QC_DAILY_LIMIT):
         return {**empty, "error": str(e)}
 
 
+def _qc_date_clauses(field_name, date_from, date_to):
+    clauses = []
+    if date_from:
+        clauses.append(f"{field_name}.gte.{date_from}")
+    if date_to:
+        clauses.append(f"{field_name}.lte.{date_to}")
+    return clauses
+
+
+def _apply_qc_date_filter(query, qc_status, date_from, date_to):
+    if not date_from and not date_to:
+        return query
+
+    # Pending records are still waiting for QC, so they use inserted_date.
+    # Reviewed True/False records use qc_approved_date. The All view needs both
+    # date rules so the status filter and date range work together.
+    if qc_status == "done" or qc_status == "rejected":
+        date_field = "qc_approved_date"
+    elif qc_status == "all":
+        pending = ["qc_status.is.null"] + _qc_date_clauses("inserted_date", date_from, date_to)
+        reviewed = ["qc_status.not.is.null"] + _qc_date_clauses("qc_approved_date", date_from, date_to)
+        return query.or_(f"and({','.join(pending)}),and({','.join(reviewed)})")
+    else:
+        date_field = "inserted_date"
+
+    if date_from:
+        query = query.gte(date_field, date_from)
+    if date_to:
+        query = query.lte(date_field, date_to)
+    return query
+
+
 @app.route("/qc-gui", methods=["GET"])
 @login_required
 def qc_gui():
@@ -8316,14 +8382,7 @@ def qc_gui():
                 query = query.eq("approved_by", current_user_name)
             elif qc_status == "pending":
                 query = query.eq("input_user", current_user_name)
-        # Date range filter: when filtering by QC Done, the user means the
-        # date the QC was completed (qc_approved_date), not when the record
-        # was inserted. For Pending (default) / All, keep inserted_date.
-        date_field = "qc_approved_date" if qc_status == "done" else "inserted_date"
-        if qc_date_from:
-            query = query.gte(date_field, qc_date_from)
-        if qc_date_to:
-            query = query.lte(date_field, qc_date_to)
+        query = _apply_qc_date_filter(query, qc_status, qc_date_from, qc_date_to)
         # QC Status filter (UI labels: Pending / True / False / All):
         #   pending  -> qc_status IS NULL  (never reviewed)
         #   done     -> qc_status = True   (reviewed and approved)
@@ -8637,13 +8696,7 @@ def qc_gui_export():
                         q = q.eq("approved_by", current_user_name)
                     elif qc_status == "pending":
                         q = q.eq("input_user", current_user_name)
-            # Same date-field rule as the page: done → qc_approved_date,
-            # pending/all → inserted_date.
-            date_field = "qc_approved_date" if qc_status == "done" else "inserted_date"
-            if qc_date_from:
-                q = q.gte(date_field, qc_date_from)
-            if qc_date_to:
-                q = q.lte(date_field, qc_date_to)
+            q = _apply_qc_date_filter(q, qc_status, qc_date_from, qc_date_to)
             # Mirror the page's QC Status filter as well so exports stay
             # consistent with what the user is looking at.
             # pending -> qc_status IS NULL, done -> qc_status = True,
