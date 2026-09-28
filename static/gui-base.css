@@ -366,65 +366,1104 @@ body.page-investment .table-container td[data-col="id"] {
   width: calc(100% + 30px);
 }
 
-/* ---------- DARK THEME (consistent layout only) ---------- */
+/* ---------- DARK THEME (canonical QC-Review palette) ----------
+   These rules use !important so they win over any page-specific inline
+   body.theme-dark rules, giving every page the same Night Mode look
+   (slate-800 tables, slate-700 headers, green filter badges, etc.). */
+body.theme-dark { background:#0F172A !important; color:#F8FAFC !important; }
 body.theme-dark .fixed-header {
-  background: #0f172a;
-  border-bottom-color: rgba(148, 163, 184, 0.18);
+  background:rgba(15,23,42,.82) !important;
+  backdrop-filter:blur(14px) !important;
+  -webkit-backdrop-filter:blur(14px) !important;
+  border-bottom:1px solid #334155 !important;
+  box-shadow:none !important;
 }
-body.theme-dark .header { background: transparent; }
-body.theme-dark .secondary-page-nav {
-  border-top-color: rgba(148, 163, 184, 0.18);
-  scrollbar-color: #475569 transparent;
+/* Generic card surface — applied to every card-like wrapper on every page. */
+body.theme-dark .header,
+body.theme-dark .filters,
+body.theme-dark .filter-bar,
+body.theme-dark .table-container,
+body.theme-dark .table-wrap,
+body.theme-dark .modal-box,
+body.theme-dark .modal-content,
+body.theme-dark .stat-card,
+body.theme-dark .status-card,
+body.theme-dark .t-card,
+body.theme-dark .ual-content,
+body.theme-dark .card,
+body.theme-dark .ss-slot,
+body.theme-dark .paste-area,
+body.theme-dark .url-pill,
+body.theme-dark .preview-section,
+body.theme-dark .summary-preview-section,
+body.theme-dark .preview-table-container,
+body.theme-dark .duplicate-checker-compact,
+body.theme-dark .scrap-summary-compact,
+body.theme-dark .sheet-maker-compact,
+body.theme-dark .activity-log-container,
+body.theme-dark .tracker-content,
+body.theme-dark .template-stats,
+body.theme-dark .form-grid,
+body.theme-dark .qc-edit-col-right,
+body.theme-dark .qc-more-fields,
+body.theme-dark .qc-tracker-card,
+body.theme-dark .qc-pill {
+  background:#1E293B !important;
+  color:#F8FAFC !important;
+  border:1px solid #334155 !important;
+  border-radius:12px !important;
+  box-shadow:0 10px 25px rgba(0,0,0,.30) !important;
 }
-body.theme-dark .secondary-page-nav::-webkit-scrollbar-thumb {
-  background: #475569;
-}
-body.theme-dark .page-nav-btn {
-  background: #172033;
-  border-color: #334155;
-  color: #cbd5e1;
-}
-body.theme-dark .page-nav-btn:hover {
-  background: #1e3a5f;
-  border-color: #3b82f6;
-  color: #f8fafc;
-}
-body.theme-dark .page-nav-btn.active {
-  background: #2563eb;
-  border-color: #60a5fa;
-  color: #ffffff;
-}
+/* In some pages the .filters / .filter-bar should sit flat (no card chrome) */
 body.theme-dark .filters,
 body.theme-dark .filter-bar {
-  background: transparent !important;
-  border-bottom-color: transparent;
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
 }
-body.theme-dark .header-username { color: #dbeafe !important; }
-body.theme-dark .table-container,
-body.theme-dark .table-wrap {
-  background: #1e293b;
+/* Header (the inner row, not the fixed bar) — flat strip */
+body.theme-dark .header {
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
 }
-body.theme-dark th { background: #334155; color: #e5e7eb; }
-body.theme-dark .table-container th,
-body.theme-dark .table-wrap th {
-  background: #334155 !important;
-  color: #e5e7eb !important;
-  border-right-color: rgba(148, 163, 184, 0.14) !important;
-}
-body.theme-dark .table-container th:last-child,
-body.theme-dark .table-wrap th:last-child {
-  border-right: none !important;
-}
-body.theme-dark .pagination {
-  background: transparent !important;
-  border-top-color: transparent;
-}
-body.theme-dark .pag-btn,
-body.theme-dark .pagination-btn,
-body.theme-dark .pagination button { background: #3498db; color: #ffffff; }
+body.theme-dark .header:hover { transform:none !important; box-shadow:none !important; }
+body.theme-dark .logo h1,
+body.theme-dark .filters-header h2,
+body.theme-dark .filter-group label,
+body.theme-dark .page-selector label,
+body.theme-dark .sheet-maker-group label,
+body.theme-dark .preview-header h3,
+body.theme-dark .sheet-maker-header h2,
+body.theme-dark .field-label,
+body.theme-dark .field-grid label,
+body.theme-dark .modal-check label,
+body.theme-dark .modal-field label,
+body.theme-dark .stat-card .label,
+body.theme-dark .status-card-label,
+body.theme-dark .t-section-title,
+body.theme-dark th { color:#F8FAFC !important; }
+body.theme-dark .logo p,
+body.theme-dark .header-username,
+body.theme-dark .date-range-sep,
+body.theme-dark .pag-info,
+body.theme-dark .pagination-info,
+body.theme-dark .search-hint,
+body.theme-dark .preview-row-count,
+body.theme-dark .chosen-name,
+body.theme-dark .footer-note,
+body.theme-dark .hint,
+body.theme-dark .status-note,
+body.theme-dark .stat-card .sub,
+body.theme-dark .stat-card .label,
+body.theme-dark .na-cell { color:#CBD5E1 !important; }
+body.theme-dark .empty-state,
+body.theme-dark .empty-state h3,
+body.theme-dark .empty-state p,
+body.theme-dark .empty-state i { color:#CBD5E1 !important; }
+body.theme-dark input,
+body.theme-dark select,
+body.theme-dark textarea,
+body.theme-dark .page-select,
+body.theme-dark .sheet-maker-select,
+body.theme-dark .mode-select,
+body.theme-dark .file-upload-compact,
+body.theme-dark .form-group input,
+body.theme-dark .form-group select,
+body.theme-dark .form-group textarea,
 body.theme-dark .filter-group input,
-body.theme-dark .filter-group select {
-  background: #0f172a;
-  color: #f1f5f9;
-  border-color: rgba(148, 163, 184, 0.3);
+body.theme-dark .filter-group select,
+body.theme-dark .date-range-group input,
+body.theme-dark .modal-field input,
+body.theme-dark .modal-field select,
+body.theme-dark .page-list-select,
+body.theme-dark .secret-toggle {
+  background:#0F172A !important;
+  color:#F8FAFC !important;
+  border:1px solid #334155 !important;
+  color-scheme:dark;
+}
+body.theme-dark .filter-group select,
+body.theme-dark .filter-group input,
+body.theme-dark .date-range-group input { background:#0F172A !important; color:#F8FAFC !important; border-color:#334155 !important; }
+body.theme-dark select option { background:#0F172A !important; color:#F8FAFC !important; }
+body.theme-dark input::placeholder,
+body.theme-dark textarea::placeholder { color:#94A3B8 !important; }
+body.theme-dark input:focus,
+body.theme-dark select:focus,
+body.theme-dark textarea:focus,
+body.theme-dark .page-select:focus,
+body.theme-dark .filter-group input:focus,
+body.theme-dark .filter-group select:focus,
+body.theme-dark .sheet-maker-select:focus,
+body.theme-dark .mode-select:focus,
+body.theme-dark .form-group input:focus,
+body.theme-dark .form-group select:focus,
+body.theme-dark .form-group textarea:focus,
+body.theme-dark .paste-area:focus { border-color:#3B82F6 !important; box-shadow:0 0 0 2px rgba(59,130,246,.22) !important; }
+/* Table — dark slate with alternating row tints */
+body.theme-dark table,
+body.theme-dark td,
+body.theme-dark th { border-color:#334155 !important; }
+body.theme-dark .table-container,
+body.theme-dark .table-wrap,
+body.theme-dark .preview-table-container,
+body.theme-dark .ual-table { background:#1E293B !important; }
+body.theme-dark tbody tr { background:#1E293B !important; }
+body.theme-dark tbody tr:nth-child(even) { background:#223047 !important; }
+body.theme-dark tbody tr:hover { background:#2C3E50 !important; }
+body.theme-dark thead th,
+body.theme-dark .ual-table thead th,
+body.theme-dark th {
+  background:#273449 !important;
+  color:#F8FAFC !important;
+  border-right-color:rgba(148,163,184,.14) !important;
+  border-bottom-color:#334155 !important;
+}
+body.theme-dark tbody td,
+body.theme-dark td { color:#F8FAFC !important; border-color:#334155 !important; }
+/* Force dark text on td/span cells that hardcoded light-mode colors via inline style */
+body.theme-dark td span:not(.na-cell),
+body.theme-dark td strong,
+body.theme-dark .field-cell span { color:#F8FAFC !important; }
+body.theme-dark [style*="color:#555"],
+body.theme-dark [style*="color: #555"],
+body.theme-dark [style*="color:#37474f"],
+body.theme-dark [style*="color: #37474f"],
+body.theme-dark [style*="color:#2c3e50"],
+body.theme-dark [style*="color: #2c3e50"],
+body.theme-dark [style*="color:#1565c0"],
+body.theme-dark [style*="color: #1565c0"],
+body.theme-dark [style*="color:#2e7d32"],
+body.theme-dark [style*="color: #2e7d32"],
+body.theme-dark [style*="color:#8e44ad"],
+body.theme-dark [style*="color: #8e44ad"],
+body.theme-dark [style*="color:#1e8449"],
+body.theme-dark [style*="color: #1e8449"],
+body.theme-dark [style*="color:#7f8c8d"],
+body.theme-dark [style*="color: #7f8c8d"],
+body.theme-dark [style*="color:#95a5a6"],
+body.theme-dark [style*="color: #95a5a6"] { color:#F8FAFC !important; }
+body.theme-dark [style*="background:#e8f8f0"],
+body.theme-dark [style*="background: #e8f8f0"] {
+  background:rgba(22,163,74,.18) !important;
+  color:#86EFAC !important;
+  border:1px solid rgba(134,239,172,.35);
+}
+body.theme-dark [style*="background:#fdecea"],
+body.theme-dark [style*="background: #fdecea"] {
+  background:rgba(220,38,38,.18) !important;
+  color:#FCA5A5 !important;
+  border:1px solid rgba(252,165,165,.35);
+}
+body.theme-dark [style*="background:#fff5e6"],
+body.theme-dark [style*="background: #fff5e6"],
+body.theme-dark [style*="background:#f0fff4"],
+body.theme-dark [style*="background: #f0fff4"] {
+  background:rgba(22,163,74,.14) !important;
+  color:#BBF7D0 !important;
+  border:1px solid rgba(134,239,172,.32);
+}
+body.theme-dark [style*="background:#eaf2ff"],
+body.theme-dark [style*="background: #eaf2ff"] {
+  background:rgba(96,165,250,.18) !important;
+  color:#BFDBFE !important;
+  border:1px solid rgba(147,197,253,.32);
+}
+/* Inputs inside table cells (dashboards, directory, edit-in-place fields) */
+body.theme-dark td input,
+body.theme-dark td select,
+body.theme-dark td textarea,
+body.theme-dark td .password-wrap input,
+body.theme-dark td .secret-field,
+body.theme-dark .password-wrap input,
+body.theme-dark .secret-toggle,
+body.theme-dark .password-toggle { background:#0F172A !important; color:#F8FAFC !important; border-color:#334155 !important; }
+body.theme-dark td input::placeholder,
+body.theme-dark td textarea::placeholder,
+body.theme-dark .password-wrap input::placeholder { color:#94A3B8 !important; }
+body.theme-dark td input:focus,
+body.theme-dark td select:focus,
+body.theme-dark td textarea:focus,
+body.theme-dark .password-wrap input:focus { border-color:#3B82F6 !important; box-shadow:0 0 0 2px rgba(59,130,246,.22) !important; }
+body.theme-dark .password-wrap { background:transparent !important; }
+body.theme-dark .secret-toggle,
+body.theme-dark .password-toggle { background:#172033 !important; color:#93C5FD !important; border:1px solid #334155 !important; }
+body.theme-dark .secret-toggle:hover,
+body.theme-dark .password-toggle:hover { background:#1E293B !important; }
+/* Inline-styled search inputs / inputs in table cells (handle white-box look) */
+body.theme-dark td [style*="background:#fff"],
+body.theme-dark td [style*="background: #fff"],
+body.theme-dark td [style*="background:white"],
+body.theme-dark td [style*="background: white"],
+body.theme-dark td [style*="background:#f0f7ff"],
+body.theme-dark td [style*="background: #f0f7ff"],
+body.theme-dark td [style*="background:#fef9f0"],
+body.theme-dark td [style*="background: #fef9f0"],
+body.theme-dark td [style*="background:#ebf5fb"],
+body.theme-dark td [style*="background: #ebf5fb"],
+body.theme-dark td [style*="background:#f8f9fa"],
+body.theme-dark td [style*="background: #f8f9fa"],
+body.theme-dark td [style*="background:#f3f4f6"],
+body.theme-dark td [style*="background: #f3f4f6"] {
+  background:#0F172A !important;
+  color:#F8FAFC !important;
+  border-color:#334155 !important;
+}
+/* Lunch-break / index badges with light backgrounds — recolor to dark variants */
+body.theme-dark .badge,
+body.theme-dark .duration-badge,
+body.theme-dark .platform-badge,
+body.theme-dark .wallet-badge,
+body.theme-dark .inv-badge,
+body.theme-dark .ual-badge,
+body.theme-dark .scrap-dup-badge,
+body.theme-dark .sf-badge,
+body.theme-dark .cat-badge { color:#F8FAFC !important; }
+body.theme-dark .badge-blue,
+body.theme-dark .platform-badge,
+body.theme-dark .pill-web,
+body.theme-dark .pill-app,
+body.theme-dark .pill-webap {
+  background:rgba(96,165,250,.18) !important;
+  color:#BFDBFE !important;
+  border-color:rgba(147,197,253,.32) !important;
+}
+body.theme-dark .badge-orange,
+body.theme-dark .inv-badge,
+body.theme-dark .pill-orange,
+body.theme-dark .pill-over-orange {
+  background:rgba(245,158,11,.18) !important;
+  color:#FCD9A6 !important;
+  border-color:rgba(252,211,77,.32) !important;
+}
+body.theme-dark .badge-green,
+body.theme-dark .wallet-badge,
+body.theme-dark .scrap-dup-badge.new {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border-color:rgba(134,239,172,.35) !important;
+}
+body.theme-dark .badge-red,
+body.theme-dark .duration-over,
+body.theme-dark .scrap-dup-badge.dup {
+  background:rgba(220,38,38,.18) !important;
+  color:#FCA5A5 !important;
+  border-color:rgba(252,165,165,.32) !important;
+}
+body.theme-dark .duration-badge {
+  background:rgba(124,58,237,.18) !important;
+  color:#DDD6FE !important;
+  border-color:rgba(167,139,250,.35) !important;
+}
+body.theme-dark .ual-badge-update {
+  background:rgba(59,130,246,.18) !important;
+  color:#BFDBFE !important;
+  border-color:rgba(147,197,253,.32) !important;
+}
+body.theme-dark .ual-badge-import {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border-color:rgba(134,239,172,.35) !important;
+}
+body.theme-dark .ual-page-badge,
+body.theme-dark .cat-badge,
+body.theme-dark .sf-badge {
+  background:rgba(148,163,184,.16) !important;
+  color:#E2E8F0 !important;
+  border-color:rgba(148,163,184,.35) !important;
+}
+body.theme-dark .scrap-dup-badge.pend {
+  background:rgba(148,163,184,.16) !important;
+  color:#CBD5E1 !important;
+  border-color:rgba(148,163,184,.35) !important;
+}
+body.theme-dark .pill-unk {
+  background:rgba(148,163,184,.16) !important;
+  color:#E2E8F0 !important;
+  border-color:rgba(148,163,184,.35) !important;
+}
+body.theme-dark .status-active,
+body.theme-dark .status-display.status-active {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border-color:rgba(134,239,172,.35) !important;
+}
+body.theme-dark .status-restricted,
+body.theme-dark .status-display.status-restricted {
+  background:rgba(245,158,11,.18) !important;
+  color:#FCD9A6 !important;
+  border-color:rgba(252,211,77,.32) !important;
+}
+body.theme-dark .status-block,
+body.theme-dark .status-display.status-block,
+body.theme-dark .status-permanent-block,
+body.theme-dark .status-display.status-permanent-block {
+  background:rgba(220,38,38,.18) !important;
+  color:#FCA5A5 !important;
+  border-color:rgba(252,165,165,.32) !important;
+}
+body.theme-dark .status-frozen,
+body.theme-dark .status-display.status-frozen {
+  background:rgba(30,64,175,.28) !important;
+  color:#BFDBFE !important;
+  border-color:rgba(147,197,253,.32) !important;
+}
+/* UPI-checker result row (popup table) */
+body.theme-dark #upiCheckerResultTable td { background:#1E293B !important; color:#F8FAFC !important; }
+body.theme-dark #upiCheckerResultTable .badge { background:rgba(96,165,250,.18) !important; color:#BFDBFE !important; border-color:rgba(147,197,253,.32) !important; }
+/* Reduce harsh white for table body text — use slightly softer white for long bodies */
+body.theme-dark tbody td { color:#E5E7EB !important; }
+body.theme-dark tbody td strong { color:#F8FAFC !important; }
+/* Inline colored text — keep visibility, but soften */
+body.theme-dark [style*="color:#1e8449"],
+body.theme-dark [style*="color: #1e8449"] { color:#86EFAC !important; }
+body.theme-dark [style*="color:#1565c0"],
+body.theme-dark [style*="color: #1565c0"] { color:#93C5FD !important; }
+body.theme-dark [style*="color:#2e7d32"],
+body.theme-dark [style*="color: #2e7d32"] { color:#86EFAC !important; }
+body.theme-dark [style*="color:#e67e22"],
+body.theme-dark [style*="color: #e67e22"] { color:#FCD9A6 !important; }
+body.theme-dark [style*="color:#e65100"],
+body.theme-dark [style*="color: #e65100"] { color:#FCD9A6 !important; }
+body.theme-dark [style*="color:#c0392b"],
+body.theme-dark [style*="color: #c0392b"] { color:#FCA5A5 !important; }
+body.theme-dark [style*="color:#8e44ad"],
+body.theme-dark [style*="color: #8e44ad"] { color:#C4B5FD !important; }
+body.theme-dark [style*="color:#6c3483"],
+body.theme-dark [style*="color: #6c3483"] { color:#C4B5FD !important; }
+body.theme-dark [style*="color:#f1c40f"],
+body.theme-dark [style*="color: #f1c40f"] { color:#FDE68A !important; }
+body.theme-dark [style*="color:#27ae60"],
+body.theme-dark [style*="color: #27ae60"] { color:#86EFAC !important; }
+body.theme-dark [style*="color:#3498db"],
+body.theme-dark [style*="color: #3498db"] { color:#93C5FD !important; }
+body.theme-dark [style*="color:#e74c3c"],
+body.theme-dark [style*="color: #e74c3c"] { color:#FCA5A5 !important; }
+/* Filter header badges — green numeric values (matches QC Review) */
+body.theme-dark .filters-header span,
+body.theme-dark .stat-card span,
+body.theme-dark .stat-pill {
+  background:rgba(22,163,74,.14) !important;
+  color:#BBF7D0 !important;
+  border:1px solid rgba(134,239,172,.32) !important;
+}
+body.theme-dark .filters-header [style*="background:#fff5e6"],
+body.theme-dark .filters-header [style*="background: #fff5e6"] {
+  background:rgba(230,126,34,.18) !important;
+  color:#FCD9A6 !important;
+  border:1px solid rgba(240,201,135,.35) !important;
+}
+body.theme-dark .filters-header [style*="background:#eaf2ff"],
+body.theme-dark .filters-header [style*="background: #eaf2ff"] {
+  background:rgba(96,165,250,.18) !important;
+  color:#BFDBFE !important;
+  border:1px solid rgba(147,197,253,.32) !important;
+}
+/* QC Review row status highlights (used by QC Review & matching pages) */
+body.theme-dark tr.qc-row-pending     { background-color:rgba(245,158,11,.16)  !important; }
+body.theme-dark tr.qc-row-pending:hover { background-color:rgba(245,158,11,.28)  !important; }
+body.theme-dark tr.qc-row-done-true   { background-color:rgba(22,163,74,.18)   !important; }
+body.theme-dark tr.qc-row-done-true:hover { background-color:rgba(22,163,74,.30) !important; }
+body.theme-dark tr.qc-row-done-false  { background-color:rgba(220,38,38,.18)   !important; }
+body.theme-dark tr.qc-row-done-false:hover { background-color:rgba(220,38,38,.30) !important; }
+body.theme-dark table.user-view tr.qc-row-done-false { background-color:transparent !important; }
+body.theme-dark table.user-view tr.qc-row-done-false:hover { background-color:rgba(255,255,255,.04) !important; }
+body.theme-dark .qc-legend { color:#CBD5E1 !important; }
+body.theme-dark .qc-legend .swatch { border-color:rgba(255,255,255,.18) !important; }
+body.theme-dark .auto-allot-chip { background:rgba(124,58,237,.18) !important; color:#DDD6FE !important; border-color:rgba(167,139,250,.35) !important; }
+body.theme-dark .auto-allot-chip i { color:#C4B5FD !important; }
+/* Modal & misc */
+body.theme-dark .modal-footer { background:#243044 !important; border-color:rgba(148,163,184,.14) !important; }
+body.theme-dark .dev-credit-footer { background:#172033 !important; color:#CBD5E1 !important; }
+body.theme-dark .modal-overlay,
+body.theme-dark .loading-overlay { background:rgba(0,0,0,.72) !important; }
+body.theme-dark .modal-header,
+body.theme-dark .modal-hdr { background:#1E293B !important; }
+/* Buttons — keep brand colors readable on dark */
+body.theme-dark .btn-outline,
+body.theme-dark .btn-choose,
+body.theme-dark .btn-outline-secondary,
+body.theme-dark .copy-btn,
+body.theme-dark .copy-icon-btn,
+body.theme-dark .pagination-btn,
+body.theme-dark .pag-btn:disabled { background:#0F172A !important; color:#93C5FD !important; border-color:rgba(96,165,250,.42) !important; }
+body.theme-dark .btn-outline:hover,
+body.theme-dark .btn-choose:hover,
+body.theme-dark .copy-btn:hover,
+body.theme-dark .pagination-btn:hover { background:#1E293B !important; }
+body.theme-dark .btn-primary,
+body.theme-dark .pagination-btn,
+body.theme-dark .pag-btn { background:#2563EB !important; color:#F8FAFC !important; }
+body.theme-dark .btn-primary:hover,
+body.theme-dark .pag-btn:hover:not(:disabled) { background:#1D4ED8 !important; }
+body.theme-dark .btn-success { background:#16A34A !important; color:#F8FAFC !important; }
+body.theme-dark .btn-success:hover { background:#15803D !important; }
+body.theme-dark .btn-warning { background:#F59E0B !important; color:#111827 !important; }
+body.theme-dark .btn-warning:hover { background:#D97706 !important; }
+body.theme-dark .btn-danger,
+body.theme-dark .clear-btn,
+body.theme-dark .clear-filters { background:#DC2626 !important; color:#F8FAFC !important; }
+body.theme-dark .btn-danger:hover,
+body.theme-dark .clear-btn:hover { background:#B91C1C !important; }
+body.theme-dark .btn-purple { background:#8E44AD !important; color:#F8FAFC !important; }
+body.theme-dark .btn-purple:hover { background:#6C3483 !important; }
+/* Links & icons */
+body.theme-dark a,
+body.theme-dark .url-link,
+body.theme-dark .url-pill-value,
+body.theme-dark .website-link,
+body.theme-dark .copy-btn i,
+body.theme-dark .copy-btn { color:#38BDF8 !important; }
+body.theme-dark i,
+body.theme-dark .copy-btn { color:#60A5FA !important; }
+body.theme-dark .logo h1 i,
+body.theme-dark .logo i,
+body.theme-dark .header i,
+body.theme-dark .filters-header i { color:#60A5FA !important; }
+/* Theme toggle button */
+body.theme-dark .theme-toggle { background:#172033 !important; color:#FACC15 !important; border-color:#334155 !important; }
+body.theme-dark .theme-toggle i { color:#FACC15 !important; }
+/* Pagination */
+body.theme-dark .pagination,
+body.theme-dark .pag-info { background:transparent !important; border:none !important; border-radius:0 !important; box-shadow:none !important; }
+body.theme-dark .pagination button,
+body.theme-dark .pag-btn,
+body.theme-dark .pagination-btn { background:#2563EB !important; color:#F8FAFC !important; }
+body.theme-dark .pagination button:disabled,
+body.theme-dark .pag-btn:disabled { background:#334155 !important; color:#94A3B8 !important; cursor:not-allowed !important; }
+/* Secondary nav (page navigation buttons below header) */
+body.theme-dark .secondary-page-nav { border-top-color:rgba(148,163,184,.18) !important; }
+body.theme-dark .page-nav-btn { background:#172033 !important; color:#CBD5E1 !important; border-color:#334155 !important; }
+body.theme-dark .page-nav-btn:hover { background:#1E3A5F !important; border-color:#3B82F6 !important; color:#F8FAFC !important; }
+body.theme-dark .page-nav-btn.active { background:#2563EB !important; border-color:#60A5FA !important; color:#FFFFFF !important; }
+/* Scrollbar */
+body.theme-dark ::-webkit-scrollbar { width:10px; height:10px; }
+body.theme-dark ::-webkit-scrollbar-track { background:#0F172A !important; }
+body.theme-dark ::-webkit-scrollbar-thumb { background:#475569 !important; border-radius:999px !important; }
+body.theme-dark ::-webkit-scrollbar-thumb:hover { background:#64748B !important; }
+body.theme-dark .secondary-page-nav::-webkit-scrollbar-thumb { background:#475569 !important; }
+/* QC Review modal two-column right panel */
+body.theme-dark .qc-pill.readonly { background:#334155 !important; color:#CBD5E1 !important; }
+body.theme-dark .qc-edit-col-right { background:#243044 !important; border-color:#334155 !important; }
+body.theme-dark .qc-tracker-filter-bar { background:#243044 !important; border-color:rgba(148,163,184,.18) !important; }
+body.theme-dark .qc-tracker-table th,
+body.theme-dark .qc-tracker-table td { border-bottom-color:#334155 !important; }
+body.theme-dark .qc-tracker-table th { background:#273449 !important; color:#F8FAFC !important; }
+body.theme-dark .qc-tracker-table td { color:#F8FAFC !important; }
+body.theme-dark .qc-pdf-frame { border-color:#334155 !important; }
+/* Universal activity log table (website-directory) */
+body.theme-dark .ual-filters { background:#243044 !important; border-color:rgba(148,163,184,.18) !important; }
+body.theme-dark .ual-search-wrap input,
+body.theme-dark .ual-filters select { background:#111827 !important; color:#F8FAFC !important; border-color:rgba(148,163,184,.32) !important; }
+body.theme-dark .ual-stats { background:#172033 !important; border-color:rgba(96,165,250,.25) !important; color:#BFDBFE !important; }
+body.theme-dark .ual-table tbody tr:hover { background:#263449 !important; }
+body.theme-dark .ual-time-cell { color:#93C5FD !important; }
+body.theme-dark .ual-page-badge { background:#334155 !important; color:#DBEAFE !important; }
+body.theme-dark .ual-old { background:#7F1D1D !important; color:#FECACA !important; border-color:rgba(248,113,113,.35) !important; }
+body.theme-dark .ual-new { background:#14532D !important; color:#BBF7D0 !important; border-color:rgba(74,222,128,.35) !important; }
+body.theme-dark .ual-arrow { color:#CBD5E1 !important; }
+body.theme-dark .cat-badge,
+body.theme-dark .sf-badge { background:#273449 !important; color:#F8FAFC !important; border-color:#334155 !important; }
+/* Social page row tints (index.html) */
+body.theme-dark .social-page .row-active { background-color:rgba(22,101,52,.32) !important; }
+body.theme-dark .social-page .row-active:hover { background-color:rgba(22,101,52,.44) !important; }
+body.theme-dark .social-page .row-block,
+body.theme-dark .social-page .row-blocked,
+body.theme-dark .social-page .row-permanent-block { background-color:rgba(127,29,29,.36) !important; }
+body.theme-dark .social-page .row-block:hover,
+body.theme-dark .social-page .row-blocked:hover,
+body.theme-dark .social-page .row-permanent-block:hover { background-color:rgba(153,27,27,.48) !important; }
+body.theme-dark .social-page .row-restricted { background-color:rgba(113,63,18,.36) !important; }
+body.theme-dark .social-page .row-restricted:hover { background-color:rgba(133,77,14,.48) !important; }
+body.theme-dark .social-page .row-frozen { background-color:rgba(30,64,175,.28) !important; }
+body.theme-dark .social-page .row-frozen:hover { background-color:rgba(30,64,175,.38) !important; }
+/* Dashboard management role-tinted rows */
+body.theme-dark tbody tr.dm-role-superadmin { background-color:rgba(139,92,246,.12) !important; }
+body.theme-dark tbody tr.dm-role-superadmin:hover { background-color:rgba(139,92,246,.20) !important; }
+body.theme-dark tbody tr.dm-role-admin { background-color:rgba(59,130,246,.12) !important; }
+body.theme-dark tbody tr.dm-role-admin:hover { background-color:rgba(59,130,246,.20) !important; }
+body.theme-dark tbody tr.dm-role-user { background-color:rgba(34,197,94,.10) !important; }
+body.theme-dark tbody tr.dm-role-user:hover { background-color:rgba(34,197,94,.18) !important; }
+body.theme-dark tbody tr.dm-role-intern { background-color:rgba(245,158,11,.10) !important; }
+body.theme-dark tbody tr.dm-role-intern:hover { background-color:rgba(245,158,11,.18) !important; }
+body.theme-dark tbody tr.dm-role-employee { background-color:rgba(148,163,184,.08) !important; }
+body.theme-dark tbody tr.dm-role-employee:hover { background-color:rgba(148,163,184,.16) !important; }
+/* ==========================================================================
+   Night-mode readability fixes for inline pill backgrounds + GUI tags.
+   These supplement the canonical QC-Review dark palette by catching
+   hardcoded `style="background:#…"` pill colors that survived because the
+   template-level inline styles trump generic selectors. Every rule below
+   uses `!important` so it wins over the inline `style` attribute as well
+   as page-specific `<style>` blocks.
+   ========================================================================== */
+
+/* ---- Social Media Accounts --------------------------------------------- */
+/* Department pill  (light green -> dark green) */
+body.theme-dark [style*="background:#e8f5e9"],
+body.theme-dark [style*="background: #e8f5e9"] {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border:1px solid rgba(134,239,172,.35);
+}
+/* Prepaid count badge */
+body.theme-dark [style*="background:#e8f5e9"][style*="#1b5e20"],
+body.theme-dark [style*="background:#e8f5e9"][style*="color:#1b5e20"] {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border:1px solid rgba(134,239,172,.35);
+}
+/* Postpaid count badge (#e3f2fd/#0d47a1) */
+body.theme-dark [style*="background:#e3f2fd"],
+body.theme-dark [style*="background: #e3f2fd"] {
+  background:rgba(59,130,246,.18) !important;
+  color:#BFDBFE !important;
+  border:1px solid rgba(147,197,253,.32);
+}
+/* Disposable count badge (#fff3e0/#e65100) */
+body.theme-dark [style*="background:#fff3e0"],
+body.theme-dark [style*="background: #fff3e0"] {
+  background:rgba(245,158,11,.18) !important;
+  color:#FCD9A6 !important;
+  border:1px solid rgba(252,211,77,.35);
+}
+/* Recharge Date — Expired pill (#fff1f2/#be123c) */
+body.theme-dark [style*="background:#fff1f2"],
+body.theme-dark [style*="background: #fff1f2"] {
+  background:rgba(220,38,38,.20) !important;
+  color:#FCA5A5 !important;
+  border:1px solid rgba(252,165,165,.35);
+}
+/* Recharge Date — <=3 days pill (#fff7ed/#c2410c) */
+body.theme-dark [style*="background:#fff7ed"],
+body.theme-dark [style*="background: #fff7ed"] {
+  background:rgba(245,158,11,.20) !important;
+  color:#FCD9A6 !important;
+  border:1px solid rgba(252,211,77,.35);
+}
+/* Recharge Date — healthy pill (#ecfdf5/#047857) */
+body.theme-dark [style*="background:#ecfdf5"],
+body.theme-dark [style*="background: #ecfdf5"] {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border:1px solid rgba(134,239,172,.35);
+}
+
+/* ---- Website Directory ------------------------------------------------- */
+/* Origin pill — the existing rule only catches `#eaf2ff`; the table uses `#eaf4fd`. */
+body.theme-dark [style*="background:#eaf4fd"],
+body.theme-dark [style*="background: #eaf4fd"] {
+  background:rgba(59,130,246,.18) !important;
+  color:#BFDBFE !important;
+  border:1px solid rgba(147,197,253,.32);
+}
+/* Automated = "No" pill (#fde8e8/#c0392b) */
+body.theme-dark [style*="background:#fde8e8"],
+body.theme-dark [style*="background: #fde8e8"] {
+  background:rgba(220,38,38,.18) !important;
+  color:#FCA5A5 !important;
+  border:1px solid rgba(252,165,165,.35);
+}
+/* Automated = other / N/A pill (#f5f5f5/#7f8c8d) */
+body.theme-dark [style*="background:#f5f5f5"],
+body.theme-dark [style*="background: #f5f5f5"] {
+  background:rgba(148,163,184,.18) !important;
+  color:#CBD5E1 !important;
+  border:1px solid rgba(148,163,184,.32);
+}
+
+/* ---- GUI Management (.tag-* + .secret-value for Password / Role / Activity Log / AML Password) */
+body.theme-dark .tag-green {
+  background:rgba(22,163,74,.18) !important;
+  color:#BBF7D0 !important;
+  border-color:rgba(134,239,172,.35) !important;
+}
+body.theme-dark .tag-red {
+  background:rgba(220,38,38,.18) !important;
+  color:#FCA5A5 !important;
+  border-color:rgba(252,165,165,.35) !important;
+}
+body.theme-dark .tag-blue {
+  background:rgba(59,130,246,.18) !important;
+  color:#BFDBFE !important;
+  border-color:rgba(147,197,253,.32) !important;
+}
+body.theme-dark .tag-gray {
+  background:rgba(148,163,184,.18) !important;
+  color:#CBD5E1 !important;
+  border-color:rgba(148,163,184,.32) !important;
+}
+body.theme-dark .tag-purple {
+  background:rgba(168,85,247,.18) !important;
+  color:#DDD6FE !important;
+  border-color:rgba(167,139,250,.35) !important;
+}
+body.theme-dark .tag-orange {
+  background:rgba(245,158,11,.18) !important;
+  color:#FCD9A6 !important;
+  border-color:rgba(252,211,77,.35) !important;
+}
+/* .secret-value is the masked password span inside .secret-cell (Password + AML Password) */
+body.theme-dark .secret-value {
+  background:rgba(168,85,247,.18) !important;
+  color:#DDD6FE !important;
+  border:1px solid rgba(167,139,250,.35) !important;
+}
+body.theme-dark .secret-cell { background:transparent !important; }
+/* .chip is used by GUI Management "Allowed Departments" pills (#f0f2f5/#34495e by default) */
+body.theme-dark .chip {
+  background:rgba(148,163,184,.18) !important;
+  color:#E2E8F0 !important;
+  border:1px solid rgba(148,163,184,.32) !important;
+}
+
+/* Theme switch animation opt-out for big tables */
+html.theme-switching .table-container *,
+html.theme-switching .table-wrap * { transition: none !important; }
+html.theme-switching .fixed-header { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+
+/* ---------- Smooth, lightweight theme switching ------------------------- */
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
+html.theme-switching body,
+html.theme-switching .fixed-header,
+html.theme-switching .header,
+html.theme-switching .secondary-page-nav,
+html.theme-switching .filters,
+html.theme-switching .filter-bar,
+html.theme-switching .pagination,
+html.theme-switching .modal-box,
+html.theme-switching .modal-content,
+html.theme-switching .modal-footer,
+html.theme-switching .card,
+html.theme-switching .stat-card,
+html.theme-switching .status-card,
+html.theme-switching .t-card,
+html.theme-switching .ual-content,
+html.theme-switching input,
+html.theme-switching select,
+html.theme-switching textarea,
+html.theme-switching button,
+html.theme-switching .btn,
+html.theme-switching .page-select,
+html.theme-switching .page-nav-btn,
+html.theme-switching .theme-toggle,
+html.theme-switching .tag,
+html.theme-switching .badge,
+html.theme-switching .chip,
+html.theme-switching .pill,
+html.theme-switching .status-display,
+html.theme-switching .secret-value,
+html.theme-switching .dev-credit-footer {
+  transition:
+    background-color 160ms ease-out,
+    color 160ms ease-out,
+    border-color 160ms ease-out,
+    box-shadow 160ms ease-out !important;
+}
+
+html.theme-switching .table-container *,
+html.theme-switching .table-wrap *,
+html.theme-switching .preview-table-container *,
+html.theme-switching .ual-table *,
+html.theme-switching #scrapInsertRowsArea * {
+  transition: none !important;
+}
+
+.flash-message.welcome,
+.flash.welcome {
+  position: fixed !important;
+  left: auto !important;
+  right: 16px !important;
+  top: calc(var(--fixed-header-space, 72px) + 10px) !important;
+  bottom: auto !important;
+  z-index: 2100 !important;
+  max-width: min(620px, calc(100vw - 32px)) !important;
+  margin: 0 !important;
+  padding: 9px 16px !important;
+  border: 2px solid transparent !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 52%, #eff6ff 100%) padding-box,
+    linear-gradient(110deg, #86efac, #d9f99d, #bfdbfe, #86efac) border-box !important;
+  background-size: 100% 100%, 240% 100% !important;
+  color: #137a43 !important;
+  font-weight: 500 !important;
+  letter-spacing: .01em;
+  white-space: nowrap !important;
+  box-shadow: 0 10px 24px rgba(22, 101, 52, .16) !important;
+  animation: welcome-border-shine 5s ease-in-out infinite !important;
+}
+
+@keyframes welcome-border-shine {
+  0%, 100% { background-position: 0 0, 0% 50%; }
+  50% { background-position: 0 0, 100% 50%; }
+}
+
+.flash-message.welcome i,
+.flash.welcome i {
+  color: #22a960 !important;
+  font-weight: inherit !important;
+}
+
+body.theme-dark .flash-message.welcome,
+body.theme-dark .flash.welcome {
+  background:
+    linear-gradient(135deg, #173b2c 0%, #193e31 62%, #183247 100%) padding-box,
+    linear-gradient(110deg, #34d399, #a7f3d0, #93c5fd, #34d399) border-box !important;
+  color: #d1fae5 !important;
+}
+
+body.theme-dark,
+body.theme-dark .fixed-header,
+body.theme-dark .table-container,
+body.theme-dark .table-wrap,
+body.theme-dark .modal-box,
+body.theme-dark .modal-content {
+  color-scheme: dark;
+}
+
+body.theme-dark input:disabled,
+body.theme-dark select:disabled,
+body.theme-dark textarea:disabled,
+body.theme-dark button:disabled,
+body.theme-dark .btn:disabled {
+  opacity:.68 !important;
+  color:#CBD5E1 !important;
+  border-color:#334155 !important;
+  box-shadow:none !important;
+}
+
+body.theme-dark [style*="background:white"],
+body.theme-dark [style*="background: white"],
+body.theme-dark [style*="background:#fff"],
+body.theme-dark [style*="background: #fff"],
+body.theme-dark [style*="background:#ffffff"],
+body.theme-dark [style*="background: #ffffff"],
+body.theme-dark [style*="background:#f8f9fa"],
+body.theme-dark [style*="background: #f8f9fa"],
+body.theme-dark [style*="background:#f8fafc"],
+body.theme-dark [style*="background: #f8fafc"] {
+  background:#172033 !important;
+  color:#F8FAFC !important;
+  border-color:#334155 !important;
+}
+
+body.theme-dark .modal-header,
+body.theme-dark .modal-hdr,
+body.theme-dark .edit-drawer-header {
+  background:#172033 !important;
+  color:#F8FAFC !important;
+  border-color:#334155 !important;
+}
+
+body.theme-dark .edit-drawer-meta,
+body.theme-dark .edit-drawer-footer,
+body.theme-dark .tracker-toggle,
+body.theme-dark .ual-filters {
+  background:#243044 !important;
+  color:#CBD5E1 !important;
+  border-color:rgba(148,163,184,.18) !important;
+}
+
+body.theme-dark .edit-drawer-meta span,
+body.theme-dark .edit-drawer-field label {
+  color:#CBD5E1 !important;
+}
+
+body.theme-dark .edit-drawer-meta strong,
+body.theme-dark .edit-drawer-header h3,
+body.theme-dark .modal-box h1,
+body.theme-dark .modal-box h2,
+body.theme-dark .modal-box h3 {
+  color:#F8FAFC !important;
+}
+
+body.theme-dark .type-toggle,
+body.theme-dark .tx-toggle,
+body.theme-dark .tracker-toggle {
+  background:#0F172A !important;
+  border-color:#334155 !important;
+}
+
+body.theme-dark .type-toggle button,
+body.theme-dark .tx-toggle button,
+body.theme-dark .tracker-toggle button {
+  background:#0F172A !important;
+  color:#CBD5E1 !important;
+  border-color:#334155 !important;
+}
+
+body.theme-dark .type-toggle button.active,
+body.theme-dark .tx-toggle button.active,
+body.theme-dark .tracker-toggle button.active,
+body.theme-dark .t-toggle-btn.active {
+  background:#2563EB !important;
+  color:#FFFFFF !important;
+}
+
+body.theme-dark .type-toggle button:not(.active):hover,
+body.theme-dark .tx-toggle button:not(.active):hover,
+body.theme-dark .tracker-toggle button:not(.active):hover {
+  background:#1E293B !important;
+  color:#F8FAFC !important;
+}
+
+body.theme-dark .stat-card .value,
+body.theme-dark .status-card-value,
+body.theme-dark .metric-value,
+body.theme-dark .kpi-value,
+body.theme-dark .card-value,
+body.theme-dark .summary-value {
+  color:#F8FAFC !important;
+}
+
+body.theme-dark .stat-card .label,
+body.theme-dark .status-card-label,
+body.theme-dark .metric-label,
+body.theme-dark .kpi-label,
+body.theme-dark .card-label,
+body.theme-dark .summary-label {
+  color:#CBD5E1 !important;
+}
+
+/* Keep the QC Review's high-contrast header and alternating dark data rows
+   authoritative even where a page styles table cells or tracker values itself. */
+body.theme-dark {
+  --night-table-header: #2c3e59;
+  --night-table-row-a: #243551;
+  --night-table-row-b: #423d37;
+  --night-table-hover: #304766;
+  --night-table-border: #40516d;
+  --night-table-text: #f8fafc;
+  --night-table-muted: #d8e2f0;
+}
+
+body.theme-dark table thead > tr > th {
+  background: var(--night-table-header) !important;
+  color: var(--night-table-text) !important;
+  border-color: var(--night-table-border) !important;
+}
+
+body.theme-dark table tbody > tr > :is(td, th) {
+  background: var(--night-table-row-a) !important;
+  color: var(--night-table-text) !important;
+  border-color: var(--night-table-border) !important;
+}
+
+body.theme-dark table tbody > tr:nth-child(even) > :is(td, th) {
+  background: var(--night-table-row-b) !important;
+}
+
+body.theme-dark table tbody > tr:hover > :is(td, th) {
+  background: var(--night-table-hover) !important;
+}
+
+body.theme-dark table tbody :is(.na-cell, .muted, .secondary-text) {
+  color: var(--night-table-muted) !important;
+}
+
+body.theme-dark table tbody :is(a, .url-link, .website-link) {
+  color: #38bdf8 !important;
+}
+
+body.theme-dark :is(
+  .tracker-modal,
+  .inv-tracker-modal,
+  .scraping-tracker-modal,
+  .qc-tracker-modal,
+  #trackerModal,
+  #invTrackerModal,
+  #scrapingTrackerModal
+) {
+  color: var(--night-table-text) !important;
+}
+
+body.theme-dark :is(
+  .tracker-content,
+  .inv-tracker-content,
+  .scraping-tracker-content,
+  .tracker-body,
+  .inv-tracker-body,
+  .scraping-tracker-body,
+  .qc-tracker-modal .modal-box,
+  #trackerModal .modal-box
+) {
+  background: #1e293b !important;
+  color: var(--night-table-text) !important;
+  border-color: #334155 !important;
+}
+
+body.theme-dark :is(
+  .tracker-header,
+  .inv-tracker-header,
+  .scraping-tracker-header,
+  .tracker-banner
+) {
+  background: var(--night-table-header) !important;
+  color: var(--night-table-text) !important;
+  border-color: var(--night-table-border) !important;
+}
+
+body.theme-dark :is(
+  .tracker-toggle,
+  .inv-tracker-toggle,
+  .scraping-tracker-toggle,
+  .tracker-view-toggle,
+  .tracker-tabs,
+  .qc-tracker-filter-bar
+) {
+  background: #17243a !important;
+  color: var(--night-table-text) !important;
+  border-color: #40516d !important;
+}
+
+body.theme-dark :is(.tracker-view-toggle, .tracker-tabs) button {
+  background: #0f172a !important;
+  color: var(--night-table-muted) !important;
+  border-color: #40516d !important;
+}
+
+body.theme-dark :is(.tracker-view-toggle, .tracker-tabs) button.active {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+}
+
+body.theme-dark :is(
+  .tracker-summary,
+  .summary-item,
+  .tracker-card,
+  .qc-tracker-card,
+  .t-card,
+  .tracker-stat,
+  .tracker-item
+) {
+  background: #243551 !important;
+  color: var(--night-table-text) !important;
+  border-color: #40516d !important;
+}
+
+body.theme-dark .platform-section {
+  background: #243551 !important;
+  color: var(--night-table-text) !important;
+  border-color: #40516d !important;
+}
+
+body.theme-dark :is(
+  .tracker-summary,
+  .summary-item,
+  .tracker-card,
+  .qc-tracker-card,
+  .t-card,
+  .tracker-stat,
+  .tracker-item
+) :is(h1, h2, h3, h4, p, span, strong, small, .count, .value, .tracker-count, .tracker-value, .stat-value, .banner-num) {
+  color: var(--night-table-text) !important;
+}
+
+body.theme-dark :is(
+  .tracker-summary,
+  .summary-item,
+  .tracker-card,
+  .qc-tracker-card,
+  .t-card,
+  .tracker-stat,
+  .tracker-item
+) :is(.label, .platform, .sub, .hint, small) {
+  color: var(--night-table-muted) !important;
+}
+
+body.theme-dark :is(.tracker-details h3, .platform-header, .total-accounts, .t-section-title) {
+  color: var(--night-table-text) !important;
+}
+
+/* ---------- QC REVIEW TABLE STRUCTURE ----------
+   Use the QC Review table's dimensions everywhere so each data grid has the
+   same scrollable height, full-width layout, typography, and cell rhythm. */
+:is(.table-container, .table-wrap, .preview-table-container, .summary-table-wrap, .ual-body) {
+  overflow: auto !important;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+:is(
+  .table-container > table,
+  .table-wrap > table,
+  .preview-table-container > table,
+  .summary-table-wrap > table,
+  .ual-table,
+  .activity-table,
+  .preview-table,
+  .summary-table,
+  .qc-tracker-table
+) {
+  width: max-content !important;
+  min-width: 100% !important;
+  border-collapse: collapse !important;
+  table-layout: auto;
+  font-size: 12px !important;
+}
+
+:is(
+  .table-container,
+  .table-wrap,
+  .preview-table-container,
+  .summary-table-wrap,
+  .ual-body
+) :is(th, td),
+:is(.ual-table, .activity-table, .preview-table, .summary-table, .qc-tracker-table) :is(th, td) {
+  padding: 9px 12px !important;
+  text-align: left;
+  vertical-align: middle !important;
+  font-size: 12px !important;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+:is(
+  .table-container,
+  .table-wrap,
+  .preview-table-container,
+  .summary-table-wrap,
+  .ual-body
+) thead th,
+:is(.ual-table, .activity-table, .preview-table, .summary-table, .qc-tracker-table) thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  font-weight: 600 !important;
+}
+
+/* Summary Maker uses a few light-mode color declarations with !important.
+   Keep every generated summary value, header, total, and unavailable value
+   legible after Night Mode swaps the table backgrounds to dark slate. */
+body.theme-dark .summary-preview-section .summary-preview-header h4,
+body.theme-dark .summary-preview-section .summary-preview-header h4 span,
+body.theme-dark .summary-preview-section .summary-table :is(th, td),
+body.theme-dark #summaryResultArea table :is(th, td),
+body.theme-dark #scrapSummaryResultArea table :is(th, td),
+body.theme-dark #scrapSummaryTableWrapper table :is(th, td) {
+  color: #F8FAFC !important;
+  border-color: #40516D !important;
+}
+
+body.theme-dark .summary-preview-section .summary-table :is(td, th) :is(span, strong, b),
+body.theme-dark #summaryResultArea table :is(td, th) :is(span, strong, b),
+body.theme-dark #scrapSummaryResultArea table :is(td, th) :is(span, strong, b),
+body.theme-dark #scrapSummaryTableWrapper table :is(td, th) :is(span, strong, b) {
+  color: inherit !important;
+}
+
+body.theme-dark .summary-preview-section .summary-table .na-cell,
+body.theme-dark #summaryResultArea .na-cell,
+body.theme-dark #scrapSummaryResultArea .na-cell,
+body.theme-dark #scrapSummaryTableWrapper .na-cell {
+  color: #D8E2F0 !important;
 }

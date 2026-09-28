@@ -342,6 +342,13 @@
 - For backend bugs, most feature code is grouped by line ranges in `app.py`; keep changes localized.
 - Avoid broad reads of entire `app.py` unless a task crosses modules; it is a large monolith.
 
+## 7.1 GUI Theme, Status, and Login Welcome (2026-09-28)
+
+- Shared day/night transition rules live in `static/gui-base.css`; the eight standalone GUI templates use the `scamGuiTheme` local-storage key and their `setGuiTheme()` functions.  Keep animation limited to visible chrome and controls; large table descendants must remain transition-free to avoid repaint pauses.
+- Successful `/login` POST requests create a `welcome` flash in `app.py`. It uses `Asia/Kolkata` time and the first name to produce Good Morning (before 12:00), Good Afternoon (before 17:00), or Good Evening. GUI templates render this category immediately below the fixed navigation at the top-right via the shared pill-style `.welcome` flash.
+- `get_first_name()` is used only by the post-login welcome message; preserve the full display name in headers, session, and business logic.
+- GUI Management's GUI Status metrics are rendered by `renderGuiStatusSummary()` in `templates/dashboard_management.html`; the summary fills the available action-row space and Refresh Status is its final, right-aligned control. The detailed per-page data remains in the table below.
+
 ## 8. UI Layout Standardization (2026-09-12)
 
 Task: make every page's layout/dimensions consistent with the **Data Scraping page** (`templates/index.html` → `scraping-page`), fix filter scrolling, and slim the filter footprint. Implemented across all standalone templates.

@@ -490,7 +490,7 @@ body.theme-dark .pag-btn:hover:not(:disabled) {
     transform:none !important;
 }
 </style>
-    <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+    <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-contrast">
 </head>
 <body>
 <script>
@@ -543,7 +543,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 </div>
                 <div class="form-group" style="grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">URL</label><input type="text" id="ins_url" placeholder="https://example.com" oninput="onInsUrlInput(this.value)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
-                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="ins_final_url" placeholder="https://final.example.com" oninput="clearTimeout(_insUrlCheckTimer);_insUrlCheckTimer=setTimeout(()=>checkSingleUrlDuplicate(this.value,'ins_final_url','ins_final_url_status'),500)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
+                    <div><label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:5px;">Final URL</label><input type="text" id="ins_final_url" placeholder="https://final.example.com" oninput="_insFinalUrlManuallyEdited=true;clearTimeout(_insUrlCheckTimer);_insUrlCheckTimer=setTimeout(()=>checkSingleUrlDuplicate(this.value,'ins_final_url','ins_final_url_status'),500)" style="width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;height:34px;outline:none;" onfocus="this.style.borderColor='#27ae60'" onblur="this.style.borderColor='#e2e8f0'"></div>
                 </div>
                 <div class="form-group">
                     <label>Invitation Code</label>
@@ -571,7 +571,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                 </div>
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="ins_category">
+                    <select id="ins_category" onchange="onInsCategoryChange()">
                         <option value="">-- Select --</option>
                         {% for c in wd_category_options %}
                         <option value="{{ c }}">{{ c }}</option>
@@ -1159,7 +1159,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
 <div class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}{% for category, message in messages %}
-    <div class="flash-message {% if category == 'error' %}error{% endif %}">
+    <div class="flash-message {{ category }} {% if category == 'error' %}error{% endif %}">
         <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
         {{ message }}
     </div>
@@ -1484,16 +1484,36 @@ function _stripQueryHash(url) {
         return url.toLowerCase().split('?')[0].split('#')[0].replace(/\/$/, '');
     }
 }
+let _insFinalUrlManuallyEdited = false; // true tabhi jab user final_url field mein type kare
 function onInsUrlInput(val) {
     if (!val || val.length < 8) return;
+    const category = (document.getElementById('ins_category')?.value || '').trim();
+    const isInvestment = category === 'Investment Scam';
     const { finalUrl, inviteCode } = extractUrlParts(val);
     const fuEl = document.getElementById('ins_final_url');
     const icEl = document.getElementById('ins_invitation_code');
-    if (fuEl && !fuEl.value) fuEl.value = finalUrl;
+    // Investment Scam → domain-only final_url (clean URL).
+    // Baaki saari categories → full pasted URL hi final_url banega (bulk insert jaisa).
+    const finalUrlValue = isInvestment ? finalUrl : val.trim();
+    // Auto-fill tab tak overwrite karte raho jab tak user ne manually edit nahi kiya
+    if (fuEl && !_insFinalUrlManuallyEdited) fuEl.value = finalUrlValue;
     if (icEl && !icEl.value && inviteCode) icEl.value = inviteCode;
     // Duplicate check with debounce
     clearTimeout(_insUrlCheckTimer);
     _insUrlCheckTimer = setTimeout(() => checkSingleUrlDuplicate(val, 'ins_url', 'ins_url_status'), 500);
+}
+// Category change hone par final_url ko dubara derive karo (agar user ne manually edit nahi kiya ho)
+function onInsCategoryChange() {
+    if (_insFinalUrlManuallyEdited) return;
+    const urlEl = document.getElementById('ins_url');
+    if (!urlEl || !urlEl.value) return;
+    const category = (document.getElementById('ins_category')?.value || '').trim();
+    const isInvestment = category === 'Investment Scam';
+    const { finalUrl } = extractUrlParts(urlEl.value);
+    const fuEl = document.getElementById('ins_final_url');
+    if (!fuEl) return;
+    // Investment Scam → domain-only, baaki → full URL
+    fuEl.value = isInvestment ? finalUrl : urlEl.value.trim();
 }
 async function checkSingleUrlDuplicate(url, inputId, statusId) {
     if (!url || url.length < 6) return;
@@ -1563,7 +1583,12 @@ window.addEventListener('pageshow', hideLoading);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) hideLoading(); });
 function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
-    if (animate) document.documentElement.classList.add('theme-switching');
+    if (animate) {
+        document.documentElement.classList.remove('theme-switching');
+        void document.documentElement.offsetWidth;
+        document.documentElement.classList.add('theme-switching');
+        clearTimeout(window.__guiThemeTransitionTimer);
+    }
     document.body.classList.toggle('theme-dark', selectedMode === 'dark');
     document.documentElement.classList.remove('theme-dark-preload');
     try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
@@ -1575,7 +1600,7 @@ function setGuiTheme(mode, animate = true) {
         toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
         toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
     }
-    if (animate) window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 280);
+    if (animate) window.__guiThemeTransitionTimer = window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 180);
 }
 function toggleGuiTheme() {
     const isDark = document.body.classList.contains('theme-dark');

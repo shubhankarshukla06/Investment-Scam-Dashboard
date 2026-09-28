@@ -249,6 +249,15 @@
         gap: 8px;
         margin-left: auto;
       }
+      #dmStatusActions {
+        flex: 1 1 760px;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+      #guiStatusSummary {
+        flex: 1 1 0;
+        min-width: 0;
+      }
       .type-toggle {
         display: inline-flex;
         border: 1px solid #ddd;
@@ -432,16 +441,17 @@
       }
       .status-summary {
         display: grid;
-        grid-template-columns: repeat(5, minmax(130px, 1fr));
-        gap: 10px;
-        margin-bottom: 12px;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        align-items: stretch;
+        gap: 6px;
       }
       .status-card {
         background: white;
         border: 1px solid #e1e5eb;
         border-radius: 8px;
-        padding: 10px 12px;
-        box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05);
+        padding: 6px 9px;
+        box-shadow: none;
+        min-width: 0;
       }
       .status-card-label {
         color: #7f8c8d;
@@ -451,13 +461,13 @@
       }
       .status-card-value {
         color: #2c3e50;
-        font-size: 17px;
+        font-size: 14px;
         font-weight: 800;
         margin-top: 3px;
         white-space: nowrap;
       }
       .status-note {
-        margin-bottom: 10px;
+        display: none;
         color: #7f8c8d;
         font-size: 12px;
         font-weight: 600;
@@ -1011,7 +1021,7 @@
     </style>
     <link
       rel="stylesheet"
-      href="/static/gui-base.css?v=20260918-secondary-nav2"
+      href="/static/gui-base.css?v=20260928-summary-contrast"
     />
   </head>
   <body>
@@ -1192,7 +1202,7 @@
     <div class="container">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
       messages %}{% for cat, msg in messages %}
-      <div class="flash {{ 'error' if cat == 'error' else 'success' }}">
+      <div class="flash {{ 'error' if cat == 'error' else 'success' }} {{ cat }}">
         <i class="fas fa-info-circle"></i> {{ msg }}
       </div>
       {% endfor %}{% endif %} {% endwith %}
@@ -1252,12 +1262,12 @@
           </button>
         </div>
         <div id="dmStatusActions" class="filter-actions" style="display: none">
+          <div id="guiStatusSummary" aria-live="polite"></div>
           <button class="btn btn-outline" onclick="loadGuiStatus(true)">
             <i class="fas fa-sync-alt"></i> Refresh Status
           </button>
         </div>
       </div>
-      <div id="guiStatusSummary" style="display: none"></div>
       <div class="table-wrap">
         <table id="dmTable">
           <thead id="dmTableHead">
@@ -2994,8 +3004,14 @@
         window.location.href = "/?page=" + pageType;
       }
 
-      function setGuiTheme(mode) {
+      function setGuiTheme(mode, animate = true) {
         const selectedMode = mode === "dark" ? "dark" : "light";
+        if (animate) {
+          document.documentElement.classList.remove("theme-switching");
+          void document.documentElement.offsetWidth;
+          document.documentElement.classList.add("theme-switching");
+          clearTimeout(window.__guiThemeTransitionTimer);
+        }
         document.body.classList.toggle("theme-dark", selectedMode === "dark");
         document.documentElement.classList.remove("theme-dark-preload");
         try {
@@ -3014,6 +3030,12 @@
           toggle.setAttribute(
             "aria-pressed",
             selectedMode === "dark" ? "true" : "false",
+          );
+        }
+        if (animate) {
+          window.__guiThemeTransitionTimer = window.setTimeout(
+            () => document.documentElement.classList.remove("theme-switching"),
+            180,
           );
         }
       }
@@ -3041,7 +3063,7 @@
             return "light";
           }
         })();
-        setGuiTheme(saved);
+        setGuiTheme(saved, false);
         syncFixedHeaderSpace();
         if (window.ResizeObserver) {
           new ResizeObserver(syncFixedHeaderSpace).observe(

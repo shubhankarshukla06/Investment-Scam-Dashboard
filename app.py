@@ -12,6 +12,7 @@ from werkzeug.utils import secure_filename
 from supabase import create_client, Client, ClientOptions
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import re
 import csv
 from urllib.parse import urlparse
@@ -113,7 +114,7 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user_id" not in session:
-            flash("Welcome to Scam Intelligence GUI.", "error")
+            flash("Your session has expired. Please log in again.", "error")
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
@@ -241,7 +242,6 @@ def is_admin_or_above(user_session):
 ALL_EMPLOYEES = [
     "Parul Satsangi",
     "Kakul Pal",    
-    "Rozma Khan",
     "Rishabh Yadav",
     "Nitin Kumar",
     "Vidhi Satsangi",
@@ -930,6 +930,13 @@ def get_clean_display_name(display_name):
     clean_name = re.sub(r'\s*\([^)]*\)', '', display_name).strip()
     return clean_name if clean_name else display_name
 
+def get_first_name(display_name):
+    """Return the first usable word of a display name for compact GUI labels."""
+    clean_name = get_clean_display_name(display_name)
+    return clean_name.split()[0] if clean_name.split() else "User"
+
+app.jinja_env.filters["first_name"] = get_first_name
+
 def redirect_to_allowed_page(allowed_pages):
     """Allowed_pages ke first entry ke hisaab se sahi URL pe redirect karta hai."""
     if not allowed_pages:
@@ -976,6 +983,17 @@ def login():
                                                   or ("admin" if parse_bool(user.get("is_admin", False)) else "user"))
                 session["can_view_activity_log"] = parse_bool(user.get("can_view_activity_log", False))
                 session["allowed_departments"] = user.get("allowed_departments") or None
+                login_hour = datetime.now(ZoneInfo("Asia/Kolkata")).hour
+                greeting = (
+                    "Good Morning" if login_hour < 12 else
+                    "Good Afternoon" if login_hour < 17 else
+                    "Good Evening"
+                )
+                clean_name = get_first_name(user.get("display_name", "User"))
+                flash(
+                    f"{greeting}, {clean_name} - Welcome to Scam Intelligence GUI",
+                    "welcome",
+                )
                 allowed = session["allowed_pages"]
                 first_page = allowed[0] if allowed else "scraping"
                 return redirect(f"/?page={first_page}")
@@ -3872,7 +3890,6 @@ def _number_case_metrics(rows):
         "total_number_cases": sum(info["cases"] for info in qualified_numbers.values()),
         "users": user_stats,
     }
-
 
 @app.route("/investment-insights-data", methods=["GET"])
 @login_required

@@ -294,7 +294,7 @@ html.theme-switching .table-container * {
     transition: none !important;
 }
 </style>
-    <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+    <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-contrast">
 </head>
 <body>
 <script>
@@ -572,7 +572,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
 <div class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}{% for category, message in messages %}
-    <div class="flash-message {% if category == 'error' %}error{% endif %}">
+    <div class="flash-message {{ category }} {% if category == 'error' %}error{% endif %}">
         <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}" style="color:{% if category == 'error' %}#e74c3c{% else %}#2ecc71{% endif %};"></i>
         {{ message }}
     </div>
@@ -838,7 +838,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
 
 function setGuiTheme(mode, animate = true) {
     const selectedMode = mode === 'dark' ? 'dark' : 'light';
-    if (animate) document.documentElement.classList.add('theme-switching');
+    if (animate) {
+        document.documentElement.classList.remove('theme-switching');
+        void document.documentElement.offsetWidth;
+        document.documentElement.classList.add('theme-switching');
+        clearTimeout(window.__guiThemeTransitionTimer);
+    }
     document.body.classList.toggle('theme-dark', selectedMode === 'dark');
     document.documentElement.classList.remove('theme-dark-preload');
     try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
@@ -848,7 +853,7 @@ function setGuiTheme(mode, animate = true) {
         toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
         toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
     }
-    if (animate) window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 280);
+    if (animate) window.__guiThemeTransitionTimer = window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 180);
 }
 function toggleGuiTheme() {
     const isDark = document.body.classList.contains('theme-dark');
@@ -1296,4 +1301,3 @@ if ('ResizeObserver' in window) {
 </script>
 </body>
 </html>
-

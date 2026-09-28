@@ -982,7 +982,7 @@
         }
       }
     </style>
-      <link rel="stylesheet" href="/static/gui-base.css?v=20260918-secondary-nav2">
+      <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-contrast">
 </head>
   <body>
   <script>
@@ -994,6 +994,14 @@
     <div class="loading-overlay" id="loadingOverlay">
       <div class="spinner"></div>
     </div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}{% for category, message in messages %}
+    <div class="flash-message {{ category }} {% if category == 'error' %}error{% endif %}">
+      <i class="fas fa-{% if category == 'error' %}exclamation-circle{% else %}check-circle{% endif %}"></i>
+      {{ message }}
+    </div>
+    {% endfor %}{% endif %}
+    {% endwith %}
 
     <!-- FIXED HEADER -->
     <div class="fixed-header">
@@ -3126,7 +3134,12 @@
       // ── Page navigation ───────────────────────────────────────────
       function setGuiTheme(mode, animate = true) {
         const selectedMode = mode === "dark" ? "dark" : "light";
-        if (animate) document.documentElement.classList.add("theme-switching");
+        if (animate) {
+          document.documentElement.classList.remove("theme-switching");
+          void document.documentElement.offsetWidth;
+          document.documentElement.classList.add("theme-switching");
+          clearTimeout(window.__guiThemeTransitionTimer);
+        }
         document.body.classList.toggle("theme-dark", selectedMode === "dark");
         document.documentElement.classList.remove("theme-dark-preload");
         try {
@@ -3150,9 +3163,9 @@
           );
         }
         if (animate) {
-          window.setTimeout(
+          window.__guiThemeTransitionTimer = window.setTimeout(
             () => document.documentElement.classList.remove("theme-switching"),
-            280,
+            180,
           );
         }
       }
