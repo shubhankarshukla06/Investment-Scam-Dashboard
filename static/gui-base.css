@@ -1467,3 +1467,31 @@ body.theme-dark #scrapSummaryResultArea .na-cell,
 body.theme-dark #scrapSummaryTableWrapper .na-cell {
   color: #D8E2F0 !important;
 }
+
+/* Summary Maker's primary generated table is intentionally compact: unlike
+   data grids, it should remain only as wide as its summary columns require. */
+body.page-sheet #summaryResultTable,
+body.page-sheet #scrapSummaryTable {
+  width: max-content !important;
+  min-width: 0 !important;
+}
+
+body.page-sheet #summaryResultTable :is(th, td),
+body.page-sheet #scrapSummaryTable :is(th, td) {
+  padding: 7px 14px !important;
+  font-size: 12px !important;
+}
+
+/* Requested readable scale for IS Category Wise and Scrapping summaries only.
+   The user-wise and comparison summaries keep their existing compact scale. */
+body.page-sheet .category-summary-preview #summaryResultTable :is(th, td),
+body.page-sheet #scrapSummaryTable :is(th, td) {
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+}
+
+body.page-sheet .category-summary-preview #summaryResultTable thead tr:first-child th,
+body.page-sheet #scrapSummaryTable thead tr:first-child th {
+  padding: 10px 16px !important;
+  font-size: 15px !important;
+}

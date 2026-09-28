@@ -1352,7 +1352,7 @@
                 color: #F8FAFC !important;
             }
         </style>
-        <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-contrast">
+        <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-readable">
         <style>
             body.page-sheet {
                 height: auto !important;
@@ -5791,6 +5791,7 @@
                     dateStr = `${dd}-${mm}-${yyyy}`;
                 }
                 document.getElementById('summaryPreviewTitle').textContent = `IS Category Wise Summary - ${dateStr}`;
+                document.getElementById('summaryPreviewSection').classList.add('category-summary-preview');
                 const thead = document.getElementById('summaryResultHead');
                 const tbody = document.getElementById('summaryResultBody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
@@ -5953,6 +5954,7 @@
             }
             function renderUsersSummaryTable(userData, users, dateStr) {
                 const section = document.getElementById('summaryPreviewSection');
+                section.classList.remove('category-summary-preview');
                 document.getElementById('summaryPreviewTitle').textContent = `Scam++ Summary - ${dateStr}`;
                 const thead = document.getElementById('summaryResultHead');
                 const tbody = document.getElementById('summaryResultBody');
