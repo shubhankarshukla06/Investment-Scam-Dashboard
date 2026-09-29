@@ -1490,6 +1490,18 @@ body.page-sheet #scrapSummaryTable :is(th, td) {
   font-size: 13px !important;
 }
 
+/* Keep the five Category-wise columns evenly spaced, as in the report layout.
+   This prevents a long category name from narrowing Web, SM, App, and Total. */
+body.page-sheet .category-summary-preview #summaryResultTable {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+body.page-sheet .category-summary-preview #summaryResultTable :is(th, td) {
+  width: 20%;
+  text-align: center;
+}
+
 body.page-sheet .category-summary-preview #summaryResultTable thead tr:first-child th,
 body.page-sheet #scrapSummaryTable thead tr:first-child th {
   padding: 10px 16px !important;

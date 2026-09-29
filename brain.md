@@ -39,7 +39,7 @@
   - `/login` GET/POST — `login()` L955-L984 — renders `templates/login.html`.
   - `/logout` GET — `logout()` L987-L989.
   - `/get-session-info` GET — `get_session_info()` L3297-L3305.
-- Data: `dashboard_users`; fallback `DEMO_ADMIN` hardcoded in `app.py` L72-L84.
+- Data: `dashboard_users`.
 - Behavior: stores `user_id`, `email`, `display_name`, `allowed_pages`, `is_admin`, `role`, `can_view_activity_log`, `allowed_departments` in Flask session.
 - Quirk: `login()` redirects to `/?page={first_page}` directly; `redirect_to_allowed_page()` has better dedicated-page mapping but is not used there.
 
@@ -270,7 +270,7 @@
 ### Authentication and sessions
 
 - `login_required()` checks `session["user_id"]`; unauthenticated users redirect to `/login`.
-- Login loads users from Supabase `dashboard_users` except hardcoded `DEMO_ADMIN`.
+- Login loads users from Supabase `dashboard_users`.
 - Access keys in `allowed_pages`: `scraping`, `sheet`, `social`, `investment`, `qc`, `website_directory`, `allotment`, `allotment_admin`, `insights`, `case_report`, `lunch`, `dashboard_management`.
 - Role helpers: `is_superadmin()`, `is_admin_or_above()`, `can_access_lunch()`, `can_access_allotment()`, `is_allotment_admin()`.
 - `/get-session-info` returns current session details for frontend use.

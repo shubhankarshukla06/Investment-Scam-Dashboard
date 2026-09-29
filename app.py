@@ -49,7 +49,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-change-this")
-app.permanent_session_lifetime = timedelta(hours=8)
+app.permanent_session_lifetime = timedelta(hours=4)
 
 # ============================================================
 # AUTH HELPERS
@@ -70,20 +70,6 @@ def get_auth_supabase():
     key = os.environ.get("SUPABASE_KEY")
     return create_client(url, key, options=_SUPABASE_CLIENT_OPTS)
 
-DEMO_ADMIN = {
-    "id": 0,
-    "email": "test123@gmail.com",
-    "password": "test123",
-    "display_name": "Test User - (Testing Only)",
-    "allowed_pages": ["qc"],
-    "is_admin": False,
-    "role": "user",
-    "is_active": True,
-    "can_view_activity_log": True,
-    "allowed_departments": ["ITC","AML", "Investment Scam","dashboard_management","Infringement", "Chargeback"],
-    "created_at": "2025-01-01"
-}
-
 def parse_bool(value):
     if isinstance(value, bool):
         return value
@@ -94,8 +80,6 @@ def parse_bool(value):
     return str(value).strip().lower() in ("1", "true", "yes", "y", "on")
 
 def fetch_user_by_email(email: str):
-    if email.lower().strip() == DEMO_ADMIN["email"]:
-        return DEMO_ADMIN
     try:
         client = get_auth_supabase()
         res = client.table("dashboard_users") \
@@ -114,7 +98,6 @@ def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
         if "user_id" not in session:
-            flash("Your session has expired. Please log in again.", "error")
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
