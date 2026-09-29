@@ -423,8 +423,8 @@
             .generate-summary-btn:disabled { background: #95a5a6; cursor: not-allowed; }
             .show-preview-btn { margin-top: 10px; width: auto; min-width: 150px; background: #3498db; }
             .show-preview-btn:hover:not(:disabled) { background: #2980b9; }
-            .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: min(52vh, 460px); overflow: hidden; display: none; flex-direction: column; }
-            .preview-section.show { display: flex; flex-direction: column; height: min(52vh, 460px); }
+            .preview-section { background: white; border-radius: 8px; padding: 12px; margin-top: 12px; width: 100%; box-shadow: 0 1px 8px rgba(0,0,0,0.08); height: 70vh; overflow: hidden; display: none; flex-direction: column; }
+            .preview-section.show { display: flex; flex-direction: column; height: 70vh; }
             .preview-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #eee; flex-shrink: 0; }
             .preview-header h4 { color: #2c3e50; font-size: 13px; display: flex; align-items: center; gap: 6px; margin: 0; }
             .preview-table-container { background: white; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex-grow: 1; overflow: auto; height: calc(100% - 40px); }
@@ -1352,7 +1352,7 @@
                 color: #F8FAFC !important;
             }
         </style>
-        <link rel="stylesheet" href="/static/gui-base.css?v=20260928-summary-readable">
+        <link rel="stylesheet" href="/static/gui-base.css?v=20260929-night-button-sheen">
         <style>
             body.page-sheet {
                 height: auto !important;
@@ -5322,7 +5322,10 @@
                 const misDataByUser = {};
                 try {
                     showToast('Fetching MIS data...', false, false);
-                    const misResp = await fetch('/getDepartmentData');
+                    // The EDTMS service can be cold on the first summary load. Always
+                    // request a fresh response instead of reusing an earlier empty one.
+                    const misResp = await fetch('/getDepartmentData', { cache: 'no-store' });
+                    if (!misResp.ok) throw new Error(`EDTMS request failed with HTTP ${misResp.status}`);
                     const misRaw = await misResp.json();
 
                     if (Array.isArray(misRaw) && misRaw.length > 0) {
@@ -5775,6 +5778,7 @@
             }
             function renderCategoryDetailedTable(sortedScamTypes, totalWeb, totalApp, totalSM, grandTotal, dataDate) {
                 const section = document.getElementById('summaryPreviewSection');
+                section.classList.remove('category-summary-filtered');
                 let dateStr;
                 if (dataDate) {
                     const parts = dataDate.split('-');
@@ -5891,6 +5895,7 @@
                 const cfg = labelMap[filterType];
                 const { scamTypeData, totals } = lastSummaryResult;
                 const section = document.getElementById('summaryPreviewSection');
+                section.classList.add('category-summary-filtered');
                 const thead   = document.getElementById('summaryResultHead');
                 const tbody   = document.getElementById('summaryResultBody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
@@ -6806,7 +6811,12 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
             // Auto-dismiss flash messages
             setTimeout(() => {
                 document.querySelectorAll('.flash-message').forEach(msg => {
-                    msg.style.animation = 'slideIn 0.3s ease reverse forwards';
+                    if (msg.classList.contains('welcome')) {
+                        msg.style.transition = 'opacity 0.3s ease';
+                        msg.style.opacity = '0';
+                    } else {
+                        msg.style.animation = 'slideIn 0.3s ease reverse forwards';
+                    }
                     setTimeout(() => { if (msg.parentNode) { msg.remove(); syncFixedHeaderSpace(); } }, 300);
                 });
             }, 5000);

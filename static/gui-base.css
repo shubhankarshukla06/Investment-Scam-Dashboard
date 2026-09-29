@@ -1079,9 +1079,9 @@ html.theme-switching #scrapInsertRowsArea * {
 .flash-message.welcome,
 .flash.welcome {
   position: fixed !important;
-  left: auto !important;
-  right: 16px !important;
-  top: calc(var(--fixed-header-space, 72px) + 10px) !important;
+  left: 50% !important;
+  right: auto !important;
+  top: var(--fixed-header-space, 72px) !important;
   bottom: auto !important;
   z-index: 2100 !important;
   max-width: min(620px, calc(100vw - 32px)) !important;
@@ -1097,8 +1097,16 @@ html.theme-switching #scrapInsertRowsArea * {
   font-weight: 500 !important;
   letter-spacing: .01em;
   white-space: nowrap !important;
+  transform: translateX(-50%) !important;
   box-shadow: 0 10px 24px rgba(22, 101, 52, .16) !important;
-  animation: welcome-border-shine 5s ease-in-out infinite !important;
+  animation:
+    welcome-fade-in 320ms ease-out both,
+    welcome-border-shine 5s ease-in-out infinite !important;
+}
+
+@keyframes welcome-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes welcome-border-shine {
@@ -1482,19 +1490,20 @@ body.page-sheet #scrapSummaryTable :is(th, td) {
   font-size: 12px !important;
 }
 
-/* Requested readable scale for IS Category Wise and Scrapping summaries only.
-   The user-wise and comparison summaries keep their existing compact scale. */
+/* Keep IS Category Wise and Scrapping summaries readable without letting them
+   take over the Summary & Reports page. */
 body.page-sheet .category-summary-preview #summaryResultTable :is(th, td),
 body.page-sheet #scrapSummaryTable :is(th, td) {
-  padding: 8px 16px !important;
-  font-size: 13px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
 }
 
 /* Keep the five Category-wise columns evenly spaced, as in the report layout.
    This prevents a long category name from narrowing Web, SM, App, and Total. */
 body.page-sheet .category-summary-preview #summaryResultTable {
-  width: 100% !important;
+  width: min(100%, 980px) !important;
   table-layout: fixed !important;
+  margin: 0 auto;
 }
 
 body.page-sheet .category-summary-preview #summaryResultTable :is(th, td) {
@@ -1502,8 +1511,52 @@ body.page-sheet .category-summary-preview #summaryResultTable :is(th, td) {
   text-align: center;
 }
 
+/* SM, Web, and App filtered views contain only two columns. Keep that result
+   compact without changing the five-column Category Wise Summary. */
+body.page-sheet .category-summary-preview.category-summary-filtered #summaryResultTable {
+  width: min(100%, 680px) !important;
+}
+
+/* Preserve the Preview Data Table's existing dimensions; only reduce the text
+   and values inside its cells. */
+body.page-sheet .preview-table :is(th, td) {
+  font-size: 10px !important;
+}
+
+body.page-sheet .preview-table .na-cell {
+  font-size: 9px !important;
+}
+
 body.page-sheet .category-summary-preview #summaryResultTable thead tr:first-child th,
 body.page-sheet #scrapSummaryTable thead tr:first-child th {
-  padding: 10px 16px !important;
-  font-size: 15px !important;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+}
+
+/* Night Mode-only button sheen: a quiet edge highlight that keeps controls
+   discernible without changing their existing brand colors or interaction. */
+body.theme-dark :is(
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  .btn:not(:disabled),
+  [role="button"]:not(:disabled)
+) {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 10px rgba(96, 165, 250, 0.10) !important;
+}
+
+body.theme-dark :is(
+  button:not(:disabled),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  .btn:not(:disabled),
+  [role="button"]:not(:disabled)
+):hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 0 12px rgba(96, 165, 250, 0.14) !important;
 }

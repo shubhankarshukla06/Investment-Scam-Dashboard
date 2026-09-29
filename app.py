@@ -3309,23 +3309,34 @@ def get_session_info():
 @login_required
 def get_department_data_proxy():
     """Proxy for external MIS API to avoid CORS issues"""
-    try:
-        user_mail  = session.get("email", "")
-        department = "Anti_Money_Laundering"
-        role       = "Team_Lead"
-        external_url = (
-            f"https://mis-iw3m.onrender.com/getDepartmentData"
-            f"?user_mail={urllib.parse.quote(user_mail)}"
-            f"&department={urllib.parse.quote(department)}"
-            f"&role={urllib.parse.quote(role)}"
-        )
-        req = urllib.request.Request(external_url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return jsonify(data)
-    except Exception as e:
-        print(f"[MIS PROXY] Error: {e}")
-        return jsonify([])
+    user_mail  = session.get("email", "")
+    department = "Anti_Money_Laundering"
+    role       = "Team_Lead"
+    external_url = (
+        f"https://mis-iw3m.onrender.com/getDepartmentData"
+        f"?user_mail={urllib.parse.quote(user_mail)}"
+        f"&department={urllib.parse.quote(department)}"
+        f"&role={urllib.parse.quote(role)}"
+    )
+    last_error = None
+    # Render may need a little longer to wake on the first request. Retrying here
+    # prevents the Summary Maker from treating a startup timeout as no EDTMS data.
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(external_url, headers={"User-Agent": "Mozilla/5.0", "Cache-Control": "no-cache"})
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            response = jsonify(data)
+            response.headers["Cache-Control"] = "no-store, max-age=0"
+            return response
+        except Exception as exc:
+            last_error = exc
+            if attempt == 0:
+                time.sleep(2)
+    print(f"[MIS PROXY] Error after retry: {last_error}")
+    response = jsonify([])
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    return response
 
 @app.route("/insert-social-record", methods=["POST"])
 @login_required
