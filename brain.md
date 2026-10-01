@@ -98,6 +98,7 @@
   - `/api/total-numbers` GET — `api_total_numbers_list()` L6804-L6850.
   - `/api/total-numbers/<int:record_id>` GET — `api_total_numbers_get()` L6853-L6865.
   - `/api/total-numbers/stats` GET — `api_total_numbers_stats()` L6868-L6899.
+  - `/api/gmail-accounts` GET — `api_gmail_accounts_list()`; public API returning only `login_user`, `full_name`, `account_status`, `mail_id`, and `password` for `Gmail Accounts` platform records. Supports `account_status`, `search`, `page`, and `per_page` query parameters.
 - Helpers: `normalize_social_account_status()` L263, `normalize_social_account_row()` L276, `apply_social_status_filter()` L282.
 - Data: `social_media_accounts`.
 - Behavior: department filtering via `allowed_departments`; permanent-block rows hidden by default in several queries; status rename handled by migration script.

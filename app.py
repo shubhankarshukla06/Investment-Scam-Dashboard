@@ -5611,6 +5611,10 @@ def social_search_ajax():
 # ============================================================
 TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,number_type,sim_operator,recharge_date"
 
+# Gmail records are intentionally limited to the fields exposed by the
+# dedicated API.
+GMAIL_ACCOUNT_API_COLUMNS = "login_user,full_name,account_status,mail_id,password"
+
 # ============================================================
 # CASE REPORT GENERATOR ROUTES
 # ============================================================
@@ -6992,6 +6996,45 @@ def api_total_numbers_stats():
                 sorted(sim_op_counts.items(), key=lambda x: x[1], reverse=True)
             )
         })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/gmail-accounts", methods=["GET"])
+def api_gmail_accounts_list():
+    """Return Gmail-account credentials through the public accounts API."""
+    try:
+        account_status = request.args.get("account_status", "").strip()
+        search = request.args.get("search", "").strip()
+        page = max(1, int(request.args.get("page", 1)))
+        per_page = min(500, max(1, int(request.args.get("per_page", 100))))
+
+        query = social_supabase.table("social_media_accounts") \
+            .select(GMAIL_ACCOUNT_API_COLUMNS, count="exact") \
+            .eq("platform", "Gmail Accounts")
+        if account_status:
+            query = apply_social_status_filter(query, account_status)
+        if search:
+            like_term = f"%{search}%"
+            query = query.or_(
+                f"login_user.ilike.{like_term},"
+                f"mail_id.ilike.{like_term}"
+            )
+
+        offset = (page - 1) * per_page
+        response = query.order("mail_id", desc=False) \
+            .range(offset, offset + per_page - 1) \
+            .execute()
+        total_rows = response.count or 0
+        return jsonify({
+            "success": True,
+            "total": total_rows,
+            "page": page,
+            "per_page": per_page,
+            "total_pages": max(1, math.ceil(total_rows / per_page)),
+            "items": response.data or [],
+        })
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "page and per_page must be integers"}), 400
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     
