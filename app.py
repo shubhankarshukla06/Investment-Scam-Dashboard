@@ -1326,24 +1326,24 @@ def index():
             if inv_search:
                 like_term = f"%{inv_search}%"
                 query = query.or_(
-                    f"Bank_account_number.ilike.{like_term},"
-                    f"Upi_vpa.ilike.{like_term},"
-                    f"Handle.ilike.{like_term},"
-                    f"Website_url.ilike.{like_term},"
-                    f"Web_contact_no.ilike.{like_term},"
-                    f"Input_user.ilike.{like_term}"
+                    f"bank_account_number.ilike.{like_term},"
+                    f"upi_vpa.ilike.{like_term},"
+                    f"handle.ilike.{like_term},"
+                    f"website_url.ilike.{like_term},"
+                    f"web_contact_no.ilike.{like_term},"
+                    f"input_user.ilike.{like_term}"
                 )
             if inv_scam_type:
-                query = query.eq("Scam_type", inv_scam_type)
+                query = query.eq("scam_type", inv_scam_type)
             if inv_search_for:
-                query = query.eq("Search_for", inv_search_for)
+                query = query.eq("search_for", inv_search_for)
             if inv_wallet:
-                query = query.eq("Upi_bank_account_wallet", inv_wallet)
+                query = query.eq("upi_bank_account_wallet", inv_wallet)
             if inv_date_from:
-                query = query.gte("Inserted_date", inv_date_from)
+                query = query.gte("inserted_date", inv_date_from)
             if inv_date_to:
-                query = query.lte("Inserted_date", inv_date_to)
-            query = query.order("Id", desc=True)
+                query = query.lte("inserted_date", inv_date_to)
+            query = query.order("id", desc=True)
             offset = (page - 1) * PER_PAGE
             query = query.range(offset, offset + PER_PAGE - 1)
             response = query.execute()
