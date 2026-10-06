@@ -1471,12 +1471,12 @@ def investment_tracker_stats():
 def investment_last_date():
     try:
         resp = supabase.table("BS_Investment_Scam") \
-            .select("Inserted_date") \
-            .order("Inserted_date", desc=True) \
+            .select("inserted_date") \
+            .order("inserted_date", desc=True) \
             .limit(1) \
             .execute()
         if resp.data:
-            raw = resp.data[0].get("Inserted_date") or ""
+            raw = resp.data[0].get("inserted_date") or ""
             # Normalise to YYYY-MM-DD
             date_str = str(raw).split("T")[0].strip()
             return jsonify({"success": True, "last_date": date_str})
@@ -3057,15 +3057,15 @@ def _run_upi_check_worker(job_id, number, custom_handles):
         if normalized == "Valid":
             try:
                 resp = supabase.table("BS_Investment_Scam") \
-                    .select("Id,Upi_vpa,Inserted_date,Scam_type,Input_user") \
-                    .ilike("Upi_vpa", upi) \
+                    .select("id,upi_vpa,inserted_date,scam_type,input_user") \
+                    .ilike("upi_vpa", upi) \
                     .limit(10).execute()
                 found = resp.data or []
                 result["already_reported"] = len(found) > 0
                 result["report_count"] = len(found)
-                result["report_ids"] = [str(x.get("Id")) for x in found]
-                result["report_dates"] = [x.get("Inserted_date") for x in found]
-                result["report_user"] = found[0].get("Input_user") if found else None
+                result["report_ids"] = [str(x.get("id")) for x in found]
+                result["report_dates"] = [x.get("inserted_date") for x in found]
+                result["report_user"] = found[0].get("input_user") if found else None
             except Exception as e:
                 print(f"[UPI CHECK] duplicate lookup error for {upi}: {e}")
 
@@ -3249,13 +3249,13 @@ def check_duplicates():
             try:
                 if typ == "upi":
                     res = supabase.table("BS_Investment_Scam")\
-                        .select("Id, Upi_vpa, Inserted_date, Scam_type, Input_user")\
-                        .ilike("Upi_vpa", val)\
+                        .select("id, upi_vpa, inserted_date, scam_type, input_user")\
+                        .ilike("upi_vpa", val)\
                         .limit(10).execute()
                 else:
                     res = supabase.table("BS_Investment_Scam")\
-                        .select("Id, Bank_account_number, Inserted_date, Scam_type, Input_user")\
-                        .ilike("Bank_account_number", val)\
+                        .select("id, bank_account_number, inserted_date, scam_type, input_user")\
+                        .ilike("bank_account_number", val)\
                         .limit(10).execute()
                 found = res.data or []
                 results.append({
@@ -3263,11 +3263,11 @@ def check_duplicates():
                     "type": typ,
                     "status": "DUPLICATE" if found else "NEW",
                     "count": len(found),
-                    "earliest_date": found[0].get("Inserted_date") if found else None,
-                    "latest_date": found[-1].get("Inserted_date") if len(found) > 1 else None,
-                    "scam_type": found[0].get("Scam_type") if found else None,
-                    "input_user": found[0].get("Input_user") if found else None,
-                    "record_ids": [str(r.get("Id")) for r in found]
+                    "earliest_date": found[0].get("inserted_date") if found else None,
+                    "latest_date": found[-1].get("inserted_date") if len(found) > 1 else None,
+                    "scam_type": found[0].get("scam_type") if found else None,
+                    "input_user": found[0].get("input_user") if found else None,
+                    "record_ids": [str(r.get("id")) for r in found]
                 })
             except Exception as e:
                 results.append({

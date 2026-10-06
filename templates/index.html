@@ -2557,8 +2557,8 @@
                         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;" id="dupSummaryCards"></div>
                         <!-- Result Table -->
                         <div style="background:white;border-radius:8px;border:1px solid #eee;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,0.06);">
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #eee;background:#f8f9fa;">
-                                <span style="font-size:13px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:6px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:1px solid #eee;background:#f8f9fa;">
+                                <span style="font-size:12px;font-weight:600;color:#2c3e50;display:flex;align-items:center;gap:5px;">
                                     <i class="fas fa-table" style="color:#3498db;"></i>
                                     Results
                                 </span>
@@ -2574,18 +2574,18 @@
                                 </div>
                             </div>
                             <div style="overflow-x:auto;max-height:400px;overflow-y:auto;">
-                                <table style="width:100%;border-collapse:collapse;font-size:12px;" id="dupResultTable">
+                                <table style="width:100%;border-collapse:collapse;font-size:11px;" id="dupResultTable">
                                     <thead>
                                         <tr style="background:#f8f9fa;position:sticky;top:0;z-index:5;">
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">#</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Value</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Type</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Status</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Count in DB</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">First Seen</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Scam Type</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Input User</th>
-                                            <th style="padding:9px 12px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Record IDs</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">#</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Value</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Type</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Status</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Count in DB</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">First Seen</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Scam Type</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Input User</th>
+                                            <th style="padding:6px 8px;text-align:left;font-weight:600;color:#2c3e50;border-bottom:2px solid #eee;white-space:nowrap;">Record IDs</th>
                                         </tr>
                                     </thead>
                                     <tbody id="dupResultTableBody"></tbody>
@@ -6697,18 +6697,18 @@
                         : `<span style="background:#f0e8fd;color:#6a1a9a;padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600;">BANK</span>`;
 
                     return `<tr style="background:${rowBg};border-bottom:1px solid #eee;">
-                        <td style="padding:8px 12px;color:#7f8c8d;font-size:11px;">${i+1}</td>
-                        <td style="padding:8px 12px;font-family:monospace;font-size:12px;font-weight:600;color:#2c3e50;">
+                        <td style="padding:5px 8px;color:#7f8c8d;font-size:10px;">${i+1}</td>
+                        <td style="padding:5px 8px;font-family:monospace;font-size:11px;font-weight:600;color:#2c3e50;">
                             ${r.value}
                             <button class="copy-btn" onclick="copyToClipboard('${r.value.replace(/'/g,"\\'")}','Value')" title="Copy"><i class="fas fa-copy"></i></button>
                         </td>
-                        <td style="padding:8px 12px;">${typeBadge}</td>
-                        <td style="padding:8px 12px;">${statusBadge}</td>
-                        <td style="padding:8px 12px;text-align:center;font-weight:700;color:${isDup?'#c0392b':'#1e8449'};">${r.count || 0}</td>
-                        <td style="padding:8px 12px;font-size:11px;color:#555;">${r.earliest_date || '—'}</td>
-                        <td style="padding:8px 12px;font-size:11px;">${r.scam_type && r.scam_type !== 'NA' ? `<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;">${r.scam_type}</span>` : '—'}</td>
-                        <td style="padding:8px 12px;font-size:11px;color:#555;">${r.input_user || '—'}</td>
-                        <td style="padding:8px 12px;font-size:11px;color:#7f8c8d;font-family:monospace;">${(r.record_ids || []).join(', ') || '—'}</td>
+                        <td style="padding:5px 8px;">${typeBadge}</td>
+                        <td style="padding:5px 8px;">${statusBadge}</td>
+                        <td style="padding:5px 8px;text-align:center;font-weight:700;color:${isDup?'#c0392b':'#1e8449'};">${r.count || 0}</td>
+                        <td style="padding:5px 8px;font-size:10px;color:#555;">${r.earliest_date || '—'}</td>
+                        <td style="padding:5px 8px;font-size:10px;">${r.scam_type && r.scam_type !== 'NA' ? `<span style="background:#fff3e0;color:#e65100;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;">${r.scam_type}</span>` : '—'}</td>
+                        <td style="padding:5px 8px;font-size:10px;color:#555;">${r.input_user || '—'}</td>
+                        <td style="padding:5px 8px;font-size:10px;color:#7f8c8d;font-family:monospace;">${(r.record_ids || []).join(', ') || '—'}</td>
                     </tr>`;
                 }).join('');
             }
