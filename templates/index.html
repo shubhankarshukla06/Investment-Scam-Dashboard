@@ -2005,7 +2005,7 @@
                     <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Summary &amp; Reports</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
-                    <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>Case &amp; Report Generator</option>
+                    <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>QC &amp; CRG</option>
                     {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Dashboard</option>
@@ -2102,7 +2102,7 @@
                     <button type="button" class="page-nav-btn {% if page_type == 'sheet' %}active{% endif %}" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'case_report' %}active{% endif %}" onclick="changePageFromWD('case_report')">Case &amp; Report Generator</button>
+                    <button type="button" class="page-nav-btn {% if page_type == 'case_report' %}active{% endif %}" onclick="changePageFromWD('case_report')">QC &amp; CRG</button>
                     {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <button type="button" class="page-nav-btn {% if page_type == 'insights' %}active{% endif %}" onclick="changePageFromWD('insights')">Dashboard</button>

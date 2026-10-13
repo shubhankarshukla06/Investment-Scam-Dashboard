@@ -1062,7 +1062,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     <option value="sheet">Summary &amp; Reports</option>
                     {% endif %}
                     {% if 'case_report' in allowed_pages %}
-                    <option value="case_report">Case &amp; Report Generator</option>
+                    <option value="case_report">QC &amp; CRG</option>
                     {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <option value="insights">Dashboard</option>
@@ -1140,7 +1140,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         <button type="button" class="page-nav-btn" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
         {% endif %}
         {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('case_report')">Case &amp; Report Generator</button>
+        <button type="button" class="page-nav-btn" onclick="changePageFromWD('case_report')">QC &amp; CRG</button>
         {% endif %}
         {% if 'insights' in allowed_pages %}
         <button type="button" class="page-nav-btn" onclick="changePageFromWD('insights')">Dashboard</button>
