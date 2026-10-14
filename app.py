@@ -2423,6 +2423,68 @@ AML_GUI_UA = (
 )
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
+SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
+SUMMARY_GUI_JOB_TERMINAL_STATUSES = {"done", "error"}
+
+
+def _summary_gui_job_elapsed(job):
+    """Return elapsed wall time for the UI and structured job logs."""
+    return round(max(0.0, time.monotonic() - job["started_monotonic"]), 1)
+
+
+def _summary_gui_log(job_id, event, stage, elapsed_seconds, **fields):
+    """Emit a JSON log event without AML credentials, cookies, or CAPTCHA text."""
+    payload = {
+        "event": event,
+        "job_id": job_id,
+        "stage": stage,
+        "elapsed_seconds": elapsed_seconds,
+    }
+    payload.update({key: value for key, value in fields.items() if value is not None})
+    print(f"[AML SUMMARY] {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
+
+
+def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **fields):
+    """Atomically update a job and record the stage reached by its worker thread."""
+    with SUMMARY_GUI_JOBS_LOCK:
+        job = SUMMARY_GUI_JOBS.get(job_id)
+        if job is None:
+            return False
+        if job["status"] in SUMMARY_GUI_JOB_TERMINAL_STATUSES and status not in (None, job["status"]):
+            return False
+        if stage is not None:
+            job["stage"] = stage
+        if message is not None:
+            job["message"] = message
+        if status is not None:
+            job["status"] = status
+        job["updated_monotonic"] = time.monotonic()
+        job.update(fields)
+        elapsed_seconds = _summary_gui_job_elapsed(job)
+        current_stage = job.get("stage", "unknown")
+    log_fields = {
+        key: fields[key]
+        for key in ("row_count", "column_count", "file_size", "captcha_attempt", "captcha_attempt_limit", "exception_type")
+        if key in fields
+    }
+    _summary_gui_log(
+        job_id,
+        "stage",
+        current_stage,
+        elapsed_seconds,
+        status=status,
+        message=message,
+        **log_fields,
+    )
+    return True
+
+
+def _summary_gui_failure_message(stage, exc):
+    """Give the UI a useful failure reason without exposing request secrets."""
+    detail = re.sub(r"\s+", " ", str(exc or "")).strip()
+    detail = re.sub(r"(?i)(password|captcha|cookie|token)=[^\s&]+", r"\1=[redacted]", detail)
+    detail = detail[:500] or type(exc).__name__
+    return f"AML GUI export failed during {stage.replace('_', ' ')}: {detail}"
 
 def _parse_csv_response_to_summary(resp):
     content_type = resp.headers.get("Content-Type", "")
@@ -2435,31 +2497,73 @@ def _parse_csv_response_to_summary(resp):
     rows = df.head(5000).to_dict(orient="records")
     return headers, rows, len(df)
 
-def _download_aml_datalist_csv(date_from, date_to, creds=None):
+def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
     """Export the AML v1 report through the same GUI sequence users follow."""
     download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
     driver = None
+
+    def report(stage, message, **fields):
+        if progress:
+            progress(stage, message, **fields)
+
+    def ensure_before_deadline():
+        if deadline is not None and time.monotonic() >= deadline:
+            raise RuntimeError("AML GUI export exceeded the server time limit")
+
     try:
+        ensure_before_deadline()
+        report("starting_browser", "Starting the AML browser.")
         driver = aml_build_driver(headless=True, download_dir=download_dir)
         _AML_DEBUG_DRIVERS.append(driver)
-        if not aml_login(driver, max_captcha_attempts=7, creds=creds):
+        ensure_before_deadline()
+        report("logging_in", "Signing in to AML GUI.")
+        if not aml_login(
+            driver,
+            max_captcha_attempts=7,
+            creds=creds,
+            progress=report,
+            deadline=deadline,
+        ):
             raise RuntimeError("AML GUI login failed after captcha retries")
 
         # Login leaves the browser on the AML page that contains the filters.
         # Do not navigate to /reports/generate after authentication.
+        ensure_before_deadline()
+        report("setting_dates", "Setting AML report date filters.")
         wait = WebDriverWait(driver, 40)
         _set_aml_report_date_filters(driver, wait, date_from, date_to)
+        report("selecting_filters", "Selecting AML report filters.")
         _click_aml_option(wait, AML_STATUS_OPTION_XPATH, "Status")
         _click_aml_option(wait, AML_FEATURE_TYPE_OPTION_XPATH, "Feature Type")
 
         # Clicking the specified Export button starts the browser download.
+        ensure_before_deadline()
+        report("requesting_export", "Requesting the AML export file.")
         before = set(os.listdir(download_dir))
         export_button = wait.until(EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH)))
         driver.execute_script("arguments[0].click();", export_button)
-        download_path = _wait_for_aml_download(download_dir, before, timeout=180)
+        report("waiting_for_download", "Waiting for AML to finish the export download.")
+        download_path = _wait_for_aml_download(
+            download_dir,
+            before,
+            timeout=180,
+            progress=report,
+            deadline=deadline,
+        )
+        if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
+            raise RuntimeError("AML export download is missing or empty")
+
+        ensure_before_deadline()
+        report("reading_export", "Verifying the downloaded AML export file.", file_size=os.path.getsize(download_path))
         extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
-        df = read_data_file(download_path, extension).fillna("")
+        try:
+            df = read_data_file(download_path, extension).fillna("")
+        except Exception as exc:
+            raise RuntimeError(f"Downloaded AML export could not be read as {extension}: {type(exc).__name__}") from exc
         headers = [str(c) for c in df.columns]
+        if not headers:
+            raise RuntimeError("Downloaded AML export has no readable columns")
+        report("export_verified", "AML export file is readable.", row_count=len(df), column_count=len(headers))
         return headers, df.head(5000).to_dict(orient="records"), len(df)
     finally:
         if driver is not None:
@@ -2732,13 +2836,37 @@ def _close_debug_driver(driver, temp_csv_path=None):
         except Exception:
             pass
 
+def _expire_summary_gui_job_if_needed(job):
+    """Stop polling jobs whose worker can no longer finish inside the UI limit."""
+    if (
+        job["status"] not in SUMMARY_GUI_JOB_TERMINAL_STATUSES
+        and time.monotonic() >= job["deadline_monotonic"]
+    ):
+        job.update(
+            status="error",
+            stage="timed_out",
+            message="AML GUI export exceeded the server time limit. Please start a new export.",
+            updated_monotonic=time.monotonic(),
+        )
+        _summary_gui_log(
+            job["job_id"],
+            "timed_out",
+            "timed_out",
+            _summary_gui_job_elapsed(job),
+            status="error",
+        )
+
+
 def _summary_gui_job_response(job):
     """Return a JSON-safe summary job state without exposing AML credentials."""
+    _expire_summary_gui_job_if_needed(job)
     return {
         "success": job["status"] == "done",
         "status": job["status"],
         "job_id": job["job_id"],
         "message": job.get("message"),
+        "stage": job.get("stage", "queued"),
+        "elapsed_seconds": _summary_gui_job_elapsed(job),
         "headers": job.get("headers", []) if job["status"] == "done" else [],
         "rows": job.get("rows", []) if job["status"] == "done" else [],
         "total_rows": job.get("total_rows", 0) if job["status"] == "done" else 0,
@@ -2749,23 +2877,57 @@ def _summary_gui_job_response(job):
 
 
 def _run_summary_gui_job(job_id, creds):
+    stage = "queued"
     try:
         with SUMMARY_GUI_JOBS_LOCK:
             job = SUMMARY_GUI_JOBS[job_id]
-            job["status"] = "running"
             date_from, date_to = job["date_from"], job["date_to"]
-        print(f"[AML SUMMARY] Start job={job_id} date_from={date_from} date_to={date_to}", flush=True)
-        headers, rows, total_rows = _download_aml_datalist_csv(date_from, date_to, creds=creds)
-        with SUMMARY_GUI_JOBS_LOCK:
-            job = SUMMARY_GUI_JOBS[job_id]
-            job.update(status="done", headers=headers, rows=rows, total_rows=total_rows)
-        print(f"[AML SUMMARY] Completed job={job_id} rows={total_rows} headers={len(headers)}", flush=True)
+            deadline = job["deadline_monotonic"]
+
+        def progress(next_stage, message, **fields):
+            nonlocal stage
+            stage = next_stage
+            _summary_gui_update_job(
+                job_id,
+                status="running",
+                stage=next_stage,
+                message=message,
+                **fields,
+            )
+
+        progress("starting", "Starting AML GUI export.")
+        _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
+        headers, rows, total_rows = _download_aml_datalist_csv(
+            date_from,
+            date_to,
+            creds=creds,
+            progress=progress,
+            deadline=deadline,
+        )
+        completed = _summary_gui_update_job(
+            job_id,
+            status="done",
+            stage="completed",
+            message="AML GUI export is ready.",
+            headers=headers,
+            rows=rows,
+            total_rows=total_rows,
+            row_count=total_rows,
+            column_count=len(headers),
+        )
+        if not completed:
+            return
     except Exception as exc:
-        print(f"[AML SUMMARY] ERROR job={job_id}: {exc}", flush=True)
-        traceback.print_exc()
-        with SUMMARY_GUI_JOBS_LOCK:
-            if job_id in SUMMARY_GUI_JOBS:
-                SUMMARY_GUI_JOBS[job_id].update(status="error", message=str(exc))
+        message = _summary_gui_failure_message(stage, exc)
+        updated = _summary_gui_update_job(
+            job_id,
+            status="error",
+            stage="failed",
+            message=message,
+            exception_type=type(exc).__name__,
+        )
+        if not updated:
+            return
 
 
 @app.route("/summary-source-from-gui", methods=["POST"])
@@ -2787,13 +2949,18 @@ def summary_source_from_gui():
             session.get("email", ""), session.get("display_name", "User")
         )
         job_id = uuid.uuid4().hex
+        now = time.monotonic()
         with SUMMARY_GUI_JOBS_LOCK:
             SUMMARY_GUI_JOBS[job_id] = {
                 "job_id": job_id,
                 "status": "queued",
                 "message": "Preparing AML GUI export.",
+                "stage": "queued",
                 "date_from": date_from,
                 "date_to": date_to,
+                "started_monotonic": now,
+                "updated_monotonic": now,
+                "deadline_monotonic": now + SUMMARY_GUI_JOB_TIMEOUT_SECONDS,
                 "headers": [],
                 "rows": [],
                 "total_rows": 0,
@@ -2821,7 +2988,10 @@ def summary_source_from_gui_status(job_id):
         job = SUMMARY_GUI_JOBS.get(job_id)
         response = _summary_gui_job_response(job) if job else None
     if response is None:
-        return jsonify({"success": False, "error": "Summary export job not found."}), 404
+        return jsonify({
+            "success": False,
+            "error": "Summary export job not found. The service may have restarted or been redeployed; please start a new export.",
+        }), 410
     return jsonify(response)
 
 @app.route("/health", methods=["GET"])
@@ -6156,7 +6326,7 @@ def aml_login_requests(max_captcha_attempts=7, creds=None, require_report_form=T
         login_page.raise_for_status()
         print(f"[AML HTTP LOGIN] Solving captcha attempt={attempt}", flush=True)
         captcha_text = aml_solve_gui_download_captcha(session_obj)
-        print(f"[AML HTTP LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
+        print(f"[AML HTTP LOGIN] Captcha OCR attempt={attempt} text_len={len(captcha_text or '')}", flush=True)
 
         if len(captcha_text or "") != 6:
             time.sleep(1)
@@ -6227,11 +6397,14 @@ def _click_aml_option(wait, option_xpath, label):
     option.click()
 
 
-def _wait_for_aml_download(download_dir, before, timeout=180):
-    deadline = time.monotonic() + timeout
+def _wait_for_aml_download(download_dir, before, timeout=180, progress=None, deadline=None):
+    download_deadline = time.monotonic() + timeout
     previous_size = None
     stable_checks = 0
-    while time.monotonic() < deadline:
+    last_progress_at = 0.0
+    while time.monotonic() < download_deadline:
+        if deadline is not None and time.monotonic() >= deadline:
+            raise RuntimeError("AML GUI export exceeded the server time limit while downloading")
         completed = [
             os.path.join(download_dir, name)
             for name in os.listdir(download_dir)
@@ -6243,9 +6416,14 @@ def _wait_for_aml_download(download_dir, before, timeout=180):
             if size > 0 and size == previous_size:
                 stable_checks += 1
                 if stable_checks >= 2:
+                    if progress:
+                        progress("download_complete", "AML export download completed.", file_size=size)
                     return candidate
             else:
                 previous_size, stable_checks = size, 0
+        if progress and time.monotonic() - last_progress_at >= 15:
+            progress("waiting_for_download", "Waiting for AML to finish the export download.")
+            last_progress_at = time.monotonic()
         time.sleep(1)
     raise RuntimeError(f"AML export did not finish downloading within {timeout} seconds")
 
@@ -6321,12 +6499,23 @@ def aml_build_driver(headless=True, download_dir=None):
     return driver
 
 
-def aml_login(driver, max_captcha_attempts=5, creds=None):
+def aml_login(driver, max_captcha_attempts=5, creds=None, progress=None, deadline=None):
     wait = WebDriverWait(driver, 20)
+    if progress:
+        progress("opening_login", "Opening AML login page.")
     driver.get(AML_LOGIN_URL)
 
     for attempt in range(1, max_captcha_attempts + 1):
         try:
+            if deadline is not None and time.monotonic() >= deadline:
+                raise RuntimeError("AML GUI export exceeded the server time limit during login")
+            if progress:
+                progress(
+                    "solving_captcha",
+                    f"Solving AML login CAPTCHA (attempt {attempt} of {max_captcha_attempts}).",
+                    captcha_attempt=attempt,
+                    captcha_attempt_limit=max_captcha_attempts,
+                )
             if creds:
                 username_value, password_value, _, _ = creds
             else:
@@ -6341,7 +6530,7 @@ def aml_login(driver, max_captcha_attempts=5, creds=None):
 
             captcha_img = wait.until(EC.presence_of_element_located((By.XPATH, AML_CAPTCHA_IMG_XPATH)))
             captcha_text = aml_get_captcha_text(captcha_img)
-            print(f"[AML LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
+            print(f"[AML LOGIN] Captcha OCR attempt={attempt} text_len={len(captcha_text or '')}", flush=True)
 
             if len(captcha_text or "") != AML_CAPTCHA_LENGTH:
                 print("[AML LOGIN] Captcha OCR returned an invalid length — retrying with a fresh page.")
@@ -6354,6 +6543,8 @@ def aml_login(driver, max_captcha_attempts=5, creds=None):
             captcha_field.send_keys(captcha_text)
 
             login_btn = driver.find_element(By.XPATH, AML_LOGIN_BUTTON_XPATH)
+            if progress:
+                progress("submitting_login", "Submitting AML login.", captcha_attempt=attempt)
             login_btn.click()
             time.sleep(3)
 
@@ -6368,7 +6559,9 @@ def aml_login(driver, max_captcha_attempts=5, creds=None):
                 login_form_still_present = False
 
             if not login_form_still_present:
-                print("[AML LOGIN] Success:", driver.current_url)
+                print("[AML LOGIN] Success", flush=True)
+                if progress:
+                    progress("login_complete", "AML login completed.", captcha_attempt=attempt)
                 return True
 
             print(f"[AML LOGIN] Attempt {attempt} failed — login form still visible (wrong captcha?). Retrying.")

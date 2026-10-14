@@ -5136,9 +5136,10 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
                 try {
                     const data = await requestSummaryFromGui(dateFrom, dateTo, function(job) {
-                        waitEl.querySelector('span').textContent = job.status === 'queued'
-                            ? 'Preparing GUI export...'
-                            : 'Logging in to GUI and downloading export...';
+                        waitEl.querySelector('span').textContent = job.message
+                            || (job.status === 'queued'
+                                ? 'Preparing GUI export...'
+                                : 'Logging in to GUI and downloading export...');
                     });
                     summaryHeaders = data.headers || [];
                     summaryParsedData = data.rows || [];
