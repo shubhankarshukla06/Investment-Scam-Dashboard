@@ -2482,6 +2482,7 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
 def _summary_gui_failure_message(stage, exc):
     """Give the UI a useful failure reason without exposing request secrets."""
     detail = re.sub(r"\s+", " ", str(exc or "")).strip()
+    detail = detail.split("Stacktrace:", 1)[0].strip()
     detail = re.sub(r"(?i)(password|captcha|cookie|token)=[^\s&]+", r"\1=[redacted]", detail)
     detail = detail[:500] or type(exc).__name__
     return f"AML GUI export failed during {stage.replace('_', ' ')}: {detail}"
@@ -6452,13 +6453,6 @@ def aml_build_driver(headless=True, download_dir=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-software-rasterizer")
-    # The Render process restarted immediately after AML export was requested.
-    # Keep Chrome's helper-process footprint small while retaining the normal
-    # browser download flow used by every AML automation path.
-    options.add_argument("--renderer-process-limit=1")
-    options.add_argument("--no-zygote")
-    options.add_argument("--disable-extensions")
-    options.add_argument("--disable-background-networking")
     options.add_argument("--remote-debugging-port=0")
     if download_dir:
         options.add_experimental_option("prefs", {
