@@ -2412,6 +2412,8 @@ AML_GUI_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
 )
+SUMMARY_GUI_JOBS = {}
+SUMMARY_GUI_JOBS_LOCK = threading.Lock()
 
 def _parse_csv_response_to_summary(resp):
     content_type = resp.headers.get("Content-Type", "")
@@ -2424,14 +2426,14 @@ def _parse_csv_response_to_summary(resp):
     rows = df.head(5000).to_dict(orient="records")
     return headers, rows, len(df)
 
-def _download_aml_datalist_csv(date_from, date_to):
+def _download_aml_datalist_csv(date_from, date_to, creds=None):
     """Export the AML v1 report through the same GUI sequence users follow."""
     download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
     driver = None
     try:
         driver = aml_build_driver(headless=True, download_dir=download_dir)
         _AML_DEBUG_DRIVERS.append(driver)
-        if not aml_login(driver, max_captcha_attempts=7):
+        if not aml_login(driver, max_captcha_attempts=7, creds=creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
 
         # Login leaves the browser on the AML page that contains the filters.
@@ -2721,34 +2723,97 @@ def _close_debug_driver(driver, temp_csv_path=None):
         except Exception:
             pass
 
+def _summary_gui_job_response(job):
+    """Return a JSON-safe summary job state without exposing AML credentials."""
+    return {
+        "success": job["status"] == "done",
+        "status": job["status"],
+        "job_id": job["job_id"],
+        "message": job.get("message"),
+        "headers": job.get("headers", []) if job["status"] == "done" else [],
+        "rows": job.get("rows", []) if job["status"] == "done" else [],
+        "total_rows": job.get("total_rows", 0) if job["status"] == "done" else 0,
+        "source": "AML GUI",
+        "date_from": job["date_from"],
+        "date_to": job["date_to"],
+    }
+
+
+def _run_summary_gui_job(job_id, creds):
+    try:
+        with SUMMARY_GUI_JOBS_LOCK:
+            job = SUMMARY_GUI_JOBS[job_id]
+            job["status"] = "running"
+            date_from, date_to = job["date_from"], job["date_to"]
+        print(f"[AML SUMMARY] Start job={job_id} date_from={date_from} date_to={date_to}", flush=True)
+        headers, rows, total_rows = _download_aml_datalist_csv(date_from, date_to, creds=creds)
+        with SUMMARY_GUI_JOBS_LOCK:
+            job = SUMMARY_GUI_JOBS[job_id]
+            job.update(status="done", headers=headers, rows=rows, total_rows=total_rows)
+        print(f"[AML SUMMARY] Completed job={job_id} rows={total_rows} headers={len(headers)}", flush=True)
+    except Exception as exc:
+        print(f"[AML SUMMARY] ERROR job={job_id}: {exc}", flush=True)
+        traceback.print_exc()
+        with SUMMARY_GUI_JOBS_LOCK:
+            if job_id in SUMMARY_GUI_JOBS:
+                SUMMARY_GUI_JOBS[job_id].update(status="error", message=str(exc))
+
+
 @app.route("/summary-source-from-gui", methods=["POST"])
 @login_required
 def summary_source_from_gui():
+    """Queue the long AML browser export so Render never proxies a long request."""
     if "sheet" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     date_from = str(data.get("date_from", "")).strip()
     date_to = str(data.get("date_to", "")).strip()
     if not date_from or not date_to:
-        return jsonify({"success": False, "error": "From date and To date required"})
+        return jsonify({"success": False, "error": "From date and To date required"}), 400
+    if date_from > date_to:
+        return jsonify({"success": False, "error": "From date cannot be after To date"}), 400
 
     try:
-        print(f"[AML SUMMARY] Start date_from={date_from} date_to={date_to}", flush=True)
-        headers, rows, total_rows = _download_aml_datalist_csv(date_from, date_to)
-        print(f"[AML SUMMARY] Completed GUI export rows={total_rows} headers={len(headers)}", flush=True)
+        creds = get_aml_credentials_for_user(
+            session.get("email", ""), session.get("display_name", "User")
+        )
+        job_id = uuid.uuid4().hex
+        with SUMMARY_GUI_JOBS_LOCK:
+            SUMMARY_GUI_JOBS[job_id] = {
+                "job_id": job_id,
+                "status": "queued",
+                "message": "Preparing AML GUI export.",
+                "date_from": date_from,
+                "date_to": date_to,
+                "headers": [],
+                "rows": [],
+                "total_rows": 0,
+            }
+        threading.Thread(
+            target=_run_summary_gui_job, args=(job_id, creds), daemon=True
+        ).start()
         return jsonify({
             "success": True,
-            "headers": headers,
-            "rows": rows,
-            "total_rows": total_rows,
-            "source": "AML GUI",
-            "date_from": date_from,
-            "date_to": date_to,
-        })
-    except Exception as e:
-        print(f"[AML SUMMARY] ERROR: {e}", flush=True)
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)})
+            "status": "queued",
+            "job_id": job_id,
+            "message": "AML GUI export started.",
+        }), 202
+    except Exception as exc:
+        print(f"[AML SUMMARY] Could not queue export: {exc}", flush=True)
+        return jsonify({"success": False, "error": str(exc)}), 500
+
+
+@app.route("/summary-source-from-gui/<job_id>", methods=["GET"])
+@login_required
+def summary_source_from_gui_status(job_id):
+    if "sheet" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
+    with SUMMARY_GUI_JOBS_LOCK:
+        job = SUMMARY_GUI_JOBS.get(job_id)
+        response = _summary_gui_job_response(job) if job else None
+    if response is None:
+        return jsonify({"success": False, "error": "Summary export job not found."}), 404
+    return jsonify(response)
 
 @app.route("/health", methods=["GET"])
 def health_check():
