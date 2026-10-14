@@ -99,6 +99,15 @@ def login_required(f):
             return redirect("/login")
         return f(*args, **kwargs)
     return decorated
+
+def summary_api_login_required(f):
+    """Keep Summary Maker fetch endpoints on a JSON response contract."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            return jsonify({"success": False, "error": "Your session has expired. Please sign in again."}), 401
+        return f(*args, **kwargs)
+    return decorated
 def get_current_user():
     if "user_id" not in session:
         return None
@@ -2760,7 +2769,7 @@ def _run_summary_gui_job(job_id, creds):
 
 
 @app.route("/summary-source-from-gui", methods=["POST"])
-@login_required
+@summary_api_login_required
 def summary_source_from_gui():
     """Queue the long AML browser export so Render never proxies a long request."""
     if "sheet" not in session.get("allowed_pages", []):
@@ -2804,7 +2813,7 @@ def summary_source_from_gui():
 
 
 @app.route("/summary-source-from-gui/<job_id>", methods=["GET"])
-@login_required
+@summary_api_login_required
 def summary_source_from_gui_status(job_id):
     if "sheet" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403

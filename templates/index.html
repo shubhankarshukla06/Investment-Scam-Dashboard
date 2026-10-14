@@ -5065,9 +5065,14 @@
                             try {
                                 data = JSON.parse(responseText);
                             } catch (parseErr) {
-                                throw new Error('Summary export status returned an invalid response.');
+                                const contentType = resp.headers.get('content-type') || 'unknown content type';
+                                const preview = responseText.replace(/\s+/g, ' ').slice(0, 180);
+                                throw new Error(`Summary export status returned HTTP ${resp.status} (${contentType}). ${preview || 'The response was empty.'}`);
                             }
                             if (!resp.ok) throw new Error(data.error || 'Could not read GUI export status.');
+                            if (!data || typeof data !== 'object' || typeof data.status !== 'string') {
+                                throw new Error(`Summary export status returned an unexpected JSON response (HTTP ${resp.status}).`);
+                            }
                             if (onProgress) onProgress(data);
                             if (data.status === 'done') return resolve(data);
                             if (data.status === 'error') throw new Error(data.message || 'GUI export failed.');
@@ -5082,17 +5087,24 @@
             }
 
             async function requestSummaryFromGui(dateFrom, dateTo, onProgress) {
-                const resp = await fetch('/summary-source-from-gui', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
-                });
+                let resp;
+                try {
+                    resp = await fetch('/summary-source-from-gui', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
+                    });
+                } catch (err) {
+                    throw new Error(`Could not reach the GUI export endpoint: ${err.message || 'network error'}`);
+                }
                 const responseText = await resp.text();
                 let data;
                 try {
                     data = JSON.parse(responseText);
                 } catch (parseErr) {
-                    throw new Error('Could not start GUI export. Please refresh the page and try again.');
+                    const contentType = resp.headers.get('content-type') || 'unknown content type';
+                    const preview = responseText.replace(/\s+/g, ' ').slice(0, 180);
+                    throw new Error(`Could not start GUI export: HTTP ${resp.status} (${contentType}). ${preview || 'The response was empty.'}`);
                 }
                 if (!resp.ok || !data.success || !data.job_id) {
                     throw new Error(data.error || 'Could not start GUI export.');
