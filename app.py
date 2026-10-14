@@ -20,7 +20,7 @@ from functools import wraps
 import time
 import fitz  # PyMuPDF — pip install pymupdf
 import pytesseract  # pip install pytesseract
-from PIL import Image
+from PIL import Image, ImageFilter, ImageOps
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
@@ -2429,7 +2429,7 @@ def _download_aml_datalist_csv(date_from, date_to):
     download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
     driver = None
     try:
-        driver = aml_build_driver(headless=False, download_dir=download_dir)
+        driver = aml_build_driver(headless=True, download_dir=download_dir)
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7):
             raise RuntimeError("AML GUI login failed after captcha retries")
@@ -2654,12 +2654,12 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
     with open(temp_csv_path, "w", encoding="utf-8-sig", newline="") as f:
         f.write(csv_text)
 
-    driver = aml_build_driver(headless=False)
+    driver = aml_build_driver(headless=True)
     _AML_DEBUG_DRIVERS.append(driver)
     wait = WebDriverWait(driver, 40)
     try:
         if not aml_login(driver, max_captcha_attempts=7):
-            raise RuntimeError("AML GUI headed login failed after captcha retries")
+            raise RuntimeError("AML GUI headless login failed after captcha retries")
 
         # Use the AML landing page left by login; do not redirect to
         # /reports/generate before opening the Import dialog.
@@ -2685,7 +2685,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
         WebDriverWait(driver, 90).until(import_finished)
         page_text = driver.find_element(By.TAG_NAME, "body").text
         page_preview = re.sub(r"\s+", " ", page_text or "")[:500]
-        print(f"[SHEET AML IMPORT HEADED] current_url={driver.current_url} preview={page_preview}", flush=True)
+        print(f"[SHEET AML IMPORT] current_url={driver.current_url} preview={page_preview}", flush=True)
         if re.search(r"(Oops!|No column present|alert-danger|Fatal error|SQLSTATE|specified twice|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
             raise RuntimeError(f"AML GUI import failed on page: {page_preview}")
 
@@ -2699,9 +2699,9 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
             driver.save_screenshot(os.path.join(debug_dir, f"sheet_import_{debug_id}.png"))
             with open(os.path.join(debug_dir, f"sheet_import_{debug_id}.html"), "w", encoding="utf-8") as f:
                 f.write(driver.page_source)
-            print(f"[SHEET AML IMPORT HEADED] debug saved id={debug_id} dir={debug_dir}", flush=True)
+            print(f"[SHEET AML IMPORT] debug saved id={debug_id} dir={debug_dir}", flush=True)
         except Exception as dbg_exc:
-            print(f"[SHEET AML IMPORT HEADED] debug save failed: {dbg_exc}", flush=True)
+            print(f"[SHEET AML IMPORT] debug save failed: {dbg_exc}", flush=True)
         _close_debug_driver(driver, temp_csv_path)
         raise
 
@@ -5879,8 +5879,14 @@ _DDDDOCR_ENGINE = None
 _DDDDOCR_LOCK = threading.Lock()
 
 
+AML_CAPTCHA_LENGTH = 6
+AML_CAPTCHA_CONFUSABLES = str.maketrans({"o": "0", "i": "1", "l": "1"})
+
+
 def aml_clean_captcha_text(text):
-    return re.sub(r"[^a-zA-Z0-9]", "", text or "").lower()
+    """Normalize AML's six-character hexadecimal CAPTCHA without guessing extras."""
+    normalized = (text or "").strip().lower().translate(AML_CAPTCHA_CONFUSABLES)
+    return re.sub(r"[^0-9a-f]", "", normalized)
 
 
 def aml_get_hex_captcha_text_with_easyocr(captcha_bytes):
@@ -5897,14 +5903,31 @@ def aml_solve_gui_download_captcha(session_obj):
     return aml_get_captcha_text_from_bytes(img)
 
 def aml_get_captcha_text_with_tesseract(captcha_bytes):
-    img = Image.open(io.BytesIO(captcha_bytes)).convert("L")
-    if img.width and img.height:
-        img = img.resize((img.width * 5, img.height * 5))
-    text = pytesseract.image_to_string(
-        img,
-        config="--psm 7 -c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    ).strip()
-    return aml_clean_captcha_text(text)
+    """Read the AML hexadecimal CAPTCHA with several low-cost image variants."""
+    image = Image.open(io.BytesIO(captcha_bytes)).convert("L")
+    if image.width and image.height:
+        image = image.resize((image.width * 5, image.height * 5))
+    image = ImageOps.autocontrast(image.filter(ImageFilter.MedianFilter(size=3)))
+    variants = [
+        image,
+        image.point(lambda pixel: 255 if pixel > 145 else 0),
+        image.point(lambda pixel: 255 if pixel > 185 else 0),
+        ImageOps.invert(image.point(lambda pixel: 255 if pixel > 145 else 0)),
+    ]
+    seen = set()
+    for variant in variants:
+        for psm in (7, 8, 13):
+            text = pytesseract.image_to_string(
+                variant,
+                config=f"--psm {psm} -c tessedit_char_whitelist=0123456789abcdefABCDEF"
+            )
+            captcha_text = aml_clean_captcha_text(text)
+            if captcha_text in seen:
+                continue
+            seen.add(captcha_text)
+            if len(captcha_text) == AML_CAPTCHA_LENGTH:
+                return captcha_text
+    return ""
 
 
 def aml_get_captcha_text_with_ddddocr(captcha_bytes):
@@ -5937,9 +5960,9 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
     elif engine in ("ddddocr", "dddocr"):
         engines = ["ddddocr"]
     elif tesseract_available:
-        engines = ["tesseract"]
+        engines = ["tesseract", "ddddocr"]
     else:
-        engines = []
+        engines = ["ddddocr"]
 
     if not engines:
         raise RuntimeError("Tesseract OCR is not available. Set AML_OCR_ENGINE=ddddocr or easyocr only if Render has enough memory.")
@@ -5953,9 +5976,14 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
                 captcha_text = aml_get_captcha_text_with_tesseract(captcha_bytes)
             else:
                 captcha_text = aml_get_captcha_text_with_ddddocr(captcha_bytes)
-            if captcha_text:
+            if len(captcha_text or "") == AML_CAPTCHA_LENGTH:
                 print(f"[AML OCR] engine={candidate} text_len={len(captcha_text)}", flush=True)
                 return captcha_text
+            print(
+                f"[AML OCR] engine={candidate} rejected malformed CAPTCHA "
+                f"length={len(captcha_text or '')}",
+                flush=True,
+            )
         except Exception as exc:
             last_error = exc
             print(f"[AML OCR] engine={candidate} failed: {exc}", flush=True)
@@ -6148,9 +6176,11 @@ def _wait_for_aml_download(download_dir, before, timeout=180):
     raise RuntimeError(f"AML export did not finish downloading within {timeout} seconds")
 
 
-def aml_build_driver(headless=False, download_dir=None):
+def aml_build_driver(headless=True, download_dir=None):
     options = ChromeOptions()
-    # Default headed for GUI-style AML flows; headless can still be requested.
+    # Render has no display server. All AML automation uses modern headless
+    # Chrome, including its download path, so it behaves the same locally and
+    # after deployment.
     if headless:
         options.add_argument("--headless=new")
     options.add_argument("--window-size=1920,1080")
@@ -6170,13 +6200,43 @@ def aml_build_driver(headless=False, download_dir=None):
     unique_profile = os.path.join(tempfile.gettempdir(), f"chrome_profile_{uuid.uuid4().hex}")
     options.add_argument(f"--user-data-dir={unique_profile}")
 
-    try:
-        # Auto-downloads/matches the chromedriver version to the installed Chrome browser
-        service = ChromeService(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=options)
-    except Exception as exc:
-        print(f"[AML DRIVER] webdriver-manager failed, falling back to system chromedriver: {exc}")
-        return webdriver.Chrome(options=options)
+    chrome_binary = next(
+        (
+            candidate for candidate in (
+                os.environ.get("CHROME_BIN"),
+                os.environ.get("GOOGLE_CHROME_BIN"),
+                shutil.which("chromium"),
+                shutil.which("chromium-browser"),
+                shutil.which("google-chrome"),
+            )
+            if candidate
+        ),
+        None,
+    )
+    if chrome_binary:
+        options.binary_location = chrome_binary
+
+    driver_path = os.environ.get("CHROMEDRIVER_PATH") or shutil.which("chromedriver")
+    if driver_path:
+        driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
+    else:
+        try:
+            # Kept only as a local-development fallback. Render uses the
+            # Chromium/ChromeDriver pair installed in Docker.
+            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+        except Exception as exc:
+            print(f"[AML DRIVER] webdriver-manager failed, falling back to Selenium Manager: {exc}")
+            driver = webdriver.Chrome(options=options)
+
+    if download_dir:
+        try:
+            driver.execute_cdp_cmd(
+                "Page.setDownloadBehavior",
+                {"behavior": "allow", "downloadPath": os.path.abspath(download_dir)},
+            )
+        except Exception as exc:
+            print(f"[AML DRIVER] Could not set headless download behavior: {exc}", flush=True)
+    return driver
 
 
 def aml_login(driver, max_captcha_attempts=5, creds=None):
@@ -6201,8 +6261,8 @@ def aml_login(driver, max_captcha_attempts=5, creds=None):
             captcha_text = aml_get_captcha_text(captcha_img)
             print(f"[AML LOGIN] Captcha attempt {attempt}: '{captcha_text}'")
 
-            if not captcha_text:
-                print("[AML LOGIN] Captcha OCR returned empty text — retrying with a fresh page.")
+            if len(captcha_text or "") != AML_CAPTCHA_LENGTH:
+                print("[AML LOGIN] Captcha OCR returned an invalid length — retrying with a fresh page.")
                 driver.get(AML_LOGIN_URL)
                 time.sleep(0.5)
                 continue
@@ -7009,7 +7069,7 @@ def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
     try:
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[job_id]["status"] = "running"
-        driver = aml_build_driver(headless=False)
+        driver = aml_build_driver(headless=True)
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")

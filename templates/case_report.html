@@ -303,6 +303,18 @@
         max-width: 650px;
         margin-top: 12px;
       }
+      .qc-action-fields {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 1fr);
+        gap: 12px;
+        max-width: 1100px;
+      }
+      .qc-action-fields .field {
+        max-width: none;
+      }
+      .qc-action-fields .reject-fields {
+        align-self: start;
+      }
       .help {
         margin: 5px 0 0;
         color: #718096;
@@ -555,6 +567,9 @@
         .panel {
           padding: 12px;
         }
+        .qc-action-fields {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
   </head>
@@ -685,23 +700,25 @@
             Run an AML approval or rejection action for pasted Case IDs. This
             workflow does not read from or write to QC Review.
           </p>
-          <div class="field">
-            <label for="caseIds">Case IDs</label
-            ><textarea
-              id="caseIds"
-              placeholder="Paste Case IDs separated by commas, spaces, or new lines"
-            ></textarea>
-            <p class="help">
-              Up to 500 numeric Case IDs. Duplicate IDs are processed once.
-            </p>
-          </div>
-          <div class="field reject-fields" id="rejectFields">
-            <label for="remark">Rejection remark</label
-            ><select id="remark">
-              {% for remark in case_report_remark_options %}
-              <option value="{{ remark }}">{{ remark }}</option>
-              {% endfor %}
-            </select>
+          <div class="qc-action-fields">
+            <div class="field">
+              <label for="caseIds">Case IDs</label
+              ><textarea
+                id="caseIds"
+                placeholder="Paste Case IDs separated by commas, spaces, or new lines"
+              ></textarea>
+              <p class="help">
+                Up to 500 numeric Case IDs. Duplicate IDs are processed once.
+              </p>
+            </div>
+            <div class="field reject-fields" id="rejectFields">
+              <label for="remark">Rejection remark</label
+              ><select id="remark">
+                {% for remark in case_report_remark_options %}
+                <option value="{{ remark }}">{{ remark }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="actions">
             <button type="button" class="run-btn" id="runBtn">
