@@ -6452,6 +6452,13 @@ def aml_build_driver(headless=True, download_dir=None):
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-software-rasterizer")
+    # The Render process restarted immediately after AML export was requested.
+    # Keep Chrome's helper-process footprint small while retaining the normal
+    # browser download flow used by every AML automation path.
+    options.add_argument("--renderer-process-limit=1")
+    options.add_argument("--no-zygote")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-background-networking")
     options.add_argument("--remote-debugging-port=0")
     if download_dir:
         options.add_experimental_option("prefs", {
