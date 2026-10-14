@@ -6250,6 +6250,18 @@ def _wait_for_aml_download(download_dir, before, timeout=180):
     raise RuntimeError(f"AML export did not finish downloading within {timeout} seconds")
 
 
+def _find_aml_executable(env_names, command_names):
+    for env_name in env_names:
+        candidate = os.environ.get(env_name, "").strip()
+        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    for command_name in command_names:
+        candidate = shutil.which(command_name)
+        if candidate and os.path.isfile(candidate) and os.access(candidate, os.X_OK):
+            return candidate
+    return None
+
+
 def aml_build_driver(headless=True, download_dir=None):
     options = ChromeOptions()
     # Render has no display server. All AML automation uses modern headless
@@ -6274,29 +6286,25 @@ def aml_build_driver(headless=True, download_dir=None):
     unique_profile = os.path.join(tempfile.gettempdir(), f"chrome_profile_{uuid.uuid4().hex}")
     options.add_argument(f"--user-data-dir={unique_profile}")
 
-    chrome_binary = next(
-        (
-            candidate for candidate in (
-                os.environ.get("CHROME_BIN"),
-                os.environ.get("GOOGLE_CHROME_BIN"),
-                shutil.which("chromium"),
-                shutil.which("chromium-browser"),
-                shutil.which("google-chrome"),
-            )
-            if candidate
-        ),
-        None,
+    chrome_binary = _find_aml_executable(
+        ("CHROME_BIN", "GOOGLE_CHROME_BIN"),
+        ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"),
     )
+    if not chrome_binary and os.environ.get("RENDER"):
+        raise RuntimeError(
+            "Chrome/Chromium is not installed in this Render runtime. "
+            "Set the Python service Build Command to `bash render_build.sh` and redeploy."
+        )
     if chrome_binary:
         options.binary_location = chrome_binary
 
-    driver_path = os.environ.get("CHROMEDRIVER_PATH") or shutil.which("chromedriver")
+    driver_path = _find_aml_executable(("CHROMEDRIVER_PATH",), ("chromedriver",))
     if driver_path:
         driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
     else:
         try:
-            # Kept only as a local-development fallback. Render uses the
-            # Chromium/ChromeDriver pair installed in Docker.
+            # Kept only as a local-development fallback. Render receives a
+            # matched Chrome for Testing and ChromeDriver pair at startup.
             driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
         except Exception as exc:
             print(f"[AML DRIVER] webdriver-manager failed, falling back to Selenium Manager: {exc}")
