@@ -2464,7 +2464,11 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
         current_stage = job.get("stage", "unknown")
     log_fields = {
         key: fields[key]
-        for key in ("row_count", "column_count", "file_size", "captcha_attempt", "captcha_attempt_limit", "exception_type")
+        for key in (
+            "row_count", "column_count", "file_size", "captcha_attempt",
+            "captcha_attempt_limit", "exception_type", "response_status",
+            "content_type", "select_count",
+        )
         if key in fields
     }
     _summary_gui_log(
@@ -2498,10 +2502,211 @@ def _parse_csv_response_to_summary(resp):
     rows = df.head(5000).to_dict(orient="records")
     return headers, rows, len(df)
 
+
+def _extract_aml_export_form(html_text, date_from, date_to):
+    """Build the report form request from the authenticated AML page markup."""
+    forms = re.findall(r"<form\b([^>]*)>(.*?)</form\s*>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
+    for form_attrs_text, form_body in forms:
+        date_fields = []
+        select_fields = []
+        payload = {}
+        submit_controls = []
+
+        for match in re.finditer(r"<input\b([^>]*)>", form_body, flags=re.IGNORECASE | re.DOTALL):
+            raw_attrs = match.group(1)
+            attrs = _extract_attrs(raw_attrs)
+            name = attrs.get("name", "").strip()
+            input_type = (attrs.get("type") or "text").lower()
+            if not name or re.search(r"(?:^|\s)disabled(?:\s|=|$)", raw_attrs, re.IGNORECASE):
+                continue
+            if input_type == "button":
+                if re.search(r"export|download|csv|excel|xlsx", f"{attrs.get('value', '')} {name}", re.IGNORECASE):
+                    raise RuntimeError(
+                        "AML report export is triggered by a JavaScript-only button; its HTTP request must be identified before requests-only export is possible"
+                    )
+                continue
+            if input_type in ("reset", "image"):
+                continue
+            if input_type in ("submit",):
+                submit_controls.append({
+                    "name": name,
+                    "value": attrs.get("value", ""),
+                    "label": attrs.get("value", ""),
+                    "formaction": attrs.get("formaction"),
+                    "formmethod": attrs.get("formmethod"),
+                })
+                continue
+            if input_type in ("checkbox", "radio") and not re.search(r"(?:^|\s)checked(?:\s|=|$)", raw_attrs, re.IGNORECASE):
+                continue
+            value = attrs.get("value", "on" if input_type in ("checkbox", "radio") else "")
+            _set_form_value(payload, name, value)
+            if input_type == "date" or "date" in name.lower():
+                date_fields.append(name)
+
+        for match in re.finditer(r"<button\b([^>]*)>(.*?)</button\s*>", form_body, flags=re.IGNORECASE | re.DOTALL):
+            raw_attrs = match.group(1)
+            attrs = _extract_attrs(raw_attrs)
+            button_type = (attrs.get("type") or "submit").lower()
+            name = attrs.get("name", "").strip()
+            label = html.unescape(re.sub(r"<[^>]+>", "", match.group(2) or "")).strip()
+            if button_type in ("button", "reset"):
+                if re.search(r"export|download|csv|excel|xlsx", f"{label} {name}", re.IGNORECASE):
+                    raise RuntimeError(
+                        "AML report export is triggered by a JavaScript-only button; its HTTP request must be identified before requests-only export is possible"
+                    )
+                continue
+            if name:
+                submit_controls.append({
+                    "name": name,
+                    "value": attrs.get("value", ""),
+                    "label": label,
+                    "formaction": attrs.get("formaction"),
+                    "formmethod": attrs.get("formmethod"),
+                })
+
+        for match in re.finditer(r"<select\b([^>]*)>(.*?)</select\s*>", form_body, flags=re.IGNORECASE | re.DOTALL):
+            raw_attrs = match.group(1)
+            attrs = _extract_attrs(raw_attrs)
+            name = attrs.get("name", "").strip()
+            if not name or re.search(r"(?:^|\s)disabled(?:\s|=|$)", raw_attrs, re.IGNORECASE):
+                continue
+            options = []
+            for option_match in re.finditer(r"<option\b([^>]*)>(.*?)</option\s*>", match.group(2), flags=re.IGNORECASE | re.DOTALL):
+                raw_option_attrs = option_match.group(1)
+                option_attrs = _extract_attrs(raw_option_attrs)
+                if re.search(r"(?:^|\s)disabled(?:\s|=|$)", raw_option_attrs, re.IGNORECASE):
+                    continue
+                option_text = re.sub(r"<[^>]+>", "", option_match.group(2) or "")
+                option_text = html.unescape(option_text).strip()
+                option_value = option_attrs.get("value", option_text)
+                options.append({
+                    "value": html.unescape(option_value).strip(),
+                    "selected": bool(re.search(r"(?:^|\s)selected(?:\s|=|$)", raw_option_attrs, re.IGNORECASE)),
+                })
+            if not options:
+                continue
+            selected = [option["value"] for option in options if option["selected"]]
+            default_values = selected or [options[0]["value"]]
+            if re.search(r"(?:^|\s)multiple(?:\s|=|$)", raw_attrs, re.IGNORECASE):
+                payload[name] = default_values
+            else:
+                payload[name] = default_values[0]
+            select_fields.append({
+                "name": name,
+                "options": options,
+                "multiple": bool(re.search(r"(?:^|\s)multiple(?:\s|=|$)", raw_attrs, re.IGNORECASE)),
+            })
+
+        for match in re.finditer(r"<textarea\b([^>]*)>(.*?)</textarea\s*>", form_body, flags=re.IGNORECASE | re.DOTALL):
+            attrs = _extract_attrs(match.group(1))
+            name = attrs.get("name", "").strip()
+            if name and "disabled" not in attrs:
+                _set_form_value(payload, name, html.unescape(match.group(2) or "").strip())
+
+        if len(date_fields) < 2 or len(select_fields) < 2:
+            continue
+
+        payload[date_fields[0]] = date_from
+        payload[date_fields[1]] = date_to
+
+        # Match the two choices used by the existing GUI workflow: option 2
+        # in the Status select and option 3 in the Feature Type select.
+        for select_index, option_index in ((0, 1), (1, 2)):
+            select_field = select_fields[select_index]
+            options = select_field["options"]
+            if len(options) <= option_index:
+                raise RuntimeError(
+                    f"AML report {select_field['name']} select has fewer options than the GUI export requires"
+                )
+            selected_value = options[option_index]["value"]
+            payload[select_field["name"]] = [selected_value] if select_field["multiple"] else selected_value
+
+        form_attrs = _extract_attrs(form_attrs_text)
+        action = form_attrs.get("action") or AML_REPORT_URL
+        method = (form_attrs.get("method") or "get").strip().lower()
+        export_control = next(
+            (control for control in submit_controls if re.search(r"export|download|csv|excel|xlsx", f"{control['label']} {control['name']}", re.IGNORECASE)),
+            submit_controls[-1] if submit_controls else None,
+        )
+        if export_control:
+            action = export_control.get("formaction") or action
+            method = (export_control.get("formmethod") or method).strip().lower()
+            _set_form_value(payload, export_control["name"], export_control["value"])
+        action = urllib.parse.urljoin(AML_REPORT_URL, action)
+        if method not in ("get", "post"):
+            raise RuntimeError(f"AML report form uses unsupported HTTP method: {method}")
+        return method.upper(), action, payload, [field["name"] for field in select_fields]
+
+    raise RuntimeError(
+        "Authenticated AML report page did not contain the expected date filters and report selects"
+    )
+
+
+def _read_aml_export_response(response):
+    """Validate and parse AML's direct HTTP export response."""
+    body = response.content or b""
+    if not body:
+        raise RuntimeError(f"AML export endpoint returned an empty response (HTTP {response.status_code})")
+
+    content_type = (response.headers.get("Content-Type") or "").lower()
+    disposition = response.headers.get("Content-Disposition") or ""
+    filename_match = re.search(r"filename\*?=(?:UTF-8''|\")?([^;\"\r\n]+)", disposition, flags=re.IGNORECASE)
+    filename = urllib.parse.unquote(filename_match.group(1).strip().strip("\"'")) if filename_match else ""
+    extension = os.path.splitext(filename)[1].lstrip(".").lower()
+    if extension not in {"csv", "tsv", "txt", "xlsx", "xls", "xlsm", "xlsb", "ods"}:
+        if "spreadsheetml" in content_type or body.startswith(b"PK\x03\x04"):
+            extension = "xlsx"
+        elif "ms-excel" in content_type or body.startswith(bytes.fromhex("D0CF11E0A1B11AE1")):
+            extension = "xls"
+        elif "tab-separated" in content_type:
+            extension = "tsv"
+        else:
+            extension = "csv"
+
+    body_prefix = body.lstrip()[:2048].lower()
+    if "text/html" in content_type or re.search(rb"<!doctype\s+html|<html\b|<form\b", body_prefix):
+        if re.search(rb"name=[\"']usernamee[\"']", body, flags=re.IGNORECASE):
+            raise RuntimeError("AML export request was redirected to the login page; the HTTP session expired")
+        raise RuntimeError(
+            "AML export request returned an HTML page instead of a CSV/Excel file; the report page may require a JavaScript export request"
+        )
+
+    try:
+        source = io.BytesIO(body)
+        if extension == "csv":
+            dataframe = pd.read_csv(source)
+        elif extension == "tsv":
+            dataframe = pd.read_csv(source, sep="\t")
+        elif extension == "txt":
+            text = body.decode("utf-8-sig", errors="replace")
+            dataframe = None
+            for delimiter in ("\t", ",", ";", "|"):
+                candidate = pd.read_csv(io.StringIO(text), sep=delimiter)
+                if len(candidate.columns) > 1:
+                    dataframe = candidate
+                    break
+            if dataframe is None:
+                dataframe = pd.read_csv(io.StringIO(text))
+        else:
+            dataframe = pd.read_excel(source)
+    except Exception as exc:
+        raise RuntimeError(
+            f"AML export response could not be parsed as {extension.upper()} ({type(exc).__name__})"
+        ) from exc
+
+    dataframe = dataframe.fillna("")
+    headers = [str(column) for column in dataframe.columns]
+    if not headers:
+        raise RuntimeError("AML export file has no readable columns")
+    rows = dataframe.head(5000).to_dict(orient="records")
+    return headers, rows, len(dataframe), extension
+
+
 def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
-    """Export the AML v1 report through the same GUI sequence users follow."""
-    download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
+    """Use visible Selenium locally for AML verification; keep HTTP export mode available."""
+    session_obj = None
     driver = None
+    download_dir = None
 
     def report(stage, message, **fields):
         if progress:
@@ -2513,63 +2718,148 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
 
     try:
         ensure_before_deadline()
-        report("starting_browser", "Starting the AML browser.")
-        driver = aml_build_driver(headless=True, download_dir=download_dir)
-        _AML_DEBUG_DRIVERS.append(driver)
-        ensure_before_deadline()
-        report("logging_in", "Signing in to AML GUI.")
-        if not aml_login(
-            driver,
-            max_captcha_attempts=7,
-            creds=creds,
-            progress=report,
-            deadline=deadline,
-        ):
-            raise RuntimeError("AML GUI login failed after captcha retries")
+        login_mode = os.environ.get(
+            "AML_SUMMARY_LOGIN_MODE",
+            "selenium",
+        ).strip().lower()
+        if login_mode in ("headed", "browser", "selenium"):
+            download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
+            report("starting_browser", "Starting the AML browser in headless mode.")
+            driver = aml_build_driver(headless=True, download_dir=download_dir)
+            _AML_DEBUG_DRIVERS.append(driver)
+            ensure_before_deadline()
+            report("logging_in", "Signing in through the visible AML browser.")
+            if not aml_login(
+                driver,
+                max_captcha_attempts=7,
+                creds=creds,
+                progress=progress,
+                deadline=deadline,
+            ):
+                raise RuntimeError("AML browser login failed after CAPTCHA retries")
+            report("login_verified", "Visible AML browser login succeeded.")
 
-        # Login leaves the browser on the AML page that contains the filters.
-        # Do not navigate to /reports/generate after authentication.
-        ensure_before_deadline()
-        report("setting_dates", "Setting AML report date filters.")
-        wait = WebDriverWait(driver, 40)
-        _set_aml_report_date_filters(driver, wait, date_from, date_to)
-        report("selecting_filters", "Selecting AML report filters.")
-        _click_aml_option(wait, AML_STATUS_OPTION_XPATH, "Status")
-        _click_aml_option(wait, AML_FEATURE_TYPE_OPTION_XPATH, "Feature Type")
+            # The AML report controls are rendered in the authenticated GUI.
+            # Keep this browser session on that page rather than navigating to
+            # a guessed report URL or trying to recreate its form over HTTP.
+            wait = WebDriverWait(driver, 40)
+            report("setting_dates", "Setting AML report date filters.")
+            _set_aml_report_date_filters(driver, wait, date_from, date_to)
+            report("selecting_filters", "Selecting AML status and case type.")
+            _click_aml_option(driver, wait, AML_STATUS_OPTION_XPATH, "Status")
+            _click_aml_option(driver, wait, AML_FEATURE_TYPE_OPTION_XPATH, "Case Type")
 
-        # Clicking the specified Export button starts the browser download.
+            ensure_before_deadline()
+            report("requesting_export", "Clicking Export in the AML report page.")
+            before = set(os.listdir(download_dir))
+            export_button = wait.until(
+                EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH))
+            )
+            export_button.click()
+            report("waiting_for_download", "Waiting for AML to finish the export download.")
+            download_path = _wait_for_aml_download(
+                download_dir,
+                before,
+                timeout=180,
+                progress=report,
+                deadline=deadline,
+            )
+            ensure_before_deadline()
+            if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
+                raise RuntimeError("AML export download is missing or empty")
+            report(
+                "reading_export",
+                "Verifying the downloaded AML export file.",
+                file_size=os.path.getsize(download_path),
+            )
+            extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
+            try:
+                dataframe = read_data_file(download_path, extension).fillna("")
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Downloaded AML export could not be read as {extension.upper()} ({type(exc).__name__})"
+                ) from exc
+            headers = [str(column) for column in dataframe.columns]
+            if not headers:
+                raise RuntimeError("Downloaded AML export has no readable columns")
+            report(
+                "export_verified",
+                "AML export file is readable.",
+                row_count=len(dataframe),
+                column_count=len(headers),
+                file_size=os.path.getsize(download_path),
+            )
+            return headers, dataframe.head(5000).to_dict(orient="records"), len(dataframe)
+        elif login_mode == "requests":
+            report("logging_in", "Signing in to AML GUI over HTTP.")
+            session_obj = aml_login_requests(max_captcha_attempts=7, creds=creds, require_report_form=False)
+        else:
+            raise RuntimeError(
+                "AML_SUMMARY_LOGIN_MODE must be 'headed' or 'requests'"
+            )
         ensure_before_deadline()
-        report("requesting_export", "Requesting the AML export file.")
-        before = set(os.listdir(download_dir))
-        export_button = wait.until(EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH)))
-        driver.execute_script("arguments[0].click();", export_button)
-        report("waiting_for_download", "Waiting for AML to finish the export download.")
-        download_path = _wait_for_aml_download(
-            download_dir,
-            before,
-            timeout=180,
-            progress=report,
-            deadline=deadline,
+        report("loading_report_form", "Loading AML report form.")
+        report_page = session_obj.get(AML_REPORT_URL, timeout=45, allow_redirects=True)
+        report_page.raise_for_status()
+        if re.search(r"name=[\"']usernamee[\"']", report_page.text or "", flags=re.IGNORECASE):
+            raise RuntimeError("AML HTTP login succeeded but the report page redirected back to login")
+
+        report("preparing_export", "Preparing AML report filters and export request.")
+        method, export_url, payload, select_names = _extract_aml_export_form(
+            report_page.text,
+            date_from,
+            date_to,
         )
-        if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
-            raise RuntimeError("AML export download is missing or empty")
+        if deadline is not None and time.monotonic() >= deadline:
+            raise RuntimeError("AML GUI export exceeded the server time limit before requesting the export")
 
-        ensure_before_deadline()
-        report("reading_export", "Verifying the downloaded AML export file.", file_size=os.path.getsize(download_path))
-        extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
-        try:
-            df = read_data_file(download_path, extension).fillna("")
-        except Exception as exc:
-            raise RuntimeError(f"Downloaded AML export could not be read as {extension}: {type(exc).__name__}") from exc
-        headers = [str(c) for c in df.columns]
-        if not headers:
-            raise RuntimeError("Downloaded AML export has no readable columns")
-        report("export_verified", "AML export file is readable.", row_count=len(df), column_count=len(headers))
-        return headers, df.head(5000).to_dict(orient="records"), len(df)
+        report("requesting_export", "Requesting AML export over HTTP.", select_count=len(select_names))
+        request_kwargs = {"params" if method == "GET" else "data": payload}
+        response = session_obj.request(
+            method,
+            export_url,
+            timeout=90,
+            allow_redirects=True,
+            headers={"Referer": report_page.url or AML_REPORT_URL},
+            **request_kwargs,
+        )
+        report(
+            "export_response_received",
+            "AML responded to the HTTP export request.",
+            response_status=response.status_code,
+            content_type=(response.headers.get("Content-Type") or "unknown")[:100],
+            file_size=len(response.content),
+        )
+        response.raise_for_status()
+        if deadline is not None and time.monotonic() >= deadline:
+            raise RuntimeError("AML GUI export exceeded the server time limit while receiving the export")
+
+        report(
+            "reading_export",
+            "Verifying the AML HTTP export response.",
+            response_status=response.status_code,
+            content_type=(response.headers.get("Content-Type") or "unknown")[:100],
+            file_size=len(response.content),
+        )
+        headers, rows, total_rows, extension = _read_aml_export_response(response)
+        report(
+            "export_verified",
+            f"AML {extension.upper()} export is readable.",
+            row_count=total_rows,
+            column_count=len(headers),
+            file_size=len(response.content),
+        )
+        return headers, rows, total_rows
     finally:
+        if session_obj is not None:
+            try:
+                session_obj.close()
+            except Exception:
+                pass
         if driver is not None:
             _close_debug_driver(driver)
-        shutil.rmtree(download_dir, ignore_errors=True)
+        if download_dir:
+            shutil.rmtree(download_dir, ignore_errors=True)
 
 def _extract_form_action(html_text, base_url):
     forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
@@ -2770,7 +3060,7 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
     with open(temp_csv_path, "w", encoding="utf-8-sig", newline="") as f:
         f.write(csv_text)
 
-    driver = aml_build_driver(headless=True)
+    driver = aml_build_driver()
     _AML_DEBUG_DRIVERS.append(driver)
     wait = WebDriverWait(driver, 40)
     try:
@@ -6144,8 +6434,39 @@ def aml_get_hex_captcha_text_with_easyocr(captcha_bytes):
     return re.sub(r"[^0-9a-f]", "", text.lower())
 
 def aml_solve_gui_download_captcha(session_obj):
-    img = session_obj.get(urllib.parse.urljoin(AML_GUI_BASE_URL, "captcha.php"), timeout=30).content
-    return aml_get_captcha_text_from_bytes(img)
+    captcha_url = urllib.parse.urljoin(AML_GUI_BASE_URL, "captcha.php")
+    response = session_obj.get(captcha_url, timeout=30)
+    response.raise_for_status()
+    captcha_bytes = response.content or b""
+    content_type = (response.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+    final_path = urllib.parse.urlparse(response.url or captcha_url).path
+
+    # Validate the response before OCR. Authentication/session failures often
+    # return an HTML page with HTTP 200, which Pillow reports only as an
+    # unhelpful "cannot identify image" error.
+    try:
+        with Image.open(io.BytesIO(captcha_bytes)) as captcha_image:
+            captcha_image.verify()
+    except Exception as exc:
+        looks_like_html = bool(re.match(rb"\s*(?:<!doctype\s+html|<html|<\?xml)", captcha_bytes[:512], re.IGNORECASE))
+        response_kind = "HTML/non-image response" if looks_like_html else "invalid image response"
+        print(
+            "[AML CAPTCHA] Invalid response "
+            f"status={response.status_code} content_type={content_type or 'missing'} "
+            f"final_path={final_path} bytes={len(captcha_bytes)} kind={response_kind}",
+            flush=True,
+        )
+        raise RuntimeError(
+            "AML CAPTCHA endpoint did not return a valid image "
+            f"(HTTP {response.status_code}, content-type {content_type or 'missing'}, {response_kind})"
+        ) from exc
+
+    print(
+        f"[AML CAPTCHA] Image received status={response.status_code} "
+        f"content_type={content_type or 'missing'} final_path={final_path} bytes={len(captcha_bytes)}",
+        flush=True,
+    )
+    return aml_get_captcha_text_from_bytes(captcha_bytes)
 
 def aml_get_captcha_text_with_tesseract(captcha_bytes):
     """Read the AML hexadecimal CAPTCHA with several low-cost image variants."""
@@ -6212,7 +6533,7 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
     if not engines:
         raise RuntimeError("Tesseract OCR is not available. Set AML_OCR_ENGINE=ddddocr or easyocr only if Render has enough memory.")
 
-    last_error = None
+    errors = []
     for candidate in engines:
         try:
             if candidate == "easyocr":
@@ -6230,11 +6551,25 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
                 flush=True,
             )
         except Exception as exc:
-            last_error = exc
-            print(f"[AML OCR] engine={candidate} failed: {exc}", flush=True)
+            errors.append((candidate, exc))
+            # Exception text can contain local paths or response details. Keep
+            # logs concise and never include CAPTCHA data.
+            print(
+                f"[AML OCR] engine={candidate} failed: "
+                f"{type(exc).__name__}: {str(exc)[:240]}",
+                flush=True,
+            )
 
-    if last_error:
-        raise last_error
+    if errors:
+        missing_engines = [name for name, exc in errors if isinstance(exc, ModuleNotFoundError)]
+        if len(missing_engines) == len(errors):
+            raise RuntimeError(
+                "No configured CAPTCHA OCR engine is installed: " + ", ".join(missing_engines)
+            ) from errors[-1][1]
+        engine_errors = "; ".join(
+            f"{name}: {type(exc).__name__}" for name, exc in errors
+        )
+        raise RuntimeError(f"All configured CAPTCHA OCR engines failed ({engine_errors})") from errors[-1][1]
     return ""
 
 def aml_get_captcha_text(captcha_element):
@@ -6393,9 +6728,12 @@ def _set_aml_report_date_filters(driver, wait, date_from, date_to):
             raise RuntimeError(f"Could not set AML {label}: {exc}") from exc
 
 
-def _click_aml_option(wait, option_xpath, label):
-    option = wait.until(EC.element_to_be_clickable((By.XPATH, option_xpath)))
-    option.click()
+def _click_aml_option(driver, wait, option_xpath, label):
+    """Select an AML filter through its parent select and fire native events."""
+    try:
+        _select_aml_case_option(driver, wait, option_xpath)
+    except Exception as exc:
+        raise RuntimeError(f"Could not select AML {label} filter: {type(exc).__name__}") from exc
 
 
 def _wait_for_aml_download(download_dir, before, timeout=180, progress=None, deadline=None):
@@ -6441,11 +6779,18 @@ def _find_aml_executable(env_names, command_names):
     return None
 
 
-def aml_build_driver(headless=True, download_dir=None):
+def aml_build_driver(headless=None, download_dir=None):
     options = ChromeOptions()
-    # Render has no display server. All AML automation uses modern headless
-    # Chrome, including its download path, so it behaves the same locally and
-    # after deployment.
+    # Use visible Chrome for local AML verification. Render has no display
+    # server, so it remains headless there. AML_HEADLESS can override the
+    # default explicitly (for example, AML_HEADLESS=1 locally after testing).
+    if headless is None:
+        configured_headless = os.environ.get("AML_HEADLESS")
+        if configured_headless is None:
+            headless = bool(os.environ.get("RENDER"))
+        else:
+            headless = configured_headless.strip().lower() in ("1", "true", "yes", "on")
+    print(f"[AML DRIVER] mode={'headless' if headless else 'headed'}", flush=True)
     if headless:
         options.add_argument("--headless=new")
     options.add_argument("--window-size=1920,1080")
@@ -6472,7 +6817,7 @@ def aml_build_driver(headless=True, download_dir=None):
     if not chrome_binary and os.environ.get("RENDER"):
         raise RuntimeError(
             "Chrome/Chromium is not installed in this Render runtime. "
-            "Set the Python service Build Command to `bash render_build.sh` and redeploy."
+            "Install Chrome/Chromium and a compatible ChromeDriver in the service runtime, then redeploy."
         )
     if chrome_binary:
         options.binary_location = chrome_binary
@@ -6482,8 +6827,8 @@ def aml_build_driver(headless=True, download_dir=None):
         driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
     else:
         try:
-            # Kept only as a local-development fallback. Render receives a
-            # matched Chrome for Testing and ChromeDriver pair at startup.
+            # Use locally installed ChromeDriver or Selenium Manager when no
+            # explicit driver path is configured.
             driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
         except Exception as exc:
             print(f"[AML DRIVER] webdriver-manager failed, falling back to Selenium Manager: {exc}")
@@ -6959,7 +7304,6 @@ def _case_images_for_qc_record(record, mode, output_dir):
         images.append(image_path)
     return images
 
-
 def _run_case_report_job(job_id, case_ids, mode, aml_creds):
     """Generate AML reports from Case Generator records in a background job."""
     with REGEN_JOBS_LOCK:
@@ -7170,7 +7514,7 @@ def _report_generation_status(job_id):
 def _run_report_generation_job(job_id, rows, aml_creds):
     driver = None
     try:
-        driver = aml_build_driver(headless=True)
+        driver = aml_build_driver()
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
@@ -7247,7 +7591,7 @@ def _run_extract_and_generate_job(job_id, rows, aml_creds):
     driver = None
     temp_root = tempfile.mkdtemp(prefix="crg_pdf_extract_")
     try:
-        driver = aml_build_driver(headless=True)
+        driver = aml_build_driver()
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
@@ -7345,7 +7689,7 @@ def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
     try:
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[job_id]["status"] = "running"
-        driver = aml_build_driver(headless=True)
+        driver = aml_build_driver()
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
