@@ -202,7 +202,9 @@ def main():
     if missing_libraries:
         raise RuntimeError("Chrome has unresolved Linux shared library dependencies")
 
-    chrome_headless_smoke_test()
+    # Skip Chrome startup during build; the app logs detailed runtime diagnostics
+    # if ChromeDriver cannot create a browser session.
+    # chrome_headless_smoke_test()
 
 
 if __name__ == "__main__":

@@ -35,6 +35,8 @@ import traceback
 import uuid
 import threading
 import shutil
+import signal
+import subprocess
 import base64
 import html
 import hashlib
@@ -6779,6 +6781,87 @@ def _find_aml_executable(env_names, command_names):
     return None
 
 
+def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, probe_timeout=25):
+    """Print why Chrome/ChromeDriver failed to start; call only from an except block."""
+    def log(message):
+        print(f"[AML CHROME DIAG] {message}", flush=True)
+
+    log(f"driver error: {str(error)[:300]}")
+    for path in (
+        "/sys/fs/cgroup/memory.max",
+        "/sys/fs/cgroup/memory.current",
+        "/sys/fs/cgroup/memory/memory.limit_in_bytes",
+        "/sys/fs/cgroup/memory/memory.usage_in_bytes",
+    ):
+        try:
+            with open(path) as fh:
+                log(f"{path}={fh.read().strip()}")
+        except OSError:
+            pass
+    try:
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith(("MemTotal", "MemAvailable")):
+                    log(line.strip())
+    except OSError:
+        pass
+    try:
+        shm = shutil.disk_usage("/dev/shm")
+        log(f"/dev/shm total={shm.total} free={shm.free}")
+    except OSError as exc:
+        log(f"/dev/shm unavailable: {exc}")
+
+    if driver_log_path:
+        try:
+            with open(driver_log_path, errors="replace") as fh:
+                log(f"chromedriver log tail: {fh.read()[-2500:]!r}")
+        except OSError as exc:
+            log(f"no chromedriver log: {exc}")
+
+    if not chrome_binary:
+        return
+    profile = tempfile.mkdtemp(prefix="chrome_diag_")
+    command = [
+        chrome_binary,
+        "--headless=new",
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        f"--user-data-dir={profile}",
+        "--enable-logging=stderr",
+        "--dump-dom",
+        "about:blank",
+    ]
+    proc = None
+    try:
+        proc = subprocess.Popen(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+        try:
+            _, err = proc.communicate(timeout=probe_timeout)
+            log(f"direct launch rc={proc.returncode} stderr_tail={(err or '')[-1500:]!r}")
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            _, err = proc.communicate()
+            log(
+                f"direct launch TIMED OUT after {probe_timeout}s "
+                f"stderr_tail={(err or '')[-1500:]!r}"
+            )
+    except Exception as exc:
+        log(f"direct launch failed to run: {type(exc).__name__}: {exc}")
+    finally:
+        if proc is not None and proc.poll() is None:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except OSError:
+                pass
+        shutil.rmtree(profile, ignore_errors=True)
+
+
 def aml_build_driver(headless=None, download_dir=None):
     options = ChromeOptions()
     # Use visible Chrome for local AML verification. Render has no display
@@ -6825,7 +6908,21 @@ def aml_build_driver(headless=None, download_dir=None):
         options.binary_location = chrome_binary
 
     if driver_path:
-        driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
+        driver_log_path = os.path.join(
+            tempfile.gettempdir(), f"chromedriver_{uuid.uuid4().hex}.log"
+        )
+        try:
+            driver = webdriver.Chrome(
+                service=ChromeService(
+                    driver_path,
+                    service_args=["--verbose"],
+                    log_output=driver_log_path,
+                ),
+                options=options,
+            )
+        except Exception as exc:
+            _aml_log_chrome_diagnostics(chrome_binary, exc, driver_log_path)
+            raise
     else:
         try:
             # Use locally installed ChromeDriver or Selenium Manager when no
