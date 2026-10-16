@@ -5074,7 +5074,25 @@
                                 throw new Error(`Summary export status returned an unexpected JSON response (HTTP ${resp.status}).`);
                             }
                             if (onProgress) onProgress(data);
-                            if (data.status === 'done') return resolve(data);
+                            if (data.status === 'done') {
+                                const resultResp = await fetch(
+                                    '/summary-source-from-gui/' + encodeURIComponent(jobId) + '/result',
+                                    { cache: 'no-store' }
+                                );
+                                const resultText = await resultResp.text();
+                                let resultData;
+                                try {
+                                    resultData = JSON.parse(resultText);
+                                } catch (parseErr) {
+                                    const contentType = resultResp.headers.get('content-type') || 'unknown content type';
+                                    const preview = resultText.replace(/\s+/g, ' ').slice(0, 180);
+                                    throw new Error(`Summary export result returned HTTP ${resultResp.status} (${contentType}). ${preview || 'The response was empty.'}`);
+                                }
+                                if (!resultResp.ok || !resultData.success || !Array.isArray(resultData.rows)) {
+                                    throw new Error(resultData.error || 'Summary export completed but its result could not be loaded.');
+                                }
+                                return resolve(resultData);
+                            }
                             if (data.status === 'error') throw new Error(data.message || 'GUI export failed.');
                             if (Date.now() >= deadline) throw new Error('GUI export is taking too long. Please try again.');
                             setTimeout(poll, 1200);

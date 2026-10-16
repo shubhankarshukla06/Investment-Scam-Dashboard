@@ -38,6 +38,7 @@ import threading
 import shutil
 import signal
 import subprocess
+import sys
 import base64
 import html
 import hashlib
@@ -2426,13 +2427,29 @@ AML_GUI_UA = (
 )
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
+SUMMARY_GUI_EXPORT_LOCK = threading.Lock()
 SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
+SUMMARY_GUI_JOB_RETENTION_SECONDS = 1800
 SUMMARY_GUI_JOB_TERMINAL_STATUSES = {"done", "error"}
 
 
 def _summary_gui_job_elapsed(job):
     """Return elapsed wall time for the UI and structured job logs."""
     return round(max(0.0, time.monotonic() - job["started_monotonic"]), 1)
+
+
+def _prune_summary_gui_jobs(now=None):
+    """Drop terminal job records after their result retrieval window expires."""
+    now = time.monotonic() if now is None else now
+    expired_ids = [
+        job_id for job_id, job in SUMMARY_GUI_JOBS.items()
+        if job.get("status") in SUMMARY_GUI_JOB_TERMINAL_STATUSES
+        and now - job.get("updated_monotonic", now) >= SUMMARY_GUI_JOB_RETENTION_SECONDS
+    ]
+    for job_id in expired_ids:
+        SUMMARY_GUI_JOBS.pop(job_id, None)
+    if expired_ids:
+        print(f"[AML SUMMARY] pruned_terminal_jobs={len(expired_ids)}", flush=True)
 
 
 def _summary_gui_log(job_id, event, stage, elapsed_seconds, **fields):
@@ -2443,8 +2460,36 @@ def _summary_gui_log(job_id, event, stage, elapsed_seconds, **fields):
         "stage": stage,
         "elapsed_seconds": elapsed_seconds,
     }
+    payload.update(_aml_runtime_resource_metrics())
     payload.update({key: value for key, value in fields.items() if value is not None})
     print(f"[AML SUMMARY] {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
+    for process_line in _aml_chrome_process_lines()[:12]:
+        print(f"[AML CHROME PROC] job_id={job_id} {process_line}", flush=True)
+
+
+def _aml_runtime_resource_metrics():
+    """Return safe memory and browser-process metrics for Summary Maker logs."""
+    metrics = {}
+    for label, paths in (
+        ("memory_current_bytes", ("/sys/fs/cgroup/memory.current", "/sys/fs/cgroup/memory/memory.usage_in_bytes")),
+        ("memory_limit_bytes", ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes")),
+    ):
+        for path in paths:
+            try:
+                value = Path(path).read_text(encoding="ascii").strip()
+                if value.isdigit():
+                    metrics[label] = int(value)
+                    break
+            except OSError:
+                continue
+    process_lines = _aml_chrome_process_lines()
+    metrics["chrome_process_count"] = len(process_lines)
+    metrics["chrome_process_rss_mb"] = sum(
+        int(match.group(1))
+        for line in process_lines
+        if (match := re.search(r"\brss_mb=(\d+)", line))
+    )
+    return metrics
 
 
 def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **fields):
@@ -2859,10 +2904,12 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
                 session_obj.close()
             except Exception:
                 pass
-        if driver is not None:
-            _close_debug_driver(driver)
-        if download_dir:
-            shutil.rmtree(download_dir, ignore_errors=True)
+        try:
+            if driver is not None:
+                _close_debug_driver(driver)
+        finally:
+            if download_dir:
+                shutil.rmtree(download_dir, ignore_errors=True)
 
 def _extract_form_action(html_text, base_url):
     forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
@@ -3115,10 +3162,37 @@ def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
         raise
 
 def _close_debug_driver(driver, temp_csv_path=None):
-    try:
-        driver.quit()
-    except Exception:
-        pass
+    active_error = sys.exc_info()[1]
+    process_group_id = getattr(driver, "_aml_process_group_id", None)
+    quit_error = None
+    cleanup_error = None
+    if process_group_id and os.name == "posix":
+        quit_finished = threading.Event()
+
+        def quit_driver():
+            nonlocal quit_error
+            try:
+                driver.quit()
+            except Exception as exc:
+                quit_error = exc
+            finally:
+                quit_finished.set()
+
+        quit_thread = threading.Thread(target=quit_driver, daemon=True)
+        quit_thread.start()
+        if not quit_finished.wait(timeout=5):
+            print("[AML CHROME CLEANUP] driver.quit exceeded 5s; terminating its isolated process group.", flush=True)
+        elif quit_error:
+            print(f"[AML CHROME CLEANUP] driver.quit failed: {type(quit_error).__name__}: {quit_error}", flush=True)
+        try:
+            _aml_terminate_browser_process_group(process_group_id)
+        except Exception as exc:
+            cleanup_error = exc
+    else:
+        try:
+            driver.quit()
+        except Exception as exc:
+            print(f"[AML CHROME CLEANUP] driver.quit failed: {type(exc).__name__}: {exc}", flush=True)
     try:
         if driver in _AML_DEBUG_DRIVERS:
             _AML_DEBUG_DRIVERS.remove(driver)
@@ -3127,8 +3201,13 @@ def _close_debug_driver(driver, temp_csv_path=None):
     if temp_csv_path and os.path.exists(temp_csv_path):
         try:
             os.remove(temp_csv_path)
-        except Exception:
-            pass
+        except Exception as exc:
+            print(f"[AML CHROME CLEANUP] could not remove temporary CSV: {exc}", flush=True)
+    if cleanup_error:
+        if active_error is not None and hasattr(active_error, "add_note"):
+            active_error.add_note(f"Chrome cleanup also failed: {cleanup_error}")
+        elif active_error is None:
+            raise cleanup_error
 
 def _expire_summary_gui_job_if_needed(job):
     """Stop polling jobs whose worker can no longer finish inside the UI limit."""
@@ -3161,9 +3240,8 @@ def _summary_gui_job_response(job):
         "message": job.get("message"),
         "stage": job.get("stage", "queued"),
         "elapsed_seconds": _summary_gui_job_elapsed(job),
-        "headers": job.get("headers", []) if job["status"] == "done" else [],
-        "rows": job.get("rows", []) if job["status"] == "done" else [],
         "total_rows": job.get("total_rows", 0) if job["status"] == "done" else 0,
+        "result_available": job["status"] == "done" and not job.get("result_consumed"),
         "source": "AML GUI",
         "date_from": job["date_from"],
         "date_to": job["date_to"],
@@ -3189,15 +3267,22 @@ def _run_summary_gui_job(job_id, creds):
                 **fields,
             )
 
-        progress("starting", "Starting AML GUI export.")
         _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
-        headers, rows, total_rows = _download_aml_datalist_csv(
-            date_from,
-            date_to,
-            creds=creds,
-            progress=progress,
-            deadline=deadline,
-        )
+        progress("waiting_for_browser", "Waiting for another AML export to finish.")
+        remaining = max(0.0, deadline - time.monotonic())
+        if not SUMMARY_GUI_EXPORT_LOCK.acquire(timeout=remaining):
+            raise RuntimeError("Timed out waiting for the AML browser; please retry the export.")
+        try:
+            progress("starting", "Starting AML GUI export.")
+            headers, rows, total_rows = _download_aml_datalist_csv(
+                date_from,
+                date_to,
+                creds=creds,
+                progress=progress,
+                deadline=deadline,
+            )
+        finally:
+            SUMMARY_GUI_EXPORT_LOCK.release()
         completed = _summary_gui_update_job(
             job_id,
             status="done",
@@ -3211,6 +3296,15 @@ def _run_summary_gui_job(job_id, creds):
         )
         if not completed:
             return
+        _summary_gui_log(
+            job_id,
+            "completed",
+            "completed",
+            _summary_gui_job_elapsed(SUMMARY_GUI_JOBS[job_id]),
+            status="done",
+            row_count=total_rows,
+            column_count=len(headers),
+        )
     except Exception as exc:
         message = _summary_gui_failure_message(stage, exc)
         updated = _summary_gui_update_job(
@@ -3222,6 +3316,17 @@ def _run_summary_gui_job(job_id, creds):
         )
         if not updated:
             return
+        with SUMMARY_GUI_JOBS_LOCK:
+            failed_job = SUMMARY_GUI_JOBS.get(job_id)
+        if failed_job:
+            _summary_gui_log(
+                job_id,
+                "failed",
+                failed_job.get("stage", "failed"),
+                _summary_gui_job_elapsed(failed_job),
+                status="error",
+                exception_type=type(exc).__name__,
+            )
 
 
 @app.route("/summary-source-from-gui", methods=["POST"])
@@ -3245,6 +3350,16 @@ def summary_source_from_gui():
         job_id = uuid.uuid4().hex
         now = time.monotonic()
         with SUMMARY_GUI_JOBS_LOCK:
+            _prune_summary_gui_jobs(now)
+            active_jobs = sum(
+                job.get("status") not in SUMMARY_GUI_JOB_TERMINAL_STATUSES
+                for job in SUMMARY_GUI_JOBS.values()
+            )
+            if active_jobs >= 4:
+                return jsonify({
+                    "success": False,
+                    "error": "Several AML exports are already queued or running. Wait for one to finish, then retry.",
+                }), 429
             SUMMARY_GUI_JOBS[job_id] = {
                 "job_id": job_id,
                 "status": "queued",
@@ -3258,6 +3373,7 @@ def summary_source_from_gui():
                 "headers": [],
                 "rows": [],
                 "total_rows": 0,
+                "result_consumed": False,
             }
         threading.Thread(
             target=_run_summary_gui_job, args=(job_id, creds), daemon=True
@@ -3287,6 +3403,57 @@ def summary_source_from_gui_status(job_id):
             "error": "Summary export job not found. The service may have restarted or been redeployed; please start a new export.",
         }), 410
     return jsonify(response)
+
+
+@app.route("/summary-source-from-gui/<job_id>/result", methods=["GET"])
+@summary_api_login_required
+def summary_source_from_gui_result(job_id):
+    if "sheet" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
+    with SUMMARY_GUI_JOBS_LOCK:
+        job = SUMMARY_GUI_JOBS.get(job_id)
+        if job is None:
+            result = None
+        else:
+            _expire_summary_gui_job_if_needed(job)
+            status = job["status"]
+            if status == "done" and not job.get("result_consumed"):
+                result = {
+                    "success": True,
+                    "status": "done",
+                    "job_id": job_id,
+                    "headers": job.get("headers", []),
+                    "rows": job.get("rows", []),
+                    "total_rows": job.get("total_rows", 0),
+                    "source": "AML GUI",
+                    "date_from": job["date_from"],
+                    "date_to": job["date_to"],
+                }
+                # Claim the one-time payload while holding the lock so parallel
+                # result requests cannot each receive a copy of the large rows.
+                job["headers"] = []
+                job["rows"] = []
+                job["result_consumed"] = True
+                job["updated_monotonic"] = time.monotonic()
+            elif status != "done":
+                result = {"status": status, "message": job.get("message")}
+            else:
+                result = {
+                    "status": "consumed",
+                    "message": "This export result has already been retrieved. Start a new export if needed.",
+                }
+    if result is None:
+        return jsonify({
+            "success": False,
+            "error": "Summary export job not found. The service may have restarted or been redeployed; please start a new export.",
+        }), 410
+    if result.get("status") != "done":
+        return jsonify({
+            "success": False,
+            "error": result.get("message") or "Summary export is not ready yet.",
+            "status": result.get("status"),
+        }), 409
+    return jsonify(result)
 
 @app.route("/health", methods=["GET"])
 def health_check():
@@ -6816,6 +6983,92 @@ def _aml_chrome_process_lines():
     return lines
 
 
+def _aml_browser_group_members(process_group_id):
+    """Find Chrome/ChromeDriver PIDs in a dedicated Selenium process group."""
+    if os.name != "posix" or not process_group_id:
+        return []
+    members = []
+    try:
+        pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
+    except OSError:
+        return members
+    for pid in pids:
+        try:
+            with open(f"/proc/{pid}/stat") as fh:
+                rest = fh.read().rsplit(")", 1)[1].split()
+            process_group = int(rest[2])
+            if process_group != int(process_group_id):
+                continue
+            with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                command = fh.read().replace(b"\0", b" ").decode("utf-8", "replace").lower()
+            if "chrome" in command:
+                members.append((int(pid), command[:160]))
+        except (OSError, ValueError, IndexError):
+            continue
+    return members
+
+
+def _aml_service_process_group_id(service):
+    if os.name != "posix":
+        return None
+    process = getattr(service, "process", None)
+    if process is None or not process.pid:
+        return None
+    try:
+        process_group_id = os.getpgid(process.pid)
+        return process_group_id if process_group_id == process.pid else None
+    except OSError:
+        # A ChromeDriver may exit before its browser children; the isolated
+        # process group ID is its PID because start_new_session=True was used.
+        return process.pid
+
+
+def _aml_terminate_browser_process_group(process_group_id, grace_seconds=2.0):
+    """Stop only Chrome/ChromeDriver processes in the isolated service group."""
+    members = _aml_browser_group_members(process_group_id)
+    if not members:
+        print(
+            f"[AML CHROME CLEANUP] process_group={process_group_id} has no remaining browser processes.",
+            flush=True,
+        )
+        return
+    print(
+        f"[AML CHROME CLEANUP] sending SIGTERM to {len(members)} browser processes "
+        f"in isolated process_group={process_group_id}",
+        flush=True,
+    )
+    for pid, _ in members:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except ProcessLookupError:
+            pass
+    deadline = time.monotonic() + grace_seconds
+    remaining = _aml_browser_group_members(process_group_id)
+    while remaining and time.monotonic() < deadline:
+        time.sleep(0.1)
+        remaining = _aml_browser_group_members(process_group_id)
+    if remaining:
+        print(
+            f"[AML CHROME CLEANUP] sending SIGKILL to {len(remaining)} remaining browser processes "
+            f"in isolated process_group={process_group_id}",
+            flush=True,
+        )
+        for pid, _ in remaining:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+    final_members = _aml_browser_group_members(process_group_id)
+    print(
+        f"[AML CHROME CLEANUP] process_group={process_group_id} remaining={len(final_members)}",
+        flush=True,
+    )
+    if final_members:
+        raise RuntimeError(
+            f"Chrome cleanup left {len(final_members)} browser process(es) in its isolated process group"
+        )
+
+
 def _aml_log_startup_snapshot(driver_log_path=None):
     """Log process, resource, and ChromeDriver state while browser startup blocks."""
     def log(message):
@@ -6889,6 +7142,22 @@ def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, prob
 
     if not chrome_binary:
         return
+    active_processes = _aml_chrome_process_lines()
+    resource_metrics = _aml_runtime_resource_metrics()
+    memory_current = resource_metrics.get("memory_current_bytes")
+    memory_limit = resource_metrics.get("memory_limit_bytes")
+    if active_processes:
+        log(
+            f"skipping direct Chrome probe; {len(active_processes)} Chrome-related "
+            "process(es) are already active"
+        )
+        return
+    if memory_current and memory_limit and memory_current >= memory_limit * 0.8:
+        log(
+            "skipping direct Chrome probe because memory use is already high "
+            f"({memory_current}/{memory_limit} bytes)"
+        )
+        return
     profile = tempfile.mkdtemp(prefix="chrome_diag_")
     command = [
         chrome_binary,
@@ -6903,18 +7172,22 @@ def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, prob
     ]
     proc = None
     try:
+        probe_process_options = {"start_new_session": True} if os.name == "posix" else {}
         proc = subprocess.Popen(
             command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            start_new_session=True,
+            **probe_process_options,
         )
         try:
             _, err = proc.communicate(timeout=probe_timeout)
             log(f"direct launch rc={proc.returncode} stderr_tail={(err or '')[-1500:]!r}")
         except subprocess.TimeoutExpired:
-            os.killpg(proc.pid, signal.SIGKILL)
+            if os.name == "posix":
+                os.killpg(proc.pid, signal.SIGKILL)
+            else:
+                proc.kill()
             _, err = proc.communicate()
             log(
                 f"direct launch TIMED OUT after {probe_timeout}s "
@@ -6925,8 +7198,11 @@ def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, prob
     finally:
         if proc is not None and proc.poll() is None:
             try:
-                os.killpg(proc.pid, signal.SIGKILL)
-            except OSError:
+                if os.name == "posix":
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:
+                    proc.kill()
+            except (OSError, AttributeError):
                 pass
         shutil.rmtree(profile, ignore_errors=True)
 
@@ -6951,6 +7227,12 @@ def aml_build_driver(headless=None, download_dir=None):
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-software-rasterizer")
     options.add_argument("--remote-debugging-port=0")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-background-networking")
+    options.add_argument("--disable-default-apps")
+    options.add_argument("--disable-sync")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
     if download_dir:
         options.add_experimental_option("prefs", {
             "download.default_directory": os.path.abspath(download_dir),
@@ -6976,6 +7258,10 @@ def aml_build_driver(headless=None, download_dir=None):
     if chrome_binary:
         options.binary_location = chrome_binary
 
+    service_popen_kwargs = (
+        {"popen_kw": {"start_new_session": True}} if os.name == "posix" else {}
+    )
+    service = None
     if driver_path:
         driver_log_path = os.path.join(
             tempfile.gettempdir(), f"chromedriver_{uuid.uuid4().hex}.log"
@@ -6986,6 +7272,12 @@ def aml_build_driver(headless=None, download_dir=None):
             args=(driver_log_path,),
         )
         watchdog.daemon = True
+        service = ChromeService(
+            driver_path,
+            service_args=["--verbose"],
+            log_output=driver_log_path,
+            **service_popen_kwargs,
+        )
         timeout_override_applied = False
         previous_timeout = None
         # Selenium 4.24 uses a class-level timeout; newer releases move this
@@ -7004,29 +7296,80 @@ def aml_build_driver(headless=None, download_dir=None):
             timeout_override_applied = True
         watchdog.start()
         try:
-            driver = webdriver.Chrome(
-                service=ChromeService(
-                    driver_path,
-                    service_args=["--verbose"],
-                    log_output=driver_log_path,
-                ),
-                options=options,
-            )
+            driver = webdriver.Chrome(service=service, options=options)
         except Exception as exc:
             _aml_log_chrome_diagnostics(chrome_binary, exc, driver_log_path)
+            process_group_id = _aml_service_process_group_id(service)
+            if process_group_id:
+                try:
+                    _aml_terminate_browser_process_group(process_group_id)
+                except Exception as cleanup_exc:
+                    print(
+                        f"[AML CHROME CLEANUP] startup cleanup failed: "
+                        f"{type(cleanup_exc).__name__}: {cleanup_exc}",
+                        flush=True,
+                    )
+            try:
+                service.stop()
+            except Exception as cleanup_exc:
+                print(
+                    f"[AML CHROME CLEANUP] failed startup service stop: "
+                    f"{type(cleanup_exc).__name__}: {cleanup_exc}",
+                    flush=True,
+                )
             raise
         finally:
             watchdog.cancel()
             if timeout_override_applied:
-                RemoteConnection.set_timeout(previous_timeout)
+                if previous_timeout is None and hasattr(RemoteConnection, "reset_timeout"):
+                    RemoteConnection.reset_timeout()
+                else:
+                    RemoteConnection.set_timeout(previous_timeout)
     else:
         try:
             # Use locally installed ChromeDriver or Selenium Manager when no
             # explicit driver path is configured.
-            driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+            service = ChromeService(
+                ChromeDriverManager().install(), **service_popen_kwargs
+            )
+            driver = webdriver.Chrome(service=service, options=options)
         except Exception as exc:
+            process = getattr(service, "process", None) if service else None
+            if process is not None and process.pid and os.name == "posix":
+                try:
+                    _aml_terminate_browser_process_group(process.pid)
+                except Exception as cleanup_exc:
+                    print(
+                        f"[AML CHROME CLEANUP] failed manager service cleanup: "
+                        f"{type(cleanup_exc).__name__}: {cleanup_exc}",
+                        flush=True,
+                    )
+                try:
+                    service.stop()
+                except Exception as cleanup_exc:
+                    print(
+                        f"[AML CHROME CLEANUP] failed manager service stop: "
+                        f"{type(cleanup_exc).__name__}: {cleanup_exc}",
+                        flush=True,
+                    )
             print(f"[AML DRIVER] webdriver-manager failed, falling back to Selenium Manager: {exc}")
-            driver = webdriver.Chrome(options=options)
+            service = ChromeService(**service_popen_kwargs)
+            try:
+                driver = webdriver.Chrome(service=service, options=options)
+            except Exception:
+                process = getattr(service, "process", None)
+                if process is not None and process.pid and os.name == "posix":
+                    _aml_terminate_browser_process_group(process.pid)
+                try:
+                    service.stop()
+                except Exception:
+                    pass
+                raise
+
+    if service is not None and os.name == "posix":
+        process_group_id = _aml_service_process_group_id(service)
+        if process_group_id:
+            driver._aml_process_group_id = process_group_id
 
     if download_dir:
         try:
