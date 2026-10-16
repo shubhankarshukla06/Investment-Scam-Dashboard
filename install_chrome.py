@@ -3,6 +3,7 @@
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
 import sys
@@ -90,18 +91,33 @@ def chrome_headless_smoke_test():
             "--dump-dom",
             "about:blank",
         ]
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
-            check=False,
             capture_output=True,
             text=True,
-            timeout=45,
+            start_new_session=True,
         )
-    if result.returncode != 0:
-        diagnostic = (result.stderr or result.stdout or "No browser output").strip()
+        try:
+            stdout, stderr = process.communicate(timeout=45)
+        except subprocess.TimeoutExpired:
+            # Chrome launches several child processes. Kill the whole group
+            # before removing its temporary profile, then preserve output for
+            # the Render build log instead of letting cleanup mask the timeout.
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            stdout, stderr = process.communicate()
+            diagnostic = (stderr or stdout or "No browser output").strip()
+            raise RuntimeError(
+                "Chrome headless smoke test timed out after 45 seconds; "
+                f"Chrome output: {diagnostic[-4000:]}"
+            )
+    if process.returncode != 0:
+        diagnostic = (stderr or stdout or "No browser output").strip()
         raise RuntimeError(
             "Chrome headless smoke test failed "
-            f"(exit {result.returncode}): {diagnostic[-4000:]}"
+            f"(exit {process.returncode}): {diagnostic[-4000:]}"
         )
     print("Chrome headless smoke test: passed", flush=True)
 
