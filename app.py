@@ -29,6 +29,7 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.remote.remote_connection import RemoteConnection
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import traceback
@@ -6781,6 +6782,74 @@ def _find_aml_executable(env_names, command_names):
     return None
 
 
+def _aml_chrome_process_lines():
+    """Return one line per Chrome/ChromeDriver process, read from /proc."""
+    lines = []
+    try:
+        pids = [pid for pid in os.listdir("/proc") if pid.isdigit()]
+        ticks = os.sysconf("SC_CLK_TCK")
+        page = os.sysconf("SC_PAGE_SIZE")
+    except (OSError, ValueError):
+        return lines
+    for pid in pids:
+        try:
+            with open(f"/proc/{pid}/cmdline", "rb") as fh:
+                cmd = fh.read().replace(b"\0", b" ").decode("utf-8", "replace").strip()
+            if "chrome" not in cmd.lower():
+                continue
+            with open(f"/proc/{pid}/stat") as fh:
+                stat = fh.read()
+            rest = stat[stat.rfind(")") + 2:].split()
+            state, ppid = rest[0], rest[1]
+            cpu_s = (int(rest[11]) + int(rest[12])) / ticks
+            rss_mb = int(rest[21]) * page / 1048576
+            kind = next(
+                (arg for arg in cmd.split() if arg.startswith("--type=")),
+                "main-or-driver",
+            )
+            lines.append(
+                f"pid={pid} ppid={ppid} state={state} cpu_s={cpu_s:.1f} "
+                f"rss_mb={rss_mb:.0f} {kind} {cmd[:80]}"
+            )
+        except (OSError, ValueError, IndexError):
+            continue
+    return lines
+
+
+def _aml_log_startup_snapshot(driver_log_path=None):
+    """Log process, resource, and ChromeDriver state while browser startup blocks."""
+    def log(message):
+        print(f"[AML CHROME DIAG] {message}", flush=True)
+
+    log("startup still blocked after watchdog delay; snapshot follows")
+    log(f"cpu_count={os.cpu_count()}")
+    for path in (
+        "/proc/loadavg",
+        "/sys/fs/cgroup/cpu.max",
+        "/sys/fs/cgroup/cpu/cpu.cfs_quota_us",
+        "/sys/fs/cgroup/cpu/cpu.cfs_period_us",
+        "/sys/fs/cgroup/memory.max",
+        "/sys/fs/cgroup/memory.current",
+        "/sys/fs/cgroup/memory/memory.limit_in_bytes",
+        "/sys/fs/cgroup/memory/memory.usage_in_bytes",
+    ):
+        try:
+            with open(path) as fh:
+                log(f"{path}={fh.read().strip()}")
+        except OSError:
+            pass
+    lines = _aml_chrome_process_lines()
+    log(f"chrome-related processes: {len(lines)}")
+    for line in lines[:25]:
+        log(line)
+    if driver_log_path:
+        try:
+            with open(driver_log_path, errors="replace") as fh:
+                log(f"chromedriver log tail: {fh.read()[-2500:]!r}")
+        except OSError as exc:
+            log(f"no chromedriver log yet: {exc}")
+
+
 def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, probe_timeout=25):
     """Print why Chrome/ChromeDriver failed to start; call only from an except block."""
     def log(message):
@@ -6911,6 +6980,29 @@ def aml_build_driver(headless=None, download_dir=None):
         driver_log_path = os.path.join(
             tempfile.gettempdir(), f"chromedriver_{uuid.uuid4().hex}.log"
         )
+        watchdog = threading.Timer(
+            float(os.environ.get("AML_DRIVER_WATCHDOG_SECONDS", "25")),
+            _aml_log_startup_snapshot,
+            args=(driver_log_path,),
+        )
+        watchdog.daemon = True
+        timeout_override_applied = False
+        previous_timeout = None
+        # Selenium 4.24 uses a class-level timeout; newer releases move this
+        # into ClientConfig and may leave the deprecated class API uninitialized.
+        if getattr(RemoteConnection, "_client_config", object()) is None:
+            print(
+                "[AML CHROME DIAG] Selenium per-client timeout API detected; "
+                "skipping deprecated class-level timeout override.",
+                flush=True,
+            )
+        else:
+            previous_timeout = RemoteConnection.get_timeout()
+            RemoteConnection.set_timeout(
+                float(os.environ.get("AML_DRIVER_COMMAND_TIMEOUT", "120"))
+            )
+            timeout_override_applied = True
+        watchdog.start()
         try:
             driver = webdriver.Chrome(
                 service=ChromeService(
@@ -6923,6 +7015,10 @@ def aml_build_driver(headless=None, download_dir=None):
         except Exception as exc:
             _aml_log_chrome_diagnostics(chrome_binary, exc, driver_log_path)
             raise
+        finally:
+            watchdog.cancel()
+            if timeout_override_applied:
+                RemoteConnection.set_timeout(previous_timeout)
     else:
         try:
             # Use locally installed ChromeDriver or Selenium Manager when no
