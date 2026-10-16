@@ -18,6 +18,7 @@ MANIFEST_URL = (
 )
 INSTALL_DIR = Path("/opt/render/project/.render/chrome")
 CHROME_PATH = INSTALL_DIR / "chrome-linux64" / "chrome"
+CHROME_CRASHPAD_PATH = INSTALL_DIR / "chrome-linux64" / "chrome_crashpad_handler"
 DRIVER_PATH = INSTALL_DIR / "chromedriver-linux64" / "chromedriver"
 CHROME_ZIP = INSTALL_DIR / "chrome-linux64.zip"
 DRIVER_ZIP = INSTALL_DIR / "chromedriver-linux64.zip"
@@ -36,11 +37,22 @@ def download(url, destination):
 def extract_archive(archive_path):
     install_root = INSTALL_DIR.resolve()
     with zipfile.ZipFile(archive_path) as archive:
-        for member in archive.infolist():
+        members = archive.infolist()
+        for member in members:
             target = (INSTALL_DIR / member.filename).resolve()
             if os.path.commonpath((str(install_root), str(target))) != str(install_root):
                 raise RuntimeError(f"Unsafe path in Chrome archive: {member.filename}")
         archive.extractall(INSTALL_DIR)
+        # zipfile extracts files without restoring Unix executable mode bits.
+        # Chrome launches this helper as a child process, so preserve the
+        # executable permissions recorded by the official archive.
+        for member in members:
+            archived_mode = member.external_attr >> 16
+            executable_mode = archived_mode & 0o777
+            if executable_mode & 0o111:
+                extracted_path = INSTALL_DIR / member.filename
+                if extracted_path.is_file():
+                    extracted_path.chmod(executable_mode)
 
 
 def stable_download_url(manifest, component):
@@ -145,7 +157,7 @@ def main():
 
     chrome_ready = CHROME_PATH.is_file()
     driver_ready = DRIVER_PATH.is_file()
-    for binary_path in (CHROME_PATH, DRIVER_PATH):
+    for binary_path in (CHROME_PATH, CHROME_CRASHPAD_PATH, DRIVER_PATH):
         if binary_path.is_file():
             binary_path.chmod(0o755)
 
