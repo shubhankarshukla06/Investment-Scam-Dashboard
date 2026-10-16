@@ -6814,6 +6814,8 @@ def aml_build_driver(headless=None, download_dir=None):
         ("CHROME_BIN", "GOOGLE_CHROME_BIN"),
         ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"),
     )
+    driver_path = _find_aml_executable(("CHROMEDRIVER_PATH",), ("chromedriver",))
+    print(f"[AML DRIVER] chrome={chrome_binary} driver={driver_path}", flush=True)
     if not chrome_binary and os.environ.get("RENDER"):
         raise RuntimeError(
             "Chrome/Chromium is not installed in this Render runtime. "
@@ -6822,7 +6824,6 @@ def aml_build_driver(headless=None, download_dir=None):
     if chrome_binary:
         options.binary_location = chrome_binary
 
-    driver_path = _find_aml_executable(("CHROMEDRIVER_PATH",), ("chromedriver",))
     if driver_path:
         driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
     else:
