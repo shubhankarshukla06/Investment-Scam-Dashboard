@@ -2460,14 +2460,15 @@ def _summary_gui_log(job_id, event, stage, elapsed_seconds, **fields):
         "stage": stage,
         "elapsed_seconds": elapsed_seconds,
     }
-    payload.update(_aml_runtime_resource_metrics())
+    process_lines = _aml_chrome_process_lines()
+    payload.update(_aml_runtime_resource_metrics(process_lines=process_lines))
     payload.update({key: value for key, value in fields.items() if value is not None})
     print(f"[AML SUMMARY] {json.dumps(payload, sort_keys=True, default=str)}", flush=True)
-    for process_line in _aml_chrome_process_lines()[:12]:
+    for process_line in process_lines[:12]:
         print(f"[AML CHROME PROC] job_id={job_id} {process_line}", flush=True)
 
 
-def _aml_runtime_resource_metrics():
+def _aml_runtime_resource_metrics(process_lines=None):
     """Return safe memory and browser-process metrics for Summary Maker logs."""
     metrics = {}
     for label, paths in (
@@ -2482,7 +2483,8 @@ def _aml_runtime_resource_metrics():
                     break
             except OSError:
                 continue
-    process_lines = _aml_chrome_process_lines()
+    if process_lines is None:
+        process_lines = _aml_chrome_process_lines()
     metrics["chrome_process_count"] = len(process_lines)
     metrics["chrome_process_rss_mb"] = sum(
         int(match.group(1))
@@ -2500,13 +2502,20 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
             return False
         if job["status"] in SUMMARY_GUI_JOB_TERMINAL_STATUSES and status not in (None, job["status"]):
             return False
+        now = time.monotonic()
+        previous_stage = job.get("stage", "unknown")
+        previous_stage_started = job.get("stage_started_monotonic", job["started_monotonic"])
+        if stage is not None and stage != previous_stage:
+            fields.setdefault("previous_stage", previous_stage)
+            fields.setdefault("previous_stage_elapsed_seconds", round(max(0.0, now - previous_stage_started), 1))
+            job["stage_started_monotonic"] = now
         if stage is not None:
             job["stage"] = stage
         if message is not None:
             job["message"] = message
         if status is not None:
             job["status"] = status
-        job["updated_monotonic"] = time.monotonic()
+        job["updated_monotonic"] = now
         job.update(fields)
         elapsed_seconds = _summary_gui_job_elapsed(job)
         current_stage = job.get("stage", "unknown")
@@ -2515,7 +2524,8 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
         for key in (
             "row_count", "column_count", "file_size", "captcha_attempt",
             "captcha_attempt_limit", "exception_type", "response_status",
-            "content_type", "select_count",
+            "content_type", "select_count", "previous_stage",
+            "previous_stage_elapsed_seconds",
         )
         if key in fields
     }
@@ -3365,6 +3375,7 @@ def summary_source_from_gui():
                 "status": "queued",
                 "message": "Preparing AML GUI export.",
                 "stage": "queued",
+                "stage_started_monotonic": now,
                 "date_from": date_from,
                 "date_to": date_to,
                 "started_monotonic": now,
