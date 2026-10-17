@@ -3622,10 +3622,11 @@ def get_permanent_block_accounts():
 # UPI VALIDITY CHECKER (integrated from Tampermonkey script)
 # Background job + live progress + export
 # ============================================================
-UPI_CHECK_API_URL = "https://upi-api-new.onrender.com/check_upi"
+UPI_CHECK_API_URL = "https://aml.dashboardpxltruth.in/api/public/upi-checker"
+UPI_CHECK_API_KEY = os.getenv("UPI_CHECK_API_KEY", "").strip()
 
 DEFAULT_UPI_HANDLES = [
-    "airtel", "apl", "freecharge", "ikwik", "mbk", "mbkns", "naviaxis","nye","nyes","superyes",
+    "airtel", "apl", "freecharge", "ikwik", "mbk", "mbkns", "naviaxis","nye","nyes","superyes","digikatha",
     "okbizaxis", "ptaxis", "pthdfc", "ptsbi", "ptyes", "slc", "upi",
     "yapl", "kotakbank", "jupiter", "icici", "mbank", "jupiteraxis",
     "axl", "ibl", "ybl", "fam", "mairtel", "jio"
@@ -3655,13 +3656,19 @@ def verify_upi_external(upi, retries=2):
     """Per-number sequential + retry + longer timeout — too much parallel
     hammering on the free Render API caused failures that silently became
     'Unknown'."""
+    if not UPI_CHECK_API_KEY:
+        return None, "UPI_CHECK_API_KEY is not configured"
+
     last_err = None
     for attempt in range(retries + 1):
         try:
             resp = requests.post(
                 UPI_CHECK_API_URL,
-                json={"upi": upi},
-                headers={"Content-Type": "application/json"},
+                json={"recipientVpas": [upi]},
+                headers={
+                    "Content-Type": "application/json",
+                    "X-API-Key": UPI_CHECK_API_KEY,
+                },
                 timeout=30
             )
             if resp.status_code != 200:
@@ -3669,6 +3676,23 @@ def verify_upi_external(upi, retries=2):
                 time.sleep(1.5)
                 continue
             data = resp.json()
+            results = data.get("results") if isinstance(data, dict) else None
+            if isinstance(results, list):
+                match = next(
+                    (item for item in results
+                     if isinstance(item, dict)
+                     and str(item.get("vpa", "")).strip().lower() == upi.lower()),
+                    None,
+                )
+                if match:
+                    status = match.get("status") or match.get("Status") or match.get("result")
+                    note = match.get("note")
+                    if status:
+                        return str(status), None
+                    if note:
+                        return None, str(note)
+                last_err = "API response did not include a status for this VPA"
+                continue
             status = (
                 data.get("status") or data.get("Status")
                 or data.get("result") or data.get("message")
