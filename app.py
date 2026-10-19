@@ -2427,8 +2427,9 @@ AML_GUI_UA = (
 )
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
-SUMMARY_GUI_EXPORT_LOCK = threading.Lock()
 SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
+SUMMARY_CSV_EXPORT_URL = "https://docker-files-9h0k.onrender.com/export"
+SUMMARY_CSV_API_KEY = os.environ.get("SUMMARY_CSV_API_KEY", "").strip()
 SUMMARY_GUI_JOB_RETENTION_SECONDS = 1800
 SUMMARY_GUI_JOB_TERMINAL_STATUSES = {"done", "error"}
 
@@ -2541,13 +2542,13 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
     return True
 
 
-def _summary_gui_failure_message(stage, exc):
+def _summary_csv_failure_message(stage, exc):
     """Give the UI a useful failure reason without exposing request secrets."""
     detail = re.sub(r"\s+", " ", str(exc or "")).strip()
     detail = detail.split("Stacktrace:", 1)[0].strip()
     detail = re.sub(r"(?i)(password|captcha|cookie|token)=[^\s&]+", r"\1=[redacted]", detail)
     detail = detail[:500] or type(exc).__name__
-    return f"AML GUI export failed during {stage.replace('_', ' ')}: {detail}"
+    return f"CSV export failed during {stage.replace('_', ' ')}: {detail}"
 
 def _parse_csv_response_to_summary(resp):
     content_type = resp.headers.get("Content-Type", "")
@@ -3228,7 +3229,7 @@ def _expire_summary_gui_job_if_needed(job):
         job.update(
             status="error",
             stage="timed_out",
-            message="AML GUI export exceeded the server time limit. Please start a new export.",
+            message="CSV export exceeded the server time limit. Please start a new export.",
             updated_monotonic=time.monotonic(),
         )
         _summary_gui_log(
@@ -3252,19 +3253,62 @@ def _summary_gui_job_response(job):
         "elapsed_seconds": _summary_gui_job_elapsed(job),
         "total_rows": job.get("total_rows", 0) if job["status"] == "done" else 0,
         "result_available": job["status"] == "done" and not job.get("result_consumed"),
-        "source": "AML GUI",
+        "source": "CSV Export",
         "date_from": job["date_from"],
         "date_to": job["date_to"],
     }
 
 
-def _run_summary_gui_job(job_id, creds):
+def _download_summary_csv_export(date_from, date_to, progress=None):
+    """Download the Summary Maker CSV export and parse its contents."""
+    if not SUMMARY_CSV_API_KEY:
+        raise RuntimeError("SUMMARY_CSV_API_KEY is not configured")
+
+    if progress:
+        progress("downloading_csv", "Downloading CSV export.")
+    try:
+        response = requests.post(
+            SUMMARY_CSV_EXPORT_URL,
+            headers={"X-API-Key": SUMMARY_CSV_API_KEY},
+            json={"from_date": date_from, "to_date": date_to},
+            timeout=(10, 90),
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Could not reach the CSV export service ({type(exc).__name__})") from exc
+
+    if not response.ok:
+        raise RuntimeError(f"CSV export service returned HTTP {response.status_code}")
+    body = response.content or b""
+    if not body:
+        raise RuntimeError("CSV export service returned an empty file")
+    content_type = (response.headers.get("Content-Type") or "").lower()
+    if "text/html" in content_type or re.search(rb"<!doctype\s+html|<html\b", body[:2048], re.IGNORECASE):
+        raise RuntimeError("CSV export service returned a web page instead of a CSV file")
+    if body.lstrip().startswith((b"{", b"[")):
+        raise RuntimeError("CSV export service returned JSON instead of a CSV file")
+
+    if progress:
+        progress("reading_csv", "Reading downloaded CSV.", file_size=len(body))
+    try:
+        dataframe = pd.read_csv(io.BytesIO(body), dtype=str, keep_default_na=False)
+    except Exception as exc:
+        raise RuntimeError(f"Downloaded CSV could not be parsed ({type(exc).__name__})") from exc
+    headers = [str(column) for column in dataframe.columns]
+    if not headers:
+        raise RuntimeError("Downloaded CSV has no readable columns")
+    total_rows = len(dataframe)
+    rows = dataframe.head(5000).to_dict(orient="records")
+    if progress:
+        progress("csv_verified", "Downloaded CSV is readable.", row_count=total_rows, column_count=len(headers))
+    return headers, rows, total_rows
+
+
+def _run_summary_gui_job(job_id):
     stage = "queued"
     try:
         with SUMMARY_GUI_JOBS_LOCK:
             job = SUMMARY_GUI_JOBS[job_id]
             date_from, date_to = job["date_from"], job["date_to"]
-            deadline = job["deadline_monotonic"]
 
         def progress(next_stage, message, **fields):
             nonlocal stage
@@ -3278,26 +3322,15 @@ def _run_summary_gui_job(job_id, creds):
             )
 
         _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
-        progress("waiting_for_browser", "Waiting for another AML export to finish.")
-        remaining = max(0.0, deadline - time.monotonic())
-        if not SUMMARY_GUI_EXPORT_LOCK.acquire(timeout=remaining):
-            raise RuntimeError("Timed out waiting for the AML browser; please retry the export.")
-        try:
-            progress("starting", "Starting AML GUI export.")
-            headers, rows, total_rows = _download_aml_datalist_csv(
-                date_from,
-                date_to,
-                creds=creds,
-                progress=progress,
-                deadline=deadline,
-            )
-        finally:
-            SUMMARY_GUI_EXPORT_LOCK.release()
+        progress("starting", "Starting CSV export download.")
+        headers, rows, total_rows = _download_summary_csv_export(
+            date_from, date_to, progress=progress
+        )
         completed = _summary_gui_update_job(
             job_id,
             status="done",
             stage="completed",
-            message="AML GUI export is ready.",
+            message="CSV export is ready.",
             headers=headers,
             rows=rows,
             total_rows=total_rows,
@@ -3316,7 +3349,7 @@ def _run_summary_gui_job(job_id, creds):
             column_count=len(headers),
         )
     except Exception as exc:
-        message = _summary_gui_failure_message(stage, exc)
+        message = _summary_csv_failure_message(stage, exc)
         updated = _summary_gui_update_job(
             job_id,
             status="error",
@@ -3339,10 +3372,10 @@ def _run_summary_gui_job(job_id, creds):
             )
 
 
-@app.route("/summary-source-from-gui", methods=["POST"])
+@app.route("/summary-source-from-csv", methods=["POST"])
 @summary_api_login_required
 def summary_source_from_gui():
-    """Queue the long AML browser export so Render never proxies a long request."""
+    """Queue a remote CSV export so Render does not hold the request open."""
     if "sheet" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
     data = request.get_json(silent=True) or {}
@@ -3352,11 +3385,10 @@ def summary_source_from_gui():
         return jsonify({"success": False, "error": "From date and To date required"}), 400
     if date_from > date_to:
         return jsonify({"success": False, "error": "From date cannot be after To date"}), 400
+    if not SUMMARY_CSV_API_KEY:
+        return jsonify({"success": False, "error": "CSV export API key is not configured on the server"}), 503
 
     try:
-        creds = get_aml_credentials_for_user(
-            session.get("email", ""), session.get("display_name", "User")
-        )
         job_id = uuid.uuid4().hex
         now = time.monotonic()
         with SUMMARY_GUI_JOBS_LOCK:
@@ -3373,7 +3405,7 @@ def summary_source_from_gui():
             SUMMARY_GUI_JOBS[job_id] = {
                 "job_id": job_id,
                 "status": "queued",
-                "message": "Preparing AML GUI export.",
+                "message": "Preparing CSV export.",
                 "stage": "queued",
                 "stage_started_monotonic": now,
                 "date_from": date_from,
@@ -3387,20 +3419,20 @@ def summary_source_from_gui():
                 "result_consumed": False,
             }
         threading.Thread(
-            target=_run_summary_gui_job, args=(job_id, creds), daemon=True
+            target=_run_summary_gui_job, args=(job_id,), daemon=True
         ).start()
         return jsonify({
             "success": True,
             "status": "queued",
             "job_id": job_id,
-            "message": "AML GUI export started.",
+            "message": "CSV export started.",
         }), 202
     except Exception as exc:
         print(f"[AML SUMMARY] Could not queue export: {exc}", flush=True)
         return jsonify({"success": False, "error": str(exc)}), 500
 
 
-@app.route("/summary-source-from-gui/<job_id>", methods=["GET"])
+@app.route("/summary-source-from-csv/<job_id>", methods=["GET"])
 @summary_api_login_required
 def summary_source_from_gui_status(job_id):
     if "sheet" not in session.get("allowed_pages", []):
@@ -3416,7 +3448,7 @@ def summary_source_from_gui_status(job_id):
     return jsonify(response)
 
 
-@app.route("/summary-source-from-gui/<job_id>/result", methods=["GET"])
+@app.route("/summary-source-from-csv/<job_id>/result", methods=["GET"])
 @summary_api_login_required
 def summary_source_from_gui_result(job_id):
     if "sheet" not in session.get("allowed_pages", []):
@@ -3811,6 +3843,11 @@ def _run_upi_check_job(job_id, numbers, custom_handles):
 @login_required
 def start_upi_check():
     try:
+        if not UPI_CHECK_API_KEY:
+            return jsonify({
+                "success": False,
+                "error": "UPI checker is not configured on this server. Add UPI_CHECK_API_KEY to the Render environment and redeploy.",
+            }), 503
         data = request.get_json() or {}
         # Backward compatible: single "number" ya "numbers" array dono chalega
         raw_numbers = data.get("numbers")
@@ -7266,6 +7303,10 @@ def aml_build_driver(headless=None, download_dir=None):
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-default-apps")
     options.add_argument("--disable-sync")
+    # AML automation uses one active page at a time. Limit renderer fan-out so
+    # Chrome can fit beside the Flask/Pandas process on Render's small memory
+    # quota without changing page content or export behavior.
+    options.add_argument("--renderer-process-limit=1")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
     if download_dir:
@@ -7309,7 +7350,7 @@ def aml_build_driver(headless=None, download_dir=None):
         watchdog.daemon = True
         service = ChromeService(
             driver_path,
-            service_args=["--verbose"],
+            service_args=["--log-level=WARNING"],
             log_output=driver_log_path,
             **service_popen_kwargs,
         )
@@ -8086,7 +8127,7 @@ def _report_generation_status(job_id):
 def _run_report_generation_job(job_id, rows, aml_creds):
     driver = None
     try:
-        driver = aml_build_driver()
+        driver = aml_build_driver(headless=True)
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
@@ -8163,7 +8204,7 @@ def _run_extract_and_generate_job(job_id, rows, aml_creds):
     driver = None
     temp_root = tempfile.mkdtemp(prefix="crg_pdf_extract_")
     try:
-        driver = aml_build_driver()
+        driver = aml_build_driver(headless=True)
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
@@ -8261,7 +8302,7 @@ def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
     try:
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[job_id]["status"] = "running"
-        driver = aml_build_driver()
+        driver = aml_build_driver(headless=True)
         _AML_DEBUG_DRIVERS.append(driver)
         if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
             raise RuntimeError("AML GUI login failed after captcha retries")
