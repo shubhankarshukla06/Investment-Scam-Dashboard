@@ -2013,47 +2013,101 @@ def _build_sheet_csv_response(sheet_type, file_storage):
             except Exception:
                 pass
 
-def _build_aml_gui_import_csv(sheet_type, result_df):
-    return None, result_df
+SHEET_IMPORT_JOBS = {}
+SHEET_IMPORT_JOBS_LOCK = threading.Lock()
 
-def _sheet_import_download_payload(csv_text, filename):
-    return {
-        "filename": filename,
-        "content_b64": base64.b64encode(csv_text.encode("utf-8-sig")).decode("ascii"),
-    }
 
-@app.route("/sheet-import-to-aml-gui", methods=["POST"])
-@login_required
-def sheet_import_to_aml_gui():
-    download_payload = None
+def _run_sheet_import_api_job(job_id, csv_bytes, filename):
     try:
+        response = requests.post(
+            SHEET_IMPORT_API_URL,
+            headers={"X-API-Key": DOCKER_FILES_API_KEY},
+            files={"file": (filename, io.BytesIO(csv_bytes), "text/csv")},
+            timeout=(10, 300),
+        )
+        if not response.ok:
+            body_preview = re.sub(r"\s+", " ", response.text or "")[:300]
+            detail = f"HTTP {response.status_code}"
+            if body_preview:
+                detail += f": {body_preview}"
+            raise RuntimeError(f"Import service returned {detail}")
+
+        try:
+            result = response.json()
+        except ValueError:
+            result = {"message": re.sub(r"\s+", " ", response.text or "")[:300]}
+        if isinstance(result, dict) and result.get("success") is False:
+            raise RuntimeError(str(result.get("error") or result.get("message") or "Import service rejected the CSV"))
+        if isinstance(result, dict) and str(result.get("status", "")).strip().lower() in {"error", "failed", "rejected"}:
+            raise RuntimeError(str(result.get("message") or result.get("detail") or "Import service rejected the CSV"))
+
+        message = "CSV imported successfully."
+        if isinstance(result, dict):
+            message = str(result.get("message") or result.get("detail") or message)
+        with SHEET_IMPORT_JOBS_LOCK:
+            job = SHEET_IMPORT_JOBS.get(job_id)
+            if job:
+                job.update(status="done", message=message, updated_at=time.time())
+    except Exception as exc:
+        message = re.sub(r"\s+", " ", str(exc or "Import failed")).strip()[:500]
+        with SHEET_IMPORT_JOBS_LOCK:
+            job = SHEET_IMPORT_JOBS.get(job_id)
+            if job:
+                job.update(status="error", message=message, updated_at=time.time())
+        print(f"[SHEET CSV IMPORT] job={job_id} failed: {type(exc).__name__}: {message}", flush=True)
+
+
+@app.route("/sheet-import-to-service", methods=["POST"])
+@login_required
+def sheet_import_to_service():
+    try:
+        if not DOCKER_FILES_API_KEY:
+            return jsonify({
+                "success": False,
+                "error": "CSV import service API key is not configured. Set DOCKER_FILES_API_KEY or SUMMARY_CSV_API_KEY on the server.",
+            }), 503
         sheet_type = request.form.get("sheet_type")
         file = request.files.get("file")
-        print(f"[SHEET AML IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
+        print(f"[SHEET CSV IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
         csv_text, result_df, _ = _build_sheet_csv_response(sheet_type, file)
-        import_csv_text, import_df = _build_aml_gui_import_csv(sheet_type, result_df)
-        if import_csv_text:
-            csv_text = import_csv_text
-        import_filename = f"aml_gui_import_{uuid.uuid4().hex}.csv"
-        download_payload = _sheet_import_download_payload(csv_text, import_filename)
-        print(f"[SHEET AML IMPORT] CSV generated filename={import_filename} rows={len(import_df)} cols={len(import_df.columns)}", flush=True)
-        # AML v1 exposes this action in a modal. Always use the browser path;
-        # a legacy environment override must not send this export to the
-        # retired HTTP import endpoint.
-        page_preview = _import_sheet_csv_to_aml_gui_headed(csv_text, import_filename)
-        print("[SHEET AML IMPORT] GUI import submitted", flush=True)
-
+        import_filename = f"sheet_import_{uuid.uuid4().hex}.csv"
+        csv_bytes = csv_text.encode("utf-8-sig")
+        job_id = uuid.uuid4().hex
+        with SHEET_IMPORT_JOBS_LOCK:
+            now = time.time()
+            for old_id, old_job in list(SHEET_IMPORT_JOBS.items()):
+                if now - old_job.get("updated_at", now) > 1800:
+                    SHEET_IMPORT_JOBS.pop(old_id, None)
+            SHEET_IMPORT_JOBS[job_id] = {
+                "status": "queued",
+                "message": "Uploading generated CSV to the import service.",
+                "rows": len(result_df),
+                "updated_at": now,
+            }
+        threading.Thread(
+            target=_run_sheet_import_api_job,
+            args=(job_id, csv_bytes, import_filename),
+            daemon=True,
+        ).start()
         return jsonify({
             "success": True,
-            "message": "CSV generated and submitted to AML GUI.",
-            "rows": len(import_df),
-            "debug_preview": page_preview,
-            "download": download_payload,
-        })
+            "job_id": job_id,
+            "message": "CSV import started.",
+            "rows": len(result_df),
+        }), 202
     except Exception as e:
-        print(f"[SHEET AML IMPORT] ERROR: {e}", flush=True)
-        traceback.print_exc()
-        return jsonify({"success": False, "error": str(e), "download": download_payload})
+        print(f"[SHEET CSV IMPORT] ERROR: {e}", flush=True)
+        return jsonify({"success": False, "error": str(e)}), 400
+
+
+@app.route("/sheet-import-status/<job_id>", methods=["GET"])
+@login_required
+def sheet_import_status(job_id):
+    with SHEET_IMPORT_JOBS_LOCK:
+        job = SHEET_IMPORT_JOBS.get(job_id)
+        if not job:
+            return jsonify({"success": False, "error": "Import job not found. It may have expired or the service restarted."}), 404
+        return jsonify({"success": True, **job})
 
 # ============================================================
 # BS Investment Scam Import
@@ -2420,7 +2474,6 @@ def parse_raw_file():
 # helpers still refer to them, but route them to the new report page.
 AML_GUI_BASE_URL = "https://aml-gui-v1.mfilterit.net/"
 AML_DATALIST_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "reports/generate")
-AML_IMPORT_URL = os.environ.get("AML_IMPORT_URL", "").strip()
 AML_GUI_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
@@ -2429,7 +2482,12 @@ SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
 SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
 SUMMARY_CSV_EXPORT_URL = "https://docker-files-9h0k.onrender.com/export"
-SUMMARY_CSV_API_KEY = os.environ.get("SUMMARY_CSV_API_KEY", "").strip()
+SHEET_IMPORT_API_URL = "https://docker-files-9h0k.onrender.com/import"
+DOCKER_FILES_API_KEY = (
+    os.environ.get("DOCKER_FILES_API_KEY")
+    or os.environ.get("SUMMARY_CSV_API_KEY")
+    or ""
+).strip()
 SUMMARY_GUI_JOB_RETENTION_SECONDS = 1800
 SUMMARY_GUI_JOB_TERMINAL_STATUSES = {"done", "error"}
 
@@ -2922,18 +2980,6 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
             if download_dir:
                 shutil.rmtree(download_dir, ignore_errors=True)
 
-def _extract_form_action(html_text, base_url):
-    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
-    for form in forms:
-        if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE):
-            match = re.search(r"action=[\"']([^\"']*)[\"']", form, flags=re.IGNORECASE)
-            return urllib.parse.urljoin(base_url, match.group(1)) if match else base_url
-    return None
-
-def _extract_file_form_html(html_text):
-    forms = re.findall(r"<form\b[^>]*>.*?</form>", html_text or "", flags=re.IGNORECASE | re.DOTALL)
-    return next((form for form in forms if re.search(r"type=[\"']file[\"']", form, flags=re.IGNORECASE)), html_text or "")
-
 def _extract_attrs(tag_text):
     attrs = {}
     for match in re.finditer(
@@ -2954,223 +3000,6 @@ def _set_form_value(data, name, value):
             data[name] = [data[name], value]
     else:
         data[name] = value
-
-def _extract_import_form_payload(html_text, service_name=None):
-    form_html = _extract_file_form_html(html_text)
-    data = {}
-    file_field = "file"
-    submit_added = False
-
-    for match in re.finditer(r"<input\b([^>]*)>", form_html, flags=re.IGNORECASE | re.DOTALL):
-        attrs = _extract_attrs(match.group(1))
-        input_type = (attrs.get("type") or "text").lower()
-        name = attrs.get("name")
-        if not name:
-            continue
-        if input_type == "file":
-            file_field = name
-            continue
-        if input_type in ("reset", "image"):
-            continue
-        if input_type in ("submit", "button"):
-            if not submit_added and name:
-                _set_form_value(data, name, attrs.get("value", ""))
-                submit_added = True
-            continue
-        if input_type in ("checkbox", "radio"):
-            _set_form_value(data, name, attrs.get("value") or "on")
-        else:
-            _set_form_value(data, name, attrs.get("value", ""))
-
-    for select_match in re.finditer(r"<select\b([^>]*)>(.*?)</select>", form_html, flags=re.IGNORECASE | re.DOTALL):
-        attrs = _extract_attrs(select_match.group(1))
-        name = attrs.get("name")
-        if not name:
-            continue
-        option_values = []
-        for option_match in re.finditer(r"<option\b([^>]*)>(.*?)</option>", select_match.group(2) or "", flags=re.IGNORECASE | re.DOTALL):
-            opt_attrs = _extract_attrs(option_match.group(1))
-            value = opt_attrs.get("value")
-            if value is None:
-                value = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
-            value = html.unescape(value or "").strip()
-            if value:
-                option_values.append(value)
-        if option_values:
-            data[name] = option_values
-
-    for textarea_match in re.finditer(r"<textarea\b([^>]*)>(.*?)</textarea>", form_html, flags=re.IGNORECASE | re.DOTALL):
-        attrs = _extract_attrs(textarea_match.group(1))
-        name = attrs.get("name")
-        if name:
-            _set_form_value(data, name, html.unescape(textarea_match.group(2) or ""))
-
-    service_name = (service_name or os.environ.get("AML_IMPORT_SERVICE_NAME") or "").strip()
-    if service_name and not str(data.get("serviceNameHidden", "")).strip():
-        data["serviceNameHidden"] = service_name
-    if "importCSVFileButton" not in data:
-        data["importCSVFileButton"] = "IMPORT"
-
-    return data, file_field
-
-def _summarize_import_form_controls(html_text):
-    form_html = _extract_file_form_html(html_text)
-    controls = []
-    for match in re.finditer(r"<input\b([^>]*)>", form_html, flags=re.IGNORECASE | re.DOTALL):
-        attrs = _extract_attrs(match.group(1))
-        input_type = (attrs.get("type") or "text").lower()
-        controls.append({
-            "tag": "input",
-            "type": input_type,
-            "name": attrs.get("name", ""),
-            "value": attrs.get("value", "")[:80],
-        })
-    for select_match in re.finditer(r"<select\b([^>]*)>(.*?)</select>", form_html, flags=re.IGNORECASE | re.DOTALL):
-        attrs = _extract_attrs(select_match.group(1))
-        options = []
-        for option_match in re.finditer(r"<option\b([^>]*)>(.*?)</option>", select_match.group(2) or "", flags=re.IGNORECASE | re.DOTALL):
-            opt_attrs = _extract_attrs(option_match.group(1))
-            value = opt_attrs.get("value")
-            if value is None:
-                value = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
-            text = re.sub(r"<[^>]+>", "", option_match.group(2) or "").strip()
-            options.append({"value": html.unescape(value or "")[:80], "text": html.unescape(text or "")[:80]})
-        controls.append({
-            "tag": "select",
-            "name": attrs.get("name", ""),
-            "multiple": "multiple" in (select_match.group(1) or "").lower(),
-            "options": options[:20],
-        })
-    return controls[:80]
-
-def _validate_aml_sheet_import_response(response_text, response_url):
-    response_text = response_text or ""
-    response_preview = re.sub(r"\s+", " ", response_text)[:500]
-    if re.search(r"name=[\"']usernamee[\"']", response_text, flags=re.IGNORECASE):
-        raise RuntimeError("AML import returned login page; session expired or login failed")
-
-    success_match = re.search(
-        r"(success(?:fully)?|imported\s+successfully|uploaded\s+successfully|inserted\s+successfully|record[s]?\s+(?:added|inserted)|data\s+import(?:ed)?\s+successfully)",
-        response_text,
-        flags=re.IGNORECASE,
-    )
-    # Success confirmation le liye pehle check karo — agar mil gaya toh import
-    # pakka successful hai, chahe page mein kahin "required"/"error" jaisa koi
-    # unrelated word (menu, footer, disclaimer) bhi ho.
-    if success_match:
-        return response_preview
-
-    error_match = re.search(
-        r"(oops|no\s+column\s+present|fatal\s+error|import\s+failed|upload\s+failed|invalid\s+file|not\s+imported|not\s+uploaded|duplicate\s+entr(?:y|ies)|wrong\s+format|column\s+mismatch)",
-        response_text,
-        flags=re.IGNORECASE,
-    )
-    if error_match:
-        raise RuntimeError(f"AML import rejected the CSV near: {response_preview}")
-
-    raise RuntimeError(
-        "AML import did not return a success confirmation. "
-        f"response_url={response_url} preview={response_preview}"
-    )
-
-def _find_aml_import_page(session_obj):
-    if AML_IMPORT_URL:
-        return AML_IMPORT_URL
-    page = session_obj.get(AML_DATALIST_URL, timeout=60)
-    page.raise_for_status()
-    links = re.findall(r"<a\b[^>]*href=[\"']([^\"']+)[\"'][^>]*>", page.text or "", flags=re.IGNORECASE)
-    for href in links:
-        low = href.lower()
-        if any(token in low for token in ("import", "upload", "csv")):
-            return urllib.parse.urljoin(AML_DATALIST_URL, href)
-    if links:
-        return urllib.parse.urljoin(AML_DATALIST_URL, links[0])
-    raise RuntimeError("AML import page link not found on datalist page")
-
-def _import_sheet_csv_to_aml_gui(csv_text, filename):
-    session_obj = aml_login_requests(max_captcha_attempts=7, require_report_form=False)
-    import_page_url = _find_aml_import_page(session_obj)
-    print(f"[SHEET AML IMPORT] import_page={import_page_url}", flush=True)
-    import_page = session_obj.get(import_page_url, timeout=60)
-    import_page.raise_for_status()
-    post_url = _extract_form_action(import_page.text, import_page_url) or import_page_url
-    _, _, _, platform_value = get_aml_credentials()
-    data, file_field = _extract_import_form_payload(import_page.text, service_name=platform_value)
-    selected_fields = sum(len(v) if isinstance(v, list) else 1 for v in data.values())
-    print(f"[SHEET AML IMPORT] form file_field={file_field} selected_fields={selected_fields} serviceNameHidden={data.get('serviceNameHidden', '')}", flush=True)
-    print(f"[SHEET AML IMPORT] csv_headers={csv_text.splitlines()[0][:1000] if csv_text else ''}", flush=True)
-    print(f"[SHEET AML IMPORT] form_controls={json.dumps(_summarize_import_form_controls(import_page.text))[:3000]}", flush=True)
-    files = {file_field: (filename or "aml_gui_import.csv", io.BytesIO(csv_text.encode("utf-8-sig")), "text/csv")}
-    resp = session_obj.post(
-        post_url,
-        data=data,
-        files=files,
-        timeout=300,
-        allow_redirects=True,
-        headers={"Referer": import_page_url, "Origin": AML_GUI_BASE_URL.rstrip("/")},
-    )
-    resp.raise_for_status()
-    response_text = resp.text or ""
-    response_preview = re.sub(r"\s+", " ", response_text)[:500]
-    print(f"[SHEET AML IMPORT] response_url={resp.url} content_type={resp.headers.get('Content-Type', '')} preview={response_preview}", flush=True)
-    _validate_aml_sheet_import_response(response_text, resp.url)
-    return resp
-
-def _import_sheet_csv_to_aml_gui_headed(csv_text, filename):
-    temp_csv_path = os.path.join(tempfile.gettempdir(), filename or f"aml_gui_import_{uuid.uuid4().hex}.csv")
-    with open(temp_csv_path, "w", encoding="utf-8-sig", newline="") as f:
-        f.write(csv_text)
-
-    driver = aml_build_driver()
-    _AML_DEBUG_DRIVERS.append(driver)
-    wait = WebDriverWait(driver, 40)
-    try:
-        if not aml_login(driver, max_captcha_attempts=7):
-            raise RuntimeError("AML GUI headless login failed after captcha retries")
-
-        # Use the AML landing page left by login; do not redirect to
-        # /reports/generate before opening the Import dialog.
-        import_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_IMPORT_BUTTON_XPATH)))
-        driver.execute_script("arguments[0].click();", import_btn)
-
-        file_input = wait.until(EC.presence_of_element_located((By.XPATH, AML_IMPORT_FILE_INPUT_XPATH)))
-        file_input.send_keys(temp_csv_path)
-        confirm_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_IMPORT_CONFIRM_BUTTON_XPATH)))
-        driver.execute_script("arguments[0].click();", confirm_btn)
-
-        # Import can remain on the report page. Wait for a success/error state,
-        # or for the modal containing the selected file to close.
-        def import_finished(browser):
-            text = browser.find_element(By.TAG_NAME, "body").text or ""
-            if re.search(r"(success(?:fully)?|imported|uploaded|inserted|failed|error|invalid)", text, flags=re.IGNORECASE):
-                return True
-            try:
-                return not browser.find_element(By.XPATH, AML_IMPORT_FILE_INPUT_XPATH).is_displayed()
-            except NoSuchElementException:
-                return True
-
-        WebDriverWait(driver, 90).until(import_finished)
-        page_text = driver.find_element(By.TAG_NAME, "body").text
-        page_preview = re.sub(r"\s+", " ", page_text or "")[:500]
-        print(f"[SHEET AML IMPORT] current_url={driver.current_url} preview={page_preview}", flush=True)
-        if re.search(r"(Oops!|No column present|alert-danger|Fatal error|SQLSTATE|specified twice|not imported|failed|invalid)", page_text or "", flags=re.IGNORECASE):
-            raise RuntimeError(f"AML GUI import failed on page: {page_preview}")
-
-        _close_debug_driver(driver, temp_csv_path)
-        return page_preview
-    except Exception:
-        try:
-            debug_id = uuid.uuid4().hex[:8]
-            debug_dir = os.path.join(tempfile.gettempdir(), "aml_sheet_import_debug")
-            os.makedirs(debug_dir, exist_ok=True)
-            driver.save_screenshot(os.path.join(debug_dir, f"sheet_import_{debug_id}.png"))
-            with open(os.path.join(debug_dir, f"sheet_import_{debug_id}.html"), "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-            print(f"[SHEET AML IMPORT] debug saved id={debug_id} dir={debug_dir}", flush=True)
-        except Exception as dbg_exc:
-            print(f"[SHEET AML IMPORT] debug save failed: {dbg_exc}", flush=True)
-        _close_debug_driver(driver, temp_csv_path)
-        raise
 
 def _close_debug_driver(driver, temp_csv_path=None):
     active_error = sys.exc_info()[1]
@@ -3261,15 +3090,15 @@ def _summary_gui_job_response(job):
 
 def _download_summary_csv_export(date_from, date_to, progress=None):
     """Download the Summary Maker CSV export and parse its contents."""
-    if not SUMMARY_CSV_API_KEY:
-        raise RuntimeError("SUMMARY_CSV_API_KEY is not configured")
+    if not DOCKER_FILES_API_KEY:
+        raise RuntimeError("DOCKER_FILES_API_KEY is not configured")
 
     if progress:
         progress("downloading_csv", "Downloading CSV export.")
     try:
         response = requests.post(
             SUMMARY_CSV_EXPORT_URL,
-            headers={"X-API-Key": SUMMARY_CSV_API_KEY},
+            headers={"X-API-Key": DOCKER_FILES_API_KEY},
             json={"from_date": date_from, "to_date": date_to},
             timeout=(10, 90),
         )
@@ -3385,7 +3214,7 @@ def summary_source_from_gui():
         return jsonify({"success": False, "error": "From date and To date required"}), 400
     if date_from > date_to:
         return jsonify({"success": False, "error": "From date cannot be after To date"}), 400
-    if not SUMMARY_CSV_API_KEY:
+    if not DOCKER_FILES_API_KEY:
         return jsonify({"success": False, "error": "CSV export API key is not configured on the server"}), 503
 
     try:
@@ -6525,9 +6354,6 @@ AML_LOGIN_BUTTON_XPATH   = "/html/body/div[1]/div/div[2]/form/button"
 AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
 AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
 AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
-AML_IMPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[3]"
-AML_IMPORT_FILE_INPUT_XPATH = "/html/body/div[1]/div/div[4]/div/div[2]/input"
-AML_IMPORT_CONFIRM_BUTTON_XPATH = "/html/body/div[1]/div/div[4]/div/div[3]/button[2]"
 AML_TITLE1_XPATH       = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[1]"
 AML_INPUT1_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[2]"
 AML_DESCRIPTION1_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[3]/textarea"

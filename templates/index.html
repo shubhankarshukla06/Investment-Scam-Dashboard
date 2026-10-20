@@ -2307,7 +2307,7 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Source Type</label>
                                 <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
-                                    <option value="aml" selected>GUI Auto Process</option>
+                                    <option value="aml" selected>CSV Auto Import</option>
                                     <option value="upload">Sheet Upload</option>
                                 </select>
                             </div>
@@ -4617,7 +4617,7 @@
                 const textEl    = document.getElementById('sheetReadyText');
                 if (sheetType && fileInput.files.length > 0) {
                     textEl.textContent = sourceType === 'aml'
-                        ? `All set, ${getFirstName()}. Click 'Import Data to GUI' to continue.`
+                        ? `All set, ${getFirstName()}. Click 'Import CSV' to continue.`
                         : `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display  = 'none';
@@ -4625,7 +4625,7 @@
                     readyEl.style.display = 'none';
                     waitEl.style.display  = 'flex';
                     waitEl.querySelector('span').textContent = sourceType === 'aml'
-                        ? 'Waiting for file, sheet type, and GUI import...'
+                        ? 'Waiting for file, sheet type, and CSV import...'
                         : 'Waiting for input...';
                 }
             }
@@ -4638,7 +4638,7 @@
                 const btn = document.getElementById('generateBtn');
                 if (!btn) return;
                 if (sourceType === 'aml') {
-                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import Data to GUI';
+                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import CSV';
                 } else {
                     btn.innerHTML = '<i class="fas fa-download"></i> Generate CSV Excel File';
                 }
@@ -4812,28 +4812,30 @@
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
                 if (sourceType === 'aml') {
-                    importSheetToAmlGui();
+                    importSheetToService();
                     return;
                 }
                 showToast('Generating sheet, please wait...', false, false);
                 document.getElementById('sheetForm').submit();
             }
-            function downloadSheetImportCsv(downloadInfo) {
-                if (!downloadInfo || !downloadInfo.content_b64) return;
-                const binary = atob(downloadInfo.content_b64);
-                const bytes = new Uint8Array(binary.length);
-                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-                const blob = new Blob([bytes], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = downloadInfo.filename || 'aml_gui_import.csv';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                setTimeout(() => URL.revokeObjectURL(url), 1000);
+            async function waitForSheetImport(jobId) {
+                const deadline = Date.now() + 12 * 60 * 1000;
+                while (Date.now() < deadline) {
+                    const resp = await fetch(`/sheet-import-status/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
+                    const data = await resp.json().catch(() => null);
+                    if (!resp.ok || !data?.success) {
+                        throw new Error(data?.error || `Could not read import status (HTTP ${resp.status})`);
+                    }
+                    const waitEl = document.getElementById('sheetNotReadyMsg');
+                    const statusText = waitEl?.querySelector('span');
+                    if (statusText && data.message) statusText.textContent = data.message;
+                    if (data.status === 'done') return data;
+                    if (data.status === 'error') throw new Error(data.message || 'CSV import failed');
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                }
+                throw new Error('CSV import is taking too long. Please check the server logs and retry.');
             }
-            async function importSheetToAmlGui() {
+            async function importSheetToService() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
                 const btn = document.getElementById('generateBtn');
@@ -4841,42 +4843,33 @@
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
                 const readyEl = document.getElementById('sheetReadyMsg');
                 const waitEl = document.getElementById('sheetNotReadyMsg');
-                showToast('Preparing CSV and importing into GUI...', false, false);
+                showToast('Preparing CSV and sending it to the import service...', false, false);
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
                 readyEl.style.display = 'none';
                 waitEl.style.display = 'flex';
-                waitEl.querySelector('span').textContent = 'Generating CSV and opening GUI import flow...';
+                waitEl.querySelector('span').textContent = 'Generating CSV and uploading it to the import service...';
                 try {
                     const formData = new FormData();
                     formData.append('sheet_type', sheetType);
                     formData.append('file', fileInput.files[0]);
-                    const resp = await fetch('/sheet-import-to-aml-gui', { method: 'POST', body: formData });
-                    const responseText = await resp.text();
-                    let data;
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (parseErr) {
-                        const preview = (responseText || '').replace(/\s+/g, ' ').slice(0, 220);
-                        throw new Error(
-                            'Server returned non-JSON response. Render may have restarted during GUI import.' +
-                            (preview ? ' Preview: ' + preview : '')
-                        );
+                    const resp = await fetch('/sheet-import-to-service', { method: 'POST', body: formData });
+                    const data = await resp.json().catch(() => null);
+                    if (!resp.ok || !data?.success || !data.job_id) {
+                        throw new Error(data?.error || `Could not start CSV import (HTTP ${resp.status})`);
                     }
-                    downloadSheetImportCsv(data.download);
-                    if (!resp.ok) throw new Error(data.error || `GUI import failed with HTTP ${resp.status}`);
-                    if (!data.success) throw new Error(data.error || 'GUI import failed');
-                    showToast(`Imported Success: ${data.rows || 0} rows`, false, true);
+                    const result = await waitForSheetImport(data.job_id);
+                    showToast(`Imported Success: ${result.rows || data.rows || 0} rows`, false, true);
                     waitEl.style.display = 'none';
                     readyEl.style.display = 'flex';
                     readyEl.className = 'sheet-status-box ready';
-                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>Imported Success — ${data.rows || 0} rows.</span>`;
+                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>Imported Success — ${result.rows || data.rows || 0} rows.</span>`;
                 } catch (err) {
-                    showToast('GUI import failed: ' + err.message, true);
+                    showToast('CSV import failed: ' + err.message, true);
                     readyEl.style.display = 'none';
                     waitEl.style.display = 'flex';
                     waitEl.className = 'sheet-status-box waiting';
-                    waitEl.querySelector('span').textContent = 'GUI import failed. Check terminal debug logs.';
+                    waitEl.querySelector('span').textContent = 'CSV import failed. Check the error and server logs.';
                 } finally {
                     updateSheetActionButton();
                     btn.disabled = false;
