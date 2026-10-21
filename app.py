@@ -2017,12 +2017,16 @@ SHEET_IMPORT_JOBS = {}
 SHEET_IMPORT_JOBS_LOCK = threading.Lock()
 
 
-def _run_sheet_import_api_job(job_id, csv_bytes, filename):
+def _run_sheet_import_api_job(job_id, csv_bytes, filename, aml_user=None, aml_pass=None):
+    using_user_login = bool(aml_user and aml_pass)
     try:
+        _wake_docker_service()
+        form_data = {"aml_user": aml_user, "aml_pass": aml_pass} if using_user_login else {}
         response = requests.post(
             SHEET_IMPORT_API_URL,
             headers={"X-API-Key": DOCKER_FILES_API_KEY},
             files={"file": (filename, io.BytesIO(csv_bytes), "text/csv")},
+            data=form_data,
             timeout=(10, 300),
         )
         if not response.ok:
@@ -2030,6 +2034,8 @@ def _run_sheet_import_api_job(job_id, csv_bytes, filename):
             detail = f"HTTP {response.status_code}"
             if body_preview:
                 detail += f": {body_preview}"
+            if using_user_login and "login fail" in (response.text or "").lower():
+                detail += f" | {AML_USER_LOGIN_HINT}"
             raise RuntimeError(f"Import service returned {detail}")
 
         try:
@@ -2041,15 +2047,30 @@ def _run_sheet_import_api_job(job_id, csv_bytes, filename):
         if isinstance(result, dict) and str(result.get("status", "")).strip().lower() in {"error", "failed", "rejected"}:
             raise RuntimeError(str(result.get("message") or result.get("detail") or "Import service rejected the CSV"))
 
-        message = "CSV imported successfully."
-        if isinstance(result, dict):
-            message = str(result.get("message") or result.get("detail") or message)
+        service_status = str(result.get("status", "")).strip().lower() if isinstance(result, dict) else ""
+        login_label = "your AML login" if using_user_login else "the default AML login"
+        print(
+            f"[SHEET CSV IMPORT] job={job_id} login={'user' if using_user_login else 'default'} "
+            f"service_status={service_status or '-'} detail={_scrub_secret(result, aml_pass)!s:.300}",
+            flush=True,
+        )
+        if service_status == "unconfirmed":
+            message = (
+                f"CSV was submitted to AML using {login_label}, but AML did not confirm the import. "
+                "Check AML before importing again."
+            )
+        elif service_status == "success":
+            message = f"CSV imported successfully using {login_label}."
+        else:
+            message = "CSV imported successfully."
+            if isinstance(result, dict):
+                message = str(result.get("message") or result.get("detail") or message)
         with SHEET_IMPORT_JOBS_LOCK:
             job = SHEET_IMPORT_JOBS.get(job_id)
             if job:
                 job.update(status="done", message=message, updated_at=time.time())
     except Exception as exc:
-        message = re.sub(r"\s+", " ", str(exc or "Import failed")).strip()[:500]
+        message = re.sub(r"\s+", " ", _scrub_secret(exc or "Import failed", aml_pass)).strip()[:500]
         with SHEET_IMPORT_JOBS_LOCK:
             job = SHEET_IMPORT_JOBS.get(job_id)
             if job:
@@ -2073,6 +2094,10 @@ def sheet_import_to_service():
         import_filename = f"sheet_import_{uuid.uuid4().hex}.csv"
         csv_bytes = csv_text.encode("utf-8-sig")
         job_id = uuid.uuid4().hex
+        # Logged-in user ka apna AML login (session sirf request ke andar milta hai, thread me nahi)
+        own_creds = get_own_aml_credentials()
+        aml_user, aml_pass = own_creds if own_creds else (None, None)
+        login_mode = "user" if own_creds else "default"
         with SHEET_IMPORT_JOBS_LOCK:
             now = time.time()
             for old_id, old_job in list(SHEET_IMPORT_JOBS.items()):
@@ -2082,11 +2107,12 @@ def sheet_import_to_service():
                 "status": "queued",
                 "message": "Uploading generated CSV to the import service.",
                 "rows": len(result_df),
+                "login_mode": login_mode,
                 "updated_at": now,
             }
         threading.Thread(
             target=_run_sheet_import_api_job,
-            args=(job_id, csv_bytes, import_filename),
+            args=(job_id, csv_bytes, import_filename, aml_user, aml_pass),
             daemon=True,
         ).start()
         return jsonify({
@@ -2094,6 +2120,7 @@ def sheet_import_to_service():
             "job_id": job_id,
             "message": "CSV import started.",
             "rows": len(result_df),
+            "login_mode": login_mode,
         }), 202
     except Exception as e:
         print(f"[SHEET CSV IMPORT] ERROR: {e}", flush=True)
@@ -3088,25 +3115,65 @@ def _summary_gui_job_response(job):
     }
 
 
-def _download_summary_csv_export(date_from, date_to, progress=None):
-    """Download the Summary Maker CSV export and parse its contents."""
+def _wake_docker_service(max_wait=75):
+    """Free Render service 15 min idle ke baad so jaati hai: pehle /health se jagao, ready hone tak ruko."""
+    base = SUMMARY_CSV_EXPORT_URL.rsplit("/", 1)[0]
+    deadline = time.monotonic() + max_wait
+    while time.monotonic() < deadline:
+        try:
+            if requests.get(base + "/health", timeout=10).ok:
+                return True
+        except requests.RequestException:
+            pass
+        time.sleep(3)
+    return False
+
+
+def _scrub_secret(text, *secrets):
+    """Error/log text se password hata do."""
+    text = str(text or "")
+    for secret in secrets:
+        if secret:
+            text = text.replace(secret, "[redacted]")
+    return text
+
+
+AML_USER_LOGIN_HINT = (
+    "AML login failed: check your AML username/password in GUI Management "
+    "(or the captcha failed). It was not retried automatically."
+)
+
+
+def _download_summary_csv_export(date_from, date_to, progress=None, aml_user=None, aml_pass=None):
+    """Download the Summary Maker CSV export and parse its contents.
+
+    aml_user/aml_pass di ho to export usi user ke AML login se hota hai, warna service ka default login."""
     if not DOCKER_FILES_API_KEY:
         raise RuntimeError("DOCKER_FILES_API_KEY is not configured")
+    using_user_login = bool(aml_user and aml_pass)
 
     if progress:
         progress("downloading_csv", "Downloading CSV export.")
+    _wake_docker_service()
+    payload = {"from_date": date_from, "to_date": date_to}
+    if using_user_login:
+        payload["aml_user"] = aml_user
+        payload["aml_pass"] = aml_pass
     try:
         response = requests.post(
             SUMMARY_CSV_EXPORT_URL,
             headers={"X-API-Key": DOCKER_FILES_API_KEY},
-            json={"from_date": date_from, "to_date": date_to},
-            timeout=(10, 90),
+            json=payload,
+            timeout=(10, 240),
         )
     except requests.RequestException as exc:
         raise RuntimeError(f"Could not reach the CSV export service ({type(exc).__name__})") from exc
 
     if not response.ok:
-        raise RuntimeError(f"CSV export service returned HTTP {response.status_code}")
+        detail = f"CSV export service returned HTTP {response.status_code}"
+        if using_user_login and "login fail" in (response.text or "").lower():
+            detail += f". {AML_USER_LOGIN_HINT}"
+        raise RuntimeError(detail)
     body = response.content or b""
     if not body:
         raise RuntimeError("CSV export service returned an empty file")
@@ -3132,7 +3199,7 @@ def _download_summary_csv_export(date_from, date_to, progress=None):
     return headers, rows, total_rows
 
 
-def _run_summary_gui_job(job_id):
+def _run_summary_gui_job(job_id, aml_user=None, aml_pass=None):
     stage = "queued"
     try:
         with SUMMARY_GUI_JOBS_LOCK:
@@ -3153,7 +3220,7 @@ def _run_summary_gui_job(job_id):
         _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
         progress("starting", "Starting CSV export download.")
         headers, rows, total_rows = _download_summary_csv_export(
-            date_from, date_to, progress=progress
+            date_from, date_to, progress=progress, aml_user=aml_user, aml_pass=aml_pass
         )
         completed = _summary_gui_update_job(
             job_id,
@@ -3217,6 +3284,11 @@ def summary_source_from_gui():
     if not DOCKER_FILES_API_KEY:
         return jsonify({"success": False, "error": "CSV export API key is not configured on the server"}), 503
 
+    # Logged-in user ka apna AML login (session sirf request ke andar milta hai, thread me nahi)
+    own_creds = get_own_aml_credentials()
+    aml_user, aml_pass = own_creds if own_creds else (None, None)
+    login_mode = "user" if own_creds else "default"
+
     try:
         job_id = uuid.uuid4().hex
         now = time.monotonic()
@@ -3246,15 +3318,17 @@ def summary_source_from_gui():
                 "rows": [],
                 "total_rows": 0,
                 "result_consumed": False,
+                "login_mode": login_mode,
             }
         threading.Thread(
-            target=_run_summary_gui_job, args=(job_id,), daemon=True
+            target=_run_summary_gui_job, args=(job_id, aml_user, aml_pass), daemon=True
         ).start()
         return jsonify({
             "success": True,
             "status": "queued",
             "job_id": job_id,
             "message": "CSV export started.",
+            "login_mode": login_mode,
         }), 202
     except Exception as exc:
         print(f"[AML SUMMARY] Could not queue export: {exc}", flush=True)
@@ -6343,6 +6417,43 @@ def get_aml_credentials_for_user(email=None, display_name=None):
 
 def get_aml_credentials():
     return get_aml_credentials_for_user(session.get("email"), session.get("display_name"))
+
+
+def get_own_aml_credentials():
+    """Logged-in user ke APNE AML credentials (dashboard_users). Na mile to None.
+
+    Shared/env fallback aur generic 'username'/'password' columns jaan-boojh ke use nahi hote,
+    taaki dashboard login ka password AML ko kabhi na jaaye."""
+    def _pick(row, *keys):
+        for key in keys:
+            val = row.get(key)
+            if val is not None and str(val).strip():
+                return str(val).strip()
+        return None
+
+    current_email = (session.get("email") or "").strip().lower()
+    current_name = get_clean_display_name(session.get("display_name") or "").strip().lower()
+    try:
+        client = get_auth_supabase()
+        for key in [k for k in (current_email, current_name) if k]:
+            res = client.table("dashboard_users").select("*").eq("email", key).eq("is_active", True).limit(1).execute()
+            if not res.data:
+                continue
+            row = res.data[0]
+            blob = row.get("aml_credentials")
+            if isinstance(blob, str):
+                try:
+                    blob = json.loads(blob)
+                except Exception:
+                    blob = {}
+            if not isinstance(blob, dict):
+                blob = {}
+            username = _pick(row, "aml_username", "aml_user", "aml_email", "aml_login_username") or _pick(blob, "username", "user", "email")
+            password = _pick(row, "aml_password", "aml_pass", "aml_login_password") or _pick(blob, "password", "pass")
+            return (username, password) if username and password else None
+    except Exception as e:
+        print(f"[AML CREDS] own-credentials lookup error: {type(e).__name__}", flush=True)
+    return None
 
 # AML v1 login controls
 AML_USERNAME_INPUT_XPATH = "/html/body/div[1]/div/div[2]/form/label[1]/input"
