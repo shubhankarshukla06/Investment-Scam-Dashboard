@@ -8234,51 +8234,109 @@ def _select_aml_case_option(driver, wait, option_xpath):
     )
 
 
+CASE_ACTIONS_API_URL = SHEET_IMPORT_API_URL.rsplit("/", 1)[0] + "/case-actions"
+# True: har user sirf apne AML login se approve/reject kar sakta hai (audit me sahi naam jaaye).
+# False: apne creds na hon to service ka default (shared) login chalega.
+CASE_ACTIONS_REQUIRE_OWN_AML_LOGIN = True
+
+
+def _case_action_login_creds():
+    """(aml_user, aml_pass): logged-in user ke apne AML creds. Na mile to policy ke hisaab se error ya default login."""
+    own = get_own_aml_credentials()
+    if own:
+        return own
+    if CASE_ACTIONS_REQUIRE_OWN_AML_LOGIN:
+        raise ValueError("Add your AML username/password in GUI Management before approving or rejecting cases.")
+    return (None, None)
+
+
 def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
-    driver = None
+    """Approve/Reject ab Docker service (Playwright) par chalta hai. Yahan sirf job start + progress mirror hota hai,
+    taaki frontend ke /aml-case-actions status JSON me koi badlav na ho."""
+    aml_user, aml_pass = (tuple(aml_creds or ()) + (None, None))[:2]
+    headers = {"X-API-Key": DOCKER_FILES_API_KEY}
+
+    def _fail(message):
+        text = re.sub(r"\s+", " ", _scrub_secret(message, aml_pass)).strip()[:500]
+        with CASE_ACTION_JOBS_LOCK:
+            job = CASE_ACTION_JOBS.get(job_id)
+            if job:
+                job["status"] = "error"
+                job["message"] = text
+        print(f"[CASE ACTIONS] job={job_id[:8]} failed: {text}", flush=True)
+
     try:
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[job_id]["status"] = "running"
-        driver = aml_build_driver(headless=True)
-        _AML_DEBUG_DRIVERS.append(driver)
-        if not aml_login(driver, max_captcha_attempts=7, creds=aml_creds):
-            raise RuntimeError("AML GUI login failed after captcha retries")
+        if not DOCKER_FILES_API_KEY:
+            return _fail("DOCKER_FILES_API_KEY is not configured")
 
-        for case_id in case_ids:
-            result = {"case_id": case_id, "status": "Failed", "message": ""}
+        body = {"case_ids": case_ids, "action": action}
+        if action == "rejected":
+            body["remark_index"] = CASE_REPORT_REMARK_OPTIONS.index(remark) + 2   # AML dropdown me option[N] position
+        if aml_user and aml_pass:
+            body["aml_user"], body["aml_pass"] = aml_user, aml_pass
+
+        _wake_docker_service()
+        try:
+            start = requests.post(CASE_ACTIONS_API_URL, headers=headers, json=body, timeout=(10, 60))
+        except requests.RequestException as exc:
+            return _fail(
+                f"Could not confirm that the AML service started the job ({type(exc).__name__}). "
+                "Check AML before running these cases again."
+            )
+        if not start.ok:
             try:
-                driver.get(f"{AML_LOGIN_URL.rstrip('/')}/cases/{case_id}")
-                wait = WebDriverWait(driver, 40)
-                if action == "rejected":
-                    _select_aml_case_option(
-                        driver, wait, AML_CASE_ACTION_REJECT_OPTION_XPATH
-                    )
-                    _select_aml_case_option(
-                        driver, wait, AML_CASE_ACTION_REMARK_XPATHS[remark]
-                    )
-                submit_button = wait.until(EC.element_to_be_clickable((By.XPATH, AML_CASE_ACTION_SUBMIT_XPATH)))
-                driver.execute_script("arguments[0].click();", submit_button)
-                time.sleep(0.75)
-                result.update(status="Success", message="Submitted")
-            except Exception as exc:
-                result["message"] = str(exc).strip() or type(exc).__name__
-            with CASE_ACTION_JOBS_LOCK:
-                job = CASE_ACTION_JOBS[job_id]
-                job["results"].append(result)
-                job["completed"] += 1
-                job["successful"] += result["status"] == "Success"
-                job["failed"] += result["status"] != "Success"
+                detail = start.json().get("detail")
+            except ValueError:
+                detail = (start.text or "")[:200]
+            return _fail(f"AML service refused the job (HTTP {start.status_code}): {detail}")
+        service_job = (start.json() or {}).get("job_id")
+        if not service_job:
+            return _fail("AML service did not return a job id")
 
-        with CASE_ACTION_JOBS_LOCK:
-            CASE_ACTION_JOBS[job_id]["status"] = "done"
+        poll_url = f"{CASE_ACTIONS_API_URL}/{service_job}"
+        deadline = time.monotonic() + max(1800, len(case_ids) * 30)
+        lost_polls = 0
+        while time.monotonic() < deadline:
+            time.sleep(2)
+            try:
+                resp = requests.get(poll_url, headers=headers, timeout=(10, 30))
+            except requests.RequestException:
+                resp = None
+            if resp is not None and resp.status_code == 404:
+                return _fail(
+                    "The AML service restarted and lost this job. Cases processed so far are listed; "
+                    "check the rest in AML before running them again."
+                )
+            if resp is None or not resp.ok:
+                lost_polls += 1
+                if lost_polls >= 15:
+                    return _fail("Lost connection to the AML service. Check AML before running these cases again.")
+                continue
+            lost_polls = 0
+            snap = resp.json() or {}
+            with CASE_ACTION_JOBS_LOCK:
+                job = CASE_ACTION_JOBS.get(job_id)
+                if not job:
+                    return
+                job.update(
+                    completed=snap.get("completed", 0), successful=snap.get("successful", 0),
+                    failed=snap.get("failed", 0), results=list(snap.get("results") or []),
+                )
+            state = snap.get("status")
+            if state == "done":
+                with CASE_ACTION_JOBS_LOCK:
+                    job = CASE_ACTION_JOBS.get(job_id)
+                    if job:
+                        job["status"] = "done"
+                        job["message"] = snap.get("message")
+                return
+            if state == "error":
+                return _fail(snap.get("message") or "The AML service reported an error")
+        _fail("Timed out waiting for the AML service. Check AML before running these cases again.")
     except Exception as exc:
-        with CASE_ACTION_JOBS_LOCK:
-            if job_id in CASE_ACTION_JOBS:
-                CASE_ACTION_JOBS[job_id]["status"] = "error"
-                CASE_ACTION_JOBS[job_id]["message"] = str(exc)
-    finally:
-        if driver is not None:
-            _close_debug_driver(driver)
+        _fail(str(exc) or type(exc).__name__)
 
 
 @app.route("/aml-case-actions", methods=["POST"])
@@ -8295,7 +8353,7 @@ def start_aml_case_actions():
             return jsonify({"status": "error", "message": "Choose a valid rejection remark."}), 400
 
         job_id = uuid.uuid4().hex
-        creds = get_aml_credentials_for_user(session.get("email", ""), session.get("display_name", "User"))
+        creds = _case_action_login_creds()
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[job_id] = {
                 "status": "queued", "total": len(case_ids), "completed": 0,
@@ -8410,7 +8468,7 @@ def retry_failed_aml_case_actions(job_id):
     if not failed_ids:
         return jsonify({"status": "error", "message": "This run has no failed Case IDs to retry."}), 400
     try:
-        creds = get_aml_credentials_for_user(session.get("email", ""), session.get("display_name", "User"))
+        creds = _case_action_login_creds()
         retry_job_id = uuid.uuid4().hex
         with CASE_ACTION_JOBS_LOCK:
             CASE_ACTION_JOBS[retry_job_id] = {
@@ -8424,6 +8482,8 @@ def retry_failed_aml_case_actions(job_id):
             daemon=True,
         ).start()
         return jsonify({"status": "success", "job_id": retry_job_id, "total": len(failed_ids)})
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
     except Exception as exc:
         return jsonify({"status": "error", "message": str(exc)}), 500
 

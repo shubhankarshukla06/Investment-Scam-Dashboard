@@ -1166,7 +1166,7 @@
           class="page-nav-btn"
           onclick="changeDmPage('case_report')"
         >
-          Case &amp; Report Generator
+          QC &amp;CRG
         </button>
         {% endif %} {% if 'insights' in allowed_pages %}
         <button
@@ -1202,7 +1202,9 @@
     <div class="container">
       {% with messages = get_flashed_messages(with_categories=true) %} {% if
       messages %}{% for cat, msg in messages %}
-      <div class="flash {{ 'error' if cat == 'error' else 'success' }} {{ cat }}">
+      <div
+        class="flash {{ 'error' if cat == 'error' else 'success' }} {{ cat }}"
+      >
         <i class="fas fa-info-circle"></i> {{ msg }}
       </div>
       {% endfor %}{% endif %} {% endwith %}
