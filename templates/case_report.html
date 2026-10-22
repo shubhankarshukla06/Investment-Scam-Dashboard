@@ -773,6 +773,20 @@
             ><input id="reportWorkbook" type="file" accept=".xlsx,.xls,.xlsm" />
             <p class="help" id="reportWorkbookHelp">
               Required headers: SS_Path_1, Screenshot Path, Title, Description.
+              Screenshot Path can be left empty.
+            </p>
+          </div>
+          <div class="field" id="reportImagesField">
+            <label for="reportImages">Screenshot files (PNG)</label
+            ><input
+              id="reportImages"
+              type="file"
+              accept="image/png,.png"
+              multiple
+            />
+            <p class="help">
+              Select the PNG files listed in SS_Path_1 (matched by file name,
+              e.g. IS_LINE16.png). Not needed for Extract and Generate.
             </p>
           </div>
           <div class="actions">
@@ -1001,8 +1015,10 @@
                 : "Excel source file";
             document.getElementById("reportWorkbookHelp").textContent =
               extractMode
-                ? "Required headers: PDF Path (or PDF_Path, PDF URL, PDF_URL), Title, Description. All embedded PDF screenshots are extracted temporarily."
-                : "Required headers: SS_Path_1, Screenshot Path, Title, Description.";
+                ? "Required headers: PDF Path (or PDF_Path, PDF_URL), Title, Description. Embedded PDF screenshots are extracted temporarily (maximum 6 are used per report)."
+                : "Required headers: SS_Path_1, Screenshot Path, Title, Description. Screenshot Path can be left empty.";
+            document.getElementById("reportImagesField").hidden = extractMode;
+            document.getElementById("reportImages").value = "";
             document.getElementById("startReportGeneration").textContent =
               extractMode ? "Extract and Generate" : "Generate Report";
             document.getElementById("reportWorkbook").value = "";
@@ -1028,6 +1044,16 @@
           try {
             var form = new FormData();
             form.append("file", file);
+            if (reportMode !== "extract") {
+              var imageFiles = document.getElementById("reportImages").files;
+              for (var i = 0; i < imageFiles.length; i++)
+                form.append("images", imageFiles[i]);
+              if (imageFiles.length)
+                notice.textContent =
+                  "Uploading workbook and " +
+                  imageFiles.length +
+                  " screenshot(s)…";
+            }
             var response = await fetch(
               reportMode === "extract"
                 ? "/report-extract-generation"
