@@ -2510,8 +2510,11 @@ AML_GUI_UA = (
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
 SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
-SUMMARY_CSV_EXPORT_URL = "https://docker-files-9h0k.onrender.com/export"
-SHEET_IMPORT_API_URL = "https://docker-files-9h0k.onrender.com/import"
+DOCKER_FILES_BASE_URL = os.environ.get(
+    "DOCKER_FILES_BASE_URL", "https://docker-files-9h0k.onrender.com"
+).strip().rstrip("/")
+SUMMARY_CSV_EXPORT_URL = f"{DOCKER_FILES_BASE_URL}/export"
+SHEET_IMPORT_API_URL = f"{DOCKER_FILES_BASE_URL}/import"
 DOCKER_FILES_API_KEY = (
     os.environ.get("DOCKER_FILES_API_KEY")
     or os.environ.get("SUMMARY_CSV_API_KEY")
@@ -6305,6 +6308,20 @@ REPORT_GENERATION_JOBS_LOCK = threading.Lock()
 REPORT_GENERATION_REQUIRED_COLUMNS = ["SS_Path_1", "Screenshot Path", "Title", "Description"]
 REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS = ["PDF Path", "Title", "Description"]
 REPORT_EXTRACT_GENERATION_PDF_HEADERS = ("PDF Path", "PDF_Path", "PDF URL", "PDF_URL")
+
+
+def _normalize_report_source(value):
+    """Add https to a bare public-looking URL while preserving filesystem paths."""
+    source = str(value or "").strip().strip('"').strip("'")
+    if not source or source.lower().startswith(("http://", "https://")):
+        return source
+    if "\\" in source or re.match(r"^[A-Za-z]:[\\/]", source) or source.startswith("/"):
+        return source
+    if re.match(r"^(?:www\.)?(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d+)?(?:[/?#]|$)", source):
+        return "https://" + source
+    return source
+
+
 AML_REPORT_GENERATE_TITLE_XPATH = "/html/body/div[1]/div/form/fieldset[1]/div/div[1]/input"
 AML_REPORT_GENERATE_DESCRIPTION_XPATH = "/html/body/div[1]/div/form/fieldset[1]/div/div[2]/textarea"
 AML_REPORT_GENERATE_LEFT_BUTTON_XPATH = "/html/body/div[1]/div/form/fieldset[2]/div/div[1]/div/button"
@@ -8681,7 +8698,10 @@ def _parse_report_generation_workbook(file):
         missing = [column for column in REPORT_GENERATION_REQUIRED_COLUMNS if column not in frame.columns]
         if missing:
             raise ValueError(f"Sheet '{sheet_name}' is missing: {', '.join(missing)}.")
-        rows.extend(frame[REPORT_GENERATION_REQUIRED_COLUMNS].fillna("").to_dict("records"))
+        selected = frame[REPORT_GENERATION_REQUIRED_COLUMNS].fillna("")
+        for column in ("SS_Path_1", "Screenshot Path"):
+            selected[column] = selected[column].map(_normalize_report_source)
+        rows.extend(selected.to_dict("records"))
     if not rows:
         raise ValueError("The workbook contains no report rows.")
     return rows
@@ -8761,6 +8781,7 @@ def start_report_extract_generation():
                 required = "PDF Path (or PDF_Path, PDF URL, PDF_URL), Title, Description"
                 return jsonify({"status": "error", "message": f"Sheet '{sheet_name}' requires: {required}."}), 400
             selected = frame[[pdf_column, "Title", "Description"]].fillna("")
+            selected[pdf_column] = selected[pdf_column].map(_normalize_report_source)
             selected.columns = REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS
             rows.extend(selected.to_dict("records"))
         if not rows:

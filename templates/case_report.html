@@ -777,13 +777,11 @@
             </p>
           </div>
           <div class="field" id="reportImagesField">
-            <label for="reportImagesFolder">Screenshots folder (PNG)</label
-            ><input
-              id="reportImagesFolder"
-              type="file"
-              webkitdirectory
-              multiple
-            />
+            <label for="reportImagesFolder">Screenshots folders (PNG)</label>
+            <div id="reportImagesFolders">
+              <input id="reportImagesFolder" type="file" webkitdirectory multiple />
+            </div>
+            <button type="button" class="choice-btn" id="addReportImagesFolder">Add another folder</button>
             <label for="reportImages">or select PNG files</label
             ><input
               id="reportImages"
@@ -792,9 +790,10 @@
               multiple
             />
             <p class="help">
-              Needed only when SS_Path_1 / Screenshot Path hold paths from your
-              PC (C:\...). Select the folder once: only the PNG files named in
-              the Excel are uploaded (matched by file name). Not needed when the
+              Excel may contain paths from different PC folders. Select the
+              folder(s) that actually contain the screenshots; the code matches
+              by PNG filename and ignores the folder path written in Excel. You
+              can also select PNG files directly. Not needed when the
               Excel has https screenshot links, or for Extract and Generate.
             </p>
           </div>
@@ -1028,7 +1027,11 @@
                 : "Required headers: SS_Path_1, Screenshot Path, Title, Description. Screenshot Path can be left empty.";
             document.getElementById("reportImagesField").hidden = extractMode;
             document.getElementById("reportImages").value = "";
-            document.getElementById("reportImagesFolder").value = "";
+            var folderInputs = document.querySelectorAll("#reportImagesFolders input");
+            Array.prototype.forEach.call(folderInputs, function (input, index) {
+              if (index === 0) input.value = "";
+              else input.remove();
+            });
             document.getElementById("startReportGeneration").textContent =
               extractMode ? "Extract and Generate" : "Generate Report";
             document.getElementById("reportWorkbook").value = "";
@@ -1050,6 +1053,13 @@
         });
         return { matched: matched, missing: missing };
       }
+      document.getElementById("addReportImagesFolder").addEventListener("click", function () {
+        var input = document.createElement("input");
+        input.type = "file";
+        input.setAttribute("webkitdirectory", "");
+        input.multiple = true;
+        document.getElementById("reportImagesFolders").appendChild(input);
+      });
       document.getElementById("caseIds").addEventListener("input", updateCount);
       document
         .getElementById("startReportGeneration")
@@ -1082,19 +1092,18 @@
               var previewData = await previewResponse.json();
               if (!previewResponse.ok) throw Error(previewData.message);
               if (previewData.local_names.length) {
-                var selected = Array.prototype.slice
-                  .call(document.getElementById("reportImagesFolder").files)
-                  .concat(
-                    Array.prototype.slice.call(
-                      document.getElementById("reportImages").files,
-                    ),
-                  );
+                var selected = [];
+                document.querySelectorAll("#reportImagesFolders input").forEach(function (input) {
+                  selected = selected.concat(Array.prototype.slice.call(input.files || []));
+                });
+                selected = selected.concat(Array.prototype.slice.call(document.getElementById("reportImages").files || []));
                 var picked = pickNeededFiles(previewData.local_names, selected);
-                if (!picked.matched.length)
+                if (picked.missing.length)
                   throw Error(
-                    "The Excel has screenshot paths from your PC (for example " +
-                      previewData.local_names[0] +
-                      "). A web page cannot read PC paths: select the screenshots folder (or the PNG files) above, or use https links in the Excel.",
+                    "Screenshots not found in the selected folders/files: " +
+                      picked.missing.slice(0, 8).join(", ") +
+                      (picked.missing.length > 8 ? " and " + (picked.missing.length - 8) + " more." : ".") +
+                      " Add the folders containing these PNGs or select the files directly.",
                   );
                 picked.matched.forEach(function (f) {
                   form.append("images", f);
@@ -1136,7 +1145,9 @@
                     : 0) + "%";
                 if (job.status === "done") {
                   notice.textContent =
-                    "Report generation completed. Download the result workbook below.";
+                    "Report generation finished: " +
+                    (job.successful || 0) + " succeeded, " +
+                    (job.failed || 0) + " failed. Download the result workbook below.";
                   notice.className = "notice show info";
                   var link = document.getElementById("downloadReportResult");
                   link.href = "/report-generation/" + data.job_id + "/download";
