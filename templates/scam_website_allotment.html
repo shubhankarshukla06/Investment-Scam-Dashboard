@@ -434,7 +434,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('sheet')">Summary &amp; Reports</button>
         {% endif %}
         {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('case_report')">Case &amp; Report Generator</button>
+        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('case_report')">QC &amp; CRG</button>
         {% endif %}
         {% if 'insights' in allowed_pages %}
         <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('insights')">Dashboard</button>
@@ -1248,7 +1248,7 @@ document.addEventListener('keydown', e => {
 });
 function syncHeaderSpace() {
     const h = document.querySelector('.fixed-header')?.getBoundingClientRect().height;
-    if (h && h > 30) document.documentElement.style.setProperty('--fixed-header-space', Math.ceil(h + 14) + 'px');
+    if (h && h > 30) document.documentElement.style.setProperty('--fixed-header-space', Math.ceil(h + 6) + 'px');
     const filterH = document.querySelector('.filters')?.getBoundingClientRect().height;
     if (filterH && filterH > 30) document.documentElement.style.setProperty('--allot-filter-space', Math.ceil(filterH + 10) + 'px');
 }

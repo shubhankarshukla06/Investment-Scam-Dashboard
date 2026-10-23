@@ -42,6 +42,8 @@ import sys
 import base64
 import html
 import hashlib
+import socket
+import ipaddress
 
 _EASYOCR_READER = None
 _EASYOCR_LOCK = threading.Lock()
@@ -8088,6 +8090,62 @@ def _register_report_image(files_map, src_path):
     return name
 
 
+def _is_public_host(host):
+    """SSRF se bachav: sirf public IP wale hosts (localhost/private/metadata IPs block)."""
+    try:
+        infos = socket.getaddrinfo(host, None)
+    except OSError:
+        return False
+    for info in infos:
+        try:
+            if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
+                return False
+        except ValueError:
+            return False
+    return bool(infos)
+
+
+def _fetch_report_image_url(url, dest_dir, cache):
+    """Excel me diya https screenshot link download karo. Local file path return. Error message me URL nahi aata
+    (signed links me secret hota hai)."""
+    if url in cache:
+        return cache[url]
+    current, response = url, None
+    try:
+        for _ in range(4):
+            parsed = urlparse(current)
+            if parsed.scheme != "https" or not parsed.hostname or not _is_public_host(parsed.hostname):
+                raise ValueError("Screenshot link must be a public https URL")
+            response = requests.get(current, timeout=(10, 30), stream=True, allow_redirects=False)
+            if response.status_code in (301, 302, 303, 307, 308):
+                current = urllib.parse.urljoin(current, response.headers.get("location", ""))
+                response.close()
+                response = None
+                continue
+            break
+        else:
+            raise ValueError("Screenshot link redirected too many times")
+        if response is None or response.status_code >= 400:
+            raise ValueError(f"Could not download screenshot (HTTP {getattr(response, 'status_code', '?')})")
+        path = os.path.join(dest_dir, f"url_{len(cache) + 1}.png")
+        size = 0
+        with open(path, "wb") as target:
+            for chunk in response.iter_content(chunk_size=1024 * 256):
+                size += len(chunk)
+                if size > REPORT_MAX_UPLOAD_FILE_BYTES:
+                    raise ValueError(f"Screenshot is larger than {REPORT_MAX_UPLOAD_FILE_BYTES // (1024 * 1024)} MB")
+                target.write(chunk)
+    except ValueError:
+        raise
+    except requests.RequestException as exc:
+        raise ValueError(f"Could not download screenshot ({type(exc).__name__})")
+    finally:
+        if response is not None:
+            response.close()
+    cache[url] = path
+    return path
+
+
 def _chunk_report_items(items, files_map):
     """Rows ko chhote batches me todo (rows aur upload size ki limit)."""
     chunk, names, size = [], set(), 0
@@ -8242,11 +8300,13 @@ def _report_fail_job(job_id, exc, aml_creds=None):
 
 def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_map=None):
     """Generate Report: Excel ke screenshot filenames upload ki hui PNG files se (ya local path se) match hote hain."""
+    url_dir = None
     try:
         with REPORT_GENERATION_JOBS_LOCK:
             REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Preparing screenshots")
         uploaded = dict(image_map or {})
         results, files_map, items = {}, {}, []
+        url_dir, url_cache = tempfile.mkdtemp(prefix="crg_report_urls_"), {}
         record = _make_report_recorder(job_id, rows, results)
 
         for index, row in enumerate(rows, start=1):
@@ -8258,6 +8318,9 @@ def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_ma
                         if required:
                             raise ValueError("SS_Path_1 is empty")
                         continue                                    # Screenshot Path optional hai
+                    if raw.lower().startswith(("http://", "https://")):
+                        names.append(_register_report_image(files_map, _fetch_report_image_url(raw, url_dir, url_cache)))
+                        continue                                    # Excel me link diya hai: upload ki zarurat nahi
                     base = re.split(r"[\\/]+", raw)[-1]
                     if not base.lower().endswith(".png"):
                         raise ValueError(f"PNG screenshot not found: {raw}")
@@ -8296,6 +8359,8 @@ def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_ma
     finally:
         if image_dir:
             shutil.rmtree(image_dir, ignore_errors=True)
+        if url_dir:
+            shutil.rmtree(url_dir, ignore_errors=True)
 
 
 def _upload_aml_report_screenshots(driver, wait, image_paths):
@@ -8585,6 +8650,10 @@ def _report_all_screenshots_missing(rows, image_map):
             raw = str(row.get(column, "") or "").strip().strip('"').strip("'")
             if not raw:
                 continue
+            if raw.lower().startswith(("http://", "https://")):
+                found.add(raw)                                      # link hai, file select karne ki zarurat nahi
+                referenced.setdefault(raw, raw)
+                continue
             original = re.split(r"[\\/]+", raw)[-1]
             base = original.lower()
             referenced.setdefault(base, original)
@@ -8597,47 +8666,79 @@ def _report_all_screenshots_missing(rows, image_map):
     return None
 
 
+def _parse_report_generation_workbook(file):
+    """Generate Report workbook -> rows. Galat file/header par ValueError."""
+    extension = os.path.splitext(file.filename)[1].lower()
+    if extension not in (".xlsx", ".xls", ".xlsm"):
+        raise ValueError("Use an .xlsx, .xls, or .xlsm file.")
+    try:
+        sheets = pd.read_excel(file, sheet_name=None, dtype=str)
+    except Exception as exc:
+        raise ValueError(f"Could not read workbook: {exc}")
+    rows = []
+    for sheet_name, frame in sheets.items():
+        frame.columns = [str(column).strip() for column in frame.columns]
+        missing = [column for column in REPORT_GENERATION_REQUIRED_COLUMNS if column not in frame.columns]
+        if missing:
+            raise ValueError(f"Sheet '{sheet_name}' is missing: {', '.join(missing)}.")
+        rows.extend(frame[REPORT_GENERATION_REQUIRED_COLUMNS].fillna("").to_dict("records"))
+    if not rows:
+        raise ValueError("The workbook contains no report rows.")
+    return rows
+
+
+@app.route("/report-generation/needed-files", methods=["POST"])
+@login_required
+def report_generation_needed_files():
+    """Excel me kaun si screenshot files (PC ke paths) chahiye: browser sirf wahi upload karta hai."""
+    file = request.files.get("file")
+    if not file or not file.filename:
+        return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
+    try:
+        rows = _parse_report_generation_workbook(file)
+    except ValueError as exc:
+        return jsonify({"status": "error", "message": str(exc)}), 400
+    names, url_count = {}, 0
+    for row in rows:
+        for column in ("SS_Path_1", "Screenshot Path"):
+            raw = str(row.get(column, "") or "").strip().strip('"').strip("'")
+            if not raw:
+                continue
+            if raw.lower().startswith(("http://", "https://")):
+                url_count += 1
+                continue
+            original = re.split(r"[\\/]+", raw)[-1]
+            names.setdefault(original.lower(), original)
+    return jsonify({"status": "success", "rows": len(rows), "local_names": sorted(names.values()), "url_count": url_count})
+
+
 @app.route("/report-generation", methods=["POST"])
 @login_required
 def start_report_generation():
     file = request.files.get("file")
     if not file or not file.filename:
         return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
-    extension = os.path.splitext(file.filename)[1].lower()
-    if extension not in (".xlsx", ".xls", ".xlsm"):
-        return jsonify({"status": "error", "message": "Use an .xlsx, .xls, or .xlsm file."}), 400
+    image_dir = None
     try:
-        sheets = pd.read_excel(file, sheet_name=None, dtype=str)
-        rows = []
-        for sheet_name, frame in sheets.items():
-            frame.columns = [str(column).strip() for column in frame.columns]
-            missing = [column for column in REPORT_GENERATION_REQUIRED_COLUMNS if column not in frame.columns]
-            if missing:
-                return jsonify({"status": "error", "message": f"Sheet '{sheet_name}' is missing: {', '.join(missing)}."}), 400
-            rows.extend(frame[REPORT_GENERATION_REQUIRED_COLUMNS].fillna("").to_dict("records"))
-        if not rows:
-            return jsonify({"status": "error", "message": "The workbook contains no report rows."}), 400
-        image_dir = None
-        try:
-            image_dir, image_map = _save_report_uploaded_images(request.files.getlist("images"))
-            blocked = _report_all_screenshots_missing(rows, image_map)
-            if blocked:
-                shutil.rmtree(image_dir, ignore_errors=True)
-                return jsonify({"status": "error", "message": blocked}), 400
-            job_id = uuid.uuid4().hex
-            creds = _report_login_creds()
-            with REPORT_GENERATION_JOBS_LOCK:
-                REPORT_GENERATION_JOBS[job_id] = {"status": "queued", "total": len(rows), "completed": 0, "successful": 0, "failed": 0, "stage": "Initializing", "results": [], "message": None, "output_path": None}
-            threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds, image_dir, image_map), daemon=True).start()
-        except Exception:
-            if image_dir:
-                shutil.rmtree(image_dir, ignore_errors=True)
-            raise
+        rows = _parse_report_generation_workbook(file)
+        image_dir, image_map = _save_report_uploaded_images(request.files.getlist("images"))
+        blocked = _report_all_screenshots_missing(rows, image_map)
+        if blocked:
+            return jsonify({"status": "error", "message": blocked}), 400
+        job_id = uuid.uuid4().hex
+        creds = _report_login_creds()
+        with REPORT_GENERATION_JOBS_LOCK:
+            REPORT_GENERATION_JOBS[job_id] = {"status": "queued", "total": len(rows), "completed": 0, "successful": 0, "failed": 0, "stage": "Initializing", "results": [], "message": None, "output_path": None}
+        threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds, image_dir, image_map), daemon=True).start()
+        image_dir = None                                            # ab folder ki safai job karega
         return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
     except Exception as exc:
         return jsonify({"status": "error", "message": f"Could not read workbook: {exc}"}), 400
+    finally:
+        if image_dir:
+            shutil.rmtree(image_dir, ignore_errors=True)
 
 
 @app.route("/report-extract-generation", methods=["POST"])
