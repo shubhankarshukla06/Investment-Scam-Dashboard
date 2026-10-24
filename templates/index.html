@@ -402,14 +402,60 @@
             .sheet-status-box.summary-ready i { color: #3f51b5; font-size: 15px; flex-shrink: 0; }
             .summary-status-action-group { grid-column: span 2; }
             .summary-status-action-wrap { display: flex; flex-wrap: nowrap; gap: 10px; align-items: stretch; min-width: 0; }
-            .summary-status-stack { min-width: 0; flex: 1 1 auto; padding: 10px 12px; border: 1px solid #b0bdf7; border-radius: 9px; background: #f0f3ff; color: #3949ab; }
+            .summary-status-stack { display: grid; grid-template-columns: minmax(118px, auto) minmax(0, 1fr); align-items: center; gap: 4px 8px; min-width: 0; flex: 1 1 auto; padding: 5px 8px; border: 1px solid #b0bdf7; border-radius: 9px; background: #f0f3ff; color: #3949ab; }
+            .summary-status-stack.is-waiting { border-color: #dfe7f1; background: #fff; color: #526173; }
+            .summary-status-stack.is-ready { border-color: #a9dfbf; background: #eafaf1; color: #1e8449; }
             .summary-status-stack.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
-            .summary-status-stack .sheet-status-box { width: 100%; height: auto; min-height: 0; padding: 0; justify-content: flex-start; border: 0; border-radius: 0; background: transparent; }
-            .summary-status-stack .sheet-status-box span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
-            .summary-status-stack .automation-steps { margin-top: 8px; }
+            .summary-status-stack .summary-status-message { display: flex; grid-column: 1; align-items: center; gap: 6px; min-width: 0; font-size: 10px; line-height: 1.2; }
+            .summary-status-stack .summary-status-message i { flex: 0 0 auto; color: #718096; font-size: 11px; }
+            .summary-status-stack.is-ready .summary-status-message i { color: #20a464; }
+            .summary-status-stack.is-error .summary-status-message i { color: #d64545; }
+            .summary-status-stack .summary-status-message span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .summary-status-stack .automation-steps,
+            #sheetImportSteps { display: flex; grid-column: 2; flex-flow: row nowrap; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; margin: 0; overflow: hidden; }
+            .summary-status-stack .automation-steps[hidden],
+            #sheetImportSteps[hidden] { display: none; }
+            .summary-status-stack .automation-step,
+            #sheetImportSteps .automation-step { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 8px; line-height: 1.15; gap: 3px; }
+            .summary-status-stack .automation-step i,
+            #sheetImportSteps .automation-step i { width: 10px; flex: 0 0 10px; font-size: 8px; }
+            .summary-status-stack .automation-step span,
+            #sheetImportSteps .automation-step span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+            #sheetImportSteps .automation-step { color: #78869a; }
+            #sheetImportSteps .automation-step.is-active { color: #1769aa; font-weight: 700; }
+            #sheetImportSteps .automation-step.is-done { color: #16834b; }
+            #sheetImportSteps .automation-step.is-error { color: #b83232; font-weight: 700; }
+            #sheetImportSteps .automation-step.is-active i { color: #2784d8; }
+            #sheetImportSteps .automation-step.is-done i { color: #20a464; }
+            #sheetImportSteps .automation-step.is-error i { color: #d64545; }
+            .sheet-import-status-group { min-width: 0; }
+            .sheet-import-status-card { display: grid; grid-template-columns: minmax(118px, auto) minmax(0, 1fr); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; min-height: var(--row-h); padding: 5px 8px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
+            .sheet-import-status-card.is-running { border-color: #b0bdf7; background: #f0f3ff; color: #1769aa; }
+            .sheet-import-status-card.is-done { border-color: #a9dfbf; background: #eafaf1; color: #16834b; }
+            .sheet-import-status-card.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
+            .sheet-import-status-card .sheet-status-box { display: flex; grid-column: 1; align-items: center; gap: 6px; width: 100%; min-width: 0; height: auto; min-height: 24px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #78869a; font-size: 10px; line-height: 1.2; font-weight: 600; justify-content: flex-start; }
+            .sheet-import-status-card.is-running .sheet-status-box.waiting { color: #1769aa; }
+            .sheet-import-status-card .sheet-status-box.ready { color: #16834b; }
+            .sheet-import-status-card .sheet-status-box.error { color: #b83232; }
+            .sheet-import-status-card .sheet-status-box i { color: inherit; font-size: 11px; }
+            .sheet-import-status-card .sheet-status-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            body.theme-dark .sheet-import-status-card { border-color: #40536b; background: #1d293b; }
+            body.theme-dark .sheet-import-status-card.is-running { border-color: #5965a7; background: #252a46; }
+            body.theme-dark .sheet-import-status-card.is-done { border-color: #357554; background: #1d332b; }
+            body.theme-dark .sheet-import-status-card.is-error { border-color: #7f3c43; background: #3a242a; }
+            body.theme-dark .sheet-import-status-card .sheet-status-box { border: 0; background: transparent; color: inherit; }
             body.theme-dark .summary-status-stack { background: #252a46; border-color: #5965a7; color: #dce2ff; }
+            body.theme-dark .summary-status-stack.is-waiting { background: #1d293b; border-color: #40536b; color: #cbd5e1; }
+            body.theme-dark .summary-status-stack.is-ready { background: #1d332b; border-color: #357554; color: #8ce0b4; }
             body.theme-dark .summary-status-stack.is-error { background: #3a242a; border-color: #7f3c43; color: #ffb4ad; }
-            body.theme-dark .summary-status-stack .sheet-status-box { background: transparent; border: 0; color: inherit; }
+            body.theme-dark .summary-status-stack .summary-status-message { color: inherit; }
+            body.theme-dark #sheetImportSteps .automation-step { color: #91a1b6; }
+            body.theme-dark #sheetImportSteps .automation-step.is-active { color: #a9d4ff; }
+            body.theme-dark #sheetImportSteps .automation-step.is-done { color: #8ce0b4; }
+            body.theme-dark #sheetImportSteps .automation-step.is-error { color: #ff9b9b; }
+            body.theme-dark #sheetImportSteps .automation-step.is-active i { color: #a9d4ff; }
+            body.theme-dark #sheetImportSteps .automation-step.is-done i { color: #8ce0b4; }
+            body.theme-dark #sheetImportSteps .automation-step.is-error i { color: #ff9b9b; }
             .automation-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin: 7px 0 0; padding: 0; list-style: none; }
             .automation-step { display: flex; align-items: center; gap: 6px; min-width: 0; color: #8a96a5; font-size: 10px; line-height: 1.3; }
             .automation-step i { width: 13px; flex: 0 0 13px; color: #b8c3d0; text-align: center; }
@@ -926,6 +972,7 @@
             .logo h1 { white-space: normal; }
         }
             @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
+            @media (max-width: 768px) { .summary-status-stack, .sheet-import-status-card { grid-template-columns: minmax(100px, auto) minmax(0, 1fr); } }
             /* Insights: keep cards & graph sections aligned and consistent */
             @media (max-width: 1200px) {
                 #insightsStatCards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -2352,22 +2399,24 @@
                                     <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                                 </div>
                             </div>
-                            <div class="sheet-maker-group" style="min-width:0;">
+                            <div class="sheet-maker-group sheet-import-status-group" style="min-width:0;">
                                 <label><i class="fas fa-info-circle"></i> Status</label>
-                                <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
-                                    <i class="fas fa-hourglass-half"></i>
-                                    <span>Waiting for input...</span>
+                                <div id="sheetDataProcessingStatus" class="sheet-import-status-card" role="status" aria-live="polite">
+                                    <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
+                                        <i class="fas fa-hourglass-half"></i>
+                                        <span>Waiting for input...</span>
+                                    </div>
+                                    <div id="sheetReadyMsg" class="sheet-status-box ready" style="display:none;">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span id="sheetReadyText"></span>
+                                    </div>
+                                    <ol class="automation-steps" id="sheetImportSteps" hidden aria-label="AML import progress">
+                                        <li class="automation-step" title="CSV prepared"><i class="fas fa-circle"></i><span>CSV ready</span></li>
+                                        <li class="automation-step" title="Connect to AML service"><i class="fas fa-circle"></i><span>Connect</span></li>
+                                        <li class="automation-step" title="Log in, open Import and submit the CSV"><i class="fas fa-circle"></i><span>Login &amp; import</span></li>
+                                        <li class="automation-step" title="Receive import result"><i class="fas fa-circle"></i><span>Result</span></li>
+                                    </ol>
                                 </div>
-                                <div id="sheetReadyMsg" class="sheet-status-box ready" style="display:none;">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span id="sheetReadyText"></span>
-                                </div>
-                                <ol class="automation-steps" id="sheetImportSteps" hidden aria-label="AML import progress">
-                                    <li class="automation-step"><i class="fas fa-circle"></i><span>CSV prepared</span></li>
-                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Connect to AML service</span></li>
-                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Login, open Import and confirm CSV</span></li>
-                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Receive import result</span></li>
-                                </ol>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-download"></i> Action</label>
@@ -2437,35 +2486,29 @@
                             <div class="sheet-maker-group summary-status-action-group" style="min-width:0;">
                                 <label><i class="fas fa-info-circle"></i> Data Processing Status</label>
                                 <div class="summary-status-action-wrap">
-                                    <div class="summary-status-stack" id="summaryDataProcessingStatus" role="status" aria-live="polite" style="flex:1;min-width:160px;">
-                                        <div id="summaryNotReadyMsg" class="sheet-status-box waiting">
+                                    <div class="summary-status-stack is-waiting" id="summaryDataProcessingStatus" role="status" aria-live="polite" style="flex:1;min-width:160px;">
+                                        <div id="summaryNotReadyMsg" class="summary-status-message">
                                             <i class="fas fa-hourglass-half"></i>
                                             <span>Waiting for input...</span>
                                         </div>
-                                        <div id="summaryReadyMsg" class="sheet-status-box summary-ready" style="display:none;">
+                                        <div id="summaryReadyMsg" class="summary-status-message" style="display:none;">
                                             <i class="fas fa-check-circle"></i>
                                             <span id="summaryReadyText"></span>
                                         </div>
-                                        <ol class="automation-steps" id="summaryProcessSteps" hidden aria-label="AML export progress">
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Connect to export service</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Wait for AML browser</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Log in to AML</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Set dates and report filters</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Download AML export</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Read CSV and load data</span></li>
-                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Generate summary</span></li>
+                                        <ol class="automation-steps" id="summaryProcessSteps" hidden aria-label="Summary generation progress">
+                                            <li class="automation-step" title="Check the selected summary type and input data"><i class="fas fa-circle"></i><span>Check</span></li>
+                                            <li class="automation-step" title="Prepare the input data"><i class="fas fa-circle"></i><span>Prepare</span></li>
+                                            <li class="automation-step" title="Build the summary"><i class="fas fa-circle"></i><span>Build</span></li>
+                                            <li class="automation-step" title="Display the generated summary"><i class="fas fa-circle"></i><span>Display</span></li>
                                         </ol>
                                     </div>
                                     <button type="button" class="generate-summary-btn summary-gui-load-inline" id="summaryGuiLoadBtn" onclick="loadSummaryFromGui()" style="display:none;background:#16a085;flex-shrink:0;">
                                         <i class="fas fa-cloud-download-alt"></i> Fetch AML Data
                                     </button>
+                                    <button type="button" class="generate-summary-btn" id="generateSummaryBtn" onclick="generateSummary()" disabled style="display:none;flex-shrink:0;">
+                                        <i class="fas fa-chart-pie"></i> Generate Summary
+                                    </button>
                                 </div>
-                            </div>
-                            <div class="sheet-maker-group summary-inline-actions" id="summaryGenerateGroup" style="display:none;min-width:0;">
-                                <label><i class="fas fa-chart-pie"></i> Generate Summary</label>
-                                <button class="generate-summary-btn" id="generateSummaryBtn" onclick="generateSummary()" disabled>
-                                    <i class="fas fa-chart-pie"></i> Generate Summary
-                                </button>
                             </div>
                         </div>
                         <div class="summary-preview-section" id="summaryPreviewSection">
@@ -4862,6 +4905,7 @@
                 if (!list) return;
                 list.hidden = false;
                 const value = String(stage || '').toLowerCase();
+                const statusCard = document.getElementById('sheetDataProcessingStatus');
                 let active = 0;
                 if (/connect|wake|service/.test(value)) active = 1;
                 if (/aml import|login|upload|confirm/.test(value)) active = 2;
@@ -4869,6 +4913,11 @@
                 const hasError = status === 'error' || /review|unconfirmed|failed|rejected/.test(value);
                 const done = status === 'done' && !hasError;
                 if (hasError && /failed|rejected/.test(value)) active = 2;
+                if (statusCard) {
+                    statusCard.classList.toggle('is-error', hasError);
+                    statusCard.classList.toggle('is-done', done);
+                    statusCard.classList.toggle('is-running', !done && !hasError);
+                }
                 list.querySelectorAll('.automation-step').forEach((step, index) => {
                     step.classList.toggle('is-done', done || index < active);
                     step.classList.toggle('is-active', !done && !hasError && index === active);
@@ -4947,9 +4996,19 @@
                     summaryHeaders = summaryAmlDataCache.headers;
                     summaryParsedData = summaryAmlDataCache.rows;
                 }
-                checkSummaryReady();
+                resetSummaryProcessSteps();
                 clearSummaryRenderState();
-                if (summaryParsedData.length > 0) generateSummary();
+                checkSummaryReady();
+            }
+            function resetSummaryProcessSteps() {
+                const list = document.getElementById('summaryProcessSteps');
+                if (!list) return;
+                list.hidden = true;
+                list.querySelectorAll('.automation-step').forEach(step => {
+                    step.classList.remove('is-done', 'is-active', 'is-error');
+                    const icon = step.querySelector('i');
+                    if (icon) icon.className = 'fas fa-circle';
+                });
             }
             function setSummaryGuiDefaultDates() {
                 const today = new Date().toISOString().split('T')[0];
@@ -4991,7 +5050,7 @@
             function onSummarySourceChange(clearData = true) {
                 const source = document.getElementById('summarySourceSelect')?.value || 'aml';
                 const processSteps = document.getElementById('summaryProcessSteps');
-                if (processSteps) processSteps.hidden = source !== 'aml';
+                if (processSteps) processSteps.hidden = true;
                 const uploadGroup = document.getElementById('summaryUploadGroup');
                 const amlGroup = document.getElementById('summaryAmlGroup');
                 const loadBtn = document.getElementById('summaryGuiLoadBtn');
@@ -5005,8 +5064,6 @@
                     summaryParsedData = summaryAmlDataCache.rows;
                     document.getElementById('summaryFileName').textContent = `CSV export (${summaryParsedData.length} rows)`;
                     checkSummaryReady();
-                    const summaryType = document.getElementById('summaryTypeSelect').value;
-                    if (summaryType && summaryParsedData.length > 0) generateSummary();
                     return;
                 }
                 if (clearData) { clearSummaryDataAndRender(); const nameEl = document.getElementById('summaryFileName'); if (nameEl) nameEl.textContent = 'No file chosen'; }
@@ -5031,6 +5088,7 @@
             }
             // ── FIX: Clean, correct parseSummaryFile ────────────────────
             function parseSummaryFile(file) {
+                resetSummaryProcessSteps();
                 // Show processing status
                 const readyEl = document.getElementById('summaryReadyMsg');
                 const waitEl  = document.getElementById('summaryNotReadyMsg');
@@ -5074,7 +5132,6 @@
                             }
                             stampSummaryParsedMeta(file.name || 'csv');
                             checkSummaryReady();
-                            if (summaryParsedData.length > 0) generateSummary();
                         } catch(err) { showToast('Error parsing CSV: ' + err.message, true); }
                     };
                     reader.readAsText(file, 'utf-8');
@@ -5098,7 +5155,6 @@
                         summaryParsedData = data.rows || [];
                         stampSummaryParsedMeta(file.name || 'excel');
                         checkSummaryReady();
-                        if (summaryParsedData.length > 0) generateSummary();
                     } else {
                         showToast('Could not parse Excel file via server. Please try saving as CSV.', true);
                         summaryParsedData = [];
@@ -5119,13 +5175,10 @@
                 list.hidden = false;
                 const value = String(message || '').toLowerCase();
                 let active = 0;
-                if (/starting|queueing|connect|export service/.test(value)) active = 0;
-                else if (/wait|browser queue|waiting for aml/.test(value)) active = 1;
-                else if (/log|sign.?in|captcha/.test(value)) active = 2;
-                else if (/filter|date|prepar.*report/.test(value)) active = 3;
-                else if (/download.*export|export.*download|downloading/.test(value)) active = 4;
-                else if (/read|csv.*read|verified|load/.test(value)) active = 5;
-                else if (/generat|build.*summary/.test(value)) active = 6;
+                if (/prepar/.test(value)) active = 1;
+                else if (/build|generat/.test(value)) active = 2;
+                else if (/display|render/.test(value)) active = 3;
+                if (status === 'error') active = 2;
                 const done = status === 'done' || /summary generated/.test(value);
                 list.querySelectorAll('.automation-step').forEach((step, index) => {
                     const complete = done || index < active;
@@ -5147,15 +5200,21 @@
                 const statusCard = document.getElementById('summaryDataProcessingStatus');
                 if (!waiting) return;
                 if (ready) ready.style.display = 'none';
-                if (statusCard) statusCard.classList.toggle('is-error', state === 'error');
+                if (statusCard) {
+                    statusCard.classList.toggle('is-error', state === 'error');
+                    statusCard.classList.toggle('is-waiting', state === 'running');
+                    statusCard.classList.toggle('is-ready', state === 'done');
+                }
                 waiting.style.display = 'flex';
-                waiting.className = 'sheet-status-box ' + (state === 'error' ? 'error' : 'waiting');
                 const icon = waiting.querySelector('i');
                 const text = waiting.querySelector('span');
                 if (icon) icon.className = state === 'error'
                     ? 'fas fa-exclamation-circle'
                     : 'fas fa-spinner fa-spin';
-                if (text) text.textContent = message || 'Processing...';
+                if (text) {
+                    text.textContent = message || 'Processing...';
+                    text.title = message || '';
+                }
             }
             function waitForSummaryGuiJob(jobId, onProgress) {
                 const deadline = Date.now() + (12 * 60 * 1000);
@@ -5251,15 +5310,14 @@
                 }
                 summaryParsedData = [];
                 summaryHeaders = [];
+                resetSummaryProcessSteps();
                 document.getElementById('summaryFileName').textContent = 'Downloading CSV...';
                 readyEl.style.display = 'none';
                 setSummaryDataStatus('Downloading CSV export...');
-                updateSummaryProcessSteps('Connecting to export service', 'running');
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
                 try {
                     const data = await requestSummaryCsvExport(dateFrom, dateTo, function(job) {
-                        updateSummaryProcessSteps(job.message || job.stage, job.status);
                         waitEl.querySelector('span').textContent = job.message
                             || (job.status === 'queued'
                                 ? 'Preparing CSV export...'
@@ -5267,7 +5325,6 @@
                     });
                     summaryHeaders = data.headers || [];
                     summaryParsedData = data.rows || [];
-                    updateSummaryProcessSteps('CSV export completed and loaded', 'running');
                     summaryAmlDataCache = { headers: summaryHeaders, rows: summaryParsedData };  // persist for type/source switching
                     stampSummaryParsedMeta('csv-export');
                     document.getElementById('summaryFileName').textContent = `CSV export (${data.total_rows || summaryParsedData.length} rows)`;
@@ -5278,7 +5335,6 @@
                         showToast('CSV export completed, but 0 rows matched this filter.', false, false);
                     }
                     checkSummaryReady();
-                    if (summaryParsedData.length > 0) generateSummary();
                 } catch (err) {
                     summaryParsedData = [];
                     summaryHeaders = [];
@@ -5286,7 +5342,6 @@
                     readyEl.style.display = 'none';
                     checkSummaryReady();
                     setSummaryDataStatus('Export failed: ' + (err.message || 'Unknown error'), 'error');
-                    updateSummaryProcessSteps(err.message || 'Export failed', 'error');
                     showToast('CSV load failed: ' + err.message, true);
                 } finally {
                     btn.disabled = false;
@@ -5296,26 +5351,44 @@
             function checkSummaryReady() {
                 const summaryType = document.getElementById('summaryTypeSelect').value;
                 const hasData = summaryParsedData.length > 0;
+                const statusCard = document.getElementById('summaryDataProcessingStatus');
                 const readyEl = document.getElementById('summaryReadyMsg');
                 const waitEl  = document.getElementById('summaryNotReadyMsg');
                 const textEl  = document.getElementById('summaryReadyText');
                 const btn     = document.getElementById('generateSummaryBtn');
+                if (btn) btn.style.display = summaryType && hasData ? 'inline-flex' : 'none';
                 if (summaryType && hasData) {
-                    textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Summary will generate automatically.`;
+                    if (statusCard) {
+                        statusCard.classList.add('is-ready');
+                        statusCard.classList.remove('is-waiting', 'is-error');
+                    }
+                    textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Click Generate Summary.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display = 'none';
                     btn.disabled = false;
                 } else if (hasData && !summaryType) {
+                    if (statusCard) {
+                        statusCard.classList.add('is-waiting');
+                        statusCard.classList.remove('is-ready', 'is-error');
+                    }
                     waitEl.style.display = 'flex';
                     waitEl.querySelector('span').textContent = `${summaryParsedData.length} rows loaded. Select a summary type.`;
                     readyEl.style.display = 'none';
                     btn.disabled = true;
                 } else if (!hasData && summaryType) {
+                    if (statusCard) {
+                        statusCard.classList.add('is-waiting');
+                        statusCard.classList.remove('is-ready', 'is-error');
+                    }
                     waitEl.style.display = 'flex';
                     waitEl.querySelector('span').textContent = 'Choose a source and load data to continue.';
                     readyEl.style.display = 'none';
                     btn.disabled = true;
                 } else {
+                    if (statusCard) {
+                        statusCard.classList.add('is-waiting');
+                        statusCard.classList.remove('is-ready', 'is-error');
+                    }
                     waitEl.style.display = 'flex';
                     waitEl.querySelector('span').textContent = 'Waiting for input...';
                     readyEl.style.display = 'none';
@@ -5326,11 +5399,8 @@
                 const summaryType = document.getElementById('summaryTypeSelect').value;
                 if (!summaryType) { showToast('Please select a summary type first!', true); return; }
                 if (!summaryParsedData.length) { showToast('Please upload a file first!', true); return; }
-                const source = document.getElementById('summarySourceSelect')?.value || 'aml';
                 const readyMessage = document.getElementById('summaryReadyMsg');
                 const readyText = document.getElementById('summaryReadyText');
-                setSummaryDataStatus('Generating summary...');
-                if (source === 'aml') updateSummaryProcessSteps('Generating summary', 'running');
                 // Reset any active category filter so the freshly generated summary shows in full
                 activeCategoryFilter = null;
                 ['sm', 'web', 'app'].forEach(t => {
@@ -5339,6 +5409,14 @@
                     if (btn) { btn.style.boxShadow = 'none'; btn.style.transform = 'none'; }
                 });
                 try {
+                    setSummaryDataStatus('Checking input...');
+                    updateSummaryProcessSteps('Checking input', 'running');
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    setSummaryDataStatus('Preparing data...');
+                    updateSummaryProcessSteps('Preparing data', 'running');
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    setSummaryDataStatus('Building summary...');
+                    updateSummaryProcessSteps('Building summary', 'running');
                     if (summaryType === 'users') {
                         const generated = await generateUsersSummary();
                         if (generated === false) throw new Error('Required user data columns were not found.');
@@ -5350,10 +5428,17 @@
                     if (readyMessage) readyMessage.style.display = 'flex';
                     const statusMessage = document.getElementById('summaryNotReadyMsg');
                     if (statusMessage) statusMessage.style.display = 'none';
-                    if (source === 'aml') updateSummaryProcessSteps('Summary generated', 'done');
+                    const statusCard = document.getElementById('summaryDataProcessingStatus');
+                    if (statusCard) {
+                        statusCard.classList.add('is-ready');
+                        statusCard.classList.remove('is-waiting', 'is-error');
+                    }
+                    updateSummaryProcessSteps('Displaying summary', 'running');
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    updateSummaryProcessSteps('Summary generated', 'done');
                 } catch (err) {
                     setSummaryDataStatus('Summary generation failed: ' + (err.message || 'Unknown error'), 'error');
-                    if (source === 'aml') updateSummaryProcessSteps('Summary generation failed', 'error');
+                    updateSummaryProcessSteps('Summary generation failed', 'error');
                     showToast('Summary generation failed: ' + err.message, true);
                 }
             }
@@ -5369,6 +5454,7 @@
                 const btn = document.getElementById('summaryRefreshBtn');
                 const prevHtml = btn ? btn.innerHTML : '';
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...'; }
+                resetSummaryProcessSteps();
                 setSummaryDataStatus('Refreshing summary data...');
                 try {
                     const source = document.getElementById('summarySourceSelect')?.value || 'aml';
@@ -5381,7 +5467,6 @@
                             try {
                                 const data = await requestSummaryCsvExport(dateFrom, dateTo, function(job) {
                                     setSummaryDataStatus(job.message || job.stage || 'Refreshing AML data...');
-                                    updateSummaryProcessSteps(job.message || job.stage, job.status);
                                 });
                                 summaryHeaders = data.headers || [];
                                 summaryParsedData = data.rows || [];
