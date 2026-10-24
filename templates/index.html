@@ -394,15 +394,33 @@
             }
             .sheet-status-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .sheet-status-box.waiting { background: #f8f9fa; border: 2px dashed #dee2e6; color: #95a5a6; }
+            .sheet-status-box.error { background: #fff1f0; border: 1px solid #f2aaa5; color: #b83232; font-weight: 600; }
             .sheet-status-box.ready { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e8449; font-weight: 600; }
             .sheet-status-box.ready i { color: #27ae60; font-size: 15px; flex-shrink: 0; }
             .sheet-status-box.waiting i { color: #bdc3c7; font-size: 15px; }
             .sheet-status-box.summary-ready { background: #f0f3ff; border: 1px solid #b0bdf7; color: #3949ab; font-weight: 600; }
             .sheet-status-box.summary-ready i { color: #3f51b5; font-size: 15px; flex-shrink: 0; }
             .summary-status-action-group { grid-column: span 2; }
-            .summary-status-action-wrap { display: flex; flex-wrap: nowrap; gap: 10px; align-items: center; min-width: 0; height: var(--row-h); }
-            .summary-status-stack { min-width: 0; flex: 1 1 auto; height: 100%; }
-            .summary-status-stack .sheet-status-box { width: 100%; height: 100%; }
+            .summary-status-action-wrap { display: flex; flex-wrap: nowrap; gap: 10px; align-items: stretch; min-width: 0; }
+            .summary-status-stack { min-width: 0; flex: 1 1 auto; padding: 9px; border: 1px solid #dfe7f1; border-radius: 9px; background: #f8fafc; }
+            .summary-status-stack .sheet-status-box { width: 100%; height: auto; min-height: var(--row-h); padding: 8px 12px; justify-content: flex-start; }
+            .summary-status-stack .sheet-status-box span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+            .summary-status-stack .automation-steps { margin-top: 8px; }
+            body.theme-dark .summary-status-stack { background: #1d293b; border-color: #40536b; }
+            .automation-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin: 7px 0 0; padding: 0; list-style: none; }
+            .automation-step { display: flex; align-items: center; gap: 6px; min-width: 0; color: #8a96a5; font-size: 10px; line-height: 1.3; }
+            .automation-step i { width: 13px; flex: 0 0 13px; color: #b8c3d0; text-align: center; }
+            .automation-step.is-active { color: #2563a5; font-weight: 700; }
+            .automation-step.is-active i { color: #2784d8; }
+            .automation-step.is-done { color: #16834b; }
+            .automation-step.is-done i { color: #20a464; }
+            .automation-step.is-error { color: #b83232; font-weight: 700; }
+            .automation-step.is-error i { color: #d64545; }
+            .automation-steps[hidden] { display: none; }
+            body.theme-dark .automation-step { color: #91a1b6; }
+            body.theme-dark .automation-step.is-active { color: #a9d4ff; }
+            body.theme-dark .automation-step.is-done { color: #8ce0b4; }
+            body.theme-dark .automation-step.is-error { color: #ff9b9b; }
             .summary-gui-load-inline {
                 height: var(--row-h) !important; min-height: var(--row-h);
                 flex: 0 0 190px; white-space: nowrap; font-size: 12px; padding: 0 14px; border-radius: 6px;
@@ -948,6 +966,7 @@
             body.theme-dark textarea,
             body.theme-dark .file-upload-compact,
             body.theme-dark .sheet-status-box.waiting { background: #243044; color: #e5e7eb; border-color: rgba(148,163,184,0.22); }
+            body.theme-dark .sheet-status-box.error { background: #3a242a; color: #ffb4ad; border-color: #7f3c43; }
             body.theme-dark input::placeholder,
             body.theme-dark textarea::placeholder { color: #7b8798; }
             body.theme-dark .btn-outline { background: #273247; color: #93c5fd; border-color: rgba(96,165,250,0.42); }
@@ -2307,7 +2326,7 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Source Type</label>
                                 <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
-                                    <option value="aml" selected>Import Through GUI</option>
+                                    <option value="aml" selected>Send to AML</option>
                                     <option value="upload">Sheet Upload</option>
                                 </select>
                             </div>
@@ -2340,6 +2359,12 @@
                                     <i class="fas fa-check-circle"></i>
                                     <span id="sheetReadyText"></span>
                                 </div>
+                                <ol class="automation-steps" id="sheetImportSteps" hidden aria-label="AML import progress">
+                                    <li class="automation-step"><i class="fas fa-circle"></i><span>CSV prepared</span></li>
+                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Connect to AML service</span></li>
+                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Login, open Import and confirm CSV</span></li>
+                                    <li class="automation-step"><i class="fas fa-circle"></i><span>Receive import result</span></li>
+                                </ol>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-download"></i> Action</label>
@@ -2373,7 +2398,7 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Source</label>
                                 <select class="sheet-maker-select" id="summarySourceSelect" onchange="onSummarySourceChange()">
-                                    <option value="aml" selected>Download Through GUI</option>
+                                    <option value="aml" selected>Fetch from AML</option>
                                     <option value="upload">Sheet Upload</option>
                                 </select>
                             </div>
@@ -2408,8 +2433,8 @@
                             </div>
                             <div class="sheet-maker-group summary-status-action-group" style="min-width:0;">
                                 <label><i class="fas fa-info-circle"></i> Data Processing Status</label>
-                                <div class="summary-status-action-wrap" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                                    <div class="summary-status-stack" style="flex:1;min-width:160px;">
+                                <div class="summary-status-action-wrap">
+                                    <div class="summary-status-stack" id="summaryDataProcessingStatus" role="status" aria-live="polite" style="flex:1;min-width:160px;">
                                         <div id="summaryNotReadyMsg" class="sheet-status-box waiting">
                                             <i class="fas fa-hourglass-half"></i>
                                             <span>Waiting for input...</span>
@@ -2418,9 +2443,18 @@
                                             <i class="fas fa-check-circle"></i>
                                             <span id="summaryReadyText"></span>
                                         </div>
+                                        <ol class="automation-steps" id="summaryProcessSteps" hidden aria-label="AML export progress">
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Connect to export service</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Wait for AML browser</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Log in to AML</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Set dates and report filters</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Download AML export</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Read CSV and load data</span></li>
+                                            <li class="automation-step"><i class="fas fa-circle"></i><span>Generate summary</span></li>
+                                        </ol>
                                     </div>
                                     <button type="button" class="generate-summary-btn summary-gui-load-inline" id="summaryGuiLoadBtn" onclick="loadSummaryFromGui()" style="display:none;background:#16a085;flex-shrink:0;">
-                                        <i class="fas fa-cloud-download-alt"></i> Load Through GUI
+                                        <i class="fas fa-cloud-download-alt"></i> Fetch AML Data
                                     </button>
                                 </div>
                             </div>
@@ -4617,7 +4651,7 @@
                 const textEl    = document.getElementById('sheetReadyText');
                 if (sheetType && fileInput.files.length > 0) {
                     textEl.textContent = sourceType === 'aml'
-                        ? `All set, ${getFirstName()}. Click 'Import CSV' to continue.`
+                        ? `All set, ${getFirstName()}. Click 'Send CSV to AML' to continue.`
                         : `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display  = 'none';
@@ -4630,6 +4664,8 @@
                 }
             }
             function onSheetSourceChange() {
+                const importSteps = document.getElementById('sheetImportSteps');
+                if (importSteps) importSteps.hidden = (document.getElementById('sheetSourceSelect')?.value || 'aml') !== 'aml';
                 updateSheetActionButton();
                 showSheetReadyMessage();
             }
@@ -4638,7 +4674,7 @@
                 const btn = document.getElementById('generateBtn');
                 if (!btn) return;
                 if (sourceType === 'aml') {
-                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Import CSV';
+                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Send CSV to AML';
                 } else {
                     btn.innerHTML = '<i class="fas fa-download"></i> Generate CSV Excel File';
                 }
@@ -4818,6 +4854,30 @@
                 showToast('Generating sheet, please wait...', false, false);
                 document.getElementById('sheetForm').submit();
             }
+            function updateSheetImportSteps(stage, status) {
+                const list = document.getElementById('sheetImportSteps');
+                if (!list) return;
+                list.hidden = false;
+                const value = String(stage || '').toLowerCase();
+                let active = 0;
+                if (/connect|wake|service/.test(value)) active = 1;
+                if (/aml import|login|upload|confirm/.test(value)) active = 2;
+                if (/complete|import confirmed|result received/.test(value)) active = 3;
+                const hasError = status === 'error' || /review|unconfirmed|failed|rejected/.test(value);
+                const done = status === 'done' && !hasError;
+                if (hasError && /failed|rejected/.test(value)) active = 2;
+                list.querySelectorAll('.automation-step').forEach((step, index) => {
+                    step.classList.toggle('is-done', done || index < active);
+                    step.classList.toggle('is-active', !done && !hasError && index === active);
+                    step.classList.toggle('is-error', hasError && index === active);
+                    const icon = step.querySelector('i');
+                    if (icon) icon.className = done || index < active
+                        ? 'fas fa-check-circle'
+                        : (hasError && index === active
+                            ? 'fas fa-exclamation-circle'
+                            : (!done && index === active ? 'fas fa-spinner fa-spin' : 'fas fa-circle'));
+                });
+            }
             async function waitForSheetImport(jobId) {
                 const deadline = Date.now() + 12 * 60 * 1000;
                 while (Date.now() < deadline) {
@@ -4828,6 +4888,7 @@
                     }
                     const waitEl = document.getElementById('sheetNotReadyMsg');
                     const statusText = waitEl?.querySelector('span');
+                    updateSheetImportSteps(data.stage || data.message, data.status);
                     if (statusText && data.message) statusText.textContent = data.message;
                     if (data.status === 'done') return data;
                     if (data.status === 'error') throw new Error(data.message || 'CSV import failed');
@@ -4843,12 +4904,13 @@
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
                 const readyEl = document.getElementById('sheetReadyMsg');
                 const waitEl = document.getElementById('sheetNotReadyMsg');
-                showToast('Preparing CSV and sending it to the import service...', false, false);
+                showToast('Preparing CSV and sending it to AML...', false, false);
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending to AML...';
                 readyEl.style.display = 'none';
                 waitEl.style.display = 'flex';
-                waitEl.querySelector('span').textContent = 'Generating CSV and uploading it to the import service...';
+                waitEl.querySelector('span').textContent = 'Preparing your CSV for AML import...';
+                updateSheetImportSteps('CSV prepared', 'running');
                 try {
                     const formData = new FormData();
                     formData.append('sheet_type', sheetType);
@@ -4864,6 +4926,7 @@
                     readyEl.style.display = 'flex';
                     readyEl.className = 'sheet-status-box ready';
                     readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>Imported Success — ${result.rows || data.rows || 0} rows.</span>`;
+                    updateSheetImportSteps(result.stage || 'Import confirmed', 'done');
                 } catch (err) {
                     showToast('CSV import failed: ' + err.message, true);
                     readyEl.style.display = 'none';
@@ -4924,6 +4987,8 @@
             }
             function onSummarySourceChange(clearData = true) {
                 const source = document.getElementById('summarySourceSelect')?.value || 'aml';
+                const processSteps = document.getElementById('summaryProcessSteps');
+                if (processSteps) processSteps.hidden = source !== 'aml';
                 const uploadGroup = document.getElementById('summaryUploadGroup');
                 const amlGroup = document.getElementById('summaryAmlGroup');
                 const loadBtn = document.getElementById('summaryGuiLoadBtn');
@@ -5045,6 +5110,48 @@
                     checkSummaryReady();
                 });
             }
+            function updateSummaryProcessSteps(message, status) {
+                const list = document.getElementById('summaryProcessSteps');
+                if (!list) return;
+                list.hidden = false;
+                const value = String(message || '').toLowerCase();
+                let active = 0;
+                if (/starting|queueing|connect|export service/.test(value)) active = 0;
+                else if (/wait|browser queue|waiting for aml/.test(value)) active = 1;
+                else if (/log|sign.?in|captcha/.test(value)) active = 2;
+                else if (/filter|date|prepar.*report/.test(value)) active = 3;
+                else if (/download.*export|export.*download|downloading/.test(value)) active = 4;
+                else if (/read|csv.*read|verified|load/.test(value)) active = 5;
+                else if (/generat|build.*summary/.test(value)) active = 6;
+                const done = status === 'done' || /summary generated/.test(value);
+                list.querySelectorAll('.automation-step').forEach((step, index) => {
+                    const complete = done || index < active;
+                    const current = !done && index === active;
+                    step.classList.toggle('is-done', complete);
+                    step.classList.toggle('is-active', current && status !== 'error');
+                    step.classList.toggle('is-error', current && status === 'error');
+                    const icon = step.querySelector('i');
+                    if (icon) icon.className = complete
+                        ? 'fas fa-check-circle'
+                        : (current && status === 'error'
+                            ? 'fas fa-exclamation-circle'
+                            : (current ? 'fas fa-spinner fa-spin' : 'fas fa-circle'));
+                });
+            }
+            function setSummaryDataStatus(message, state = 'running') {
+                const waiting = document.getElementById('summaryNotReadyMsg');
+                const ready = document.getElementById('summaryReadyMsg');
+                if (!waiting) return;
+                if (ready) ready.style.display = 'none';
+                waiting.style.display = 'flex';
+                waiting.className = 'sheet-status-box ' + (state === 'error' ? 'error' : 'waiting');
+                const icon = waiting.querySelector('i');
+                const text = waiting.querySelector('span');
+                if (icon) icon.className = state === 'error'
+                    ? 'fas fa-exclamation-circle'
+                    : 'fas fa-spinner fa-spin';
+                if (text) text.textContent = message || 'Processing...';
+            }
             function waitForSummaryGuiJob(jobId, onProgress) {
                 const deadline = Date.now() + (12 * 60 * 1000);
                 return new Promise((resolve, reject) => {
@@ -5143,10 +5250,12 @@
                 readyEl.style.display = 'none';
                 waitEl.style.display = 'flex';
                 waitEl.querySelector('span').textContent = 'Downloading CSV export...';
+                updateSummaryProcessSteps('Connecting to export service', 'running');
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
                 try {
                     const data = await requestSummaryCsvExport(dateFrom, dateTo, function(job) {
+                        updateSummaryProcessSteps(job.message || job.stage, job.status);
                         waitEl.querySelector('span').textContent = job.message
                             || (job.status === 'queued'
                                 ? 'Preparing CSV export...'
@@ -5154,6 +5263,7 @@
                     });
                     summaryHeaders = data.headers || [];
                     summaryParsedData = data.rows || [];
+                    updateSummaryProcessSteps('CSV export completed and loaded', 'running');
                     summaryAmlDataCache = { headers: summaryHeaders, rows: summaryParsedData };  // persist for type/source switching
                     stampSummaryParsedMeta('csv-export');
                     document.getElementById('summaryFileName').textContent = `CSV export (${data.total_rows || summaryParsedData.length} rows)`;
@@ -5169,14 +5279,14 @@
                     summaryParsedData = [];
                     summaryHeaders = [];
                     document.getElementById('summaryFileName').textContent = 'No file chosen';
-                    waitEl.style.display = 'flex';
-                    waitEl.querySelector('span').textContent = 'CSV load failed. Check terminal debug logs.';
                     readyEl.style.display = 'none';
                     checkSummaryReady();
+                    setSummaryDataStatus('Export failed: ' + (err.message || 'Unknown error'), 'error');
+                    updateSummaryProcessSteps(err.message || 'Export failed', 'error');
                     showToast('CSV load failed: ' + err.message, true);
                 } finally {
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Load CSV';
+                    btn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> Fetch AML Data';
                 }
             }
             function checkSummaryReady() {
@@ -5208,10 +5318,15 @@
                     btn.disabled = true;
                 }
             }
-            function generateSummary() {
+            async function generateSummary() {
                 const summaryType = document.getElementById('summaryTypeSelect').value;
                 if (!summaryType) { showToast('Please select a summary type first!', true); return; }
                 if (!summaryParsedData.length) { showToast('Please upload a file first!', true); return; }
+                const source = document.getElementById('summarySourceSelect')?.value || 'aml';
+                const readyMessage = document.getElementById('summaryReadyMsg');
+                const readyText = document.getElementById('summaryReadyText');
+                setSummaryDataStatus('Generating summary...');
+                if (source === 'aml') updateSummaryProcessSteps('Generating summary', 'running');
                 // Reset any active category filter so the freshly generated summary shows in full
                 activeCategoryFilter = null;
                 ['sm', 'web', 'app'].forEach(t => {
@@ -5219,10 +5334,23 @@
                     const btn = document.getElementById('summaryFilter' + idSuffix + 'Btn');
                     if (btn) { btn.style.boxShadow = 'none'; btn.style.transform = 'none'; }
                 });
-                if (summaryType === 'users') {
-                    generateUsersSummary();
-                } else if (summaryType === 'category') {
-                    generateCategorySummary();
+                try {
+                    if (summaryType === 'users') {
+                        const generated = await generateUsersSummary();
+                        if (generated === false) throw new Error('Required user data columns were not found.');
+                    } else if (summaryType === 'category') {
+                        const generated = await generateCategorySummary();
+                        if (generated === false) throw new Error('Required category data columns were not found.');
+                    }
+                    if (readyText) readyText.textContent = 'Summary generated successfully.';
+                    if (readyMessage) readyMessage.style.display = 'flex';
+                    const statusMessage = document.getElementById('summaryNotReadyMsg');
+                    if (statusMessage) statusMessage.style.display = 'none';
+                    if (source === 'aml') updateSummaryProcessSteps('Summary generated', 'done');
+                } catch (err) {
+                    setSummaryDataStatus('Summary generation failed: ' + (err.message || 'Unknown error'), 'error');
+                    if (source === 'aml') updateSummaryProcessSteps('Summary generation failed', 'error');
+                    showToast('Summary generation failed: ' + err.message, true);
                 }
             }
             // ── Refresh: re-fetch live GUI + EDTMS data WITHOUT re-reading the source file ──
@@ -5237,7 +5365,7 @@
                 const btn = document.getElementById('summaryRefreshBtn');
                 const prevHtml = btn ? btn.innerHTML : '';
                 if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Refreshing...'; }
-                showToast('Refreshing summary data...', false, false);
+                setSummaryDataStatus('Refreshing summary data...');
                 try {
                     const source = document.getElementById('summarySourceSelect')?.value || 'aml';
                     if (source === 'aml') {
@@ -5247,16 +5375,19 @@
                             showToast('Export date range missing — keeping existing CSV data.', true);
                         } else {
                             try {
-                                const data = await requestSummaryCsvExport(dateFrom, dateTo);
+                                const data = await requestSummaryCsvExport(dateFrom, dateTo, function(job) {
+                                    setSummaryDataStatus(job.message || job.stage || 'Refreshing AML data...');
+                                    updateSummaryProcessSteps(job.message || job.stage, job.status);
+                                });
                                 summaryHeaders = data.headers || [];
                                 summaryParsedData = data.rows || [];
                                 summaryAmlDataCache = { headers: summaryHeaders, rows: summaryParsedData };
                                 stampSummaryParsedMeta('csv-export-refresh');
                                 const fnEl = document.getElementById('summaryFileName');
                                 if (fnEl) fnEl.textContent = `CSV export (${summaryParsedData.length} rows)`;
-                                showToast(`CSV data refreshed: ${summaryParsedData.length} rows`, false, true);
+                                setSummaryDataStatus(`CSV data refreshed: ${summaryParsedData.length} rows`);
                             } catch (guiErr) {
-                                showToast('CSV refresh failed (' + guiErr.message + ') — using existing data.', true);
+                                setSummaryDataStatus('CSV refresh failed (' + guiErr.message + '); generating from existing data.', 'error');
                             }
                         }
                     }
@@ -5264,6 +5395,7 @@
                     // For the 'upload' (Excel) source, summaryParsedData is kept untouched.
                     generateSummary();
                 } catch (err) {
+                    setSummaryDataStatus('Refresh failed: ' + err.message, 'error');
                     showToast('Refresh failed: ' + err.message, true);
                 } finally {
                     if (btn) { btn.disabled = false; btn.innerHTML = prevHtml || '<i class="fas fa-sync-alt"></i> Refresh'; }
@@ -5276,7 +5408,7 @@
                     if (summaryHeaders.includes(c)) { userCol = c; break; }
                 }
                 if (!userCol && summaryHeaders.length > 0) userCol = summaryHeaders[0];
-                if (!userCol) { showToast('Could not find a user/name column in the file.', true); return; }
+                if (!userCol) { showToast('Could not find a user/name column in the file.', true); return false; }
 
                 // ── Approved_by column detection ──────────────────────────
                 const approvedByColCandidates = ['approved_by','Approved_by','Approved_By','APPROVED_BY','approvedby','ApprovedBy'];
@@ -5337,7 +5469,7 @@
                 // ── Fetch Scrapping counts ─────────────────────────────────
                 let scrapUserCounts = {};
                 try {
-                    showToast('Fetching scrapping data...', false, false);
+                    setSummaryDataStatus('Fetching scrapping data...');
                     const scrapParams = [];
                     if (minDate === maxDate && minDate) scrapParams.push(`date_on=${minDate}`);
                     else {
@@ -5360,7 +5492,7 @@
                 // ── Fetch Website Directory counts ────────────────────────
                 let wdUserCounts = {};
                 try {
-                    showToast('Fetching website directory data...', false, false);
+                    setSummaryDataStatus('Fetching website directory data...');
                     const wdParams = [];
                     if (minDate === maxDate && minDate) wdParams.push(`date_on=${minDate}`);
                     else {
@@ -5377,7 +5509,7 @@
                 }
                 const misDataByUser = {};
                 try {
-                    showToast('Fetching MIS data...', false, false);
+                    setSummaryDataStatus('Fetching MIS data...');
                     // The EDTMS service can be cold on the first summary load. Always
                     // request a fresh response instead of reusing an earlier empty one.
                     const misResp = await fetch('/getDepartmentData', { cache: 'no-store' });
@@ -5744,6 +5876,7 @@
                 lastSummaryResult = { type: 'users_detailed', userData, users, dateStr };
                 renderUsersSummaryTable(userData, users, dateStr);
                 renderCompareSummaryTable(userData, users, dateStr);
+                return true;
             }
             function generateCategorySummary() {
                 let scamTypeCol = null;
@@ -5756,8 +5889,8 @@
                 for (const c of searchColCandidates) {
                     if (summaryHeaders.includes(c)) { searchForCol = c; break; }
                 }
-                if (!scamTypeCol) { showToast('Could not find "Scam_type" column in the file.', true); return; }
-                if (!searchForCol) { showToast('Could not find "Search_for" column in the file.', true); return; }
+                if (!scamTypeCol) { showToast('Could not find "Scam_type" column in the file.', true); return false; }
+                if (!searchForCol) { showToast('Could not find "Search_for" column in the file.', true); return false; }
                 const socialMediaPlatforms = ['telegram', 'whatsapp', 'facebook', 'instagram', 'threads', 'thread', 'youtube', 'x', 'twitter', 'snapchat', 'tiktok', 'linkedin', 'pinterest', 'reddit'];
                 const scamTypeData = {};
                 let totalWeb = 0, totalApp = 0, totalSM = 0;
@@ -5904,6 +6037,7 @@
                 if (headerEl) { headerEl.style.display = 'none'; }
                 section.classList.add('show');
                 section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return true;
             }
             // Track active category filter handled globally (see top of script).
             function filterCategorySummary(filterType) {

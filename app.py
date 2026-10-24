@@ -2638,7 +2638,6 @@ def _summary_gui_update_job(job_id, *, stage=None, message=None, status=None, **
     )
     return True
 
-
 def _summary_csv_failure_message(stage, exc):
     """Give the UI a useful failure reason without exposing request secrets."""
     detail = re.sub(r"\s+", " ", str(exc or "")).strip()
@@ -6362,6 +6361,9 @@ CASE_ACTION_JOBS_LOCK = threading.Lock()
 MAX_CASE_ACTION_IDS = 500
 REPORT_GENERATION_JOBS = {}
 REPORT_GENERATION_JOBS_LOCK = threading.Lock()
+REPORT_PARALLEL_DEFAULT = 1 if os.environ.get("RENDER") else 2
+REPORT_MAX_PARALLEL = max(1, int(os.environ.get("CRG_REPORT_MAX_PARALLEL", REPORT_PARALLEL_DEFAULT)))
+REPORT_BROWSER_SLOTS = threading.BoundedSemaphore(REPORT_MAX_PARALLEL)
 REPORT_GENERATION_REQUIRED_COLUMNS = ["SS_Path_1", "Screenshot Path", "Title", "Description"]
 REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS = ["PDF Path", "Title", "Description"]
 REPORT_EXTRACT_GENERATION_PDF_HEADERS = ("PDF Path", "PDF_Path", "PDF URL", "PDF_URL")
@@ -8139,7 +8141,7 @@ def _report_generation_status(job_id):
 
 
 def _create_report_generation_job(job_id, total):
-    """Register each report job independently; the AML service queues browser access."""
+    """Register each report job independently for direct Selenium AML login."""
     with REPORT_GENERATION_JOBS_LOCK:
         REPORT_GENERATION_JOBS[job_id] = {
             "status": "queued", "total": total, "completed": 0, "successful": 0, "failed": 0,
@@ -8147,17 +8149,14 @@ def _create_report_generation_job(job_id, total):
         }
 
 
-REPORT_JOBS_API_URL = SHEET_IMPORT_API_URL.rsplit("/", 1)[0] + "/report-jobs"
 REPORT_MAX_SCREENSHOTS = 6              # AML report form me ek report ke liye max screenshots
 REPORT_REUSE_DUPLICATE_ROWS = False     # True: bilkul same row (title+description+images) ki report ek hi baar banao, URL reuse karo
-REPORT_BATCH_MAX_ROWS = 50              # Docker service ko ek job me itni rows
-REPORT_BATCH_MAX_BYTES = 25 * 1024 * 1024
 REPORT_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
 
 
 def _report_login_creds():
-    """User ke apne AML creds; na hon to Docker service ka default login (None, None)."""
-    return get_own_aml_credentials() or (None, None)
+    """Resolve the logged-in dashboard user's AML credentials for direct GUI login."""
+    return get_own_aml_credentials() or get_aml_credentials()
 
 
 def _register_report_image(files_map, src_path):
@@ -8230,24 +8229,6 @@ def _fetch_report_image_url(url, dest_dir, cache):
     return path
 
 
-def _chunk_report_items(items, files_map):
-    """Rows ko chhote batches me todo (rows aur upload size ki limit)."""
-    chunk, names, size = [], set(), 0
-    for item in items:
-        new_names = [n for n in dict.fromkeys(item["images"]) if n not in names]
-        new_size = sum(os.path.getsize(files_map[n]) for n in new_names)
-        if chunk and (len(chunk) >= REPORT_BATCH_MAX_ROWS or size + new_size > REPORT_BATCH_MAX_BYTES):
-            yield chunk, names
-            chunk, names, size = [], set(), 0
-            new_names = list(dict.fromkeys(item["images"]))
-            new_size = sum(os.path.getsize(files_map[n]) for n in new_names)
-        chunk.append(item)
-        names.update(new_names)
-        size += new_size
-    if chunk:
-        yield chunk, names
-
-
 def _report_dedupe_items(items):
     """(unique_items, {first_index: [duplicate_indexes]}). Switch off ho to sab rows unique maani jaati hain."""
     if not REPORT_REUSE_DUPLICATE_ROWS:
@@ -8284,84 +8265,65 @@ def _make_report_recorder(job_id, rows, results, extras=None):
     return record
 
 
-def _run_report_batches(job_id, items, files_map, aml_creds, record, state):
-    """Docker service par reports banwao (batches me), progress job me copy karo.
-    record(index, status, url, message) har result par chalta hai. Service-level dikkat par RuntimeError."""
-    aml_user, aml_pass = (tuple(aml_creds or ()) + (None, None))[:2]
-    headers = {"X-API-Key": DOCKER_FILES_API_KEY}
-    if not DOCKER_FILES_API_KEY:
-        raise RuntimeError("DOCKER_FILES_API_KEY is not configured")
-    _wake_docker_service()
+def _run_report_batches(job_id, items, files_map, aml_creds, record, state, submitter=aml_submit_chunk):
+    """Use this GUI app's AML login and Selenium session to create each report."""
+    credentials = tuple(aml_creds or ())
+    aml_pass = credentials[1] if len(credentials) > 1 else None
+    login_creds = (credentials + (None, None, None, None))[:4]
+    driver = None
+    acquired = False
+    try:
+        with REPORT_GENERATION_JOBS_LOCK:
+            job = REPORT_GENERATION_JOBS.get(job_id)
+            if job:
+                job.update(status="queued", stage=f"Waiting for a report slot ({REPORT_MAX_PARALLEL} parallel)")
+        REPORT_BROWSER_SLOTS.acquire()
+        acquired = True
+        with REPORT_GENERATION_JOBS_LOCK:
+            job = REPORT_GENERATION_JOBS.get(job_id)
+            if job:
+                job.update(status="running", stage="Opening AML GUI and logging in")
 
-    for chunk, names in _chunk_report_items(items, files_map):
-        files = []
-        for name in sorted(names):
-            with open(files_map[name], "rb") as fh:
-                files.append(("files", (name, fh.read(), "image/png")))
-        manifest = {"rows": [
-            {"index": it["index"], "title": it["title"], "description": it["description"], "images": it["images"]}
-            for it in chunk
-        ]}
-        data = {"manifest": json.dumps(manifest)}
-        if aml_user and aml_pass:
-            data["aml_user"], data["aml_pass"] = aml_user, aml_pass
-        try:
-            start = requests.post(REPORT_JOBS_API_URL, headers=headers, data=data, files=files, timeout=(10, 180))
-        except requests.RequestException as exc:
-            raise RuntimeError(
-                f"Could not confirm that the AML service started the reports ({type(exc).__name__}). "
-                "Check AML before generating these reports again."
-            )
-        if not start.ok:
-            try:
-                detail = start.json().get("detail")
-            except ValueError:
-                detail = (start.text or "")[:200]
-            raise RuntimeError(f"AML service refused the reports (HTTP {start.status_code}): {_scrub_secret(detail, aml_pass)}")
-        service_job = (start.json() or {}).get("job_id")
-        if not service_job:
-            raise RuntimeError("AML service did not return a job id")
+        driver = aml_build_driver(headless=True)
+        _AML_DEBUG_DRIVERS.append(driver)
+        if not aml_login(driver, max_captcha_attempts=7, creds=login_creds):
+            raise RuntimeError("AML GUI login failed after CAPTCHA retries")
 
-        poll_url = f"{REPORT_JOBS_API_URL}/{service_job}"
-        deadline = time.monotonic() + len(chunk) * 150 + 300
-        lost, seen = 0, 0
-        while True:
-            if time.monotonic() > deadline:
-                raise RuntimeError("Timed out waiting for the AML service. Check AML before generating these reports again.")
-            time.sleep(2)
+        for position, item in enumerate(items, start=1):
             try:
-                resp = requests.get(poll_url, headers=headers, timeout=(10, 30))
-            except requests.RequestException:
-                resp = None
-            if resp is not None and resp.status_code == 404:
-                raise RuntimeError("The AML service restarted and lost this job. Reports already generated are saved in the result file.")
-            if resp is None or not resp.ok:
-                lost += 1
-                if lost >= 15:
-                    raise RuntimeError("Lost connection to the AML service. Reports already generated are saved in the result file.")
-                continue
-            lost = 0
-            snap = resp.json() or {}
-            results = snap.get("results") or []
-            for res in results[seen:]:
+                with REPORT_GENERATION_JOBS_LOCK:
+                    job = REPORT_GENERATION_JOBS.get(job_id)
+                    if job:
+                        job["stage"] = f"Generating report {position} of {len(items)} in AML GUI"
+                image_paths = [files_map[name] for name in item["images"]]
+                chunk_results = []
+                image_chunks = (
+                    [image_paths]
+                    if submitter is _aml_submit_extracted_report
+                    else aml_chunk_list(image_paths, 4)
+                )
+                for image_chunk in image_chunks:
+                    chunk_results.append(submitter(
+                        driver, item["title"], item["title"], item["description"], image_chunk
+                    ))
+                links = [result.get("npci") or result.get("all") for result in chunk_results if result]
+                report_url = ",".join(link for link in links if link)
+                if not report_url:
+                    raise RuntimeError("AML GUI did not return a report link")
+                record(item["index"], "Success", report_url, "")
                 state["received"] += 1
-                record(res.get("index"), res.get("status", "Failed"), res.get("report_url", ""), res.get("message", ""))
-            seen = len(results)
-            with REPORT_GENERATION_JOBS_LOCK:
-                job = REPORT_GENERATION_JOBS.get(job_id)
-                if job:
-                    if snap.get("status") == "queued":
-                        job["stage"] = "Waiting for the AML browser"
-                    elif snap.get("status") == "running":
-                        job["stage"] = f"Generating report {min(job['completed'] + 1, job['total'])} of {job['total']}"
-            if snap.get("status") == "done":
-                break
-            if snap.get("status") == "error":
-                raise RuntimeError(snap.get("message") or "The AML service reported an error")
+            except Exception as exc:
+                message = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip()
+                record(item["index"], "Failed", "", message or type(exc).__name__)
+    finally:
+        if driver is not None:
+            _close_debug_driver(driver)
+        if acquired:
+            REPORT_BROWSER_SLOTS.release()
 
 
 def _finish_report_job(job_id, rows, results, stopped, state, file_prefix, allow_service_error_workbook=False):
-    """Result Excel likho. Kuch bhi nahi bana aur service fail hui to job error, warna partial result bhi milta hai."""
+    """Write the result workbook, preserving completed rows and explicit failures."""
     if stopped and state["received"] == 0 and not allow_service_error_workbook:
         raise RuntimeError(stopped)
     ordered = [results[i] for i in sorted(results)]
@@ -8435,7 +8397,11 @@ def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_ma
                         local = resolve_bulk_screenshot_path(raw)    # dashboard local chal raha ho to
                         src = local if os.path.isfile(local) else None
                     if not src:
-                        raise ValueError(f"PNG screenshot not found: {base} (select it in 'Screenshot files')")
+                        raise ValueError(
+                            f"Cannot read screenshot '{base}'. Use a path available on the server, "
+                            "or a public HTTPS image URL in the Excel file. A path on your PC "
+                            "(for example C:\\Users\\...) is not available to the deployed server."
+                        )
                     names.append(_register_report_image(files_map, src))
                 items.append({"index": index, "title": str(row["Title"]), "description": str(row["Description"]), "images": names})
             except Exception as exc:
@@ -8453,7 +8419,10 @@ def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_ma
             with REPORT_GENERATION_JOBS_LOCK:
                 REPORT_GENERATION_JOBS[job_id]["stage"] = "Generating reports"
             try:
-                _run_report_batches(job_id, unique, files_map, aml_creds, record_with_dups, state)
+                _run_report_batches(
+                    job_id, unique, files_map, aml_creds, record_with_dups, state,
+                    submitter=_aml_submit_extracted_report,
+                )
             except RuntimeError as exc:
                 stopped = _scrub_secret(exc, (tuple(aml_creds or ()) + (None, None))[1])
             for item in unique:
@@ -8488,15 +8457,74 @@ def _upload_aml_report_screenshots(driver, wait, image_paths):
         file_input.send_keys(image_path)
 
 
+def _aml_submit_extracted_report(driver, title_text, input_text, description_text, image_paths):
+    """Fill the AML report form and attach each screenshot extracted from the PDF."""
+    if not image_paths:
+        raise ValueError("The PDF does not contain any embedded screenshots")
+    wait = WebDriverWait(driver, 30)
+    driver.get(AML_REPORT_URL)
+    title = wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_TITLE_XPATH)))
+    description = wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_DESCRIPTION_XPATH)))
+    title.clear()
+    title.send_keys(title_text)
+    description.clear()
+    description.send_keys(description_text)
+    _upload_aml_report_screenshots(driver, wait, image_paths)
+
+    generate = wait.until(EC.element_to_be_clickable((By.XPATH, AML_REPORT_GENERATE_BUTTON_XPATH)))
+    driver.execute_script("arguments[0].click();", generate)
+    exact_result_href = None
+    try:
+        exact_result = WebDriverWait(driver, 45).until(
+            EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_RESULT_XPATH))
+        )
+        exact_result_href = (exact_result.get_attribute("href") or "").strip()
+    except TimeoutException:
+        pass
+
+    anchors = driver.find_elements(By.XPATH, "//a[@href]")
+    hrefs, seen = [], set()
+    for anchor in anchors:
+        href = (anchor.get_attribute("href") or "").strip()
+        if href and ".pdf" in href.lower() and href not in seen:
+            seen.add(href)
+            hrefs.append(href)
+    if not hrefs:
+        hrefs = [exact_result_href] if exact_result_href else []
+    if not hrefs:
+        raise RuntimeError("AML GUI did not return a generated report PDF link")
+    hrefs.sort(key=lambda href: ("mfilterit" not in href.lower(), "npci" not in href.lower(), "without_header" not in href.lower()))
+    npci = exact_result_href or next((href for href in hrefs if "npci" in href.lower()), hrefs[0])
+    return {"npci": npci, "all": ",".join(hrefs)}
+
+
 def _run_extract_and_generate_job(job_id, rows, aml_creds):
     """For each source PDF, extract, generate its report, and save that row before continuing."""
     temp_root = tempfile.mkdtemp(prefix="crg_pdf_extract_")
+    driver = None
+    acquired = False
+    credentials = tuple(aml_creds or ())
+    aml_pass = credentials[1] if len(credentials) > 1 else None
+    login_creds = (credentials + (None, None, None, None))[:4]
+    results, extras, files_map, cache = {}, {}, {}, {}
+    record = _make_report_recorder(job_id, rows, results, extras)
+    state = {"received": 0}
     try:
         with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Extracting screenshots")
-        results, extras, files_map, cache = {}, {}, {}, {}
-        record = _make_report_recorder(job_id, rows, results, extras)
-        state = {"received": 0}
+            REPORT_GENERATION_JOBS[job_id].update(
+                status="queued", stage=f"Waiting for a report slot ({REPORT_MAX_PARALLEL} parallel)"
+            )
+        REPORT_BROWSER_SLOTS.acquire()
+        acquired = True
+        with REPORT_GENERATION_JOBS_LOCK:
+            REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Opening AML GUI and logging in")
+        driver = aml_build_driver(headless=True)
+        _AML_DEBUG_DRIVERS.append(driver)
+        if not aml_login(driver, max_captcha_attempts=7, creds=login_creds):
+            raise RuntimeError("AML GUI login failed after CAPTCHA retries")
+
+        with REPORT_GENERATION_JOBS_LOCK:
+            REPORT_GENERATION_JOBS[job_id]["stage"] = "Extracting screenshots"
         stopped = None
 
         for index, row in enumerate(rows, start=1):
@@ -8534,15 +8562,18 @@ def _run_extract_and_generate_job(job_id, rows, aml_creds):
             with REPORT_GENERATION_JOBS_LOCK:
                 REPORT_GENERATION_JOBS[job_id]["stage"] = f"Generating report {index} of {len(rows)}"
             try:
-                _run_report_batches(job_id, [item], files_map, aml_creds, record, state)
-            except RuntimeError as exc:
-                stopped = _scrub_secret(exc, (tuple(aml_creds or ()) + (None, None))[1])
-                record(index, "Failed", "", stopped)
-                _save_report_job_workbook(job_id, results, "case_report_extract_results")
-                for remaining in range(index + 1, len(rows) + 1):
-                    record(remaining, "Failed", "", f"Not generated: {stopped}")
-                _save_report_job_workbook(job_id, results, "case_report_extract_results")
-                break
+                image_paths = [files_map[name] for name in item["images"]]
+                result = _aml_submit_extracted_report(
+                    driver, item["title"], item["title"], item["description"], image_paths
+                )
+                report_url = (result or {}).get("npci") or (result or {}).get("all")
+                if not report_url:
+                    raise RuntimeError("AML GUI did not return a generated report link")
+                record(index, "Success", report_url, "")
+                state["received"] += 1
+            except Exception as exc:
+                message = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip()
+                record(index, "Failed", "", message or type(exc).__name__)
 
             if index not in results:
                 record(index, "Failed", "", "No result received from the AML service")
@@ -8553,8 +8584,22 @@ def _run_extract_and_generate_job(job_id, rows, aml_creds):
             state, "case_report_extract_results", allow_service_error_workbook=True,
         )
     except Exception as exc:
-        _report_fail_job(job_id, exc, aml_creds)
+        stopped = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip() or type(exc).__name__
+        for index in range(1, len(rows) + 1):
+            if index not in results:
+                record(index, "Failed", "", f"Not generated: {stopped}")
+        try:
+            _finish_report_job(
+                job_id, rows, results, stopped, state,
+                "case_report_extract_results", allow_service_error_workbook=True,
+            )
+        except Exception as finish_exc:
+            _report_fail_job(job_id, finish_exc, aml_creds)
     finally:
+        if driver is not None:
+            _close_debug_driver(driver)
+        if acquired:
+            REPORT_BROWSER_SLOTS.release()
         shutil.rmtree(temp_root, ignore_errors=True)
 
 
@@ -8838,26 +8883,17 @@ def start_report_generation():
     file = request.files.get("file")
     if not file or not file.filename:
         return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
-    image_dir = None
     try:
         rows = _parse_report_generation_workbook(file)
-        image_dir, image_map = _save_report_uploaded_images(request.files.getlist("images"))
-        blocked = _report_all_screenshots_missing(rows, image_map)
-        if blocked:
-            return jsonify({"status": "error", "message": blocked}), 400
         job_id = uuid.uuid4().hex
         creds = _report_login_creds()
         _create_report_generation_job(job_id, len(rows))
-        threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds, image_dir, image_map), daemon=True).start()
-        image_dir = None                                            # ab folder ki safai job karega
+        threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds), daemon=True).start()
         return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
     except ValueError as exc:
         return jsonify({"status": "error", "message": str(exc)}), 400
     except Exception as exc:
         return jsonify({"status": "error", "message": f"Could not read workbook: {exc}"}), 400
-    finally:
-        if image_dir:
-            shutil.rmtree(image_dir, ignore_errors=True)
 
 
 @app.route("/report-extract-generation", methods=["POST"])
@@ -10405,7 +10441,6 @@ def qc_gui_allotment():
                 pass
     return redirect("/qc-gui")
 
-
 @app.route("/qc-gui-export", methods=["GET"])
 @login_required
 def qc_gui_export():
@@ -10485,7 +10520,6 @@ def qc_gui_template():
     except Exception as e:
         flash(f"Error generating template: {str(e)}", "error")
         return redirect("/qc-gui")
-
 
 @app.route("/qc-gui-get-record", methods=["GET"])
 @login_required
