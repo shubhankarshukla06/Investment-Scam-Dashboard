@@ -406,7 +406,7 @@
             .summary-status-stack.is-waiting { border-color: #dfe7f1; background: #fff; color: #526173; }
             .summary-status-stack.is-ready { border-color: #a9dfbf; background: #eafaf1; color: #1e8449; }
             .summary-status-stack.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
-            .summary-status-stack .summary-status-message { display: flex; grid-column: 1; align-items: center; gap: 6px; min-width: 0; font-size: 10px; line-height: 1.2; }
+            .summary-status-stack .summary-status-message { display: flex; grid-column: 1; align-items: center; gap: 6px; min-width: 0; font-size: 11px; line-height: 1.2; }
             .summary-status-stack .summary-status-message i { flex: 0 0 auto; color: #718096; font-size: 11px; }
             .summary-status-stack.is-ready .summary-status-message i { color: #20a464; }
             .summary-status-stack.is-error .summary-status-message i { color: #d64545; }
@@ -416,7 +416,7 @@
             .summary-status-stack .automation-steps[hidden],
             #sheetImportSteps[hidden] { display: none; }
             .summary-status-stack .automation-step,
-            #sheetImportSteps .automation-step { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 8px; line-height: 1.15; gap: 3px; }
+            #sheetImportSteps .automation-step { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 9px; line-height: 1.15; gap: 3px; }
             .summary-status-stack .automation-step i,
             #sheetImportSteps .automation-step i { width: 10px; flex: 0 0 10px; font-size: 8px; }
             .summary-status-stack .automation-step span,
@@ -433,7 +433,7 @@
             .sheet-import-status-card.is-running { border-color: #b0bdf7; background: #f0f3ff; color: #1769aa; }
             .sheet-import-status-card.is-done { border-color: #a9dfbf; background: #eafaf1; color: #16834b; }
             .sheet-import-status-card.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
-            .sheet-import-status-card .sheet-status-box { display: flex; grid-column: 1; align-items: center; gap: 6px; width: 100%; min-width: 0; height: auto; min-height: 24px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #78869a; font-size: 10px; line-height: 1.2; font-weight: 600; justify-content: flex-start; }
+            .sheet-import-status-card .sheet-status-box { display: flex; grid-column: 1; align-items: center; gap: 6px; width: 100%; min-width: 0; height: auto; min-height: 24px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #78869a; font-size: 11px; line-height: 1.2; font-weight: 600; justify-content: flex-start; }
             .sheet-import-status-card.is-running .sheet-status-box.waiting { color: #1769aa; }
             .sheet-import-status-card .sheet-status-box.ready { color: #16834b; }
             .sheet-import-status-card .sheet-status-box.error { color: #b83232; }
@@ -4999,6 +4999,10 @@
                 resetSummaryProcessSteps();
                 clearSummaryRenderState();
                 checkSummaryReady();
+                const source = document.getElementById('summarySourceSelect')?.value || 'aml';
+                if (source === 'aml' && summaryParsedData.length > 0 && document.getElementById('summaryTypeSelect').value) {
+                    generateSummary();
+                }
             }
             function resetSummaryProcessSteps() {
                 const list = document.getElementById('summaryProcessSteps');
@@ -5064,6 +5068,8 @@
                     summaryParsedData = summaryAmlDataCache.rows;
                     document.getElementById('summaryFileName').textContent = `CSV export (${summaryParsedData.length} rows)`;
                     checkSummaryReady();
+                    const summaryType = document.getElementById('summaryTypeSelect').value;
+                    if (summaryType && summaryParsedData.length > 0) generateSummary();
                     return;
                 }
                 if (clearData) { clearSummaryDataAndRender(); const nameEl = document.getElementById('summaryFileName'); if (nameEl) nameEl.textContent = 'No file chosen'; }
@@ -5335,6 +5341,9 @@
                         showToast('CSV export completed, but 0 rows matched this filter.', false, false);
                     }
                     checkSummaryReady();
+                    if (summaryParsedData.length > 0 && document.getElementById('summaryTypeSelect').value) {
+                        generateSummary();
+                    }
                 } catch (err) {
                     summaryParsedData = [];
                     summaryHeaders = [];
@@ -5356,13 +5365,16 @@
                 const waitEl  = document.getElementById('summaryNotReadyMsg');
                 const textEl  = document.getElementById('summaryReadyText');
                 const btn     = document.getElementById('generateSummaryBtn');
-                if (btn) btn.style.display = summaryType && hasData ? 'inline-flex' : 'none';
+                const source = document.getElementById('summarySourceSelect')?.value || 'aml';
+                if (btn) btn.style.display = source === 'upload' && summaryType && hasData ? 'inline-flex' : 'none';
                 if (summaryType && hasData) {
                     if (statusCard) {
                         statusCard.classList.add('is-ready');
                         statusCard.classList.remove('is-waiting', 'is-error');
                     }
-                    textEl.textContent = `Ready! ${summaryParsedData.length} rows loaded. Click Generate Summary.`;
+                    textEl.textContent = source === 'aml'
+                        ? `Ready! ${summaryParsedData.length} rows loaded. Generating summary...`
+                        : `Ready! ${summaryParsedData.length} rows loaded. Click Generate Summary.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display = 'none';
                     btn.disabled = false;
