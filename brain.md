@@ -220,17 +220,12 @@
 - Main UI: `/dashboard-management` GET — `dashboard_management()` L7423-L7435 — renders `templates/dashboard_management.html`.
 - Routes:
   - `/dashboard-management/api/users` GET — `dashboard_management_users()` L7550-L7557.
-  - `/dashboard-management/api/gui-status` GET — `dashboard_management_gui_status()` L7563-L7586.
-  - `/dashboard-management/api/investment-scam-users` GET — `dashboard_management_investment_scam_users()` L7592-L7598.
-  - `/dashboard-management/api/investment-scam-users` POST — `dashboard_management_create_investment_scam_user()` L7635-L7676.
-  - `/dashboard-management/api/investment-scam-users/<int:user_id>` PUT — `dashboard_management_update_investment_scam_user()` L7682-L7728.
-  - `/dashboard-management/api/investment-scam-users/<int:user_id>` DELETE — `dashboard_management_delete_investment_scam_user()` L7734-L7748.
   - `/dashboard-management/api/users` POST — `dashboard_management_create_user()` L7754-L7796.
   - `/dashboard-management/api/users/<int:user_id>` PUT — `dashboard_management_update_user()` L7802-L7851.
   - `/dashboard-management/api/users/<int:user_id>` DELETE — `dashboard_management_delete_user()` L7857-L7869.
   - `/dashboard-management/api/users/<int:user_id>/toggle-active` POST — `dashboard_management_toggle_active()` L7875-L7890.
-- Helpers: `can_manage_dashboard()` L7352, `dashboard_management_required()` L7361, `dashboard_management_required_json()` L7371, `_serialize_dashboard_user()` L7438, `_table_status_row()` L7492.
-- Data: `dashboard_users`, `investment_scam_users`/investment scam user APIs, status queries across feature tables.
+- Helpers: `can_manage_dashboard()` L7352, `dashboard_management_required()` L7361, `dashboard_management_required_json()` L7371, `_serialize_dashboard_user()` L7438.
+- Data: `dashboard_users`.
 - Behavior: requires login plus superadmin/dashboard-management permission; JSON APIs use separate JSON access decorator.
 
 ### GUI QC
@@ -282,7 +277,7 @@
 - `social_supabase` aliases the same client.
 - Auth helper creates separate client via `get_auth_supabase()`.
 - Client timeouts capped at 30 seconds to avoid Cloudflare ~60s timeout issues.
-- Main tables: `dashboard_users`, `activity_logs`, `scrapping_data`, `social_media_accounts`, `BS_Investment_Scam`, `website_directory`, `website_allotment`, `reports`, `lunch_breaks`, `qc_table`, `investment_scam_users`.
+- Main tables: `dashboard_users`, `activity_logs`, `scrapping_data`, `social_media_accounts`, `BS_Investment_Scam`, `website_directory`, `website_allotment`, `reports`, `lunch_breaks`, `qc_table`.
 - Many exports use chunked Supabase reads via `_stream_supabase_csv()`.
 
 ### Import/export and file handling
@@ -348,7 +343,7 @@
 - Shared day/night transition rules live in `static/gui-base.css`; the eight standalone GUI templates use the `scamGuiTheme` local-storage key and their `setGuiTheme()` functions.  Keep animation limited to visible chrome and controls; large table descendants must remain transition-free to avoid repaint pauses.
 - Successful `/login` POST requests create a `welcome` flash in `app.py`. It uses `Asia/Kolkata` time and the first name to produce Good Morning (before 12:00), Good Afternoon (before 17:00), or Good Evening. GUI templates render this category immediately below the fixed navigation at the top-right via the shared pill-style `.welcome` flash.
 - `get_first_name()` is used only by the post-login welcome message; preserve the full display name in headers, session, and business logic.
-- GUI Management's GUI Status metrics are rendered by `renderGuiStatusSummary()` in `templates/dashboard_management.html`; the summary fills the available action-row space and Refresh Status is its final, right-aligned control. The detailed per-page data remains in the table below.
+- GUI Management is focused on Dashboard User Management; its `/dashboard-management/api/users` endpoints remain the supported user-management API.
 
 ## 8. UI Layout Standardization (2026-09-12)
 

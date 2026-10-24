@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, render_template, render_template_string, request, redirect, flash, send_file, jsonify, session, Response, stream_with_context
 import pandas as pd
 import io
@@ -1332,20 +1331,15 @@ def index():
             flash(f"Error fetching social media data: {str(e)}", "error")
     elif page_type == "investment":
         try:
-            if inv_search:
-                query = supabase.table("BS_Investment_Scam").select("*")
-            else:
-                query = supabase.table("BS_Investment_Scam").select("*", count='exact')
+            query = supabase.table("BS_Investment_Scam").select(
+                "id,bank_account_number,bank_name,upi_vpa,handle,ifsc_code,scam_type,search_for,"
+                "upi_bank_account_wallet,payment_gateway_name,upi_url,website_url,web_contact_no,"
+                "input_user,inserted_date,screenshot",
+                count="exact" if not inv_search else None,
+            )
             if inv_search:
                 like_term = f"%{inv_search}%"
-                query = query.or_(
-                    f"bank_account_number.ilike.{like_term},"
-                    f"upi_vpa.ilike.{like_term},"
-                    f"handle.ilike.{like_term},"
-                    f"website_url.ilike.{like_term},"
-                    f"web_contact_no.ilike.{like_term},"
-                    f"input_user.ilike.{like_term}"
-                )
+                query = query.or_(",".join(f"{col}.ilike.{like_term}" for col in _investment_search_columns(inv_search)))
             if inv_scam_type:
                 query = query.eq("scam_type", inv_scam_type)
             if inv_search_for:
@@ -1508,6 +1502,19 @@ def _csv_text(rows, fieldnames, include_bom=False, include_header=False):
     return output.getvalue()
 
 
+def _investment_search_columns(value):
+    """Choose investment search fields from the shape of the user's input."""
+    value = (value or "").strip()
+    if "@" in value:
+        return ("upi_vpa", "handle")
+    if re.search(r"(?:https?://|www\.|[\w-]+\.[a-z]{2,}(?:/|$))", value, re.IGNORECASE):
+        return ("website_url", "screenshot")
+    digits = re.sub(r"\D", "", value)
+    if digits and len(digits) >= 7 and len(digits) / max(len(value), 1) >= 0.6:
+        return ("upi_vpa", "handle", "bank_account_number", "web_contact_no")
+    return ("website_url", "screenshot")
+
+
 def _stream_supabase_csv(build_query, order_column, download_name, chunk_size=1000, row_transform=None):
     def generate():
         offset = 0
@@ -1556,30 +1563,30 @@ def investment_export():
         inv_date_from = request.args.get("inv_date_from", "").strip()
         inv_date_to = request.args.get("inv_date_to", "").strip()
         inv_export_columns = [
-            "Id", "Customer", "Package_name", "Channel_name", "Bank_account_number", "Bank_name", "Upi_vpa",
-            "Ac_holder_name", "Screenshot", "Platform", "Search_for", "Status", "Upi_bank_account_wallet",
-            "Priority", "Flag", "Cessation", "Reviewed_status", "Handle", "Origin", "Payment_gateway_name",
-            "Category_of_website", "Screenshot_case_report_link", "Payment_gateway_intermediate_url", "Neft_imps",
-            "Transaction_method", "Scam_type", "Ifsc_code", "Bank_branch_details", "Payment_gateway_url",
-            "Upi_url", "Website_url", "Inserted_date", "Reported_earlier", "Input_user", "Approvd_status",
-            "Approved_by", "Qc_remarks", "Inserted_datetime", "Case_generated_time", "Upi_found_status",
-            "Feature_type", "Approved_date", "Video_url", "Web_contact_no"
+            "id", "customer", "package_name", "channel_name", "bank_account_number", "bank_name", "upi_vpa",
+            "ac_holder_name", "screenshot", "platform", "search_for", "status", "upi_bank_account_wallet",
+            "priority", "flag", "cessation", "reviewed_status", "handle", "origin", "payment_gateway_name",
+            "category_of_website", "screenshot_case_report_link", "payment_gateway_intermediate_url", "neft_imps",
+            "transaction_method", "scam_type", "ifsc_code", "bank_branch_details", "payment_gateway_url",
+            "upi_url", "website_url", "inserted_date", "reported_earlier", "input_user", "approvd_status",
+            "approved_by", "qc_remarks", "inserted_datetime", "case_generated_time", "upi_found_status",
+            "feature_type", "approved_date", "video_url", "web_contact_no"
         ]
 
         def _build_inv_query():
             q = supabase.table("BS_Investment_Scam").select(",".join(inv_export_columns))
             if inv_search:
                 like_term = f"%{inv_search}%"
-                q = q.or_(f"Bank_account_number.ilike.{like_term},Upi_vpa.ilike.{like_term},Handle.ilike.{like_term},Website_url.ilike.{like_term},Web_contact_no.ilike.{like_term},Input_user.ilike.{like_term}")
-            if inv_scam_type: q = q.eq("Scam_type", inv_scam_type)
-            if inv_search_for: q = q.eq("Search_for", inv_search_for)
-            if inv_wallet: q = q.eq("Upi_bank_account_wallet", inv_wallet)
-            if inv_date_from: q = q.gte("Inserted_date", inv_date_from)
-            if inv_date_to: q = q.lte("Inserted_date", inv_date_to)
+                q = q.or_(",".join(f"{col}.ilike.{like_term}" for col in _investment_search_columns(inv_search)))
+            if inv_scam_type: q = q.eq("scam_type", inv_scam_type)
+            if inv_search_for: q = q.eq("search_for", inv_search_for)
+            if inv_wallet: q = q.eq("upi_bank_account_wallet", inv_wallet)
+            if inv_date_from: q = q.gte("inserted_date", inv_date_from)
+            if inv_date_to: q = q.lte("inserted_date", inv_date_to)
             return q
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return _stream_supabase_csv(_build_inv_query, "Id", f"bs_investment_scam_{timestamp}.csv")
+        return _stream_supabase_csv(_build_inv_query, "id", f"bs_investment_scam_{timestamp}.csv")
     except Exception as e:
         flash(f"Export Error: {str(e)}", "error")
         return redirect("/?page=investment")
@@ -2509,7 +2516,7 @@ AML_GUI_UA = (
 )
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
-SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "660"))
+SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "3600"))
 DOCKER_FILES_BASE_URL = os.environ.get(
     "DOCKER_FILES_BASE_URL", "https://docker-files-9h0k.onrender.com"
 ).strip().rstrip("/")
@@ -3158,27 +3165,77 @@ def _download_summary_csv_export(date_from, date_to, progress=None, aml_user=Non
     using_user_login = bool(aml_user and aml_pass)
 
     if progress:
-        progress("downloading_csv", "Downloading CSV export.")
+        progress("queueing_export", "Adding this export to the AML browser queue.")
     _wake_docker_service()
     payload = {"from_date": date_from, "to_date": date_to}
     if using_user_login:
         payload["aml_user"] = aml_user
         payload["aml_pass"] = aml_pass
+    export_jobs_url = SUMMARY_CSV_EXPORT_URL.rsplit("/", 1)[0] + "/export-jobs"
     try:
-        response = requests.post(
-            SUMMARY_CSV_EXPORT_URL,
+        started = requests.post(
+            export_jobs_url,
             headers={"X-API-Key": DOCKER_FILES_API_KEY},
             json=payload,
-            timeout=(10, 240),
+            timeout=(10, 60),
         )
     except requests.RequestException as exc:
         raise RuntimeError(f"Could not reach the CSV export service ({type(exc).__name__})") from exc
 
-    if not response.ok:
-        detail = f"CSV export service returned HTTP {response.status_code}"
-        if using_user_login and "login fail" in (response.text or "").lower():
+    if not started.ok:
+        detail = f"CSV export service returned HTTP {started.status_code}"
+        if using_user_login and "login fail" in (started.text or "").lower():
             detail += f". {AML_USER_LOGIN_HINT}"
         raise RuntimeError(detail)
+    service_job = (started.json() or {}).get("job_id")
+    if not service_job:
+        raise RuntimeError("CSV export service did not return a job id")
+
+    poll_url = f"{export_jobs_url}/{service_job}"
+    deadline = time.monotonic() + SUMMARY_GUI_JOB_TIMEOUT_SECONDS
+    lost = 0
+    last_stage = None
+    while time.monotonic() < deadline:
+        time.sleep(2)
+        try:
+            status_response = requests.get(
+                poll_url, headers={"X-API-Key": DOCKER_FILES_API_KEY}, timeout=(10, 30)
+            )
+        except requests.RequestException:
+            status_response = None
+        if status_response is None or not status_response.ok:
+            lost += 1
+            if lost >= 15:
+                raise RuntimeError("Lost connection while waiting for the AML export queue")
+            continue
+        lost = 0
+        snapshot = status_response.json() or {}
+        service_status = snapshot.get("status")
+        service_stage = snapshot.get("stage") or ("Waiting for the AML browser" if service_status == "queued" else service_status)
+        if service_stage != last_stage and progress:
+            ui_stage = "waiting_for_aml" if service_status == "queued" else "downloading_csv"
+            progress(ui_stage, service_stage)
+            last_stage = service_stage
+        if service_status == "done":
+            break
+        if service_status == "error":
+            detail = snapshot.get("message") or "AML CSV export failed"
+            if using_user_login and "login fail" in detail.lower():
+                detail += f". {AML_USER_LOGIN_HINT}"
+            raise RuntimeError(detail)
+        if service_status == "downloaded":
+            raise RuntimeError("CSV export result was already downloaded by another request")
+    else:
+        raise RuntimeError("Timed out waiting for the AML browser queue")
+
+    try:
+        response = requests.get(
+            f"{poll_url}/download", headers={"X-API-Key": DOCKER_FILES_API_KEY}, timeout=(10, 300)
+        )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Could not download the completed AML export ({type(exc).__name__})") from exc
+    if not response.ok:
+        raise RuntimeError(f"CSV export download returned HTTP {response.status_code}")
     body = response.content or b""
     if not body:
         raise RuntimeError("CSV export service returned an empty file")
@@ -8069,6 +8126,7 @@ def _case_action_status(job_id):
             "status": job["status"], "total": job["total"], "completed": job["completed"],
             "successful": job["successful"], "failed": job["failed"], "action": job["action"],
             "remark": job["remark"], "results": list(job["results"]), "message": job.get("message"),
+            "stage": job.get("stage"),
         }
 
 
@@ -8078,6 +8136,15 @@ def _report_generation_status(job_id):
         if not job:
             return None
         return {key: job.get(key) for key in ("status", "total", "completed", "successful", "failed", "stage", "results", "message", "output_path")}
+
+
+def _create_report_generation_job(job_id, total):
+    """Register each report job independently; the AML service queues browser access."""
+    with REPORT_GENERATION_JOBS_LOCK:
+        REPORT_GENERATION_JOBS[job_id] = {
+            "status": "queued", "total": total, "completed": 0, "successful": 0, "failed": 0,
+            "stage": "Initializing", "results": [], "message": None, "output_path": None,
+        }
 
 
 REPORT_JOBS_API_URL = SHEET_IMPORT_API_URL.rsplit("/", 1)[0] + "/report-jobs"
@@ -8283,16 +8350,19 @@ def _run_report_batches(job_id, items, files_map, aml_creds, record, state):
             with REPORT_GENERATION_JOBS_LOCK:
                 job = REPORT_GENERATION_JOBS.get(job_id)
                 if job:
-                    job["stage"] = f"Generating report {min(job['completed'] + 1, job['total'])} of {job['total']}"
+                    if snap.get("status") == "queued":
+                        job["stage"] = "Waiting for the AML browser"
+                    elif snap.get("status") == "running":
+                        job["stage"] = f"Generating report {min(job['completed'] + 1, job['total'])} of {job['total']}"
             if snap.get("status") == "done":
                 break
             if snap.get("status") == "error":
                 raise RuntimeError(snap.get("message") or "The AML service reported an error")
 
 
-def _finish_report_job(job_id, rows, results, stopped, state, file_prefix):
+def _finish_report_job(job_id, rows, results, stopped, state, file_prefix, allow_service_error_workbook=False):
     """Result Excel likho. Kuch bhi nahi bana aur service fail hui to job error, warna partial result bhi milta hai."""
-    if stopped and state["received"] == 0:
+    if stopped and state["received"] == 0 and not allow_service_error_workbook:
         raise RuntimeError(stopped)
     ordered = [results[i] for i in sorted(results)]
     output_path = os.path.join(tempfile.gettempdir(), f"{file_prefix}_{job_id}.xlsx")
@@ -8303,6 +8373,24 @@ def _finish_report_job(job_id, rows, results, stopped, state, file_prefix):
             stage="Completed" if not stopped else "Stopped early (see Status column)",
             message=stopped,
         )
+
+
+def _save_report_job_workbook(job_id, results, file_prefix):
+    """Persist the current ordered report results before the worker advances to another source row."""
+    ordered = [results[i] for i in sorted(results)]
+    output_path = os.path.join(tempfile.gettempdir(), f"{file_prefix}_{job_id}.xlsx")
+    temporary_path = f"{output_path}.{uuid.uuid4().hex}.tmp.xlsx"
+    try:
+        pd.DataFrame(ordered).to_excel(temporary_path, index=False)
+        os.replace(temporary_path, output_path)
+    finally:
+        if os.path.exists(temporary_path):
+            os.remove(temporary_path)
+    with REPORT_GENERATION_JOBS_LOCK:
+        job = REPORT_GENERATION_JOBS.get(job_id)
+        if job:
+            job.update(output_path=output_path, results=ordered)
+    return output_path
 
 
 def _report_fail_job(job_id, exc, aml_creds=None):
@@ -8320,7 +8408,8 @@ def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_ma
     url_dir = None
     try:
         with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Preparing screenshots")
+            if REPORT_GENERATION_JOBS[job_id]["status"] == "queued":
+                REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Preparing screenshots")
         uploaded = dict(image_map or {})
         results, files_map, items = {}, {}, []
         url_dir, url_cache = tempfile.mkdtemp(prefix="crg_report_urls_"), {}
@@ -8400,13 +8489,15 @@ def _upload_aml_report_screenshots(driver, wait, image_paths):
 
 
 def _run_extract_and_generate_job(job_id, rows, aml_creds):
-    """Extract and Generate: PDF se screenshots nikaal ke (max 6) reports banwao. Same PDF dobara download/extract nahi hota."""
+    """For each source PDF, extract, generate its report, and save that row before continuing."""
     temp_root = tempfile.mkdtemp(prefix="crg_pdf_extract_")
     try:
         with REPORT_GENERATION_JOBS_LOCK:
             REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Extracting screenshots")
-        results, extras, files_map, items, cache = {}, {}, {}, [], {}
+        results, extras, files_map, cache = {}, {}, {}, {}
         record = _make_report_recorder(job_id, rows, results, extras)
+        state = {"received": 0}
+        stopped = None
 
         for index, row in enumerate(rows, start=1):
             try:
@@ -8432,29 +8523,35 @@ def _run_extract_and_generate_job(job_id, rows, aml_creds):
                 used = payload[:REPORT_MAX_SCREENSHOTS]              # AML form me max 6
                 names = [_register_report_image(files_map, path) for path in used]
                 extras[index] = (len(payload), len(used))
-                items.append({"index": index, "title": str(row["Title"]), "description": str(row["Description"]), "images": names})
+                item = {"index": index, "title": str(row["Title"]), "description": str(row["Description"]), "images": names}
             except Exception as exc:
                 record(index, "Failed", "", str(exc).strip() or type(exc).__name__)
+                _save_report_job_workbook(job_id, results, "case_report_extract_results")
+                continue
 
-        unique, dups = _report_dedupe_items(items)
-
-        def record_with_dups(index, status, url="", message=""):
-            record(index, status, url, message)
-            for dup_index in dups.get(index, []):
-                record(dup_index, status, url, message)
-
-        stopped, state = None, {"received": 0}
-        if unique:
+            # Do not extract the next PDF until this report request has returned
+            # its URL/status and the updated workbook has been written to disk.
             with REPORT_GENERATION_JOBS_LOCK:
-                REPORT_GENERATION_JOBS[job_id]["stage"] = "Generating reports"
+                REPORT_GENERATION_JOBS[job_id]["stage"] = f"Generating report {index} of {len(rows)}"
             try:
-                _run_report_batches(job_id, unique, files_map, aml_creds, record_with_dups, state)
+                _run_report_batches(job_id, [item], files_map, aml_creds, record, state)
             except RuntimeError as exc:
                 stopped = _scrub_secret(exc, (tuple(aml_creds or ()) + (None, None))[1])
-            for item in unique:
-                if item["index"] not in results:
-                    record_with_dups(item["index"], "Failed", "", f"Not generated: {stopped}" if stopped else "No result received")
-        _finish_report_job(job_id, rows, results, stopped, state, "case_report_extract_results")
+                record(index, "Failed", "", stopped)
+                _save_report_job_workbook(job_id, results, "case_report_extract_results")
+                for remaining in range(index + 1, len(rows) + 1):
+                    record(remaining, "Failed", "", f"Not generated: {stopped}")
+                _save_report_job_workbook(job_id, results, "case_report_extract_results")
+                break
+
+            if index not in results:
+                record(index, "Failed", "", "No result received from the AML service")
+            _save_report_job_workbook(job_id, results, "case_report_extract_results")
+
+        _finish_report_job(
+            job_id, rows, results, stopped,
+            state, "case_report_extract_results", allow_service_error_workbook=True,
+        )
     except Exception as exc:
         _report_fail_job(job_id, exc, aml_creds)
     finally:
@@ -8529,7 +8626,8 @@ def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
 
     try:
         with CASE_ACTION_JOBS_LOCK:
-            CASE_ACTION_JOBS[job_id]["status"] = "running"
+            CASE_ACTION_JOBS[job_id]["status"] = "queued"
+            CASE_ACTION_JOBS[job_id]["stage"] = "Waiting for the AML browser"
         if not DOCKER_FILES_API_KEY:
             return _fail("DOCKER_FILES_API_KEY is not configured")
 
@@ -8583,6 +8681,8 @@ def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
                 if not job:
                     return
                 job.update(
+                    status=snap.get("status", job.get("status")),
+                    stage=snap.get("stage") or job.get("stage"),
                     completed=snap.get("completed", 0), successful=snap.get("successful", 0),
                     failed=snap.get("failed", 0), results=list(snap.get("results") or []),
                 )
@@ -8620,7 +8720,7 @@ def start_aml_case_actions():
             CASE_ACTION_JOBS[job_id] = {
                 "status": "queued", "total": len(case_ids), "completed": 0,
                 "successful": 0, "failed": 0, "action": action, "remark": remark,
-                "results": [], "message": None,
+                "results": [], "message": None, "stage": "Waiting for the AML browser",
             }
         threading.Thread(target=_run_aml_case_action_job, args=(job_id, case_ids, action, remark, creds), daemon=True).start()
         return jsonify({"status": "success", "job_id": job_id, "total": len(case_ids)})
@@ -8747,8 +8847,7 @@ def start_report_generation():
             return jsonify({"status": "error", "message": blocked}), 400
         job_id = uuid.uuid4().hex
         creds = _report_login_creds()
-        with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id] = {"status": "queued", "total": len(rows), "completed": 0, "successful": 0, "failed": 0, "stage": "Initializing", "results": [], "message": None, "output_path": None}
+        _create_report_generation_job(job_id, len(rows))
         threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds, image_dir, image_map), daemon=True).start()
         image_dir = None                                            # ab folder ki safai job karega
         return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
@@ -8788,8 +8887,7 @@ def start_report_extract_generation():
             return jsonify({"status": "error", "message": "The workbook contains no PDF rows."}), 400
         job_id = uuid.uuid4().hex
         creds = _report_login_creds()
-        with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id] = {"status": "queued", "total": len(rows), "completed": 0, "successful": 0, "failed": 0, "stage": "Initializing", "results": [], "message": None, "output_path": None}
+        _create_report_generation_job(job_id, len(rows))
         threading.Thread(target=_run_extract_and_generate_job, args=(job_id, rows, creds), daemon=True).start()
         return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
     except Exception as exc:
@@ -9425,75 +9523,6 @@ ALLOWED_PAGES_OPTIONS = [
     (DASHBOARD_MANAGEMENT_PAGE, "GUI Management"),
 ]
 
-INVESTMENT_SCAM_USERS_TABLE = "investment_scam_users"
-
-GUI_STATUS_TABLES = [
-    {
-        "page_key": "scraping",
-        "page_name": "Data Scraping",
-        "table": "scrapping_data",
-        "date_columns": ["created_at", "updated_at", "Inserted_date", "inserted_date", "id"],
-    },
-    {
-        "page_key": "social",
-        "page_name": "Social Media Accounts",
-        "table": "social_media_accounts",
-        "date_columns": ["updated_at", "created_at", "blocked_date", "account_create_date", "id"],
-    },
-    {
-        "page_key": "investment",
-        "page_name": "Investment Scam Data",
-        "table": "BS_Investment_Scam",
-        "date_columns": ["Inserted_date", "created_at", "updated_at", "Id"],
-    },
-    {
-        "page_key": "website_directory",
-        "page_name": "Website Directory",
-        "table": "website_directory",
-        "date_columns": ["updated_at", "created_at", "date", "id"],
-    },
-    {
-        "page_key": "allotment",
-        "page_name": "Case Assignment",
-        "table": "website_allotment",
-        "date_columns": ["updated_at", "created_at", "allotted_date", "id"],
-    },
-    {
-        "page_key": "case_report",
-        "page_name": "QC & CRG",
-        "table": "reports",
-        "date_columns": ["created_at", "updated_at", "id"],
-    },
-    {
-        "page_key": "lunch",
-        "page_name": "Break Time Management",
-        "table": "lunch_breaks",
-        "date_columns": ["date", "updated_at", "created_at", "id"],
-    },
-    {
-        "page_key": "qc",
-        "page_name": "QC Review",
-        "table": "qc_table",
-        "date_columns": ["updated_at", "created_at", "inserted_datetime", "inserted_date", "id"],
-    },
-    {
-        "page_key": "dashboard_management",
-        "page_name": "Dashboard Users",
-        "table": "dashboard_users",
-        "date_columns": ["updated_at", "created_at", "id"],
-    },
-    {
-        "page_key": "investment_users",
-        "page_name": "Investment Scam Users",
-        "table": INVESTMENT_SCAM_USERS_TABLE,
-        "date_columns": ["updated_at", "created_at", "joining_date", "id"],
-    },
-]
-
-GUI_STATUS_CACHE_TTL_SECONDS = 60
-_GUI_STATUS_CACHE = {"expires_at": 0, "payload": None}
-
-
 def can_manage_dashboard(user_session=None):
     """Only a superadmin who has 'dashboard_management' in their allowed_pages can
     manage users. This is the single source of truth used by every
@@ -9590,99 +9619,6 @@ def _serialize_dashboard_user(row):
     out["aml_password"] = raw_aml_password
     return out
 
-def _estimate_json_bytes(rows):
-    try:
-        return len(json.dumps(rows or [], default=str).encode("utf-8"))
-    except Exception:
-        return 0
-
-
-def _format_status_level(total_rows, query_ms, storage_bytes):
-    if storage_bytes and storage_bytes >= 50 * 1024 * 1024:
-        return "Heavy"
-    if total_rows >= 50000 or query_ms >= 1500:
-        return "Heavy"
-    if storage_bytes and storage_bytes >= 10 * 1024 * 1024:
-        return "Medium"
-    if total_rows >= 10000 or query_ms >= 600:
-        return "Medium"
-    return "Normal"
-
-
-def _load_table_storage_map(client):
-    try:
-        resp = client.rpc("get_table_storage_stats").execute()
-        rows = resp.data or []
-        return {
-            (r.get("table_name") or r.get("table") or r.get("relname") or "").lower(): r
-            for r in rows
-            if r.get("table_name") or r.get("table") or r.get("relname")
-        }, None
-    except Exception as e:
-        return {}, str(e)
-
-
-def _latest_value_for_table(client, table_name, date_columns):
-    for col in date_columns:
-        try:
-            resp = client.table(table_name).select(col).order(col, desc=True).limit(1).execute()
-            if resp.data:
-                return resp.data[0].get(col), col
-        except Exception:
-            continue
-    return None, None
-
-
-def _table_status_row(cfg, storage_map):
-    client = get_auth_supabase()
-    started = time.perf_counter()
-    row = {
-        "page_key": cfg["page_key"],
-        "page_name": cfg["page_name"],
-        "table": cfg["table"],
-        "total_rows": 0,
-        "latest_value": None,
-        "latest_column": None,
-        "query_ms": 0,
-        "sample_rows": 0,
-        "sample_bytes": 0,
-        "estimated_payload_bytes": 0,
-        "storage_bytes": None,
-        "table_bytes": None,
-        "index_bytes": None,
-        "storage_source": "RPC not configured",
-        "status": "Unknown",
-        "error": None,
-    }
-    try:
-        count_resp = client.table(cfg["table"]).select("*", count="exact").limit(0).execute()
-        row["total_rows"] = count_resp.count if count_resp.count is not None else 0
-
-        latest_value, latest_column = _latest_value_for_table(client, cfg["table"], cfg["date_columns"])
-        row["latest_value"] = latest_value
-        row["latest_column"] = latest_column
-
-        storage = storage_map.get(cfg["table"].lower()) if storage_map else None
-        if storage:
-            row["storage_bytes"] = storage.get("total_bytes") or storage.get("total_size")
-            row["table_bytes"] = storage.get("table_bytes") or storage.get("table_size")
-            row["index_bytes"] = storage.get("index_bytes") or storage.get("index_size")
-            row["storage_source"] = "RPC"
-            row["estimated_payload_bytes"] = int(row["storage_bytes"] or 0)
-
-        row["query_ms"] = int((time.perf_counter() - started) * 1000)
-        row["status"] = _format_status_level(
-            int(row["total_rows"] or 0),
-            row["query_ms"],
-            int(row["storage_bytes"] or 0),
-        )
-    except Exception as e:
-        row["query_ms"] = int((time.perf_counter() - started) * 1000)
-        row["status"] = "Error"
-        row["error"] = str(e)
-    return row
-
-
 @app.route("/dashboard-management/api/users", methods=["GET"])
 @login_required
 @dashboard_management_required_json
@@ -9695,247 +9631,6 @@ def dashboard_management_users():
             ).order("id", desc=False).execute()
         users = [_serialize_dashboard_user(u) for u in (resp.data or [])]
         return jsonify({"success": True, "users": users})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/dashboard-management/api/gui-status", methods=["GET"])
-@login_required
-@dashboard_management_required_json
-def dashboard_management_gui_status():
-    try:
-        force_refresh = request.args.get("refresh") in ("1", "true", "yes")
-        now = time.time()
-        if not force_refresh and _GUI_STATUS_CACHE["payload"] and _GUI_STATUS_CACHE["expires_at"] > now:
-            return jsonify(_GUI_STATUS_CACHE["payload"])
-
-        client = get_auth_supabase()
-        started = time.perf_counter()
-        storage_map, rpc_error = _load_table_storage_map(client)
-        with ThreadPoolExecutor(max_workers=min(6, len(GUI_STATUS_TABLES))) as executor:
-            future_map = {
-                executor.submit(_table_status_row, cfg, storage_map): idx
-                for idx, cfg in enumerate(GUI_STATUS_TABLES)
-            }
-            ordered_rows = [None] * len(GUI_STATUS_TABLES)
-            for future in as_completed(future_map):
-                ordered_rows[future_map[future]] = future.result()
-        rows = [row for row in ordered_rows if row]
-        totals = {
-            "pages": len(rows),
-            "tables_ok": sum(1 for r in rows if not r.get("error")),
-            "tables_error": sum(1 for r in rows if r.get("error")),
-            "total_rows": sum(int(r.get("total_rows") or 0) for r in rows),
-            "estimated_payload_bytes": sum(int(r.get("estimated_payload_bytes") or 0) for r in rows),
-            "storage_bytes": sum(int(r.get("storage_bytes") or 0) for r in rows if r.get("storage_bytes")),
-            "slowest_page": None,
-            "generated_at": datetime.now(timezone.utc).isoformat(),
-            "total_query_ms": 0,
-            "rpc_error": rpc_error,
-        }
-        if rows:
-            totals["slowest_page"] = max(rows, key=lambda r: int(r.get("query_ms") or 0)).get("page_name")
-        totals["total_query_ms"] = int((time.perf_counter() - started) * 1000)
-        payload = {"success": True, "rows": rows, "totals": totals}
-        _GUI_STATUS_CACHE["payload"] = payload
-        _GUI_STATUS_CACHE["expires_at"] = now + GUI_STATUS_CACHE_TTL_SECONDS
-        return jsonify(payload)
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/dashboard-management/api/investment-scam-users", methods=["GET"])
-@login_required
-@dashboard_management_required_json
-def dashboard_management_investment_scam_users():
-    try:
-        resp = get_auth_supabase().table(INVESTMENT_SCAM_USERS_TABLE) \
-            .select("*").order("id", desc=False).execute()
-        return jsonify({"success": True, "users": resp.data or []})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-def _parse_iso_date(value):
-    if not value:
-        return None
-    try:
-        return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
-    except Exception:
-        return None
-
-
-def _whole_months_between(start_value, end_value):
-    start = _parse_iso_date(start_value)
-    end = _parse_iso_date(end_value)
-    if not start or not end or end < start:
-        return None
-    months = (end.year - start.year) * 12 + (end.month - start.month)
-    if end.day < start.day:
-        months -= 1
-    return max(months, 0)
-
-
-def _investment_user_duration_payload(employee_type, duration_months, internship_end_date=None, joining_date=None):
-    employee_type = (employee_type or "employee").strip().lower()
-    if employee_type not in ("employee", "intern"):
-        employee_type = "employee"
-    if employee_type != "intern":
-        return "Employee", None, None, None, None
-
-    clean_end_date = str(internship_end_date or "").strip() or None
-    if clean_end_date and not _parse_iso_date(clean_end_date):
-        return "Intern", None, None, None, "Internship end date must be a valid date."
-
-    try:
-        months = int(duration_months or 0)
-    except (TypeError, ValueError):
-        months = 0
-    if months <= 0 and clean_end_date:
-        months = _whole_months_between(joining_date, clean_end_date) or 0
-    if months <= 0 and not clean_end_date:
-        return "Intern", None, None, None, "Enter internship duration in months or internship end date."
-
-    duration = f"{months} Months" if months > 0 else None
-    if not clean_end_date and months > 0:
-        clean_end_date = _calculate_internship_end_date(joining_date, months)
-    return "Intern", duration, months, clean_end_date, None
-
-
-def _calculate_internship_end_date(joining_date, months):
-    if not joining_date or not months:
-        return None
-    try:
-        start = datetime.strptime(str(joining_date)[:10], "%Y-%m-%d").date()
-        month_index = start.month - 1 + int(months)
-        year = start.year + month_index // 12
-        month = month_index % 12 + 1
-        last_day = (datetime(year + (month // 12), (month % 12) + 1, 1) - timedelta(days=1)).day
-        day = min(start.day, last_day)
-        return datetime(year, month, day).strftime("%Y-%m-%d")
-    except Exception:
-        return None
-
-
-@app.route("/dashboard-management/api/investment-scam-users", methods=["POST"])
-@login_required
-@dashboard_management_required_json
-def dashboard_management_create_investment_scam_user():
-    try:
-        data = request.get_json() or {}
-        name = (data.get("name") or "").strip()
-        if not name:
-            return jsonify({"success": False, "error": "Name is required."}), 400
-        joining_date = (data.get("joining_date") or "").strip() or None
-        if not joining_date:
-            return jsonify({"success": False, "error": "Joining date is required."}), 400
-        employee_type, duration, duration_months, internship_end_date, duration_error = _investment_user_duration_payload(
-            data.get("employee_type") or data.get("user_type"),
-            data.get("duration_months") or data.get("internship_duration_months"),
-            data.get("internship_end_date"),
-            joining_date,
-        )
-        if duration_error:
-            return jsonify({"success": False, "error": duration_error}), 400
-        password = data.get("paasword") or ""
-        if not password:
-            return jsonify({"success": False, "error": "Password is required."}), 400
-
-        record = {
-            "name": name,
-            "employee_type": employee_type,
-            "contact_no": (data.get("contact_no") or "").strip() or None,
-            "mail":      (data.get("mail") or "").strip() or None,
-            "joining_date": joining_date,
-            "dob":       (data.get("dob") or "").strip() or None,
-            "duration":   duration,
-            "internship_end_date": internship_end_date,
-            "gui_cred":  (data.get("gui_cred") or "").strip() or None,
-            "paasword":  password,
-        }
-        client = get_auth_supabase()
-        resp = client.table(INVESTMENT_SCAM_USERS_TABLE).insert(record).execute()
-        if resp.data:
-            created = resp.data[0]
-            log_activity("CREATE", target_table=INVESTMENT_SCAM_USERS_TABLE,
-                         target_record_id=created.get("id"),
-                         extra_info=f"Created investment scam user {name}")
-            return jsonify({"success": True, "user": created}), 201
-        return jsonify({"success": False, "error": "Create failed."}), 500
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/dashboard-management/api/investment-scam-users/<int:user_id>", methods=["PUT"])
-@login_required
-@dashboard_management_required_json
-def dashboard_management_update_investment_scam_user(user_id):
-    try:
-        data = request.get_json() or {}
-        client = get_auth_supabase()
-        existing = client.table(INVESTMENT_SCAM_USERS_TABLE) \
-            .select("id").eq("id", user_id).limit(1).execute()
-        if not existing.data:
-            return jsonify({"success": False, "error": "User not found."}), 404
-
-        name = (data.get("name") or "").strip()
-        if not name:
-            return jsonify({"success": False, "error": "Name is required."}), 400
-        joining_date = (data.get("joining_date") or "").strip() or None
-        if not joining_date:
-            return jsonify({"success": False, "error": "Joining date is required."}), 400
-
-        employee_type, duration, duration_months, internship_end_date, duration_error = _investment_user_duration_payload(
-            data.get("employee_type") or data.get("user_type"),
-            data.get("duration_months") or data.get("internship_duration_months"),
-            data.get("internship_end_date"),
-            joining_date,
-        )
-        if duration_error:
-            return jsonify({"success": False, "error": duration_error}), 400
-
-        record = {
-            "name": name,
-            "employee_type": employee_type,
-            "contact_no": (data.get("contact_no") or "").strip() or None,
-            "mail":      (data.get("mail") or "").strip() or None,
-            "joining_date": joining_date,
-            "dob":       (data.get("dob") or "").strip() or None,
-            "duration":   duration,
-            "internship_end_date": internship_end_date,
-            "gui_cred":  (data.get("gui_cred") or "").strip() or None,
-        }
-        new_pw = (data.get("paasword") or "").strip()
-        if new_pw:
-            record["paasword"] = new_pw
-
-        upd = client.table(INVESTMENT_SCAM_USERS_TABLE).update(record).eq("id", user_id).execute()
-        if upd.data:
-            log_activity("UPDATE", target_table=INVESTMENT_SCAM_USERS_TABLE,
-                         target_record_id=user_id,
-                         extra_info=f"Updated investment scam user {name}")
-            return jsonify({"success": True, "user": upd.data[0]})
-        return jsonify({"success": False, "error": "Update failed."}), 500
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
-
-
-@app.route("/dashboard-management/api/investment-scam-users/<int:user_id>", methods=["DELETE"])
-@login_required
-@dashboard_management_required_json
-def dashboard_management_delete_investment_scam_user(user_id):
-    try:
-        client = get_auth_supabase()
-        existing = client.table(INVESTMENT_SCAM_USERS_TABLE) \
-            .select("id,name").eq("id", user_id).limit(1).execute()
-        if not existing.data:
-            return jsonify({"success": False, "error": "User not found."}), 404
-        name = existing.data[0].get("name") or f"id={user_id}"
-        d = client.table(INVESTMENT_SCAM_USERS_TABLE).delete().eq("id", user_id).execute()
-        log_activity("DELETE", target_table=INVESTMENT_SCAM_USERS_TABLE,
-                     target_record_id=user_id,
-                     extra_info=f"Deleted investment scam user {name}")
-        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
