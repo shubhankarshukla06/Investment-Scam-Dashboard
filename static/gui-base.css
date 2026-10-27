@@ -880,6 +880,19 @@ body.theme-dark .social-page .row-restricted { background-color:rgba(113,63,18,.
 body.theme-dark .social-page .row-restricted:hover { background-color:rgba(133,77,14,.48) !important; }
 body.theme-dark .social-page .row-frozen { background-color:rgba(30,64,175,.28) !important; }
 body.theme-dark .social-page .row-frozen:hover { background-color:rgba(30,64,175,.38) !important; }
+/* Keep social status row tints visible on every cell above generic zebra-row colors. */
+body.theme-dark .social-page #socialMediaTableBody > tr.row-active > td { background-color:rgba(22,101,52,.32) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-active:hover > td { background-color:rgba(22,101,52,.44) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-block > td,
+body.theme-dark .social-page #socialMediaTableBody > tr.row-blocked > td,
+body.theme-dark .social-page #socialMediaTableBody > tr.row-permanent-block > td { background-color:rgba(127,29,29,.36) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-block:hover > td,
+body.theme-dark .social-page #socialMediaTableBody > tr.row-blocked:hover > td,
+body.theme-dark .social-page #socialMediaTableBody > tr.row-permanent-block:hover > td { background-color:rgba(153,27,27,.48) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-restricted > td { background-color:rgba(113,63,18,.36) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-restricted:hover > td { background-color:rgba(133,77,14,.48) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-frozen > td { background-color:rgba(30,64,175,.28) !important; }
+body.theme-dark .social-page #socialMediaTableBody > tr.row-frozen:hover > td { background-color:rgba(30,64,175,.38) !important; }
 /* Dashboard management role-tinted rows */
 body.theme-dark tbody tr.dm-role-superadmin { background-color:rgba(139,92,246,.12) !important; }
 body.theme-dark tbody tr.dm-role-superadmin:hover { background-color:rgba(139,92,246,.20) !important; }
@@ -1019,18 +1032,14 @@ body.theme-dark .chip {
   border:1px solid rgba(148,163,184,.32) !important;
 }
 
-/* Theme switch animation opt-out for big tables */
-html.theme-switching .table-container *,
-html.theme-switching .table-wrap * { transition: none !important; }
-html.theme-switching .fixed-header { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+/* Native View Transitions animate a viewport snapshot instead of every table node. */
+@keyframes gui-theme-view-fade-out { to { opacity: 0; } }
+@keyframes gui-theme-view-fade-in { from { opacity: 0; } }
+::view-transition-group(root) { animation-duration: 140ms; animation-timing-function: ease-out; }
+::view-transition-old(root) { animation: gui-theme-view-fade-out 140ms ease-out both; }
+::view-transition-new(root) { animation: gui-theme-view-fade-in 140ms ease-out both; }
 
-/* ---------- Smooth, lightweight theme switching ------------------------- */
-html.theme-switching *,
-html.theme-switching *::before,
-html.theme-switching *::after {
-  transition: none !important;
-}
-
+/* Lightweight fallback for browsers without the View Transitions API. */
 html.theme-switching body,
 html.theme-switching .fixed-header,
 html.theme-switching .header,
@@ -1046,34 +1055,36 @@ html.theme-switching .stat-card,
 html.theme-switching .status-card,
 html.theme-switching .t-card,
 html.theme-switching .ual-content,
-html.theme-switching input,
-html.theme-switching select,
-html.theme-switching textarea,
-html.theme-switching button,
-html.theme-switching .btn,
+html.theme-switching .filters input,
+html.theme-switching .filters select,
+html.theme-switching .filters button,
+html.theme-switching .filter-bar input,
+html.theme-switching .filter-bar select,
+html.theme-switching .filter-bar button,
 html.theme-switching .page-select,
 html.theme-switching .page-nav-btn,
 html.theme-switching .theme-toggle,
-html.theme-switching .tag,
-html.theme-switching .badge,
-html.theme-switching .chip,
-html.theme-switching .pill,
-html.theme-switching .status-display,
-html.theme-switching .secret-value,
-html.theme-switching .dev-credit-footer {
-  transition:
-    background-color 160ms ease-out,
-    color 160ms ease-out,
-    border-color 160ms ease-out,
-    box-shadow 160ms ease-out !important;
+html.theme-switching .dev-credit-footer,
+html.theme-switching .brand h1,
+html.theme-switching .brand p,
+html.theme-switching .login-card,
+html.theme-switching .card-title,
+html.theme-switching .form-group label,
+html.theme-switching .form-group input,
+html.theme-switching .toggle-password,
+html.theme-switching .btn-login,
+html.theme-switching .alert-error {
+  transition: background-color 140ms ease-out, color 140ms ease-out,
+    border-color 140ms ease-out, box-shadow 140ms ease-out !important;
 }
-
-html.theme-switching .table-container *,
-html.theme-switching .table-wrap *,
-html.theme-switching .preview-table-container *,
-html.theme-switching .ual-table *,
-html.theme-switching #scrapInsertRowsArea * {
-  transition: none !important;
+html.theme-switching .table-container button,
+html.theme-switching .table-wrap button,
+html.theme-switching .ual-table button { transition: none !important; }
+html.theme-switching .fixed-header { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root), ::view-transition-old(root), ::view-transition-new(root) {
+    animation-duration: 1ms !important;
+  }
 }
 
 .flash-message.welcome,

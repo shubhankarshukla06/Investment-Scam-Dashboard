@@ -5,7 +5,9 @@
         <script>
             (function () {
                 try {
-                    if (localStorage.getItem('scamGuiTheme') === 'dark') {
+                    const savedMode = localStorage.getItem('scamGuiTheme');
+                    const insightsDefault = new URLSearchParams(location.search).get('page') === 'insights';
+                    if (savedMode === 'dark' || (!savedMode && insightsDefault)) {
                         document.documentElement.classList.add('theme-dark-preload');
                     }
                 } catch (e) {}
@@ -170,7 +172,7 @@
             .social-page th, .social-page td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 12px; white-space: nowrap; overflow: visible; text-overflow: clip; }
             .scraping-page th[data-col="id"], .scraping-page td[data-col="id"],
             .investment-page th[data-col="id"], .investment-page td[data-col="id"],
-            .social-page th[data-col="id"], .social-page td[data-col="id"] { width: 58px; min-width: 58px; max-width: 58px; padding-left: 16px !important; padding-right: 6px !important; }
+            .social-page th[data-col="id"], .social-page td[data-col="id"] { width: 54px; min-width: 54px; max-width: 54px; padding-left: 16px !important; padding-right: 6px !important; }
             .social-page th { background: #f8f9fa; font-weight: 600; color: #2c3e50; position: sticky; top: 0; z-index: 10; border-right: 1px solid #eee; }
             .social-page th:last-child { border-right: none; }
             .social-page .row-active { background-color: #bbf7d0 !important; }
@@ -615,6 +617,7 @@
             .ual-stats { padding: 8px 16px; background: #eef2ff; border-bottom: 1px solid #c7d2fe; font-size: 12px; color: #4338ca; font-weight: 600; flex-shrink: 0; }
             .ual-body { overflow-y: auto; flex-grow: 1; }
             .ual-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 900px; }
+            .ual-table thead th:first-child, .ual-table tbody td:first-child { width: 54px; min-width: 54px; max-width: 54px; }
             .ual-table thead th { background: #f8f9fa; padding: 10px 12px; text-align: left; font-weight: 600; color: #2c3e50; border-bottom: 2px solid #dee2e6; position: sticky; top: 0; z-index: 5; white-space: nowrap; }
             .ual-table tbody td { padding: 9px 12px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
             .ual-table tbody tr:hover { background: #f8f9ff; }
@@ -1082,7 +1085,6 @@
                 font-family: Inter, 'Segoe UI', Roboto, sans-serif;
                 scrollbar-color: #475569 #111827;
             }
-            html.theme-switching * { transition: background-color 0.26s ease, border-color 0.26s ease, color 0.26s ease; }
             body.theme-dark ::-webkit-scrollbar { width: 8px; height: 8px; }
             body.theme-dark ::-webkit-scrollbar-track { background: #111827; }
             body.theme-dark ::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
@@ -1319,16 +1321,9 @@
             .pagination {
                 border-radius: 12px;
             }
-            html.theme-switching * {
-                transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease !important;
-            }
             /* Disable the fixed-header blur during the switch so the browser does not
                re-rasterize the backdrop over the whole viewport on every animation frame.
                The header keeps its semi-transparent background, so there is no visible pop. */
-            html.theme-switching .fixed-header {
-                backdrop-filter: none !important;
-                -webkit-backdrop-filter: none !important;
-            }
             /* BOTTLENECK FIX: large DB-backed tables (.table-container, the scraping input
                grid, the activity log, the sheet preview) can contain thousands of
                <tr>/<td> nodes. Transitioning every cell individually on a theme switch is
@@ -1337,12 +1332,6 @@
                update instantly while the surrounding chrome (header, cards, inputs, buttons,
                modals) still cross-fades smoothly. This cuts the animated-node count from
                thousands to a few dozen -> no per-frame jank. */
-            html.theme-switching .table-container *,
-            html.theme-switching #scrapInsertRowsArea *,
-            html.theme-switching .ual-table *,
-            html.theme-switching .preview-table-container * {
-                transition: none !important;
-            }
             body.theme-dark .scraping-page .filter-group select,
             body.theme-dark .investment-page .filter-group select,
             body.theme-dark .social-page .filter-group select,
@@ -1421,7 +1410,7 @@
                 color: #F8FAFC !important;
             }
         </style>
-        <link rel="stylesheet" href="/static/gui-base.css?v=20260929-night-button-sheen">
+        <link rel="stylesheet" href="/static/gui-base.css?v=20261027-social-status-row-colors">
         <style>
             body.page-sheet {
                 height: auto !important;
@@ -1834,6 +1823,7 @@
                 body.page-insights #insightsLoading > div[style*="grid-template-columns:repeat(3"] { grid-template-columns: 1fr !important; }
             }
         </style>
+    <script defer src="/static/gui-theme.js?v=20261027-theme-runtime"></script>
 </head>
     <body class="page-{{ page_type|default('') }}">
     <script>
@@ -2073,9 +2063,6 @@
                     {% if 'sheet' in allowed_pages %}
                     <option value="sheet" {% if page_type == 'sheet' %}selected{% endif %}>Summary &amp; Reports</option>
                     {% endif %}
-                    {% if 'case_report' in allowed_pages %}
-                    <option value="case_report" {% if page_type == 'case_report' %}selected{% endif %}>QC &amp; CRG</option>
-                    {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <option value="insights" {% if page_type == 'insights' %}selected{% endif %}>Dashboard</option>
                     {% endif %}
@@ -2169,9 +2156,6 @@
                     {% endif %}
                     {% if 'sheet' in allowed_pages %}
                     <button type="button" class="page-nav-btn {% if page_type == 'sheet' %}active{% endif %}" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
-                    {% endif %}
-                    {% if 'case_report' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'case_report' %}active{% endif %}" onclick="changePageFromWD('case_report')">QC &amp; CRG</button>
                     {% endif %}
                     {% if 'insights' in allowed_pages %}
                     <button type="button" class="page-nav-btn {% if page_type == 'insights' %}active{% endif %}" onclick="changePageFromWD('insights')">Dashboard</button>
@@ -3674,41 +3658,6 @@
                 return `Count (Till – ${timeLabel})`;
             }
             // ─── DUPLICATE CHECKER STATE ─────────────────────────
-            function setGuiTheme(mode, animate = true) {
-                const selectedMode = mode === 'dark' ? 'dark' : 'light';
-                if (animate) {
-                    document.documentElement.classList.remove('theme-switching');
-                    void document.documentElement.offsetWidth;
-                    document.documentElement.classList.add('theme-switching');
-                    clearTimeout(window.__guiThemeTransitionTimer);
-                }
-                document.body.classList.toggle('theme-dark', selectedMode === 'dark');
-                document.documentElement.classList.remove('theme-dark-preload');
-                try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
-                const select = document.getElementById('themeModeSelect');
-                if (select) select.value = selectedMode;
-                const toggle = document.getElementById('themeModeToggle');
-                if (toggle) {
-                    toggle.innerHTML = selectedMode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-                    toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-                    toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
-                }
-                if (animate && document.body.classList.contains('page-insights') && typeof _repaintInsightsChartsForTheme === 'function') {
-                    window.setTimeout(_repaintInsightsChartsForTheme, 40);
-                }
-                if (animate) window.__guiThemeTransitionTimer = window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 180);
-            }
-            function toggleGuiTheme() {
-                const isDark = document.body.classList.contains('theme-dark');
-                setGuiTheme(isDark ? 'light' : 'dark');
-            }
-            function initGuiTheme() {
-                const pageDefault = document.body.classList.contains('page-insights') ? 'dark' : 'light';
-                let savedMode = pageDefault;
-                try { savedMode = localStorage.getItem('scamGuiTheme') || pageDefault; } catch (e) {}
-                setGuiTheme(savedMode, false);
-            }
-            initGuiTheme();
             function excelNameToApiName(raw) {
                 let s = (raw || '').trim();
                 s = s.replace(/^icuser/i, '').trim();
@@ -3786,10 +3735,6 @@
                 }
                 if (pageType === 'lunch_break') {
                     window.location.href = '/lunch-break';
-                    return;
-                }
-                if (pageType === 'case_report') {
-                    window.location.href = '/case-report';
                     return;
                 }
                 if (pageType === 'allotment') {

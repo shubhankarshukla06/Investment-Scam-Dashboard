@@ -2,33 +2,33 @@
 
 ## 1. Project Overview
 
-- Flask monolith for Scam Intelligence workflows: scraping records, social media account inventory, investment-scam data, website directory/allotment, QC, lunch tracker, and case-report PDF generation.
-- Stack: Flask/Jinja2, Supabase/PostgREST, pandas/openpyxl/xlrd CSV/XLSX processing, ReportLab/PyPDF/PyMuPDF/Pillow/Tesseract, Selenium/browser automation, boto3/S3 + CloudFront, gunicorn on Render/Docker.
+- Flask monolith for Scam Intelligence workflows: scraping records, social media account inventory, investment-scam data, website directory/allotment, QC review, lunch tracker, and dashboard user management. The current checkout does not contain the Case & Report Generator page or its PDF utility modules.
+- Stack: Flask/Jinja2, Supabase/PostgREST, pandas/openpyxl/xlrd CSV/XLSX processing, Pillow/Tesseract, Selenium/browser automation, gunicorn on Render/Docker.
 - Main backend is `app.py`; templates are standalone Jinja HTML files with no shared base/includes detected.
 
 ## 2. Folder/File Map
 
-- `.env` — local environment variables; used for Flask secret, Supabase, AWS/S3/CloudFront credentials.
+- `.env` — ignored local environment variables; keep private and do not commit or print its values.
 - `.git/` — Git repository metadata.
 - `.gitignore` — Git ignore rules.
 - `.venv/` — local Python virtual environment; not app logic.
 - `.vscode/` — editor settings.
-- `__pycache__/` — generated Python bytecode cache.
+- `__pycache__/` — generated Python bytecode cache; ignored by Git and recreated by Python.
 - `app.py` — main Flask monolith; routes, helpers, Supabase clients, imports, background jobs, and most business logic.
-- `config.py` — centralized env var config for Flask, Supabase, AWS, S3/CloudFront, upload size.
+- `aml_session.json` — tracked browser session state (cookies and origins); sensitive, and no current in-repository code reference was found.
 - `desktop.ini` — Windows/OneDrive metadata.
 - `Dockerfile` — container build/runtime; Python 3.11 slim + gunicorn on port 8080.
 - `excel_data/` — local Excel reference/mapping data such as `bank_name.xlsx` and `ifsc_mapping.xlsx`.
-- `generated_reports/` — generated report artifacts / temporary output area.
-- `migrate_block_status.py` — one-time Supabase migration: social status `Block` → `Temporarily Block`.
+- `install_chrome.py` — standalone Chrome for Testing installer for Render; no in-repository caller was found. Render dashboard build settings may invoke it externally.
+- `migrate_block_status.py` — manually run, idempotent one-time Supabase data migration: social status `Block` → `Temporarily Block`; no in-repository caller was found.
 - `Procfile` — Render/Heroku web command: gunicorn bound to `$PORT`.
 - `requirements.txt` — Python dependencies.
 - `runtime.txt` — deployment Python version: `python-3.11.9`.
 - `sheet_mapping_config.json` — sheet conversion mappings for `upi` and `investment` output formats.
 - `static/` — static assets; currently contains image asset(s).
 - `templates/` — standalone Jinja templates for dashboard modules/pages.
-- `uploads/` — uploaded files / temporary user-upload staging.
-- `utils/` — helper modules for AWS upload, filename generation, PDF generation.
+- `uploads/` — upload staging directory; empty at the time of this audit.
+- `utils/` — currently empty in this working tree; the tracked AWS/PDF helper files are marked deleted.
 
 ## 3. Module Index
 
@@ -58,7 +58,7 @@
 - Route: `/` GET — `index()` L1194-L1404 — renders `templates/index.html`.
 - Modules inside same template: `scraping`, `social`, `investment`, `sheet`, activity log, insights widgets.
 - Data: `scrapping_data`, `social_media_accounts`, `BS_Investment_Scam` depending on `page` query param.
-- Behavior: checks `page` against `allowed_pages`; redirects dedicated pages for `qc`, `website_directory`, `case_report`, `allotment`, `allotment_admin`.
+- Behavior: checks `page` against `allowed_pages`; redirects dedicated pages for `qc`, `website_directory`, `allotment`, `allotment_admin`.
 - Quirk: `index()` checks `page_type == "lunch_break"`, but lunch access helper uses allowed page key `lunch`; this can affect `/lunch-break` redirect from `/?page=lunch`.
 
 ### Scrapping Data
@@ -186,22 +186,6 @@
 - Access: `can_access_allotment()` accepts `allotment` or `allotment_admin`; `is_allotment_admin()` gates admin assignment actions.
 - Behavior: allotment admins can assign/reassign and see broader rows; regular users see assigned rows and update remarks.
 
-### Case Report Generator / AML Regenerate
-
-- Main UI: `/case-report` GET — `case_report_page()` L6514-L6526 — renders `templates/case_report.html`.
-- Routes:
-  - `/generate-case-report` POST — `generate_case_report()` L6530-L6634.
-  - `/case-reports-list` GET — `case_reports_list()` L6638-L6677.
-  - `/delete-case-report/<report_id>` DELETE — `delete_case_report()` L6681-L6699.
-  - `/bulk-regenerate-cases` POST — `bulk_regenerate_cases()` L6706-L6749.
-  - `/download-regenerate-file/<job_id>/<file_type>` GET — `download_regenerate_file()` L6753-L6769.
-  - `/regenerate-job-status/<job_id>` GET — `regenerate_job_status()` L6774-L6782.
-  - `/stop-regenerate-job/<job_id>` POST — `stop_regenerate_job()` L6787-L6801.
-- Helpers: `configure_tesseract_cmd()` L5518, `get_aml_credentials_for_user()` L5560, `case_report_allowed_file()` L5642, `extract_screenshots_from_pdf()` L5677, `download_and_extract_report_images()` L5720, AML captcha/login/submit helpers L5738-L6307, `_run_bulk_regenerate_job()` L6371-L6510.
-- Utils: `utils/pdf_generator.py`, `utils/aws_upload.py`, `utils/filename_generator.py`.
-- Data/files: Supabase `reports`; PDFs in `generated_reports/`; S3 prefix `case-reports/`.
-- Behavior: creates ReportLab PDFs from screenshots/source URL, uploads to S3/CloudFront, lists/deletes reports, and runs bulk regeneration jobs with snapshot files.
-
 ### Lunch Break Tracker
 
 - Main UI: `/lunch-break` GET — `lunch_break()` L7046-L7102 — renders `templates/lunch_break.html`.
@@ -217,31 +201,16 @@
 
 ### Dashboard Management
 
-- Main UI: `/dashboard-management` GET — `dashboard_management()` L7423-L7435 — renders `templates/dashboard_management.html`.
-- Routes:
-  - `/dashboard-management/api/users` GET — `dashboard_management_users()` L7550-L7557.
-  - `/dashboard-management/api/users` POST — `dashboard_management_create_user()` L7754-L7796.
-  - `/dashboard-management/api/users/<int:user_id>` PUT — `dashboard_management_update_user()` L7802-L7851.
-  - `/dashboard-management/api/users/<int:user_id>` DELETE — `dashboard_management_delete_user()` L7857-L7869.
-  - `/dashboard-management/api/users/<int:user_id>/toggle-active` POST — `dashboard_management_toggle_active()` L7875-L7890.
-- Helpers: `can_manage_dashboard()` L7352, `dashboard_management_required()` L7361, `dashboard_management_required_json()` L7371, `_serialize_dashboard_user()` L7438.
+- Main UI: `/dashboard-management` GET — `dashboard_management()` — renders `templates/dashboard_management.html`.
+- Routes: `/dashboard-management/api/users` GET/POST, `/dashboard-management/api/users/<int:user_id>` PUT/DELETE, and `/dashboard-management/api/users/<int:user_id>/toggle-active` POST.
+- Helpers: `can_manage_dashboard()`, `dashboard_management_required()`, `dashboard_management_required_json()`, `_serialize_dashboard_user()`.
 - Data: `dashboard_users`.
 - Behavior: requires login plus superadmin/dashboard-management permission; JSON APIs use separate JSON access decorator.
 
-### GUI QC
+### GUI QC Review
 
-- Main UI: `/qc-gui` GET — `qc_gui()` L8163-L8300 — renders `templates/qc_gui.html`.
-- Routes:
-  - `/qc-gui-import` POST — `qc_gui_import()` L8305-L8348.
-  - `/qc-gui-users` GET — `qc_gui_users()` L8353-L8385.
-  - `/qc-gui-allotment` POST — `qc_gui_allotment()` L8390-L8491.
-  - `/qc-gui-export` GET — `qc_gui_export()` L8496-L8555.
-  - `/qc-gui-template` GET — `qc_gui_template()` L8560-L8576.
-  - `/qc-gui-get-record` GET — `qc_gui_get_record()` L8581-L8593.
-  - `/qc-gui-update` POST — `qc_gui_update()` L8598-L8659.
-  - `/qc-gui-delete` POST — `qc_gui_delete()` L8664-L8683.
-  - `/qc-gui-tracker-stats` GET — `qc_gui_tracker_stats()` L8688-L8771.
-- Helpers: `_qc_normalize_header()` L8006, `_qc_find_import_column()` L8010, `_qc_normalize_int_value()` L8020, `_qc_build_records_from_df()` L8030, `_auto_allot_qc_for_user()` L8073.
+- Main UI: `/qc-gui` GET — `qc_gui()` — renders `templates/qc_gui.html`; this remains separate from the retired QC & CRG page.
+- Routes: `/qc-gui-import`, `/qc-gui-users`, `/qc-gui-allotment`, `/qc-gui-export`, `/qc-gui-template`, `/qc-gui-get-record`, `/qc-gui-update`, `/qc-gui-delete`, and `/qc-gui-tracker-stats`.
 - Data: `qc_table`, `dashboard_users`.
 - Behavior: access requires `qc` in `allowed_pages`; auto-allotment gives up to `AUTO_QC_DAILY_LIMIT = 70` pending rows/user/day; non-admins see their own pending/completed records; admins can view broader statuses.
 
@@ -256,7 +225,6 @@
 - `templates/index.html` — rendered by `/` (`index()`); dashboard shell for scraping, social, investment, sheet conversion, activity log, insight widgets; no extends/includes detected; very large template.
 - `templates/website_directory.html` — rendered by `/website-directory`; directory list/filter/import/export/manual CRUD UI; no extends/includes detected.
 - `templates/scam_website_allotment.html` — rendered by `/scam-website-allotment`; website allotment/assignment UI; no extends/includes detected.
-- `templates/case_report.html` — rendered by `/case-report`; case report PDF generation, list, delete, and bulk regenerate UI; no extends/includes detected.
 - `templates/lunch_break.html` — rendered by `/lunch-break`; lunch tracker list/filter/insert/update/delete/export UI; no extends/includes detected.
 - `templates/dashboard_management.html` — rendered by `/dashboard-management`; dashboard user/access management and GUI/table status UI; no extends/includes detected.
 - `templates/qc_gui.html` — rendered by `/qc-gui`; QC import/allotment/review/export/template/stats UI; no extends/includes detected.
@@ -267,7 +235,7 @@
 
 - `login_required()` checks `session["user_id"]`; unauthenticated users redirect to `/login`.
 - Login loads users from Supabase `dashboard_users`.
-- Access keys in `allowed_pages`: `scraping`, `sheet`, `social`, `investment`, `qc`, `website_directory`, `allotment`, `allotment_admin`, `insights`, `case_report`, `lunch`, `dashboard_management`.
+- Access keys in `allowed_pages`: `scraping`, `sheet`, `social`, `investment`, `qc`, `website_directory`, `allotment`, `allotment_admin`, `insights`, `lunch`, `dashboard_management`.
 - Role helpers: `is_superadmin()`, `is_admin_or_above()`, `can_access_lunch()`, `can_access_allotment()`, `is_allotment_admin()`.
 - `/get-session-info` returns current session details for frontend use.
 
@@ -287,20 +255,16 @@
 - CSV responses use UTF-8 BOM in several helpers for Excel compatibility.
 - Temporary uploads are written under system temp via `tempfile.gettempdir()` and cleaned up after processing.
 
-### PDF, OCR, AML GUI, and AWS
+### AML browser automation and OCR
 
-- Report PDFs are generated by `utils/pdf_generator.py::generate_pdf()` using ReportLab and IST timestamps.
-- Filenames come from `utils/filename_generator.py::generate_filename()` with source-hostname suffix.
-- Upload/delete is in `utils/aws_upload.py`, using S3 + CloudFront domain from `Config`.
-- AML workflows use requests/Selenium, captcha OCR helpers, Tesseract/ddddocr/PyMuPDF/Pillow.
+- Retained AML automation uses requests/Selenium and OCR helpers including Tesseract, ddddocr, and Pillow. The current requirements and source scan did not find the former ReportLab, PyMuPDF, or AWS upload implementation.
 
 ### Deployment and environment
 
 - `Dockerfile`: Python 3.11 slim, installs `requirements.txt`, runs gunicorn on `0.0.0.0:8080`, 1 worker, 600s timeout.
 - `Procfile`: `web: gunicorn -b 0.0.0.0:$PORT app:app --workers 1 --timeout 600 --graceful-timeout 30`.
 - `runtime.txt`: `python-3.11.9`.
-- `config.py` env vars: `SECRET_KEY`, `FLASK_DEBUG`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `S3_BUCKET_NAME`, `CLOUDFRONT_DOMAIN`, `SUPABASE_URL`, `SUPABASE_KEY`.
-- `Config.validate()` requires AWS + Supabase env vars but is not necessarily called in every path.
+- Supabase and other service settings are read from environment variables by `app.py`; deployment variables must be reviewed in the hosting provider separately.
 
 ## 6. Quick Task Lookup Table
 
@@ -322,13 +286,9 @@
 | Investment duplicates/insights/bank data | `app.py` L3236-L3291, L3797-L4097; `templates/index.html` |
 | Website Directory CRUD/import/export | `app.py` L4103-L4675, L4805-L4871; `templates/website_directory.html` |
 | Scam++ website allotment | `app.py` L4679-L5438; `templates/scam_website_allotment.html` |
-| Case report PDF generation | `app.py` L5518-L6634; `utils/pdf_generator.py`; `utils/aws_upload.py`; `utils/filename_generator.py`; `templates/case_report.html` |
-| Bulk case regeneration jobs | `app.py` L6315-L6510, L6706-L6801; `templates/case_report.html` |
 | Lunch break tracker | `app.py` L215-L218, L7046-L7263, L7403-L7417; `templates/lunch_break.html` |
 | Dashboard user/access management | `app.py` L7352-L7890; `templates/dashboard_management.html` |
 | GUI QC import/allotment/review/export | `app.py` L8006-L8771; `templates/qc_gui.html` |
-| AWS/S3/CloudFront report uploads | `config.py`; `utils/aws_upload.py`; `app.py` L6530-L6699 |
-| Deployment/runtime issues | `Dockerfile`; `Procfile`; `runtime.txt`; `requirements.txt`; `config.py` |
 | Status migration `Block` → `Temporarily Block` | `migrate_block_status.py`; `app.py` L250-L260; social routes/templates |
 
 ## 7. Notes for Future AI Sessions
@@ -338,12 +298,13 @@
 - For backend bugs, most feature code is grouped by line ranges in `app.py`; keep changes localized.
 - Avoid broad reads of entire `app.py` unless a task crosses modules; it is a large monolith.
 
-## 7.1 GUI Theme, Status, and Login Welcome (2026-09-28)
+## 7.1 GUI Theme, Status, and Login Welcome (updated 2026-10-27)
 
-- Shared day/night transition rules live in `static/gui-base.css`; the eight standalone GUI templates use the `scamGuiTheme` local-storage key and their `setGuiTheme()` functions.  Keep animation limited to visible chrome and controls; large table descendants must remain transition-free to avoid repaint pauses.
+- Shared theme state and transition logic live in `static/gui-theme.js`; page styling remains in `static/gui-base.css`. Current templates persist `scamGuiTheme`, keep `body.theme-dark` for legacy selectors, and use a single root `data-theme` value. View Transitions animate a viewport snapshot when supported; the fallback animates only chrome and filter controls, leaving large grids out of per-cell transitions.
 - Successful `/login` POST requests create a `welcome` flash in `app.py`. It uses `Asia/Kolkata` time and the first name to produce Good Morning (before 12:00), Good Afternoon (before 17:00), or Good Evening. GUI templates render this category immediately below the fixed navigation at the top-right via the shared pill-style `.welcome` flash.
 - `get_first_name()` is used only by the post-login welcome message; preserve the full display name in headers, session, and business logic.
 - GUI Management is focused on Dashboard User Management; its `/dashboard-management/api/users` endpoints remain the supported user-management API.
+- Theme changes use the one shared `setGuiTheme()` implementation and do not force synchronous layout or rebuild page content. Bump the `gui-theme.js` query version if that asset changes.
 
 ## 8. UI Layout Standardization (2026-09-12)
 
@@ -381,7 +342,6 @@ Task: remove the **rounded/carded container styling** from the Scam Intelligence
 - Fix: strip `background`, `border-radius`, and `box-shadow` from the inner `.header` so it blends into the full-width `.fixed-header` bar. Kept `padding:12px 15px`, `display:flex`, `justify-content:space-between`, `align-items:center`, and the existing `gap` so header content position is **unchanged**. The outer bar's own `border-bottom` + subtle `box-shadow` remain, giving the nav bar its clean bottom edge.
 
 ### Files changed (CSS only; no HTML, no component changes)
-- `index.html`, `case_report.html`, `dashboard_management.html`, `qc_gui.html`, `lunch_break.html`, `scam_website_allotment.html`, `website_directory.html`.
 - `login.html` has no `.header`/`.fixed-header` (standalone auth screen) — intentionally left untouched.
 
 ### Dark-mode handling
@@ -401,7 +361,6 @@ Task (Task 3): (1) make the header background slightly darker and ensure the log
 
 ### Header background (slightly darker)
 - `.fixed-header` background changed `#f5f7fa` → `#e9edf3` on all 7 GUI templates. The page `body` background stays `#f5f7fa`, so the header now reads as a distinctly darker fixed top nav bar.
-- Pitfall handled: a naive global `#f5f7fa`→`#e9edf3` replace also darkened `body` backgrounds, the inline QC tracker filter bar (`qc_gui.html` `#qcTrackerFilterBar` div), and `.btn-outline-secondary:hover` (`case_report.html`). Those were reverted back to `#f5f7fa` so ONLY `.fixed-header` carries `#e9edf3`. Verified by grep: `#e9edf3` appears exclusively inside the `.fixed-header` rule in every file.
 
 ### Username & page-name visibility
 - `.header-username` (logged-in user) and `.logo p` (page-name subtitle) color changed `#7f8c8d` → `#44525e` (darker, higher contrast) on all pages. The `<h1>` app name stays `#2c3e50`.
@@ -418,11 +377,9 @@ Task (Task 3): (1) make the header background slightly darker and ensure the log
 - All fields, buttons, labels remain clearly visible/usable; readability preserved.
 
 ### Files changed
-- `index.html`, `website_directory.html`, `scam_website_allotment.html`, `qc_gui.html`, `lunch_break.html`, `dashboard_management.html`, `case_report.html` (CSS only).
 - `login.html` has no header (standalone auth) — untouched.
 
 ### Verification
-- grep confirmed `#e9edf3` appears ONLY in the `.fixed-header` rule in all 7 files; `body` is `#f5f7fa`; `.header-username`/`.logo p` are `#44525e`; inner `.header` `gap:16px` uniform (note: ripgrep is line-based, so multi-line `.header` rules in `case_report`/`dashboard_management` still contain `gap:16px` — confirmed by direct read); compacted filter values (`30px` inputs, `8px/3px` padding/gaps) present.
 - `agent-browser` unavailable on Windows → verified by CSS reasoning + targeted grep, not live browser.
 
 ## 11. Header-to-Filter Spacing Standardization (2026-09-12)
@@ -475,19 +432,15 @@ After Tasks 2–4, the CSS (`.fixed-header` background `#e9edf3`, `.header` flex
 | `website_directory.html` | `Scam Intelligence GUI` ✓ | already correct |
 | `scam_website_allotment.html` | `Scam Intelligence GUI` ✓ | already correct |
 | `dashboard_management.html` | `<i class="fas fa-user-cog">User & Access Management</i>` | page-specific icon + page name as h1 |
-| `case_report.html` | `Case Report Generator` (inside a wrapper div with a `fa-file-pdf` header icon) | page name as h1 + extra icon wrapper |
 
 ### Fix applied
 - **`dashboard_management.html`**: removed the `fa-user-cog` icon and the page-specific "User & Access Management" text from the h1; set h1 to `Scam Intelligence GUI`. Kept the existing `.logo-title-row` wrapper (already styled correctly in this file's CSS).
-- **`case_report.html`**: removed the outer wrapper div and the `fa-file-pdf` header icon; changed h1 from `Case Report Generator` to `Scam Intelligence GUI`. Restructured to use the same inline-style nested flex divs pattern as `lunch_break.html`/`qc_gui.html`/`website_directory.html` (three nested divs with `display:flex;align-items:center;gap:10px` wrapping the h1+username row, then the `<p>` subtitle below) so the layout renders identically.
 
 ### Files changed
 - `dashboard_management.html` — header `.logo` block (lines 947–959).
-- `case_report.html` — header `.logo` block (lines 1000–1016).
 
 ### Verification
 - grep confirmed all 7 GUI templates now have `<h1>Scam Intelligence GUI</h1>` (or `<h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>` for pages that already had the nowrap attribute).
-- `case_report.html` header structure now matches the inline-flex nested-div pattern used by `lunch_break.html`/`qc_gui.html`/`website_directory.html`, so the rendered output is identical (h1 + username on one line, subtitle below).
 - `dashboard_management.html` retained its `.logo-title-row` wrapper pattern (matches `index.html`/`scam_website_allotment.html`) — both patterns produce the same visual result; keeping the existing structure avoids unnecessary change.
 - `login.html` was already correct (standalone auth screen with `<h1>Scam Intelligence GUI</h1>`) — untouched.
 - `agent-browser` unavailable on Windows → verified by grep + HTML structure comparison, not live browser.
@@ -525,7 +478,6 @@ Task (Task 6): across **all pages**, (1) keep the Scam Intelligence GUI header *
 - `lighten_header_buttons.py` created to apply the header→white + palette swap reliably under OneDrive file-locking (one pass, not per-file edits). **Deleted after verification.**
 
 ### Verification
-- grep: `#e9edf3` → 0 matches (header fully white); all original saturated accent hexes → 0 matches (lightening uniform); lightened hexes present in all 7 GUI templates (index 53, website_directory 30, qc_gui 12, scam_website_allotment 10, dashboard_management 7, lunch_break 9, case_report 5) + login gradient.
 - Header text colors `#44525e` / `#2c3e50` confirmed unchanged on white → good contrast.
 - **Readability caveat**: white label text on the lightest buttons (notably `.btn-success` `#54d58b`, contrast ≈1.9:1; `.btn-primary` `#5aa9e1` ≈2.6:1) is softer than before. These matched the prior saturated design (which also used white text), but if stronger contrast is wanted, switch button label text to a dark tone (e.g. `#1f2d3d`) instead of white. Flagged, not auto-changed (user only asked to lighten buttons).
 - `agent-browser` unavailable on Windows → verified by grep/contrast reasoning, not live browser.
@@ -533,7 +485,6 @@ Task (Task 6): across **all pages**, (1) keep the Scam Intelligence GUI header *
 ### REVERTED (Task 6 follow-up, 2026-09-12)
 User asked to **revert only the button-lightening** changes — restore original saturated button/accent colors while keeping the header white (`#ffffff`) and font clarity (`#44525e`/`#2c3e50`) intact.
 
-- Ran `revert_button_lightening.py` — reverse token-replace of the PALETTE map (all 8 templates). Reverted counts: index 327, website_directory 151, qc_gui 56, lunch_break 45, case_report 54, dashboard_management 36, scam_website_allotment 30, login 11.
 - grep confirms: **0** lightened hexes remain; original saturated accents (`#3498db`, `#2ecc71`, `#f39c12`, `#e74c3c`, `#8e44ad`, `#6366f1`, `#95a5a6`, etc.) restored.
 - Header: `#ffffff` preserved on all 7 `.fixed-header` rules; `#e9edf3` still 0 → the header-white change was NOT reverted (only buttons).
 - Font colors and dark-mode/neutral hexes untouched.
@@ -552,7 +503,6 @@ All 7 GUI templates + one inline filter bar in `index.html`.
 - `scam_website_allotment.html` — `.filters` (line 46).
 - `website_directory.html` — `.filters` (line 55).
 - `lunch_break.html` — `.filter-bar` (line 51).
-- `case_report.html` / `login.html` — **no filter section** → no change.
 
 ### Changes applied
 - **Removed card styling** (background, border-radius, box-shadow) from every `.filters`/`.filter-bar` rule and from the inline Insights filter bar. No background/border/radius/shadow remains on any filter.
@@ -579,7 +529,6 @@ Task (Task 8): across **all pages**, (1) remove the rounded/carded container sty
 
 ### Files changed
 4 templates with pagination: `index.html`, `qc_gui.html`, `scam_website_allotment.html`, `website_directory.html`.
-`dashboard_management.html`, `lunch_break.html`, `case_report.html`, `login.html` — no pagination section → no change.
 
 ### Changes applied
 - **Removed card styling** (background, border-radius, box-shadow) from every `.pagination` rule. No background/border/radius/shadow remains on any pagination container.
@@ -602,3 +551,23 @@ Task (Task 8): across **all pages**, (1) remove the rounded/carded container sty
 - Full-bleed margins present in all 4 files with correct P value per page.
 - Box-model reasoning confirms symmetric edge-to-edge with content aligned to page; no 100vw → no horizontal scroll.
 - `agent-browser` unavailable on Windows → verified by grep + box-model reasoning, not live browser.
+
+## 12. Current Workspace Inventory and Cleanup Review (2026-10-27)
+
+This audit describes the current working tree, which already has uncommitted edits and deletions. Do not infer that a file marked deleted here has been removed from the remote repository. No files were deleted, moved, or renamed during this audit.
+
+### Retention guidance
+
+- `install_chrome.py`: no call exists in `app.py`, `Dockerfile`, or `Procfile`; the Docker image installs Chromium from apt, while `app.py` can use configured browser paths or webdriver-manager. Keep this script until the Render dashboard's Build Command is checked, because that external setting may invoke it.
+- `migrate_block_status.py`: intentionally standalone and idempotent; it updates live Supabase rows. Keep it until the migration is verified complete. It is a conditional archive/delete candidate only after confirming no rows remain with the old `Block` status and that rollback/recovery is not needed.
+- `aml_session.json`: tracked file with browser cookies/origins; no current source reference was found. Treat as sensitive. Review whether an external AML workflow still needs it; if not, remove it from Git and invalidate the stored session after approval. Never copy its contents into logs or documentation.
+- `__pycache__/`: disposable generated bytecode; Python recreates it. It is already ignored by Git.
+- `desktop.ini`: Windows folder metadata; optional cleanup candidate with no application reference.
+- `.env`: ignored local secrets/configuration. Keep it locally; do not expose its values.
+- `.venv/`, `excel_data/`, `sheet_mapping_config.json`, and `uploads/`: preserve. The virtual environment and reference/config files support local workflows; `uploads/` was empty during this audit but is a runtime staging location.
+- `install_chrome.py` and `migrate_block_status.py` are not ordinary runtime imports; absence of in-repository references alone does not prove they are safe to delete.
+
+### Current working-tree caveats
+
+- Git reports existing deletions for `config.py`, `templates/case_report.html`, `utils/aws_upload.py`, `utils/filename_generator.py`, and `utils/pdf_generator.py`, alongside edits to application files. These are pre-existing workspace changes and were not altered by the cleanup audit.
+- Historical sections below may describe older UI work. Treat route line numbers as snapshots; locate current functions with `rg` before editing because `app.py` changes frequently.

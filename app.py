@@ -17,7 +17,6 @@ import csv
 from urllib.parse import urlparse
 from functools import wraps
 import time
-import fitz  # PyMuPDF — pip install pymupdf
 import pytesseract  # pip install pytesseract
 from PIL import Image, ImageFilter, ImageOps
 import requests
@@ -72,6 +71,26 @@ def get_auth_supabase():
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_KEY")
     return create_client(url, key, options=_SUPABASE_CLIENT_OPTS)
+
+
+_dashboard_management_supabase = None
+
+
+def get_dashboard_management_supabase():
+    """Reuse a pooled client for the frequently opened users table."""
+    global _dashboard_management_supabase
+    if _dashboard_management_supabase is None:
+        dashboard_options = ClientOptions(
+            postgrest_client_timeout=10,
+            storage_client_timeout=30,
+            function_client_timeout=30,
+        )
+        _dashboard_management_supabase = create_client(
+            os.environ.get("SUPABASE_URL"),
+            os.environ.get("SUPABASE_KEY"),
+            options=dashboard_options,
+        )
+    return _dashboard_management_supabase
 
 def parse_bool(value):
     if isinstance(value, bool):
@@ -943,8 +962,6 @@ def redirect_to_allowed_page(allowed_pages):
         return redirect("/qc-gui")
     if first_page == "lunch":
         return redirect("/lunch-break")
-    if first_page == "case_report":
-        return redirect("/case-report")
     if first_page in ("allotment", "allotment_admin"):
         return redirect("/scam-website-allotment")
     if first_page == "dashboard_management":
@@ -1206,7 +1223,8 @@ def scraping_tracker_stats():
 @login_required
 def index():
     user = get_current_user()
-    allowed_pages = session.get("allowed_pages", [])
+    allowed_pages = [page for page in session.get("allowed_pages", []) if page != "case_report"]
+    session["allowed_pages"] = allowed_pages
     page_type = request.args.get("page", "").strip()
     if not page_type or page_type not in allowed_pages:
         page_type = allowed_pages[0] if allowed_pages else "scraping"
@@ -1217,8 +1235,6 @@ def index():
         return redirect("/website-directory")
     if page_type == "lunch_break":
         return redirect("/lunch-break")
-    if page_type == "case_report":
-        return redirect("/case-report")
     if page_type in ("allotment", "allotment_admin"):
         return redirect("/scam-website-allotment")
     search_query = request.args.get("search", "").strip()
@@ -1423,10 +1439,10 @@ def investment_tracker_stats():
         all_rows = []
         offset = 0
         while True:
-            q = supabase.table("BS_Investment_Scam").select("Input_user,Search_for,Scam_type,Inserted_date,Upi_vpa,Bank_account_number,Upi_bank_account_wallet")
-            if date_from: q = q.gte("Inserted_date", date_from)
-            if date_to: q = q.lte("Inserted_date", date_to)
-            resp = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
+            q = supabase.table("BS_Investment_Scam").select("input_user,search_for,scam_type,inserted_date,upi_vpa,bank_account_number,upi_bank_account_wallet")
+            if date_from: q = q.gte("inserted_date", date_from)
+            if date_to: q = q.lte("inserted_date", date_to)
+            resp = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:
@@ -2280,8 +2296,8 @@ def investment_import():
             return redirect("/?page=investment")
 
         try:
-            max_id_response = supabase.table("BS_Investment_Scam").select("Id").order("Id", desc=True).limit(1).execute()
-            next_id = int(max_id_response.data[0]["Id"]) + 1 if max_id_response.data else 1
+            max_id_response = supabase.table("BS_Investment_Scam").select("id").order("id", desc=True).limit(1).execute()
+            next_id = int(max_id_response.data[0]["id"]) + 1 if max_id_response.data else 1
         except Exception:
             next_id = 1
 
@@ -2352,6 +2368,7 @@ def investment_import():
                 record["Category_of_website"] = record["Scam_type"]
             records.append(record)
 
+        records = [{key.lower(): value for key, value in record.items()} for record in records]
         supabase.table("BS_Investment_Scam").insert(records).execute()
         log_activity(
             action_type="import",
@@ -4618,19 +4635,19 @@ def investment_insights_data():
         all_rows, offset = [], 0
         while True:
             q = supabase.table("BS_Investment_Scam").select(
-                "Inserted_date,Input_user,Search_for,Scam_type,"
-                "Upi_bank_account_wallet,Upi_vpa,Bank_account_number,Web_contact_no,Bank_name"
+                "inserted_date,input_user,search_for,scam_type,"
+                "upi_bank_account_wallet,upi_vpa,bank_account_number,web_contact_no,bank_name"
             )
-            if date_from:  q = q.gte("Inserted_date", date_from)
-            if date_to:    q = q.lte("Inserted_date", date_to)
+            if date_from:  q = q.gte("inserted_date", date_from)
+            if date_to:    q = q.lte("inserted_date", date_to)
             if is_sm_search:
-                q = q.in_("Search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
+                q = q.in_("search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
             elif search_for:
-                q = q.eq("Search_for", search_for)
-            if scam_type:  q = q.eq("Scam_type",  scam_type)
-            if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
-            if input_user: q = q.eq("Input_user", input_user)
-            resp  = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
+                q = q.eq("search_for", search_for)
+            if scam_type:  q = q.eq("scam_type", scam_type)
+            if wallet:     q = q.eq("upi_bank_account_wallet", wallet)
+            if input_user: q = q.eq("input_user", input_user)
+            resp  = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:
@@ -4881,18 +4898,18 @@ def investment_bank_data():
         all_rows, offset = [], 0
         while True:
             q = supabase.table("BS_Investment_Scam").select(
-                "Bank_name,Inserted_date,Search_for,Input_user"
+                "bank_name,inserted_date,search_for,input_user"
             )
-            if date_from:  q = q.gte("Inserted_date", date_from)
-            if date_to:    q = q.lte("Inserted_date", date_to)
+            if date_from:  q = q.gte("inserted_date", date_from)
+            if date_to:    q = q.lte("inserted_date", date_to)
             if is_sm_search:
-                q = q.in_("Search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
+                q = q.in_("search_for", BS_INVESTMENT_SM_SEARCH_FOR_VALUES)
             elif search_for:
-                q = q.eq("Search_for", search_for)
-            if scam_type:  q = q.eq("Scam_type", scam_type)
-            if wallet:     q = q.eq("Upi_bank_account_wallet", wallet)
-            if input_user: q = q.eq("Input_user", input_user)
-            resp  = q.order("Id", desc=False).range(offset, offset + CHUNK - 1).execute()
+                q = q.eq("search_for", search_for)
+            if scam_type:  q = q.eq("scam_type", scam_type)
+            if wallet:     q = q.eq("upi_bank_account_wallet", wallet)
+            if input_user: q = q.eq("input_user", input_user)
+            resp  = q.order("id", desc=False).range(offset, offset + CHUNK - 1).execute()
             chunk = resp.data or []
             all_rows.extend(chunk)
             if len(chunk) < CHUNK:
@@ -6325,72 +6342,9 @@ TN_COLUMNS = "id,department,owned_by,number,sim_inserted_device,account_status,n
 GMAIL_ACCOUNT_API_COLUMNS = "login_user,full_name,account_status,mail_id,password"
 
 # ============================================================
-# CASE REPORT GENERATOR ROUTES
+# SHARED AML GUI HELPERS
 # ============================================================
 
-CASE_REPORT_SCREENSHOT_SEARCH_DIRS = [
-    os.environ.get("CASE_REPORT_SCREENSHOT_DIR", "").strip(),
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "IS_Websites_Automate", "api_gateway_screenshot"),
-    r"C:\Users\Acer\OneDrive - Pixeltruth\Code_Hub\IS_Websites_Automate\api_gateway_screenshot",
-]
-CASE_REPORT_REMARK_OPTIONS = [
-    "Approved",
-    "Major Mistake - Wrong Website/Group/URL Case",
-    "Major Mistake - Wrong/Non-Existent Payment Details Filled",
-    "Major Mistake - Wrong Payment Gateway URL",
-    "Major Mistake - Wrong Video/Non-Linear Recording/Background Sound",
-    "Major Mistake - Wrong First/Second Screenshot/Same Screenshots",
-    "Major Mistake - Payment Details/Web URL/PG URL/Mobile Screenshot Not Showing",
-    "Major Mistake - Extension/Profile Picture/Taskbar & Tab Showing",
-    "Major Mistake - Post URL and WhatsApp Number Are Mismatched",
-    "Minor Mistake - First/Second Screenshot Is Missing",
-    "Minor Mistake - Wrong Transaction/Transfer Mode/Search For Option",
-    "Minor Mistake - Worked on Duplicate/Extra/Others Website or Timeline Not Followed",
-    "GUI Issue - First/Second Screenshot Is Crossed",
-    "GUI Issue",
-    "Rejected",
-]
-AML_CASE_ACTION_SUBMIT_XPATH = "/html/body/div/div/form/div/div[2]/div[2]/button"
-AML_CASE_ACTION_REJECT_OPTION_XPATH = "/html/body/div[1]/div/form/div/div[1]/div/div[7]/div[1]/select/option[3]"
-AML_CASE_ACTION_REMARK_XPATHS = {
-    remark: f"/html/body/div[1]/div/form/div/div[1]/div/div[7]/div[2]/select/option[{index}]"
-    for index, remark in enumerate(CASE_REPORT_REMARK_OPTIONS, start=2)
-}
-CASE_ACTION_JOBS = {}
-CASE_ACTION_JOBS_LOCK = threading.Lock()
-MAX_CASE_ACTION_IDS = 500
-REPORT_GENERATION_JOBS = {}
-REPORT_GENERATION_JOBS_LOCK = threading.Lock()
-REPORT_PARALLEL_DEFAULT = 1 if os.environ.get("RENDER") else 2
-REPORT_MAX_PARALLEL = max(1, int(os.environ.get("CRG_REPORT_MAX_PARALLEL", REPORT_PARALLEL_DEFAULT)))
-REPORT_BROWSER_SLOTS = threading.BoundedSemaphore(REPORT_MAX_PARALLEL)
-REPORT_GENERATION_REQUIRED_COLUMNS = ["SS_Path_1", "Screenshot Path", "Title", "Description"]
-REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS = ["PDF Path", "Title", "Description"]
-REPORT_EXTRACT_GENERATION_PDF_HEADERS = ("PDF Path", "PDF_Path", "PDF URL", "PDF_URL")
-
-
-def _normalize_report_source(value):
-    """Add https to a bare public-looking URL while preserving filesystem paths."""
-    source = str(value or "").strip().strip('"').strip("'")
-    if not source or source.lower().startswith(("http://", "https://")):
-        return source
-    if "\\" in source or re.match(r"^[A-Za-z]:[\\/]", source) or source.startswith("/"):
-        return source
-    if re.match(r"^(?:www\.)?(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d+)?(?:[/?#]|$)", source):
-        return "https://" + source
-    return source
-
-
-AML_REPORT_GENERATE_TITLE_XPATH = "/html/body/div[1]/div/form/fieldset[1]/div/div[1]/input"
-AML_REPORT_GENERATE_DESCRIPTION_XPATH = "/html/body/div[1]/div/form/fieldset[1]/div/div[2]/textarea"
-AML_REPORT_GENERATE_LEFT_BUTTON_XPATH = "/html/body/div[1]/div/form/fieldset[2]/div/div[1]/div/button"
-AML_REPORT_GENERATE_RIGHT_BUTTON_XPATH = "/html/body/div[1]/div/form/fieldset[2]/div/div[2]/div/button"
-AML_REPORT_GENERATE_BUTTON_XPATH = "/html/body/div[1]/div/form/div/button[2]"
-AML_REPORT_GENERATE_RESULT_XPATH = "/html/body/div[1]/div/div/div/div[2]/div[2]/a[2]"
-
-# ============================================================
-# AML GUI — BULK REGENERATE CASES (headless Selenium + OCR captcha)
-# ============================================================
 def configure_tesseract_cmd():
     """Configure Tesseract portably.
 
@@ -6539,137 +6493,14 @@ AML_PASSWORD_INPUT_XPATH = "/html/body/div[1]/div/div[2]/form/label[2]/input"
 AML_CAPTCHA_IMG_XPATH    = "/html/body/div[1]/div/div[2]/form/label[6]/div/img"
 AML_CAPTCHA_INPUT_XPATH  = "/html/body/div[1]/div/div[2]/form/label[6]/input"
 AML_LOGIN_BUTTON_XPATH   = "/html/body/div[1]/div/div[2]/form/button"
-# AML v1 report and import workflow selectors.
 AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
 AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
 AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
-AML_TITLE1_XPATH       = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[1]"
-AML_INPUT1_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[1]/div/input[2]"
-AML_DESCRIPTION1_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[3]/textarea"
-AML_ADD_MORE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[2]/button"
-AML_TITLE2_XPATH        = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[4]/div/input"
-AML_DESCRIPTION2_XPATH  = "/html/body/div[1]/div/div/div/div/div/form/div[1]/div[6]/textarea"
-AML_GENERATE_BTN_XPATH   = "/html/body/div[1]/div/div/div/div/div/form/div[2]/div[1]/button"
-AML_RESULT_LINK_XPATH      = "/html/body/a[2]"
-AML_RESULT_LINKS_ALL_XPATH = "//a[contains(@href,'.pdf')]"
-MAX_BULK_REGENERATE_REPORTS = 70
-MAX_IMAGES_PER_REGENERATED_PDF = 10
-
-def case_report_clean_up(*paths):
-    for path in paths:
-        try:
-            if path and os.path.exists(path):
-                os.remove(path)
-        except OSError as exc:
-            print(f"[CASE_REPORT] Could not remove temp file {path}: {exc}")
 
 
-def resolve_bulk_screenshot_path(raw_path):
-    raw = str(raw_path or "").strip().strip('"').strip("'")
-    if not raw:
-        return ""
-    expanded = os.path.expandvars(os.path.expanduser(raw))
-    if os.path.isfile(expanded):
-        return expanded
-
-    filename = re.split(r"[\\/]+", raw)[-1].strip()
-    if not filename:
-        return expanded
-
-    for base_dir in CASE_REPORT_SCREENSHOT_SEARCH_DIRS:
-        if not base_dir:
-            continue
-        candidate = os.path.join(base_dir, filename)
-        if os.path.isfile(candidate):
-            return candidate
-    return expanded
-
-# ============================================================
-# AML GUI BULK REGENERATE — HELPERS
-# ============================================================
-def _is_case_report_pdf_decoration(page, rect):
-    """Ignore the repeated narrow header/footer graphics in generated case PDFs."""
-    page_rect = page.rect
-    edge_band = page_rect.height * 0.07
-    is_at_page_edge = rect.y0 <= page_rect.y0 + edge_band or rect.y1 >= page_rect.y1 - edge_band
-    is_full_width = rect.width >= page_rect.width * 0.80
-    is_narrow = rect.height <= page_rect.height * 0.12
-    return is_at_page_edge and is_full_width and is_narrow
-
-
-def extract_screenshots_from_pdf(pdf_path, output_dir, prefix=None):
-    saved_paths = []
-    os.makedirs(output_dir, exist_ok=True)
-    doc = fitz.open(pdf_path)
-    try:
-        counter = 1
-        extracted_hashes = set()
-        for page_index in range(len(doc)):
-            page = doc[page_index]
-            images = page.get_images(full=True)
-            if not images:
-                continue
-
-            placement_entries = []  # (y0, x0, xref, rect) — one entry per placement
-            seen_xrefs = set()
-            for img in images:
-                xref = img[0]
-                if xref in seen_xrefs:
-                    continue
-                seen_xrefs.add(xref)
-                try:
-                    rects = page.get_image_rects(xref)
-                except Exception:
-                    rects = []
-                if not rects:
-                    continue
-                for rect in rects:
-                    placement_entries.append((rect.y0, rect.x0, xref, rect))
-
-            placement_entries.sort(key=lambda entry: (entry[0], entry[1]))
-
-            for _, _, xref, rect in placement_entries:
-                if rect and _is_case_report_pdf_decoration(page, rect):
-                    continue
-                base_img = doc.extract_image(xref)
-                img_bytes = base_img.get("image")
-                image_hash = hashlib.sha256(img_bytes).digest()
-                if image_hash in extracted_hashes:
-                    continue
-                extracted_hashes.add(image_hash)
-                filename = f"{prefix}_{counter}.png" if prefix else f"{counter}.png"
-                out_path = os.path.join(output_dir, filename)
-                try:
-                    with Image.open(io.BytesIO(img_bytes)) as img:
-                        if img.mode not in ("RGB", "RGBA"):
-                            img = img.convert("RGB")
-                        img.save(out_path, format="PNG")
-                except Exception:
-                    with open(out_path, "wb") as f:
-                        f.write(img_bytes)
-                saved_paths.append(out_path)
-                counter += 1
-    finally:
-        doc.close()
-    return saved_paths
-
-def download_and_extract_report_images(report, output_dir, prefix=None):
-    pdf_url = report.get("pdf_url")
-    temp_pdf_path = os.path.join(tempfile.gettempdir(), f"report_{report.get('id')}_{int(time.time())}.pdf")
-
-    resp = requests.get(pdf_url, timeout=30, stream=True)
-    resp.raise_for_status()
-    with open(temp_pdf_path, "wb") as f:
-        for chunk in resp.iter_content(chunk_size=1024 * 256):
-            if chunk:
-                f.write(chunk)
-
-    image_paths = extract_screenshots_from_pdf(temp_pdf_path, output_dir, prefix=prefix)
-    case_report_clean_up(temp_pdf_path)
-    return image_paths
-_DDDDOCR_ENGINE = None
-_DDDDOCR_LOCK = threading.Lock()
-
+AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
+AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
+AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
 
 AML_CAPTCHA_LENGTH = 6
 AML_CAPTCHA_CONFUSABLES = str.maketrans({"o": "0", "i": "1", "l": "1"})
@@ -6832,76 +6663,6 @@ def aml_get_captcha_text_from_bytes(captcha_bytes):
 def aml_get_captcha_text(captcha_element):
     # Backward-compatible helper for the old Selenium path.
     return aml_get_captcha_text_from_bytes(captcha_element.screenshot_as_png)
-
-def aml_extract_pdf_links_from_html(html_text, base_url):
-    """Extract generated PDF links from AML response HTML/JSON/JS/plain text.
-
-    AML's upload endpoint may return links as anchors, plain URLs, escaped JSON
-    strings, or JavaScript snippets. Keep extraction broad but still limited to
-    PDF-like URLs/paths.
-    """
-    raw = html_text or ""
-    candidates = []
-
-    def _add(value):
-        if not value:
-            return
-        value = value.strip().strip('"\'`<> )(')
-        if not value:
-            return
-        value = value.replace("\\/", "/")
-        value = value.replace("&amp;", "&")
-        value = urllib.parse.unquote(value)
-        # Trim common trailing punctuation that can appear in JS/JSON snippets.
-        value = re.sub(r"[;,'\")\]}]+$", "", value)
-        if ".pdf" not in value.lower():
-            return
-        # If a broad relative regex catches a domain-style value without scheme,
-        # normalize it as absolute instead of urljoining it under /report_generation/.
-        if not re.match(r"^[a-z][a-z0-9+.-]*://", value, flags=re.IGNORECASE):
-            if re.match(r"^[A-Za-z0-9.-]+\.[A-Za-z]{2,}/", value):
-                value = "https://" + value
-        basename = value.rsplit("/", 1)[-1]
-        if "/" not in value and any(c.rsplit("/", 1)[-1] == basename for c in candidates):
-            return
-        candidates.append(value)
-
-    # 1) Standard anchors / attributes.
-    for match in re.findall(r"(?:href|src|data-url|url)\s*=\s*[\"']([^\"']+\.pdf[^\"']*)[\"']", raw, flags=re.IGNORECASE):
-        _add(match)
-
-    # 2) Absolute URLs anywhere in the response, including JSON/JS strings.
-    for match in re.findall(r"https?:\\?/\\?/[^\s\"'<>]+?\.pdf[^\s\"'<>]*", raw, flags=re.IGNORECASE):
-        _add(match)
-
-    # 3) Relative PDF paths anywhere in the response.
-    for match in re.findall(r"(?:\.\./|\./|/)?[A-Za-z0-9_./%+-]+\.pdf[^\s\"'<>]*", raw, flags=re.IGNORECASE):
-        _add(match)
-
-    hrefs = []
-    seen = set()
-    seen_basenames = set()
-    for candidate in candidates:
-        absolute = urllib.parse.urljoin(base_url, candidate)
-        basename = absolute.rsplit("/", 1)[-1].lower()
-        if absolute not in seen and basename not in seen_basenames:
-            seen.add(absolute)
-            seen_basenames.add(basename)
-            hrefs.append(absolute)
-
-    def _link_sort_key(href):
-        h = href.lower()
-        if "mfilterit" in h:
-            return 0
-        if "npci" in h:
-            return 1
-        if "without_header" in h:
-            return 2
-        return 3
-
-    hrefs.sort(key=_link_sort_key)
-    return hrefs
-
 
 def aml_login_requests(max_captcha_attempts=7, creds=None, require_report_form=True):
     """Login to AML GUI without launching Chrome. Returns authenticated requests.Session."""
@@ -7550,1493 +7311,7 @@ def aml_login(driver, max_captcha_attempts=5, creds=None, progress=None, deadlin
 
     print("[AML LOGIN] Failed after retries.")
     return False
-def aml_submit_chunk(driver, title_text, input_text, description_text, image_chunk):
-    """image_chunk: list of 1-4 image paths (sequence maintained). Returns extracted new PDF URL/text."""
-    wait = WebDriverWait(driver, 20)
-    if len(image_chunk) < 1:
-        return None
-
-    try:
-        _ = driver.current_url  # session health check — crashes here if browser already dead
-    except Exception as exc:
-        raise RuntimeError(f"Chrome session is dead before submission: {exc}")
-
-    driver.get(AML_REPORT_URL)
-
-    try:
-        left_img = wait.until(EC.presence_of_element_located((By.NAME, "left_image[]")))
-    except TimeoutException:
-        debug_id = uuid.uuid4().hex[:8]
-        debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
-        os.makedirs(debug_dir, exist_ok=True)
-        screenshot_path = os.path.join(debug_dir, f"debug_leftimg_{debug_id}.png")
-        html_path = os.path.join(debug_dir, f"debug_leftimg_{debug_id}.html")
-        try:
-            driver.save_screenshot(screenshot_path)
-            with open(html_path, "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-        except Exception as dbg_exc:
-            print(f"[AML SUBMIT] Could not save debug artifacts: {dbg_exc}")
-        raise RuntimeError(
-            f"'left_image[]' field not found on report generation page "
-            f"(current URL: {driver.current_url}). Possible causes: AML GUI layout changed, "
-            f"captcha not solved, or session expired. "
-            f"screenshot/HTML id={debug_id} saved in {debug_dir}"
-        )
-    left_img.send_keys(image_chunk[0])
-
-    if len(image_chunk) >= 2:
-        right_img = driver.find_element(By.NAME, "right_image[]")
-        right_img.send_keys(image_chunk[1])
-
-    title1 = driver.find_element(By.XPATH, AML_TITLE1_XPATH)
-    title1.clear()
-    title1.send_keys(title_text)
-
-    input_field = driver.find_element(By.XPATH, AML_INPUT1_XPATH)
-    input_field.clear()
-    input_field.send_keys(input_text)
-
-    description1 = driver.find_element(By.XPATH, AML_DESCRIPTION1_XPATH)
-    description1.clear()
-    description1.send_keys(description_text)
-
-    if len(image_chunk) > 2:
-        add_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_ADD_MORE_BTN_XPATH)))
-        driver.execute_script("arguments[0].click();", add_btn)
-        time.sleep(2)
-
-        title2 = wait.until(EC.presence_of_element_located((By.XPATH, AML_TITLE2_XPATH)))
-        title2.clear()
-        title2.send_keys(title_text)
-
-        description2 = driver.find_element(By.XPATH, AML_DESCRIPTION2_XPATH)
-        description2.clear()
-        description2.send_keys(description_text)
-
-        left_img2 = driver.find_elements(By.NAME, "left_image[]")[1]
-        left_img2.send_keys(image_chunk[2])
-
-        if len(image_chunk) == 4:
-            right_img2 = driver.find_elements(By.NAME, "right_image[]")[1]
-            right_img2.send_keys(image_chunk[3])
-
-    generate_btn = wait.until(EC.element_to_be_clickable((By.XPATH, AML_GENERATE_BTN_XPATH)))
-    generate_btn.click()
-    long_wait = WebDriverWait(driver, 40)  # PDF generation can take longer than 20s
-    npci_href = None
-    all_links = None
-
-    # Generate ke baad portal teen links deta hai (mfilterit / npci / without_header
-    # style variants — generate_screenshot_urls() ki tarah). "Regenerate Cases"
-    # (basic) results sheet mein sirf NPCI link chahiye, lekin "Regenerate with
-    # Final Sheet" wali Investment Scam sheet mein teeno links (comma-separated)
-    # chahiye — isliye dono yahin collect kar rahe hain.
-    try:
-        long_wait.until(EC.presence_of_element_located((By.XPATH, AML_RESULT_LINKS_ALL_XPATH)))
-        anchors = driver.find_elements(By.XPATH, AML_RESULT_LINKS_ALL_XPATH)
-        seen = set()
-        hrefs = []
-        for a in anchors:
-            href = (a.get_attribute("href") or "").strip()
-            if href and href not in seen:
-                seen.add(href)
-                hrefs.append(href)
-        # Investment Scam Final Sheet ke liye fixed sequence chahiye:
-        # mfilterit -> npci -> without_header
-        def _link_sort_key(href):
-            h = href.lower()
-            if "mfilterit" in h:
-                return 0
-            if "npci" in h:
-                return 1
-            if "without_header" in h:
-                return 2
-            return 3
-        hrefs.sort(key=_link_sort_key)
-
-        for href in hrefs:
-            if "npci" in href.lower():
-                npci_href = href
-                break
-        if hrefs:
-            all_links = ",".join(hrefs)
-    except TimeoutException:
-        pass  # try fallbacks below before giving up
-
-    result_text = npci_href or (all_links.split(",")[0] if all_links else None)
-
-    # ── Fallback: old single-anchor XPath, agar link markup badal jaaye ──
-    if not result_text:
-        try:
-            result_text = driver.find_element(By.XPATH, AML_RESULT_LINK_XPATH).text
-            all_links = all_links or result_text
-        except Exception:
-            pass
-
-    # ── Fallback 2: save screenshot + HTML so we can see what actually rendered ──
-    if not result_text:
-        debug_id = uuid.uuid4().hex[:8]
-        debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
-        os.makedirs(debug_dir, exist_ok=True)
-        screenshot_path = os.path.join(debug_dir, f"debug_{debug_id}.png")
-        html_path = os.path.join(debug_dir, f"debug_{debug_id}.html")
-        try:
-            driver.save_screenshot(screenshot_path)
-            with open(html_path, "w", encoding="utf-8") as f:
-                f.write(driver.page_source)
-            print(f"[AML SUBMIT] Result link not found. Debug saved:\n  {screenshot_path}\n  {html_path}\n  Current URL: {driver.current_url}")
-        except Exception as dbg_exc:
-            print(f"[AML SUBMIT] Could not save debug artifacts: {dbg_exc}")
-        raise RuntimeError(
-            f"Result link not found after Generate click (current URL: {driver.current_url}). "
-            f"Debug screenshot/HTML saved with id={debug_id} in {debug_dir}"
-        )
-
-    return {"npci": result_text, "all": all_links or result_text}
-
-def aml_submit_chunk_requests(session_obj, title_text, input_text, description_text, image_chunk):
-    if len(image_chunk) < 1:
-        return None
-    report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
-    report_page.raise_for_status()
-    if not re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
-        raise RuntimeError("AML report form not available. Session may have expired or login failed.")
-
-    upload_url = urllib.parse.urljoin(AML_REPORT_URL, "ajaxUpload_mfilter.php")
-    data = [
-        ("title[]", title_text),
-        ("input", input_text),
-        ("description[]", description_text),
-        ("generate_pdf", ""),
-    ]
-    files = []
-    opened_files = []
-    try:
-        upload_debug = []
-
-        def _attach(field_name, file_path):
-            # Use the same extracted PNG path/file for regenerate upload.
-            # The extractor above guarantees .png filenames.
-            fh = open(file_path, "rb")
-            opened_files.append(fh)
-            filename = os.path.basename(file_path)
-            file_size = os.path.getsize(file_path)
-            try:
-                with Image.open(file_path) as img:
-                    image_format = img.format
-                    image_size = f"{img.width}x{img.height}"
-            except Exception:
-                image_format = "unknown"
-                image_size = "unknown"
-            upload_debug.append(f"{field_name}={filename}:{file_size}B:{image_format}:{image_size}")
-            files.append((field_name, (filename, fh, "image/png")))
-
-        def _attach_empty(field_name):
-            upload_debug.append(f"{field_name}=EMPTY")
-            files.append((field_name, ("", io.BytesIO(b""), "application/octet-stream")))
-
-        # AML form has two image columns per row: left_image[] + right_image[].
-        # The portal's Add More UI creates more rows. In direct HTTP we mimic that
-        # by repeating title[]/description[] and file fields for every image pair.
-        for row_index in range(0, len(image_chunk), 2):
-            if row_index > 0:
-                data.append(("title[]", title_text))
-                data.append(("description[]", description_text))
-
-            _attach("left_image[]", image_chunk[row_index])
-            if row_index + 1 < len(image_chunk):
-                _attach("right_image[]", image_chunk[row_index + 1])
-            else:
-                _attach_empty("right_image[]")
-
-        print(f"[AML HTTP SUBMIT] Uploading files: {'; '.join(upload_debug)}", flush=True)
-        resp = session_obj.post(
-            upload_url,
-            data=data,
-            files=files,
-            timeout=90,
-            allow_redirects=True,
-            headers={"Referer": AML_REPORT_URL},
-        )
-        resp.raise_for_status()
-        hrefs = aml_extract_pdf_links_from_html(resp.text, upload_url)
-        if not hrefs:
-            debug_id = uuid.uuid4().hex[:8]
-            debug_dir = os.path.join(tempfile.gettempdir(), "aml_debug")
-            os.makedirs(debug_dir, exist_ok=True)
-            html_path = os.path.join(debug_dir, f"http_debug_{debug_id}.html")
-            try:
-                with open(html_path, "w", encoding="utf-8") as f:
-                    f.write(resp.text)
-            except Exception as dbg_exc:
-                print(f"[AML HTTP SUBMIT] Could not save debug HTML: {dbg_exc}")
-            response_tail = (resp.text or "")[-1200:].replace("\n", " ").replace("\r", " ")
-            print(
-                f"[AML HTTP SUBMIT] No PDF link parsed. status={resp.status_code} "
-                f"url={resp.url} content_type={resp.headers.get('content-type')} "
-                f"debug_id={debug_id} response_tail={response_tail}",
-                flush=True,
-            )
-            raise RuntimeError(f"Result PDF link not found in AML HTTP response. Debug HTML id={debug_id} saved in {debug_dir}")
-
-        npci_href = None
-        for href in hrefs:
-            if "npci" in href.lower():
-                npci_href = href
-                break
-        all_links = ",".join(hrefs)
-        return {"npci": npci_href or hrefs[0], "all": all_links}
-    finally:
-        for fh in opened_files:
-            try:
-                fh.close()
-            except Exception:
-                pass
-def aml_strip_scheme(url):
-    """Scheme (https://, http://) hata ke sirf domain/handle deta hai —
-    Input field mein koi bhi '/' (path ya trailing slash) na jaaye."""
-    if not url:
-        return url
-    stripped = url.replace("https://", "").replace("http://", "").strip()
-    # Agar path/query hai (domain ke baad koi '/'), to sirf domain rakho
-    if "/" in stripped:
-        stripped = stripped.split("/", 1)[0]
-    return stripped.rstrip("/")
-def aml_chunk_list(lst, size):
-    for i in range(0, len(lst), size):
-        yield lst[i:i + size]
-
 # ============================================================
-# BULK REGENERATE — background job tracking (Stop button support)
-# ============================================================
-REGEN_JOBS = {}
-REGEN_JOBS_LOCK = threading.Lock()
-
-def _regen_job_response(job):
-    return {
-        "status": job["status"],
-        "phase": job.get("phase"),
-        "total": job["total"],
-        "completed": job["completed"],
-        "results": job["results"],
-        "folder": job["folder"],
-        "final_excel": job["final_excel"],
-        "message": job["message"],
-    }
-def _write_regen_job_snapshot(job_id):
-    with REGEN_JOBS_LOCK:
-        job = REGEN_JOBS.get(job_id)
-        if not job or not job.get("folder"):
-            return
-        snapshot = _regen_job_response(job)
-
-    try:
-        folder = Path(snapshot["folder"])
-        folder.mkdir(parents=True, exist_ok=True)
-        with open(folder / "job_status.json", "w", encoding="utf-8") as f:
-            json.dump(snapshot, f, ensure_ascii=False, indent=2)
-    except Exception as exc:
-        print(f"[BULK REGENERATE] Could not save job snapshot {job_id}: {exc}", flush=True)
-
-
-def _load_regen_job_snapshot(job_id):
-    try:
-        regen_jobs_base = Path(__file__).parent / "regenerate_jobs"
-        candidates = list(regen_jobs_base.glob(f"{job_id}_*/job_status.json"))
-        if not candidates:
-            return None
-        latest = max(candidates, key=lambda p: p.stat().st_mtime)
-        with open(latest, "r", encoding="utf-8") as f:
-            snapshot = json.load(f)
-        if snapshot.get("status") in ("running", "stopping"):
-            snapshot["status"] = "error"
-            snapshot["message"] = snapshot.get("message") or "Server restarted while this job was running. Completed progress was restored from disk."
-        return snapshot
-    except Exception as exc:
-        print(f"[BULK REGENERATE] Could not load job snapshot {job_id}: {exc}", flush=True)
-        return None
-
-
-def _cleanup_paths(paths):
-    for path in paths or []:
-        try:
-            if path and os.path.isfile(path):
-                os.remove(path)
-        except Exception as exc:
-            print(f"[CLEANUP] Could not remove {path}: {exc}", flush=True)
-
-
-def _split_case_sources(value):
-    return [item.strip() for item in re.split(r"[,\n\r]+", str(value or "")) if item.strip() and item.strip().upper() != "NA"]
-
-
-def _download_case_source(source, output_dir, filename):
-    """Return a local copy of an image source stored in GUI QC."""
-    parsed = urlparse(source)
-    if parsed.scheme in ("http", "https"):
-        response = requests.get(source, timeout=30, stream=True)
-        response.raise_for_status()
-        content_type = response.headers.get("content-type", "").lower()
-        extension = ".png"
-        if "jpeg" in content_type or "jpg" in content_type:
-            extension = ".jpg"
-        elif "webp" in content_type:
-            extension = ".webp"
-        elif "pdf" in content_type or parsed.path.lower().endswith(".pdf"):
-            extension = ".pdf"
-        local_path = os.path.join(output_dir, f"{filename}{extension}")
-        with open(local_path, "wb") as target:
-            for chunk in response.iter_content(chunk_size=1024 * 256):
-                if chunk:
-                    target.write(chunk)
-        return local_path
-
-    local_path = resolve_bulk_screenshot_path(source)
-    if not os.path.isfile(local_path):
-        raise FileNotFoundError(f"Screenshot file not found: {source}")
-    extension = os.path.splitext(local_path)[1] or ".png"
-    destination = os.path.join(output_dir, f"{filename}{extension}")
-    shutil.copyfile(local_path, destination)
-    return destination
-
-
-def _case_images_for_qc_record(record, mode, output_dir):
-    """Load the requested QC record's images for its selected report workflow."""
-    record_id = str(record.get("id"))
-    if mode == "extract_pdf":
-        pdf_sources = _split_case_sources(record.get("screenshot_case_report_link"))
-        if not pdf_sources:
-            raise ValueError("No case-report PDF link is available for this QC case")
-        # The column commonly stores equivalent variants; one PDF supplies the screenshots.
-        pdf_source = next((item for item in pdf_sources if ".pdf" in item.lower()), pdf_sources[0])
-        local_pdf = _download_case_source(pdf_source, output_dir, f"{record_id}_case_report")
-        if not local_pdf.lower().endswith(".pdf"):
-            case_report_clean_up(local_pdf)
-            raise ValueError("The case-report link is not a PDF")
-        try:
-            images = extract_screenshots_from_pdf(local_pdf, output_dir, prefix=record_id)
-        finally:
-            case_report_clean_up(local_pdf)
-        return images
-
-    image_sources = _split_case_sources(record.get("screenshot"))
-    if not image_sources:
-        raise ValueError("No screenshots are available for this QC case")
-    images = []
-    for index, source in enumerate(image_sources, start=1):
-        image_path = _download_case_source(source, output_dir, f"{record_id}_{index}")
-        if image_path.lower().endswith(".pdf"):
-            case_report_clean_up(image_path)
-            raise ValueError("Only Generate Report requires image screenshots; use Extract PDF and Generate Report for PDF links")
-        images.append(image_path)
-    return images
-
-def _run_case_report_job(job_id, case_ids, mode, aml_creds):
-    """Generate AML reports from Case Generator records in a background job."""
-    with REGEN_JOBS_LOCK:
-        job = REGEN_JOBS.get(job_id)
-    if not job:
-        return
-    stop_event = job["stop_event"]
-
-    try:
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["phase"] = "extracting"
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        regen_jobs_base = os.path.join(os.path.dirname(__file__), "regenerate_jobs")
-        os.makedirs(regen_jobs_base, exist_ok=True)
-        session_folder = os.path.join(regen_jobs_base, f"{job_id}_{timestamp}")
-        images_folder  = os.path.join(session_folder, "Screenshots")
-        os.makedirs(images_folder, exist_ok=True)
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["folder"] = session_folder
-        _write_regen_job_snapshot(job_id)
-
-        final_rows = []
-        final_excel_path = os.path.join(session_folder, f"final_regenerated_results_{timestamp}.xlsx")
-
-        aml_session = aml_login_requests(creds=aml_creds)
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["phase"] = "regenerating"
-            REGEN_JOBS[job_id]["driver"] = None  # Requests-based flow does not launch Chrome.
-        _write_regen_job_snapshot(job_id)
-
-        for case_id in case_ids:
-            if stop_event.is_set():
-                with REGEN_JOBS_LOCK:
-                    REGEN_JOBS[job_id]["results"].append({
-                        "id": case_id, "new_pdf_url": None,
-                        "source_url": None, "status": "Stopped by user"
-                    })
-                    REGEN_JOBS[job_id]["completed"] += 1
-                _write_regen_job_snapshot(job_id)
-                break
-
-            paths_for_report = []
-            resp = supabase.table(CASE_REPORT_CASES_TABLE).select(
-                "id,website_url,search_for,upi_vpa,screenshot,screenshot_case_report_link"
-            ).eq("id", case_id).execute()
-            if not resp.data:
-                row_result = {"id": case_id, "new_pdf_url": None, "source_url": None, "status": "Case not found"}
-                with REGEN_JOBS_LOCK:
-                    REGEN_JOBS[job_id]["results"].append(row_result)
-                    REGEN_JOBS[job_id]["completed"] += 1
-                final_rows.append(row_result)
-                _write_regen_job_snapshot(job_id)
-                continue
-
-            report = resp.data[0]
-            try:
-                try:
-                    paths_for_report = _case_images_for_qc_record(report, mode, images_folder)
-                except Exception as exc:
-                    row_result = {
-                        "id": report.get("id"), "new_pdf_url": None,
-                        "source_url": report.get("website_url") or report.get("search_for"),
-                        "status": str(exc).strip() or "Could not prepare screenshots",
-                    }
-                    with REGEN_JOBS_LOCK:
-                        REGEN_JOBS[job_id]["results"].append(row_result)
-                        REGEN_JOBS[job_id]["completed"] += 1
-                    final_rows.append(row_result)
-                    _write_regen_job_snapshot(job_id)
-                    continue
-
-                if not paths_for_report:
-                    row_result = {"id": report.get("id"), "new_pdf_url": None, "source_url": report.get("website_url") or report.get("search_for"), "status": "No screenshots available"}
-                    with REGEN_JOBS_LOCK:
-                        REGEN_JOBS[job_id]["results"].append(row_result)
-                        REGEN_JOBS[job_id]["completed"] += 1
-                    final_rows.append(row_result)
-                    _write_regen_job_snapshot(job_id)
-                    continue
-
-                source_url = report.get("website_url") or report.get("search_for") or report.get("upi_vpa") or "NA"
-                title_text = source_url
-                description_text = source_url
-                input_text = aml_strip_scheme(source_url)
-                new_pdf_url = None        # NPCI-only link — "Regenerate Cases" (basic) results sheet ke liye
-                new_pdf_links_all = None  # Teeno links (comma-separated) — Investment Scam Final Sheet ke liye
-                status = "Success"
-                try:
-                    # Submit up to MAX_IMAGES_PER_REGENERATED_PDF screenshots in one AML request
-                    # so one old PDF maps to one new PDF whenever the old PDF has up to 10 images.
-                    chunk_results = []
-                    for chunk in aml_chunk_list(paths_for_report, MAX_IMAGES_PER_REGENERATED_PDF):
-                        if stop_event.is_set():
-                            status = "Stopped by user"
-                            break
-                        chunk_result = aml_submit_chunk_requests(aml_session, title_text, input_text, description_text, chunk)
-                        if chunk_result:
-                            chunk_results.append(chunk_result)
-                    if status != "Stopped by user":
-                        if chunk_results:
-                            # Har chunk ek alag AML report submission hai (portal max 4/submission
-                            # allow karta hai) — saare chunks ke links combine karke rakhte hain.
-                            npci_links = [r.get("npci") for r in chunk_results if r.get("npci")]
-                            all_links_list = [r.get("all") for r in chunk_results if r.get("all")]
-                            new_pdf_url = ",".join(npci_links) if npci_links else "Failed"
-                            new_pdf_links_all = ",".join(all_links_list) if all_links_list else new_pdf_url
-                        else:
-                            new_pdf_url = "Failed"
-                            status = "No result returned"
-                except Exception as exc:
-                    tb_text = traceback.format_exc()
-                    print(f"[QC REPORT] case_id={case_id} failed:\n{tb_text}")
-                    err_msg = str(exc).strip() or type(exc).__name__
-                    status = f"Error: {err_msg}"
-                    # Session/captcha can expire; re-login once so remaining reports can continue.
-                    try:
-                        aml_session = aml_login_requests(creds=aml_creds)
-                    except Exception as login_exc:
-                        status = f"{status} | HTTP re-login failed: {str(login_exc).strip() or type(login_exc).__name__}"
-
-                row_result = {
-                    "id": report.get("id"),
-                    "new_pdf_url": new_pdf_url,
-                    "source_url": source_url,
-                    "status": status,
-                }
-                with REGEN_JOBS_LOCK:
-                    REGEN_JOBS[job_id]["results"].append(row_result)
-                    REGEN_JOBS[job_id]["completed"] += 1
-                final_rows.append(row_result)
-                _write_regen_job_snapshot(job_id)
-            finally:
-                _cleanup_paths(paths_for_report)
-
-        FINAL_RESULT_COLUMNS = ["id", "new_pdf_url", "source_url", "status"]
-        pd.DataFrame(final_rows, columns=FINAL_RESULT_COLUMNS).to_excel(final_excel_path, index=False)
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["final_excel"] = final_excel_path
-        _write_regen_job_snapshot(job_id)
-
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["status"] = "stopped" if stop_event.is_set() else "done"
-            REGEN_JOBS[job_id]["driver"] = None
-        _write_regen_job_snapshot(job_id)
-    except Exception as exc:
-        with REGEN_JOBS_LOCK:
-            REGEN_JOBS[job_id]["status"]  = "error"
-            REGEN_JOBS[job_id]["message"] = str(exc)
-            REGEN_JOBS[job_id]["driver"]  = None
-        _write_regen_job_snapshot(job_id)
-
-@app.route("/case-report", methods=["GET"])
-@login_required
-def case_report_page():
-    allowed_pages = session.get("allowed_pages", [])
-    if "case_report" not in allowed_pages:
-        flash("You don't have access to QC & CRG.", "error")
-        return redirect_to_allowed_page(allowed_pages)
-    clean_display_name = get_clean_display_name(session.get("display_name", "User"))
-    return render_template(
-        "case_report.html",
-        display_name=session.get("display_name", "User"),
-        clean_display_name=clean_display_name,
-        allowed_pages=allowed_pages,
-        is_admin=session.get("is_admin", False),
-        role=session.get("role", "user"),
-        case_report_remark_options=CASE_REPORT_REMARK_OPTIONS,
-    )
-
-def _parse_case_action_ids(raw_ids):
-    ids, seen = [], set()
-    for case_id in re.split(r"[,\s]+", str(raw_ids or "")):
-        case_id = case_id.strip()
-        if not case_id:
-            continue
-        if not re.fullmatch(r"\d+", case_id):
-            raise ValueError(f"Invalid Case ID: {case_id}")
-        if case_id not in seen:
-            seen.add(case_id)
-            ids.append(case_id)
-    if not ids:
-        raise ValueError("Paste at least one Case ID.")
-    if len(ids) > MAX_CASE_ACTION_IDS:
-        raise ValueError(f"Maximum {MAX_CASE_ACTION_IDS} Case IDs are allowed per run.")
-    return ids
-
-
-def _case_action_status(job_id):
-    with CASE_ACTION_JOBS_LOCK:
-        job = CASE_ACTION_JOBS.get(job_id)
-        if not job:
-            return None
-        return {
-            "status": job["status"], "total": job["total"], "completed": job["completed"],
-            "successful": job["successful"], "failed": job["failed"], "action": job["action"],
-            "remark": job["remark"], "results": list(job["results"]), "message": job.get("message"),
-            "stage": job.get("stage"),
-        }
-
-
-def _report_generation_status(job_id):
-    with REPORT_GENERATION_JOBS_LOCK:
-        job = REPORT_GENERATION_JOBS.get(job_id)
-        if not job:
-            return None
-        return {key: job.get(key) for key in ("status", "total", "completed", "successful", "failed", "stage", "results", "message", "output_path")}
-
-
-def _create_report_generation_job(job_id, total):
-    """Register each report job independently for direct Selenium AML login."""
-    with REPORT_GENERATION_JOBS_LOCK:
-        REPORT_GENERATION_JOBS[job_id] = {
-            "status": "queued", "total": total, "completed": 0, "successful": 0, "failed": 0,
-            "stage": "Initializing", "results": [], "message": None, "output_path": None,
-        }
-
-
-REPORT_MAX_SCREENSHOTS = 6              # AML report form me ek report ke liye max screenshots
-REPORT_REUSE_DUPLICATE_ROWS = False     # True: bilkul same row (title+description+images) ki report ek hi baar banao, URL reuse karo
-REPORT_PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
-
-
-def _report_login_creds():
-    """Resolve the logged-in dashboard user's AML credentials for direct GUI login."""
-    return get_own_aml_credentials() or get_aml_credentials()
-
-
-def _register_report_image(files_map, src_path):
-    """PNG ko content-hash naam do (same image ek hi baar upload hogi). Naam return karta hai."""
-    with open(src_path, "rb") as fh:
-        if fh.read(8) != REPORT_PNG_MAGIC:
-            raise ValueError(f"Not a valid PNG file: {os.path.basename(src_path)}")
-    digest = hashlib.sha256()
-    with open(src_path, "rb") as fh:
-        for block in iter(lambda: fh.read(1024 * 1024), b""):
-            digest.update(block)
-    name = digest.hexdigest()[:24] + ".png"
-    files_map.setdefault(name, src_path)
-    return name
-
-
-def _is_public_host(host):
-    """SSRF se bachav: sirf public IP wale hosts (localhost/private/metadata IPs block)."""
-    try:
-        infos = socket.getaddrinfo(host, None)
-    except OSError:
-        return False
-    for info in infos:
-        try:
-            if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
-                return False
-        except ValueError:
-            return False
-    return bool(infos)
-
-
-def _fetch_report_image_url(url, dest_dir, cache):
-    """Excel me diya https screenshot link download karo. Local file path return. Error message me URL nahi aata
-    (signed links me secret hota hai)."""
-    if url in cache:
-        return cache[url]
-    current, response = url, None
-    try:
-        for _ in range(4):
-            parsed = urlparse(current)
-            if parsed.scheme != "https" or not parsed.hostname or not _is_public_host(parsed.hostname):
-                raise ValueError("Screenshot link must be a public https URL")
-            response = requests.get(current, timeout=(10, 30), stream=True, allow_redirects=False)
-            if response.status_code in (301, 302, 303, 307, 308):
-                current = urllib.parse.urljoin(current, response.headers.get("location", ""))
-                response.close()
-                response = None
-                continue
-            break
-        else:
-            raise ValueError("Screenshot link redirected too many times")
-        if response is None or response.status_code >= 400:
-            raise ValueError(f"Could not download screenshot (HTTP {getattr(response, 'status_code', '?')})")
-        path = os.path.join(dest_dir, f"url_{len(cache) + 1}.png")
-        size = 0
-        with open(path, "wb") as target:
-            for chunk in response.iter_content(chunk_size=1024 * 256):
-                size += len(chunk)
-                if size > REPORT_MAX_UPLOAD_FILE_BYTES:
-                    raise ValueError(f"Screenshot is larger than {REPORT_MAX_UPLOAD_FILE_BYTES // (1024 * 1024)} MB")
-                target.write(chunk)
-    except ValueError:
-        raise
-    except requests.RequestException as exc:
-        raise ValueError(f"Could not download screenshot ({type(exc).__name__})")
-    finally:
-        if response is not None:
-            response.close()
-    cache[url] = path
-    return path
-
-
-def _report_dedupe_items(items):
-    """(unique_items, {first_index: [duplicate_indexes]}). Switch off ho to sab rows unique maani jaati hain."""
-    if not REPORT_REUSE_DUPLICATE_ROWS:
-        return items, {}
-    seen, unique, dups = {}, [], {}
-    for item in items:
-        key = (item["title"], item["description"], tuple(item["images"]))
-        if key in seen:
-            dups.setdefault(seen[key], []).append(item["index"])
-        else:
-            seen[key] = item["index"]
-            unique.append(item)
-    return unique, dups
-
-
-def _make_report_recorder(job_id, rows, results, extras=None):
-    """Har row ka final result save karta hai (results dict) aur job ke counters badhata hai."""
-    def record(index, status, url="", message=""):
-        if index in results:
-            return
-        out = dict(rows[index - 1])
-        if extras is not None:
-            found, used = extras.get(index, (0, 0))
-            out["Extracted Screenshot Count"], out["Screenshots Used"] = found, used
-        out["Report URL"] = url if status == "Success" else ""
-        out["Status"] = "Success" if status == "Success" else (message or status)
-        results[index] = out
-        with REPORT_GENERATION_JOBS_LOCK:
-            job = REPORT_GENERATION_JOBS.get(job_id)
-            if job:
-                job["completed"] += 1
-                job["successful"] += status == "Success"
-                job["failed"] += status != "Success"
-    return record
-
-
-def _run_report_batches(job_id, items, files_map, aml_creds, record, state, submitter=aml_submit_chunk):
-    """Use this GUI app's AML login and Selenium session to create each report."""
-    credentials = tuple(aml_creds or ())
-    aml_pass = credentials[1] if len(credentials) > 1 else None
-    login_creds = (credentials + (None, None, None, None))[:4]
-    driver = None
-    acquired = False
-    try:
-        with REPORT_GENERATION_JOBS_LOCK:
-            job = REPORT_GENERATION_JOBS.get(job_id)
-            if job:
-                job.update(status="queued", stage=f"Waiting for a report slot ({REPORT_MAX_PARALLEL} parallel)")
-        REPORT_BROWSER_SLOTS.acquire()
-        acquired = True
-        with REPORT_GENERATION_JOBS_LOCK:
-            job = REPORT_GENERATION_JOBS.get(job_id)
-            if job:
-                job.update(status="running", stage="Opening AML GUI and logging in")
-
-        driver = aml_build_driver(headless=True)
-        _AML_DEBUG_DRIVERS.append(driver)
-        if not aml_login(driver, max_captcha_attempts=7, creds=login_creds):
-            raise RuntimeError("AML GUI login failed after CAPTCHA retries")
-
-        for position, item in enumerate(items, start=1):
-            try:
-                with REPORT_GENERATION_JOBS_LOCK:
-                    job = REPORT_GENERATION_JOBS.get(job_id)
-                    if job:
-                        job["stage"] = f"Generating report {position} of {len(items)} in AML GUI"
-                image_paths = [files_map[name] for name in item["images"]]
-                chunk_results = []
-                image_chunks = (
-                    [image_paths]
-                    if submitter is _aml_submit_extracted_report
-                    else aml_chunk_list(image_paths, 4)
-                )
-                for image_chunk in image_chunks:
-                    chunk_results.append(submitter(
-                        driver, item["title"], item["title"], item["description"], image_chunk
-                    ))
-                links = [result.get("npci") or result.get("all") for result in chunk_results if result]
-                report_url = ",".join(link for link in links if link)
-                if not report_url:
-                    raise RuntimeError("AML GUI did not return a report link")
-                record(item["index"], "Success", report_url, "")
-                state["received"] += 1
-            except Exception as exc:
-                message = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip()
-                record(item["index"], "Failed", "", message or type(exc).__name__)
-    finally:
-        if driver is not None:
-            _close_debug_driver(driver)
-        if acquired:
-            REPORT_BROWSER_SLOTS.release()
-
-
-def _finish_report_job(job_id, rows, results, stopped, state, file_prefix, allow_service_error_workbook=False):
-    """Write the result workbook, preserving completed rows and explicit failures."""
-    if stopped and state["received"] == 0 and not allow_service_error_workbook:
-        raise RuntimeError(stopped)
-    ordered = [results[i] for i in sorted(results)]
-    output_path = os.path.join(tempfile.gettempdir(), f"{file_prefix}_{job_id}.xlsx")
-    pd.DataFrame(ordered).to_excel(output_path, index=False)
-    with REPORT_GENERATION_JOBS_LOCK:
-        REPORT_GENERATION_JOBS[job_id].update(
-            status="done", output_path=output_path, results=ordered,
-            stage="Completed" if not stopped else "Stopped early (see Status column)",
-            message=stopped,
-        )
-
-
-def _save_report_job_workbook(job_id, results, file_prefix):
-    """Persist the current ordered report results before the worker advances to another source row."""
-    ordered = [results[i] for i in sorted(results)]
-    output_path = os.path.join(tempfile.gettempdir(), f"{file_prefix}_{job_id}.xlsx")
-    temporary_path = f"{output_path}.{uuid.uuid4().hex}.tmp.xlsx"
-    try:
-        pd.DataFrame(ordered).to_excel(temporary_path, index=False)
-        os.replace(temporary_path, output_path)
-    finally:
-        if os.path.exists(temporary_path):
-            os.remove(temporary_path)
-    with REPORT_GENERATION_JOBS_LOCK:
-        job = REPORT_GENERATION_JOBS.get(job_id)
-        if job:
-            job.update(output_path=output_path, results=ordered)
-    return output_path
-
-
-def _report_fail_job(job_id, exc, aml_creds=None):
-    secret = (tuple(aml_creds or ()) + (None, None))[1]
-    text = re.sub(r"\s+", " ", _scrub_secret(exc, secret)).strip()[:500] or type(exc).__name__
-    with REPORT_GENERATION_JOBS_LOCK:
-        job = REPORT_GENERATION_JOBS.get(job_id)
-        if job:
-            job.update(status="error", stage="Failed", message=text)
-    print(f"[REPORTS] job={job_id[:8]} failed: {text}", flush=True)
-
-
-def _run_report_generation_job(job_id, rows, aml_creds, image_dir=None, image_map=None):
-    """Generate Report: Excel ke screenshot filenames upload ki hui PNG files se (ya local path se) match hote hain."""
-    url_dir = None
-    try:
-        with REPORT_GENERATION_JOBS_LOCK:
-            if REPORT_GENERATION_JOBS[job_id]["status"] == "queued":
-                REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Preparing screenshots")
-        uploaded = dict(image_map or {})
-        results, files_map, items = {}, {}, []
-        url_dir, url_cache = tempfile.mkdtemp(prefix="crg_report_urls_"), {}
-        record = _make_report_recorder(job_id, rows, results)
-
-        for index, row in enumerate(rows, start=1):
-            try:
-                names = []
-                for column, required in (("SS_Path_1", True), ("Screenshot Path", False)):
-                    raw = str(row.get(column, "") or "").strip().strip('"').strip("'")
-                    if not raw:
-                        if required:
-                            raise ValueError("SS_Path_1 is empty")
-                        continue                                    # Screenshot Path optional hai
-                    if raw.lower().startswith(("http://", "https://")):
-                        names.append(_register_report_image(files_map, _fetch_report_image_url(raw, url_dir, url_cache)))
-                        continue                                    # Excel me link diya hai: upload ki zarurat nahi
-                    base = re.split(r"[\\/]+", raw)[-1]
-                    if not base.lower().endswith(".png"):
-                        raise ValueError(f"PNG screenshot not found: {raw}")
-                    src = uploaded.get(base.lower())
-                    if not src:
-                        local = resolve_bulk_screenshot_path(raw)    # dashboard local chal raha ho to
-                        src = local if os.path.isfile(local) else None
-                    if not src:
-                        raise ValueError(
-                            f"Cannot read screenshot '{base}'. Use a path available on the server, "
-                            "or a public HTTPS image URL in the Excel file. A path on your PC "
-                            "(for example C:\\Users\\...) is not available to the deployed server."
-                        )
-                    names.append(_register_report_image(files_map, src))
-                items.append({"index": index, "title": str(row["Title"]), "description": str(row["Description"]), "images": names})
-            except Exception as exc:
-                record(index, "Failed", "", str(exc).strip() or type(exc).__name__)
-
-        unique, dups = _report_dedupe_items(items)
-
-        def record_with_dups(index, status, url="", message=""):
-            record(index, status, url, message)
-            for dup_index in dups.get(index, []):
-                record(dup_index, status, url, message)
-
-        stopped, state = None, {"received": 0}
-        if unique:
-            with REPORT_GENERATION_JOBS_LOCK:
-                REPORT_GENERATION_JOBS[job_id]["stage"] = "Generating reports"
-            try:
-                _run_report_batches(
-                    job_id, unique, files_map, aml_creds, record_with_dups, state,
-                    submitter=_aml_submit_extracted_report,
-                )
-            except RuntimeError as exc:
-                stopped = _scrub_secret(exc, (tuple(aml_creds or ()) + (None, None))[1])
-            for item in unique:
-                if item["index"] not in results:
-                    record_with_dups(item["index"], "Failed", "", f"Not generated: {stopped}" if stopped else "No result received")
-        _finish_report_job(job_id, rows, results, stopped, state, "case_report_results")
-    except Exception as exc:
-        _report_fail_job(job_id, exc, aml_creds)
-    finally:
-        if image_dir:
-            shutil.rmtree(image_dir, ignore_errors=True)
-        if url_dir:
-            shutil.rmtree(url_dir, ignore_errors=True)
-
-
-def _upload_aml_report_screenshots(driver, wait, image_paths):
-    """Upload every extracted PNG to AML's screenshot fields in page order."""
-    if not image_paths:
-        raise ValueError("The PDF does not contain any embedded screenshots")
-    wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_LEFT_BUTTON_XPATH)))
-    wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_RIGHT_BUTTON_XPATH)))
-    file_inputs = driver.find_elements(By.XPATH, "/html/body/div[1]/div/form/fieldset[2]//input[@type='file']")
-    while len(file_inputs) < len(image_paths):
-        add_button = wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/form/fieldset[2]/button")))
-        driver.execute_script("arguments[0].click();", add_button)
-        expected_count = len(file_inputs) + 2
-        WebDriverWait(driver, 20).until(
-            lambda browser: len(browser.find_elements(By.XPATH, "/html/body/div[1]/div/form/fieldset[2]//input[@type='file']")) >= expected_count
-        )
-        file_inputs = driver.find_elements(By.XPATH, "/html/body/div[1]/div/form/fieldset[2]//input[@type='file']")
-    for file_input, image_path in zip(file_inputs, image_paths):
-        file_input.send_keys(image_path)
-
-
-def _aml_submit_extracted_report(driver, title_text, input_text, description_text, image_paths):
-    """Fill the AML report form and attach each screenshot extracted from the PDF."""
-    if not image_paths:
-        raise ValueError("The PDF does not contain any embedded screenshots")
-    wait = WebDriverWait(driver, 30)
-    driver.get(AML_REPORT_URL)
-    title = wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_TITLE_XPATH)))
-    description = wait.until(EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_DESCRIPTION_XPATH)))
-    title.clear()
-    title.send_keys(title_text)
-    description.clear()
-    description.send_keys(description_text)
-    _upload_aml_report_screenshots(driver, wait, image_paths)
-
-    generate = wait.until(EC.element_to_be_clickable((By.XPATH, AML_REPORT_GENERATE_BUTTON_XPATH)))
-    driver.execute_script("arguments[0].click();", generate)
-    exact_result_href = None
-    try:
-        exact_result = WebDriverWait(driver, 45).until(
-            EC.presence_of_element_located((By.XPATH, AML_REPORT_GENERATE_RESULT_XPATH))
-        )
-        exact_result_href = (exact_result.get_attribute("href") or "").strip()
-    except TimeoutException:
-        pass
-
-    anchors = driver.find_elements(By.XPATH, "//a[@href]")
-    hrefs, seen = [], set()
-    for anchor in anchors:
-        href = (anchor.get_attribute("href") or "").strip()
-        if href and ".pdf" in href.lower() and href not in seen:
-            seen.add(href)
-            hrefs.append(href)
-    if not hrefs:
-        hrefs = [exact_result_href] if exact_result_href else []
-    if not hrefs:
-        raise RuntimeError("AML GUI did not return a generated report PDF link")
-    hrefs.sort(key=lambda href: ("mfilterit" not in href.lower(), "npci" not in href.lower(), "without_header" not in href.lower()))
-    npci = exact_result_href or next((href for href in hrefs if "npci" in href.lower()), hrefs[0])
-    return {"npci": npci, "all": ",".join(hrefs)}
-
-
-def _run_extract_and_generate_job(job_id, rows, aml_creds):
-    """For each source PDF, extract, generate its report, and save that row before continuing."""
-    temp_root = tempfile.mkdtemp(prefix="crg_pdf_extract_")
-    driver = None
-    acquired = False
-    credentials = tuple(aml_creds or ())
-    aml_pass = credentials[1] if len(credentials) > 1 else None
-    login_creds = (credentials + (None, None, None, None))[:4]
-    results, extras, files_map, cache = {}, {}, {}, {}
-    record = _make_report_recorder(job_id, rows, results, extras)
-    state = {"received": 0}
-    try:
-        with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id].update(
-                status="queued", stage=f"Waiting for a report slot ({REPORT_MAX_PARALLEL} parallel)"
-            )
-        REPORT_BROWSER_SLOTS.acquire()
-        acquired = True
-        with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id].update(status="running", stage="Opening AML GUI and logging in")
-        driver = aml_build_driver(headless=True)
-        _AML_DEBUG_DRIVERS.append(driver)
-        if not aml_login(driver, max_captcha_attempts=7, creds=login_creds):
-            raise RuntimeError("AML GUI login failed after CAPTCHA retries")
-
-        with REPORT_GENERATION_JOBS_LOCK:
-            REPORT_GENERATION_JOBS[job_id]["stage"] = "Extracting screenshots"
-        stopped = None
-
-        for index, row in enumerate(rows, start=1):
-            try:
-                with REPORT_GENERATION_JOBS_LOCK:
-                    REPORT_GENERATION_JOBS[job_id]["stage"] = f"Extracting PDF {index} of {len(rows)}"
-                key = str(row["PDF Path"]).strip()
-                if key not in cache:
-                    pdf_no = len(cache) + 1
-                    pdf_dir = os.path.join(temp_root, f"pdf_{pdf_no}")
-                    os.makedirs(pdf_dir, exist_ok=True)
-                    try:
-                        local_pdf = _download_case_source(key, pdf_dir, f"source_{pdf_no}")
-                        if not local_pdf.lower().endswith(".pdf"):
-                            raise ValueError("PDF Path did not resolve to a PDF file")
-                        cache[key] = ("ok", extract_screenshots_from_pdf(local_pdf, pdf_dir, prefix=f"pdf_{pdf_no}"))
-                    except Exception as exc:
-                        cache[key] = ("err", str(exc).strip() or type(exc).__name__)
-                kind, payload = cache[key]
-                if kind == "err":
-                    raise ValueError(payload)
-                if not payload:
-                    raise ValueError("The PDF does not contain any embedded screenshots")
-                used = payload[:REPORT_MAX_SCREENSHOTS]              # AML form me max 6
-                names = [_register_report_image(files_map, path) for path in used]
-                extras[index] = (len(payload), len(used))
-                item = {"index": index, "title": str(row["Title"]), "description": str(row["Description"]), "images": names}
-            except Exception as exc:
-                record(index, "Failed", "", str(exc).strip() or type(exc).__name__)
-                _save_report_job_workbook(job_id, results, "case_report_extract_results")
-                continue
-
-            # Do not extract the next PDF until this report request has returned
-            # its URL/status and the updated workbook has been written to disk.
-            with REPORT_GENERATION_JOBS_LOCK:
-                REPORT_GENERATION_JOBS[job_id]["stage"] = f"Generating report {index} of {len(rows)}"
-            try:
-                image_paths = [files_map[name] for name in item["images"]]
-                result = _aml_submit_extracted_report(
-                    driver, item["title"], item["title"], item["description"], image_paths
-                )
-                report_url = (result or {}).get("npci") or (result or {}).get("all")
-                if not report_url:
-                    raise RuntimeError("AML GUI did not return a generated report link")
-                record(index, "Success", report_url, "")
-                state["received"] += 1
-            except Exception as exc:
-                message = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip()
-                record(index, "Failed", "", message or type(exc).__name__)
-
-            if index not in results:
-                record(index, "Failed", "", "No result received from the AML service")
-            _save_report_job_workbook(job_id, results, "case_report_extract_results")
-
-        _finish_report_job(
-            job_id, rows, results, stopped,
-            state, "case_report_extract_results", allow_service_error_workbook=True,
-        )
-    except Exception as exc:
-        stopped = re.sub(r"\s+", " ", _scrub_secret(exc, aml_pass)).strip() or type(exc).__name__
-        for index in range(1, len(rows) + 1):
-            if index not in results:
-                record(index, "Failed", "", f"Not generated: {stopped}")
-        try:
-            _finish_report_job(
-                job_id, rows, results, stopped, state,
-                "case_report_extract_results", allow_service_error_workbook=True,
-            )
-        except Exception as finish_exc:
-            _report_fail_job(job_id, finish_exc, aml_creds)
-    finally:
-        if driver is not None:
-            _close_debug_driver(driver)
-        if acquired:
-            REPORT_BROWSER_SLOTS.release()
-        shutil.rmtree(temp_root, ignore_errors=True)
-
-
-def _select_aml_case_option(driver, wait, option_xpath):
-    """Select an AML action/remark option and notify the page of the change."""
-    option = wait.until(EC.presence_of_element_located((By.XPATH, option_xpath)))
-    select_element = option.find_element(By.XPATH, "..")
-    wait.until(lambda _driver: select_element.is_displayed() and select_element.is_enabled())
-    driver.execute_script(
-        "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});",
-        select_element,
-    )
-
-    # A native option click is required by AML's form controls.  Selecting the
-    # option through JavaScript alone does not reliably update the parent
-    # select or fire its change handler.
-    try:
-        select_element.click()
-        option.click()
-    except Exception:
-        option_index = driver.execute_script(
-            "return Array.prototype.indexOf.call(arguments[0].options, arguments[1]);",
-            select_element,
-            option,
-        )
-        Select(select_element).select_by_index(option_index)
-
-    wait.until(lambda _driver: option.is_selected())
-    driver.execute_script(
-        """
-        const select = arguments[0];
-        select.dispatchEvent(new Event('input', { bubbles: true }));
-        select.dispatchEvent(new Event('change', { bubbles: true }));
-        """,
-        select_element,
-    )
-
-
-CASE_ACTIONS_API_URL = SHEET_IMPORT_API_URL.rsplit("/", 1)[0] + "/case-actions"
-# True: har user sirf apne AML login se approve/reject kar sakta hai (audit me sahi naam jaaye).
-# False: apne creds na hon to service ka default (shared) login chalega.
-CASE_ACTIONS_REQUIRE_OWN_AML_LOGIN = True
-
-
-def _case_action_login_creds():
-    """(aml_user, aml_pass): logged-in user ke apne AML creds. Na mile to policy ke hisaab se error ya default login."""
-    own = get_own_aml_credentials()
-    if own:
-        return own
-    if CASE_ACTIONS_REQUIRE_OWN_AML_LOGIN:
-        raise ValueError("Add your AML username/password in GUI Management before approving or rejecting cases.")
-    return (None, None)
-
-
-def _run_aml_case_action_job(job_id, case_ids, action, remark, aml_creds):
-    """Approve/Reject ab Docker service (Playwright) par chalta hai. Yahan sirf job start + progress mirror hota hai,
-    taaki frontend ke /aml-case-actions status JSON me koi badlav na ho."""
-    aml_user, aml_pass = (tuple(aml_creds or ()) + (None, None))[:2]
-    headers = {"X-API-Key": DOCKER_FILES_API_KEY}
-
-    def _fail(message):
-        text = re.sub(r"\s+", " ", _scrub_secret(message, aml_pass)).strip()[:500]
-        with CASE_ACTION_JOBS_LOCK:
-            job = CASE_ACTION_JOBS.get(job_id)
-            if job:
-                job["status"] = "error"
-                job["message"] = text
-        print(f"[CASE ACTIONS] job={job_id[:8]} failed: {text}", flush=True)
-
-    try:
-        with CASE_ACTION_JOBS_LOCK:
-            CASE_ACTION_JOBS[job_id]["status"] = "queued"
-            CASE_ACTION_JOBS[job_id]["stage"] = "Waiting for the AML browser"
-        if not DOCKER_FILES_API_KEY:
-            return _fail("DOCKER_FILES_API_KEY is not configured")
-
-        body = {"case_ids": case_ids, "action": action}
-        if action == "rejected":
-            body["remark_index"] = CASE_REPORT_REMARK_OPTIONS.index(remark) + 2   # AML dropdown me option[N] position
-        if aml_user and aml_pass:
-            body["aml_user"], body["aml_pass"] = aml_user, aml_pass
-
-        _wake_docker_service()
-        try:
-            start = requests.post(CASE_ACTIONS_API_URL, headers=headers, json=body, timeout=(10, 60))
-        except requests.RequestException as exc:
-            return _fail(
-                f"Could not confirm that the AML service started the job ({type(exc).__name__}). "
-                "Check AML before running these cases again."
-            )
-        if not start.ok:
-            try:
-                detail = start.json().get("detail")
-            except ValueError:
-                detail = (start.text or "")[:200]
-            return _fail(f"AML service refused the job (HTTP {start.status_code}): {detail}")
-        service_job = (start.json() or {}).get("job_id")
-        if not service_job:
-            return _fail("AML service did not return a job id")
-
-        poll_url = f"{CASE_ACTIONS_API_URL}/{service_job}"
-        deadline = time.monotonic() + max(1800, len(case_ids) * 30)
-        lost_polls = 0
-        while time.monotonic() < deadline:
-            time.sleep(2)
-            try:
-                resp = requests.get(poll_url, headers=headers, timeout=(10, 30))
-            except requests.RequestException:
-                resp = None
-            if resp is not None and resp.status_code == 404:
-                return _fail(
-                    "The AML service restarted and lost this job. Cases processed so far are listed; "
-                    "check the rest in AML before running them again."
-                )
-            if resp is None or not resp.ok:
-                lost_polls += 1
-                if lost_polls >= 15:
-                    return _fail("Lost connection to the AML service. Check AML before running these cases again.")
-                continue
-            lost_polls = 0
-            snap = resp.json() or {}
-            with CASE_ACTION_JOBS_LOCK:
-                job = CASE_ACTION_JOBS.get(job_id)
-                if not job:
-                    return
-                job.update(
-                    status=snap.get("status", job.get("status")),
-                    stage=snap.get("stage") or job.get("stage"),
-                    completed=snap.get("completed", 0), successful=snap.get("successful", 0),
-                    failed=snap.get("failed", 0), results=list(snap.get("results") or []),
-                )
-            state = snap.get("status")
-            if state == "done":
-                with CASE_ACTION_JOBS_LOCK:
-                    job = CASE_ACTION_JOBS.get(job_id)
-                    if job:
-                        job["status"] = "done"
-                        job["message"] = snap.get("message")
-                return
-            if state == "error":
-                return _fail(snap.get("message") or "The AML service reported an error")
-        _fail("Timed out waiting for the AML service. Check AML before running these cases again.")
-    except Exception as exc:
-        _fail(str(exc) or type(exc).__name__)
-
-
-@app.route("/aml-case-actions", methods=["POST"])
-@login_required
-def start_aml_case_actions():
-    try:
-        data = request.get_json(silent=True) or {}
-        action = str(data.get("action", "")).strip().lower()
-        remark = str(data.get("remark", "")).strip()
-        case_ids = _parse_case_action_ids(data.get("case_ids", ""))
-        if action not in ("approved", "rejected"):
-            return jsonify({"status": "error", "message": "Choose Approve or Rejected Cases."}), 400
-        if action == "rejected" and remark not in CASE_REPORT_REMARK_OPTIONS:
-            return jsonify({"status": "error", "message": "Choose a valid rejection remark."}), 400
-
-        job_id = uuid.uuid4().hex
-        creds = _case_action_login_creds()
-        with CASE_ACTION_JOBS_LOCK:
-            CASE_ACTION_JOBS[job_id] = {
-                "status": "queued", "total": len(case_ids), "completed": 0,
-                "successful": 0, "failed": 0, "action": action, "remark": remark,
-                "results": [], "message": None, "stage": "Waiting for the AML browser",
-            }
-        threading.Thread(target=_run_aml_case_action_job, args=(job_id, case_ids, action, remark, creds), daemon=True).start()
-        return jsonify({"status": "success", "job_id": job_id, "total": len(case_ids)})
-    except ValueError as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 400
-    except Exception as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 500
-
-
-REPORT_MAX_UPLOAD_FILES = 300
-REPORT_MAX_UPLOAD_FILE_BYTES = 20 * 1024 * 1024
-
-
-def _save_report_uploaded_images(uploads):
-    """Browser se aayi PNG screenshots ko temp folder me save karo.
-    (folder, {original_filename_lowercase: saved_path}) return karta hai; Excel ke naam se match karne ke liye."""
-    uploads = [u for u in uploads if u and u.filename]
-    if len(uploads) > REPORT_MAX_UPLOAD_FILES:
-        raise ValueError(f"Select at most {REPORT_MAX_UPLOAD_FILES} screenshot files.")
-    folder = tempfile.mkdtemp(prefix="crg_report_images_")
-    mapping = {}
-    try:
-        for number, upload in enumerate(uploads, start=1):
-            name = re.split(r"[\\/]+", upload.filename)[-1].strip()
-            if not name.lower().endswith(".png"):
-                raise ValueError(f"Only PNG screenshots are allowed: {name[:60]}")
-            path = os.path.join(folder, f"{number}_" + re.sub(r"[^A-Za-z0-9_.-]", "_", name))
-            upload.save(path)
-            if os.path.getsize(path) > REPORT_MAX_UPLOAD_FILE_BYTES:
-                raise ValueError(f"{name[:60]} is larger than {REPORT_MAX_UPLOAD_FILE_BYTES // (1024 * 1024)} MB.")
-            mapping[name.lower()] = path
-    except Exception:
-        shutil.rmtree(folder, ignore_errors=True)
-        raise
-    return folder, mapping
-
-
-def _report_all_screenshots_missing(rows, image_map):
-    """Agar Excel ke kisi bhi screenshot ka file nahi mila to turant saaf message do (sab rows fail hone se pehle)."""
-    have = set(image_map or {})
-    referenced, found = {}, set()
-    for row in rows:
-        for column in ("SS_Path_1", "Screenshot Path"):
-            raw = str(row.get(column, "") or "").strip().strip('"').strip("'")
-            if not raw:
-                continue
-            if raw.lower().startswith(("http://", "https://")):
-                found.add(raw)                                      # link hai, file select karne ki zarurat nahi
-                referenced.setdefault(raw, raw)
-                continue
-            original = re.split(r"[\\/]+", raw)[-1]
-            base = original.lower()
-            referenced.setdefault(base, original)
-            if base in have or os.path.isfile(resolve_bulk_screenshot_path(raw)):
-                found.add(base)
-    if referenced and not found:
-        example = sorted(referenced.values())[0]
-        return (f"None of the screenshots from the Excel were found. In 'Screenshot files' select the PNG files "
-                f"listed in SS_Path_1 (for example {example}).")
-    return None
-
-
-def _parse_report_generation_workbook(file):
-    """Generate Report workbook -> rows. Galat file/header par ValueError."""
-    extension = os.path.splitext(file.filename)[1].lower()
-    if extension not in (".xlsx", ".xls", ".xlsm"):
-        raise ValueError("Use an .xlsx, .xls, or .xlsm file.")
-    try:
-        sheets = pd.read_excel(file, sheet_name=None, dtype=str)
-    except Exception as exc:
-        raise ValueError(f"Could not read workbook: {exc}")
-    rows = []
-    for sheet_name, frame in sheets.items():
-        frame.columns = [str(column).strip() for column in frame.columns]
-        missing = [column for column in REPORT_GENERATION_REQUIRED_COLUMNS if column not in frame.columns]
-        if missing:
-            raise ValueError(f"Sheet '{sheet_name}' is missing: {', '.join(missing)}.")
-        selected = frame[REPORT_GENERATION_REQUIRED_COLUMNS].fillna("")
-        for column in ("SS_Path_1", "Screenshot Path"):
-            selected[column] = selected[column].map(_normalize_report_source)
-        rows.extend(selected.to_dict("records"))
-    if not rows:
-        raise ValueError("The workbook contains no report rows.")
-    return rows
-
-
-@app.route("/report-generation/needed-files", methods=["POST"])
-@login_required
-def report_generation_needed_files():
-    """Excel me kaun si screenshot files (PC ke paths) chahiye: browser sirf wahi upload karta hai."""
-    file = request.files.get("file")
-    if not file or not file.filename:
-        return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
-    try:
-        rows = _parse_report_generation_workbook(file)
-    except ValueError as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 400
-    names, url_count = {}, 0
-    for row in rows:
-        for column in ("SS_Path_1", "Screenshot Path"):
-            raw = str(row.get(column, "") or "").strip().strip('"').strip("'")
-            if not raw:
-                continue
-            if raw.lower().startswith(("http://", "https://")):
-                url_count += 1
-                continue
-            original = re.split(r"[\\/]+", raw)[-1]
-            names.setdefault(original.lower(), original)
-    return jsonify({"status": "success", "rows": len(rows), "local_names": sorted(names.values()), "url_count": url_count})
-
-
-@app.route("/report-generation", methods=["POST"])
-@login_required
-def start_report_generation():
-    file = request.files.get("file")
-    if not file or not file.filename:
-        return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
-    try:
-        rows = _parse_report_generation_workbook(file)
-        job_id = uuid.uuid4().hex
-        creds = _report_login_creds()
-        _create_report_generation_job(job_id, len(rows))
-        threading.Thread(target=_run_report_generation_job, args=(job_id, rows, creds), daemon=True).start()
-        return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
-    except ValueError as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 400
-    except Exception as exc:
-        return jsonify({"status": "error", "message": f"Could not read workbook: {exc}"}), 400
-
-
-@app.route("/report-extract-generation", methods=["POST"])
-@login_required
-def start_report_extract_generation():
-    file = request.files.get("file")
-    if not file or not file.filename:
-        return jsonify({"status": "error", "message": "Choose an Excel file."}), 400
-    extension = os.path.splitext(file.filename)[1].lower()
-    if extension not in (".xlsx", ".xls", ".xlsm"):
-        return jsonify({"status": "error", "message": "Use an .xlsx, .xls, or .xlsm file."}), 400
-    try:
-        sheets = pd.read_excel(file, sheet_name=None, dtype=str)
-        rows = []
-        for sheet_name, frame in sheets.items():
-            frame.columns = [str(column).strip() for column in frame.columns]
-            pdf_column = next((column for column in REPORT_EXTRACT_GENERATION_PDF_HEADERS if column in frame.columns), None)
-            missing = [column for column in REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS[1:] if column not in frame.columns]
-            if not pdf_column or missing:
-                required = "PDF Path (or PDF_Path, PDF URL, PDF_URL), Title, Description"
-                return jsonify({"status": "error", "message": f"Sheet '{sheet_name}' requires: {required}."}), 400
-            selected = frame[[pdf_column, "Title", "Description"]].fillna("")
-            selected[pdf_column] = selected[pdf_column].map(_normalize_report_source)
-            selected.columns = REPORT_EXTRACT_GENERATION_REQUIRED_COLUMNS
-            rows.extend(selected.to_dict("records"))
-        if not rows:
-            return jsonify({"status": "error", "message": "The workbook contains no PDF rows."}), 400
-        job_id = uuid.uuid4().hex
-        creds = _report_login_creds()
-        _create_report_generation_job(job_id, len(rows))
-        threading.Thread(target=_run_extract_and_generate_job, args=(job_id, rows, creds), daemon=True).start()
-        return jsonify({"status": "success", "job_id": job_id, "total": len(rows)})
-    except Exception as exc:
-        return jsonify({"status": "error", "message": f"Could not read workbook: {exc}"}), 400
-
-
-@app.route("/report-generation/<job_id>", methods=["GET"])
-@login_required
-def report_generation_status(job_id):
-    job = _report_generation_status(job_id)
-    return jsonify(job) if job else (jsonify({"status": "error", "message": "Job not found."}), 404)
-
-
-@app.route("/report-generation/<job_id>/download", methods=["GET"])
-@login_required
-def download_report_generation_result(job_id):
-    job = _report_generation_status(job_id)
-    if not job or job.get("status") != "done" or not os.path.isfile(job.get("output_path") or ""):
-        return jsonify({"status": "error", "message": "Result file is not ready."}), 404
-    return send_file(job["output_path"], as_attachment=True, download_name="case_report_results.xlsx")
-
-
-@app.route("/aml-case-actions/<job_id>", methods=["GET"])
-@login_required
-def aml_case_action_status(job_id):
-    job = _case_action_status(job_id)
-    if not job:
-        return jsonify({"status": "error", "message": "Job not found."}), 404
-    return jsonify(job)
-
-
-@app.route("/aml-case-actions/<job_id>/retry-failed", methods=["POST"])
-@login_required
-def retry_failed_aml_case_actions(job_id):
-    with CASE_ACTION_JOBS_LOCK:
-        prior = CASE_ACTION_JOBS.get(job_id)
-        if not prior:
-            return jsonify({"status": "error", "message": "Job not found."}), 404
-        failed_ids = [row["case_id"] for row in prior["results"] if row["status"] != "Success"]
-    if not failed_ids:
-        return jsonify({"status": "error", "message": "This run has no failed Case IDs to retry."}), 400
-    try:
-        creds = _case_action_login_creds()
-        retry_job_id = uuid.uuid4().hex
-        with CASE_ACTION_JOBS_LOCK:
-            CASE_ACTION_JOBS[retry_job_id] = {
-                "status": "queued", "total": len(failed_ids), "completed": 0,
-                "successful": 0, "failed": 0, "action": prior["action"],
-                "remark": prior["remark"], "results": [], "message": None,
-            }
-        threading.Thread(
-            target=_run_aml_case_action_job,
-            args=(retry_job_id, failed_ids, prior["action"], prior["remark"], creds),
-            daemon=True,
-        ).start()
-        return jsonify({"status": "success", "job_id": retry_job_id, "total": len(failed_ids)})
-    except ValueError as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 400
-    except Exception as exc:
-        return jsonify({"status": "error", "message": str(exc)}), 500
-
-@app.route("/download-regenerate-file/<job_id>/<file_type>", methods=["GET"])
-@login_required
-def download_regenerate_file(job_id, file_type):
-    with REGEN_JOBS_LOCK:
-        job = REGEN_JOBS.get(job_id)
-        job_data = _regen_job_response(job) if job else None
-    if not job_data:
-        job_data = _load_regen_job_snapshot(job_id)
-    if not job_data:
-        return jsonify({"status": "error", "message": "Job not found"}), 404
-
-    allowed_types = {
-        "final_excel": job_data.get("final_excel"),
-    }
-    file_path = allowed_types.get(file_type)
-    if not file_path or not os.path.isfile(file_path):
-        return jsonify({"status": "error", "message": "File not available"}), 404
-
-    return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
-
-
-@app.route("/regenerate-job-status/<job_id>", methods=["GET"])
-@login_required
-def regenerate_job_status(job_id):
-    with REGEN_JOBS_LOCK:
-        job = REGEN_JOBS.get(job_id)
-        job_data = _regen_job_response(job) if job else None
-    if not job_data:
-        job_data = _load_regen_job_snapshot(job_id)
-    if not job_data:
-        return jsonify({"status": "error", "message": "Job not found"}), 404
-    return jsonify(job_data)
-
-
-@app.route("/stop-regenerate-job/<job_id>", methods=["POST"])
-@login_required
-def stop_regenerate_job(job_id):
-    with REGEN_JOBS_LOCK:
-        job = REGEN_JOBS.get(job_id)
-        if not job:
-            return jsonify({"status": "error", "message": "Job not found"}), 404
-        job["stop_event"].set()
-        if job["status"] == "running":
-            job["status"] = "stopping"
-        drv = job.get("driver")
-    if drv:
-        try:
-            drv.quit()
-        except Exception:
-            pass
-    return jsonify({"status": "success", "message": "Stop signal sent"})
-
 @app.route("/api/total-numbers", methods=["GET"])
 def api_total_numbers_list():
     try:
@@ -9554,7 +7829,6 @@ ALLOWED_PAGES_OPTIONS = [
     ("allotment",         "Case Assignment"),
     ("allotment_admin",   "Case Assignment Admin"),
     ("insights",          "Dashboard"),
-    ("case_report",       "QC & CRG"),
     ("lunch",             "Break Time Management"),
     (DASHBOARD_MANAGEMENT_PAGE, "GUI Management"),
 ]
@@ -9660,12 +7934,16 @@ def _serialize_dashboard_user(row):
 @dashboard_management_required_json
 def dashboard_management_users():
     try:
-        resp = get_auth_supabase().table("dashboard_users") \
+        resp = get_dashboard_management_supabase().table("dashboard_users") \
             .select(
                 "id,email,display_name,password,allowed_pages,role,is_admin,"
                 "can_view_activity_log,allowed_departments,aml_username,aml_password,is_active"
-            ).order("id", desc=False).execute()
-        users = [_serialize_dashboard_user(u) for u in (resp.data or [])]
+            ).order("id", desc=False).limit(500).execute()
+        users = []
+        for user in (resp.data or []):
+            serialized = _serialize_dashboard_user(user)
+            serialized["allowed_pages"] = [p for p in parse_string_list(serialized.get("allowed_pages")) if p != "case_report"]
+            users.append(serialized)
         return jsonify({"success": True, "users": users})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -9697,7 +7975,7 @@ def dashboard_management_create_user():
             "email":                 email,
             "password":              password,
             "display_name":          display_name,
-            "allowed_pages":         parse_string_list(data.get("allowed_pages")),
+            "allowed_pages":         [p for p in parse_string_list(data.get("allowed_pages")) if p != "case_report"],
             "is_admin":              parse_bool(data.get("is_admin")),
             "role":                  (data.get("role")
                                       or ("admin" if parse_bool(data.get("is_admin")) else "user")),
@@ -9745,7 +8023,7 @@ def dashboard_management_update_user(user_id):
         record = {
             "email":                 email,
             "display_name":          display_name,
-            "allowed_pages":         parse_string_list(data.get("allowed_pages")),
+            "allowed_pages":         [p for p in parse_string_list(data.get("allowed_pages")) if p != "case_report"],
             "is_admin":              parse_bool(data.get("is_admin")),
             "role":                  (data.get("role")
                                       or ("admin" if parse_bool(data.get("is_admin")) else "user")),

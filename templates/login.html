@@ -107,26 +107,9 @@
             box-shadow: none;
         }
         body.theme-dark .dev-credit-footer { background: #172033; color: #cbd5e1; }
-        html.theme-switching *,
-        html.theme-switching *::before,
-        html.theme-switching *::after {
-            transition: none !important;
-        }
-        html.theme-switching body,
-        html.theme-switching .brand h1,
-        html.theme-switching .brand p,
-        html.theme-switching .login-card,
-        html.theme-switching .card-title,
-        html.theme-switching .form-group label,
-        html.theme-switching .form-group input,
-        html.theme-switching .toggle-password,
-        html.theme-switching .btn-login,
-        html.theme-switching .alert-error,
-        html.theme-switching .dev-credit-footer {
-            transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, box-shadow 180ms ease !important;
-        }
     </style>
-    <link rel="stylesheet" href="/static/gui-base.css?v=20260929-night-button-sheen">
+    <link rel="stylesheet" href="/static/gui-base.css?v=20261027-social-status-row-colors">
+    <script defer src="/static/gui-theme.js?v=20261027-theme-runtime"></script>
 </head>
 <body>
 <script>
@@ -171,12 +154,6 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
 </div>
     <div class="dev-credit-footer">Developed by <span>Shubhankar Shukla</span></div>
     <script>
-        (function initGuiTheme() {
-            let savedMode = 'light';
-            try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
-            document.body.classList.toggle('theme-dark', savedMode === 'dark');
-            document.documentElement.classList.remove('theme-dark-preload');
-        })();
         function togglePwd() {
             const pwd = document.getElementById('password'), icon = document.getElementById('toggleIcon');
             if (pwd.type === 'password') { pwd.type = 'text'; icon.classList.replace('fa-eye','fa-eye-slash'); }

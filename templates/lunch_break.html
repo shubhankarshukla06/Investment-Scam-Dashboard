@@ -163,7 +163,6 @@
             font-family:Inter,'Segoe UI',Roboto,sans-serif;
             scrollbar-color:#475569 #111827;
         }
-        html.theme-switching * { transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease; }
         body.theme-dark ::-webkit-scrollbar { width:8px; height:8px; }
         body.theme-dark ::-webkit-scrollbar-track { background:#111827; }
         body.theme-dark ::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
@@ -296,18 +295,6 @@
         .table-wrap {
             border-radius:12px;
         }
-        html.theme-switching *,
-        html.theme-switching *::before,
-        html.theme-switching *::after {
-            transition: background-color .26s ease, color .26s ease, border-color .26s ease, fill .26s ease !important;
-        }
-        html.theme-switching .fixed-header {
-            backdrop-filter: none !important;
-            -webkit-backdrop-filter: none !important;
-        }
-        html.theme-switching .table-wrap * {
-            transition: none !important;
-        }
         body.theme-dark .header:hover,
         body.theme-dark .stat-card:hover,
         body.theme-dark .btn:hover,
@@ -319,7 +306,8 @@
         .spinner { border:3px solid #f3f3f3; border-top:3px solid #27ae60; border-radius:50%; width:36px; height:36px; animation:spin 1s linear infinite; }
         @keyframes spin { to { transform:rotate(360deg); } }
     </style>
-    <link rel="stylesheet" href="/static/gui-base.css?v=20260929-night-button-sheen">
+    <link rel="stylesheet" href="/static/gui-base.css?v=20261027-social-status-row-colors">
+    <script defer src="/static/gui-theme.js?v=20261027-theme-runtime"></script>
 </head>
 <body>
 <script>
@@ -365,9 +353,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     {% if 'sheet' in allowed_pages %}
                     <option value="sheet">Summary &amp; Reports</option>
                     {% endif %}
-                    {% if 'case_report' in allowed_pages %}
-                    <option value="case_report">Case &amp; Report Generator</option>
-                    {% endif %}
+
                     {% if 'insights' in allowed_pages %}
                     <option value="insights">Dashboard</option>
                     {% endif %}
@@ -420,9 +406,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         {% if 'sheet' in allowed_pages %}
         <button type="button" class="page-nav-btn" onclick="changeLunchPage('sheet')">Summary &amp; Reports</button>
         {% endif %}
-        {% if 'case_report' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeLunchPage('case_report')">Case &amp; Report Generator</button>
-        {% endif %}
+
         {% if 'insights' in allowed_pages %}
         <button type="button" class="page-nav-btn" onclick="changeLunchPage('insights')">Dashboard</button>
         {% endif %}
@@ -1039,36 +1023,6 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
     });
 
     // ── Page navigation ───────────────────────────────────────────
-    function setGuiTheme(mode, animate = true) {
-        const selectedMode = mode === 'dark' ? 'dark' : 'light';
-        if (animate) {
-            document.documentElement.classList.remove('theme-switching');
-            void document.documentElement.offsetWidth;
-            document.documentElement.classList.add('theme-switching');
-            clearTimeout(window.__guiThemeTransitionTimer);
-        }
-        document.body.classList.toggle('theme-dark', selectedMode === 'dark');
-        document.documentElement.classList.remove('theme-dark-preload');
-        try { localStorage.setItem('scamGuiTheme', selectedMode); } catch (e) {}
-        const select = document.getElementById('themeModeSelect');
-        if (select) select.value = selectedMode;
-        const toggle = document.getElementById('themeModeToggle');
-        if (toggle) {
-            toggle.innerHTML = selectedMode === 'dark' ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
-            toggle.title = selectedMode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
-            toggle.setAttribute('aria-pressed', selectedMode === 'dark' ? 'true' : 'false');
-        }
-        if (animate) window.__guiThemeTransitionTimer = window.setTimeout(() => document.documentElement.classList.remove('theme-switching'), 180);
-    }
-    function toggleGuiTheme() {
-        const isDark = document.body.classList.contains('theme-dark');
-        setGuiTheme(isDark ? 'light' : 'dark');
-    }
-    (function initGuiTheme() {
-        let savedMode = 'light';
-        try { savedMode = localStorage.getItem('scamGuiTheme') || 'light'; } catch (e) {}
-        setGuiTheme(savedMode, false);
-    })();
 
     function changeLunchPage(pageType) {
         if (pageType === 'qc') {
@@ -1077,10 +1031,6 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
         }
         if (pageType === 'website_directory') {
             window.location.href = '/website-directory';
-            return;
-        }
-        if (pageType === 'case_report') {
-            window.location.href = '/case-report';
             return;
         }
         if (pageType === 'allotment') {

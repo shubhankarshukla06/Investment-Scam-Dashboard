@@ -330,9 +330,9 @@
       }
       th[data-col="id"],
       td[data-col="id"] {
-        width: 58px;
-        min-width: 58px;
-        max-width: 58px;
+        width: 54px;
+        min-width: 54px;
+        max-width: 54px;
         padding-right: 6px;
       }
       #dmTable.dm-dashboard-table th:nth-child(3),
@@ -899,9 +899,10 @@
     </style>
     <link
       rel="stylesheet"
-      href="/static/gui-base.css?v=20260929-night-button-sheen"
+      href="/static/gui-base.css?v=20261027-social-status-row-colors"
     />
-  </head>
+      <script defer src="/static/gui-theme.js?v=20261027-theme-runtime"></script>
+</head>
   <body>
     <script>
       if (document.documentElement.classList.contains("theme-dark-preload")) {
@@ -946,8 +947,6 @@
               <option value="allotment">Case Assignment</option>
               {% endif %} {% if 'sheet' in allowed_pages %}
               <option value="sheet">Summary &amp; Reports</option>
-              {% endif %} {% if 'case_report' in allowed_pages %}
-              <option value="case_report">Case &amp; Report Generator</option>
               {% endif %} {% if 'insights' in allowed_pages %}
               <option value="insights">Dashboard</option>
               {% endif %} {% if 'qc' in allowed_pages %}
@@ -1037,14 +1036,6 @@
           onclick="changeDmPage('sheet')"
         >
           Summary &amp; Reports
-        </button>
-        {% endif %} {% if 'case_report' in allowed_pages %}
-        <button
-          type="button"
-          class="page-nav-btn"
-          onclick="changeDmPage('case_report')"
-        >
-          QC &amp;CRG
         </button>
         {% endif %} {% if 'insights' in allowed_pages %}
         <button
@@ -1378,7 +1369,6 @@
         allotment: "Case Assignment",
         allotment_admin: "Case Assignment Admin",
         sheet: "Summary & Reports",
-        case_report: "Case & Report Generator",
         insights: "Dashboard",
         qc: "QC Review",
         dashboard_management: "GUI Management",
@@ -1466,9 +1456,30 @@
       let dmUsersLoaded = false;
       let dmRequestSeq = 0;
 
+      function setTableLoading(message, colspan) {
+        const body = document.getElementById("dmTableBody");
+        if (!body) return;
+        const safeColspan = Math.max(1, Number(colspan) || 11);
+        const wrap = body.closest(".table-wrap");
+        if (wrap) wrap.classList.add("is-loading");
+        body.innerHTML =
+          '<tr><td colspan="' +
+          safeColspan +
+          '"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i> ' +
+          escapeHtml(message || "Loading...") +
+          "</div></td></tr>";
+      }
+
+      function clearTableLoading() {
+        const body = document.getElementById("dmTableBody");
+        const wrap = body ? body.closest(".table-wrap") : null;
+        if (wrap) wrap.classList.remove("is-loading");
+      }
+
       async function loadUsers(force, requestId) {
         requestId = requestId || ++dmRequestSeq;
         const body = document.getElementById("dmTableBody");
+        if (!body) return;
         if (!force && dmUsersLoaded) {
           if (requestId === dmRequestSeq) {
             applyFilters();
@@ -1476,12 +1487,25 @@
           }
           return;
         }
-        setTableLoading("Loading users...", 11);
         try {
-          const resp = await fetch("/dashboard-management/api/users", {
-            headers: { Accept: "application/json" },
-          });
-          const data = await resp.json();
+          setTableLoading("Loading users...", 11);
+          const controller = new AbortController();
+          const requestTimeout = window.setTimeout(
+            () => controller.abort(),
+            12000,
+          );
+          let data;
+          try {
+            const resp = await fetch("/dashboard-management/api/users", {
+              headers: { Accept: "application/json" },
+              signal: controller.signal,
+            });
+            data = await resp.json();
+            if (!resp.ok)
+              throw new Error(data.error || "Failed to load users.");
+          } finally {
+            window.clearTimeout(requestTimeout);
+          }
           if (!data.success)
             throw new Error(data.error || "Failed to load users.");
           dmUsers = data.users || [];
@@ -1492,9 +1516,14 @@
         } catch (e) {
           if (requestId !== dmRequestSeq) return;
           dmUsersLoaded = false;
+          const message =
+            e.name === "AbortError"
+              ? "Loading users timed out. Retry in a moment."
+              : e.message;
           body.innerHTML =
-            '<tr><td colspan="12"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
-            escapeHtml(e.message) +
+            '<tr><td colspan="11"><div class="empty-state"><i class="fas fa-exclamation-triangle" style="color:#e74c3c;"></i> ' +
+            escapeHtml(message) +
+            ' <button type="button" class="btn btn-outline" onclick="loadUsers(true)">Retry</button>' +
             "</div></td></tr>";
           clearTableLoading();
         }
@@ -1909,10 +1938,6 @@
           window.location.href = "/lunch-break";
           return;
         }
-        if (pageType === "case_report") {
-          window.location.href = "/case-report";
-          return;
-        }
         if (pageType === "allotment") {
           window.location.href = "/scam-website-allotment";
           return;
@@ -1920,46 +1945,7 @@
         window.location.href = "/?page=" + pageType;
       }
 
-      function setGuiTheme(mode, animate = true) {
-        const selectedMode = mode === "dark" ? "dark" : "light";
-        if (animate) {
-          document.documentElement.classList.remove("theme-switching");
-          void document.documentElement.offsetWidth;
-          document.documentElement.classList.add("theme-switching");
-          clearTimeout(window.__guiThemeTransitionTimer);
-        }
-        document.body.classList.toggle("theme-dark", selectedMode === "dark");
-        document.documentElement.classList.remove("theme-dark-preload");
-        try {
-          localStorage.setItem("scamGuiTheme", selectedMode);
-        } catch (e) {}
-        const toggle = document.getElementById("themeModeToggle");
-        if (toggle) {
-          toggle.innerHTML =
-            selectedMode === "dark"
-              ? '<i class="fas fa-sun"></i>'
-              : '<i class="fas fa-moon"></i>';
-          toggle.title =
-            selectedMode === "dark"
-              ? "Switch to light mode"
-              : "Switch to dark mode";
-          toggle.setAttribute(
-            "aria-pressed",
-            selectedMode === "dark" ? "true" : "false",
-          );
-        }
-        if (animate) {
-          window.__guiThemeTransitionTimer = window.setTimeout(
-            () => document.documentElement.classList.remove("theme-switching"),
-            180,
-          );
-        }
-      }
 
-      function toggleGuiTheme() {
-        const isDark = document.body.classList.contains("theme-dark");
-        setGuiTheme(isDark ? "light" : "dark");
-      }
 
       function syncFixedHeaderSpace() {
         const header = document.querySelector(".fixed-header");
@@ -1979,7 +1965,6 @@
             return "light";
           }
         })();
-        setGuiTheme(saved, false);
         syncFixedHeaderSpace();
         if (window.ResizeObserver) {
           new ResizeObserver(syncFixedHeaderSpace).observe(
