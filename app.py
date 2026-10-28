@@ -45,6 +45,8 @@ import ipaddress
 
 _EASYOCR_READER = None
 _EASYOCR_LOCK = threading.Lock()
+_DDDDOCR_ENGINE = None
+_DDDDOCR_LOCK = threading.Lock()
 _AML_DEBUG_DRIVERS = []
 
 load_dotenv()
@@ -1993,7 +1995,7 @@ def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
         with open(csv_path, "wb") as output_file:
             output_file.write(csv_bytes)
 
-        progress("starting_browser", "Starting the headed AML browser.")
+        progress("starting_browser", "Starting the headless AML browser.")
         driver = aml_build_driver(headless=True)
         _AML_DEBUG_DRIVERS.append(driver)
         progress("logging_in", "Signing in to AML.")
@@ -2844,7 +2846,7 @@ def _read_aml_export_response(response):
 
 
 def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
-    """Fetch AML report data using the headed AML GUI workflow."""
+    """Fetch AML report data using the browser-driven AML GUI workflow."""
     driver = None
     download_dir = None
 
@@ -2859,11 +2861,11 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
     try:
         ensure_before_deadline()
         download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
-        report("starting_browser", "Starting the headed AML browser.")
+        report("starting_browser", "Starting the headless AML browser.")
         driver = aml_build_driver(headless=True, download_dir=download_dir)
         _AML_DEBUG_DRIVERS.append(driver)
         ensure_before_deadline()
-        report("logging_in", "Signing in through the visible AML browser.")
+        report("logging_in", "Signing in through the headless AML browser.")
         if not aml_login(
             driver,
             max_captcha_attempts=7,
