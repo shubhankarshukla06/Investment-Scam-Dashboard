@@ -413,51 +413,32 @@
             .summary-status-stack.is-ready .summary-status-message i { color: #20a464; }
             .summary-status-stack.is-error .summary-status-message i { color: #d64545; }
             .summary-status-stack .summary-status-message span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .summary-status-stack .automation-steps,
-            #sheetImportSteps { display: flex; grid-column: 2; flex-flow: row nowrap; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; margin: 0; overflow: hidden; }
-            .summary-status-stack .automation-steps[hidden],
-            #sheetImportSteps[hidden] { display: none; }
-            .summary-status-stack .automation-step,
-            #sheetImportSteps .automation-step { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 9px; line-height: 1.15; gap: 3px; }
-            .summary-status-stack .automation-step i,
-            #sheetImportSteps .automation-step i { width: 10px; flex: 0 0 10px; font-size: 8px; }
-            .summary-status-stack .automation-step span,
-            #sheetImportSteps .automation-step span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-            #sheetImportSteps .automation-step { color: #78869a; }
-            #sheetImportSteps .automation-step.is-active { color: #1769aa; font-weight: 700; }
-            #sheetImportSteps .automation-step.is-done { color: #16834b; }
-            #sheetImportSteps .automation-step.is-error { color: #b83232; font-weight: 700; }
-            #sheetImportSteps .automation-step.is-active i { color: #2784d8; }
-            #sheetImportSteps .automation-step.is-done i { color: #20a464; }
-            #sheetImportSteps .automation-step.is-error i { color: #d64545; }
-            .sheet-import-status-group { min-width: 0; }
-            .sheet-import-status-card { display: grid; grid-template-columns: minmax(118px, auto) minmax(0, 1fr); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; min-height: var(--row-h); padding: 5px 8px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
-            .sheet-import-status-card.is-running { border-color: #b0bdf7; background: #f0f3ff; color: #1769aa; }
-            .sheet-import-status-card.is-done { border-color: #a9dfbf; background: #eafaf1; color: #16834b; }
-            .sheet-import-status-card.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
-            .sheet-import-status-card .sheet-status-box { display: flex; grid-column: 1; align-items: center; gap: 6px; width: 100%; min-width: 0; height: auto; min-height: 24px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #78869a; font-size: 11px; line-height: 1.2; font-weight: 600; justify-content: flex-start; }
-            .sheet-import-status-card.is-running .sheet-status-box.waiting { color: #1769aa; }
-            .sheet-import-status-card .sheet-status-box.ready { color: #16834b; }
-            .sheet-import-status-card .sheet-status-box.error { color: #b83232; }
-            .sheet-import-status-card .sheet-status-box i { color: inherit; font-size: 11px; }
-            .sheet-import-status-card .sheet-status-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            body.theme-dark .sheet-import-status-card { border-color: #40536b; background: #1d293b; }
-            body.theme-dark .sheet-import-status-card.is-running { border-color: #5965a7; background: #252a46; }
-            body.theme-dark .sheet-import-status-card.is-done { border-color: #357554; background: #1d332b; }
-            body.theme-dark .sheet-import-status-card.is-error { border-color: #7f3c43; background: #3a242a; }
-            body.theme-dark .sheet-import-status-card .sheet-status-box { border: 0; background: transparent; color: inherit; }
+            .summary-status-stack .automation-steps { display: flex; grid-column: 2; flex-flow: row nowrap; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; margin: 0; overflow: hidden; }
+            .summary-status-stack .automation-steps[hidden] { display: none; }
+            .summary-status-stack .automation-step { flex: 1 1 0; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 9px; line-height: 1.15; gap: 3px; }
+            .summary-status-stack .automation-step i { width: 10px; flex: 0 0 10px; font-size: 8px; }
+            .summary-status-stack .automation-step span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+            .sheet-processing-status-group { min-width: 0; }
+            .sheet-processing-status-card { display: grid; grid-template-columns: minmax(118px, auto) minmax(0, 1fr); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; min-height: var(--row-h); padding: 5px 8px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
+            .sheet-processing-status-card.is-running { border-color: #b0bdf7; background: #f0f3ff; color: #1769aa; }
+            .sheet-processing-status-card.is-done { border-color: #a9dfbf; background: #eafaf1; color: #16834b; }
+            .sheet-processing-status-card.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
+            .sheet-processing-status-card .sheet-status-box { display: flex; grid-column: 1; align-items: center; gap: 6px; width: 100%; min-width: 0; height: auto; min-height: 24px; padding: 0; overflow: hidden; border: 0; background: transparent; color: #78869a; font-size: 11px; line-height: 1.2; font-weight: 600; justify-content: flex-start; }
+            .sheet-processing-status-card.is-running .sheet-status-box.waiting { color: #1769aa; }
+            .sheet-processing-status-card .sheet-status-box.ready { color: #16834b; }
+            .sheet-processing-status-card .sheet-status-box.error { color: #b83232; }
+            .sheet-processing-status-card .sheet-status-box i { color: inherit; font-size: 11px; }
+            .sheet-processing-status-card .sheet-status-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            body.theme-dark .sheet-processing-status-card { border-color: #40536b; background: #1d293b; }
+            body.theme-dark .sheet-processing-status-card.is-running { border-color: #5965a7; background: #252a46; }
+            body.theme-dark .sheet-processing-status-card.is-done { border-color: #357554; background: #1d332b; }
+            body.theme-dark .sheet-processing-status-card.is-error { border-color: #7f3c43; background: #3a242a; }
+            body.theme-dark .sheet-processing-status-card .sheet-status-box { border: 0; background: transparent; color: inherit; }
             body.theme-dark .summary-status-stack { background: #252a46; border-color: #5965a7; color: #dce2ff; }
             body.theme-dark .summary-status-stack.is-waiting { background: #1d293b; border-color: #40536b; color: #cbd5e1; }
             body.theme-dark .summary-status-stack.is-ready { background: #1d332b; border-color: #357554; color: #8ce0b4; }
             body.theme-dark .summary-status-stack.is-error { background: #3a242a; border-color: #7f3c43; color: #ffb4ad; }
             body.theme-dark .summary-status-stack .summary-status-message { color: inherit; }
-            body.theme-dark #sheetImportSteps .automation-step { color: #91a1b6; }
-            body.theme-dark #sheetImportSteps .automation-step.is-active { color: #a9d4ff; }
-            body.theme-dark #sheetImportSteps .automation-step.is-done { color: #8ce0b4; }
-            body.theme-dark #sheetImportSteps .automation-step.is-error { color: #ff9b9b; }
-            body.theme-dark #sheetImportSteps .automation-step.is-active i { color: #a9d4ff; }
-            body.theme-dark #sheetImportSteps .automation-step.is-done i { color: #8ce0b4; }
-            body.theme-dark #sheetImportSteps .automation-step.is-error i { color: #ff9b9b; }
             .automation-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px 10px; margin: 7px 0 0; padding: 0; list-style: none; }
             .automation-step { display: flex; align-items: center; gap: 6px; min-width: 0; color: #8a96a5; font-size: 10px; line-height: 1.3; }
             .automation-step i { width: 13px; flex: 0 0 13px; color: #b8c3d0; text-align: center; }
@@ -975,7 +956,7 @@
             .logo h1 { white-space: normal; }
         }
             @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
-            @media (max-width: 768px) { .summary-status-stack, .sheet-import-status-card { grid-template-columns: minmax(100px, auto) minmax(0, 1fr); } }
+            @media (max-width: 768px) { .summary-status-stack, .sheet-processing-status-card { grid-template-columns: minmax(100px, auto) minmax(0, 1fr); } }
             /* Insights: keep cards & graph sections aligned and consistent */
             @media (max-width: 1200px) {
                 #insightsStatCards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -2356,15 +2337,7 @@
                     </div>
                     <!-- SHEET MAKER MODE -->
                     <div id="sheetMakerSection">
-                        <div class="sheet-maker-row sheet-maker-main-row">
-                            <div class="sheet-maker-group" style="min-width:0;">
-                                <label><i class="fas fa-database"></i> Source Type</label>
-                                <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
-                                    <option value="aml" selected>Send to AML</option>
-                                    <option value="upload">Sheet Upload</option>
-                                </select>
-                            </div>
-                            <div class="sheet-maker-group" style="min-width:0;">
+                        <div class="sheet-maker-row sheet-maker-main-row"><div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-file-excel"></i> Select Sheet Type</label>
                                 <select class="sheet-maker-select" id="sheetTypeSelect" onchange="updateSelectedSheet()">
                                     <option value="">-- Select Sheet Type --</option>
@@ -2383,9 +2356,9 @@
                                     <input type="file" id="fileUpload" style="display:none;" onchange="updateFileName(this)" accept=".csv,.xlsx,.xls,.xlsm,.xlsb,.ods">
                                 </div>
                             </div>
-                            <div class="sheet-maker-group sheet-import-status-group" style="min-width:0;">
+                            <div class="sheet-maker-group sheet-processing-status-group" style="min-width:0;">
                                 <label><i class="fas fa-info-circle"></i> Status</label>
-                                <div id="sheetDataProcessingStatus" class="sheet-import-status-card" role="status" aria-live="polite">
+                                <div id="sheetDataProcessingStatus" class="sheet-processing-status-card" role="status" aria-live="polite">
                                     <div id="sheetNotReadyMsg" class="sheet-status-box waiting">
                                         <i class="fas fa-hourglass-half"></i>
                                         <span>Waiting for input...</span>
@@ -2394,18 +2367,12 @@
                                         <i class="fas fa-check-circle"></i>
                                         <span id="sheetReadyText"></span>
                                     </div>
-                                    <ol class="automation-steps" id="sheetImportSteps" hidden aria-label="AML import progress">
-                                        <li class="automation-step" title="CSV prepared"><i class="fas fa-circle"></i><span>CSV ready</span></li>
-                                        <li class="automation-step" title="Connect to AML service"><i class="fas fa-circle"></i><span>Connect</span></li>
-                                        <li class="automation-step" title="Log in, open Import and submit the CSV"><i class="fas fa-circle"></i><span>Login &amp; import</span></li>
-                                        <li class="automation-step" title="Receive import result"><i class="fas fa-circle"></i><span>Result</span></li>
-                                    </ol>
                                 </div>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-download"></i> Action</label>
                                 <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
-                                    <i class="fas fa-download"></i> Generate CSV Excel File
+                                    <i class="fas fa-download"></i> Generate CSV
                                 </button>
                             </div>
                         </div>
@@ -3695,7 +3662,7 @@
                 if (mode === 'sheet') {
                     sheetSection.style.display = '';
                     templateBtn.style.display  = '';
-                    onSheetSourceChange();
+                    showSheetReadyMessage();
                 } else if (mode === 'summary') {
                     summarySection.style.display = '';
                     templateBtn.style.display    = 'none';
@@ -4636,39 +4603,22 @@
             function showSheetReadyMessage() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 const readyEl   = document.getElementById('sheetReadyMsg');
                 const waitEl    = document.getElementById('sheetNotReadyMsg');
                 const textEl    = document.getElementById('sheetReadyText');
                 if (sheetType && fileInput.files.length > 0) {
-                    textEl.textContent = sourceType === 'aml'
-                        ? `All set, ${getFirstName()}. Click 'Send CSV to AML' to continue.`
-                        : `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
+                    textEl.textContent = `All set, ${getFirstName()}. Your sheet is ready for download. Click 'Generate CSV' to proceed.`;
                     readyEl.style.display = 'flex';
                     waitEl.style.display  = 'none';
                 } else {
                     readyEl.style.display = 'none';
                     waitEl.style.display  = 'flex';
-                    waitEl.querySelector('span').textContent = sourceType === 'aml'
-                        ? 'Waiting for file, sheet type, and CSV import...'
-                        : 'Waiting for input...';
+                    waitEl.querySelector('span').textContent = 'Waiting for input...';
                 }
-            }
-            function onSheetSourceChange() {
-                const importSteps = document.getElementById('sheetImportSteps');
-                if (importSteps) importSteps.hidden = (document.getElementById('sheetSourceSelect')?.value || 'aml') !== 'aml';
-                updateSheetActionButton();
-                showSheetReadyMessage();
             }
             function updateSheetActionButton() {
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 const btn = document.getElementById('generateBtn');
-                if (!btn) return;
-                if (sourceType === 'aml') {
-                    btn.innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Send CSV to AML';
-                } else {
-                    btn.innerHTML = '<i class="fas fa-download"></i> Generate CSV Excel File';
-                }
+                if (btn) btn.innerHTML = '<i class="fas fa-download"></i> Generate CSV';
             }
             function updateSelectedSheet() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
@@ -4835,105 +4785,10 @@
             function generateSheet() {
                 const sheetType = document.getElementById('sheetTypeSelect').value;
                 const fileInput = document.getElementById('fileUpload');
-                const sourceType = document.getElementById('sheetSourceSelect')?.value || 'aml';
                 if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
                 if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
-                if (sourceType === 'aml') {
-                    importSheetToService();
-                    return;
-                }
                 showToast('Generating sheet, please wait...', false, false);
                 document.getElementById('sheetForm').submit();
-            }
-            function updateSheetImportSteps(stage, status) {
-                const list = document.getElementById('sheetImportSteps');
-                if (!list) return;
-                list.hidden = false;
-                const value = String(stage || '').toLowerCase();
-                const statusCard = document.getElementById('sheetDataProcessingStatus');
-                let active = 0;
-                if (/connect|wake|service/.test(value)) active = 1;
-                if (/aml import|login|upload|confirm/.test(value)) active = 2;
-                if (/complete|import confirmed|result received/.test(value)) active = 3;
-                const hasError = status === 'error' || /review|unconfirmed|failed|rejected/.test(value);
-                const done = status === 'done' && !hasError;
-                if (hasError && /failed|rejected/.test(value)) active = 2;
-                if (statusCard) {
-                    statusCard.classList.toggle('is-error', hasError);
-                    statusCard.classList.toggle('is-done', done);
-                    statusCard.classList.toggle('is-running', !done && !hasError);
-                }
-                list.querySelectorAll('.automation-step').forEach((step, index) => {
-                    step.classList.toggle('is-done', done || index < active);
-                    step.classList.toggle('is-active', !done && !hasError && index === active);
-                    step.classList.toggle('is-error', hasError && index === active);
-                    const icon = step.querySelector('i');
-                    if (icon) icon.className = done || index < active
-                        ? 'fas fa-check-circle'
-                        : (hasError && index === active
-                            ? 'fas fa-exclamation-circle'
-                            : (!done && index === active ? 'fas fa-spinner fa-spin' : 'fas fa-circle'));
-                });
-            }
-            async function waitForSheetImport(jobId) {
-                const deadline = Date.now() + 12 * 60 * 1000;
-                while (Date.now() < deadline) {
-                    const resp = await fetch(`/sheet-import-status/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
-                    const data = await resp.json().catch(() => null);
-                    if (!resp.ok || !data?.success) {
-                        throw new Error(data?.error || `Could not read import status (HTTP ${resp.status})`);
-                    }
-                    const waitEl = document.getElementById('sheetNotReadyMsg');
-                    const statusText = waitEl?.querySelector('span');
-                    updateSheetImportSteps(data.stage || data.message, data.status);
-                    if (statusText && data.message) statusText.textContent = data.message;
-                    if (data.status === 'done') return data;
-                    if (data.status === 'error') throw new Error(data.message || 'CSV import failed');
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                }
-                throw new Error('CSV import is taking too long. Please check the server logs and retry.');
-            }
-            async function importSheetToService() {
-                const sheetType = document.getElementById('sheetTypeSelect').value;
-                const fileInput = document.getElementById('fileUpload');
-                const btn = document.getElementById('generateBtn');
-                if (!sheetType) { showToast('Please select a sheet type first!', true); return; }
-                if (!fileInput.files.length) { showToast('Please select a file first!', true); return; }
-                const readyEl = document.getElementById('sheetReadyMsg');
-                const waitEl = document.getElementById('sheetNotReadyMsg');
-                showToast('Preparing CSV and sending it to AML...', false, false);
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending to AML...';
-                readyEl.style.display = 'none';
-                waitEl.style.display = 'flex';
-                waitEl.querySelector('span').textContent = 'Preparing your CSV for AML import...';
-                updateSheetImportSteps('CSV prepared', 'running');
-                try {
-                    const formData = new FormData();
-                    formData.append('sheet_type', sheetType);
-                    formData.append('file', fileInput.files[0]);
-                    const resp = await fetch('/sheet-import-to-service', { method: 'POST', body: formData });
-                    const data = await resp.json().catch(() => null);
-                    if (!resp.ok || !data?.success || !data.job_id) {
-                        throw new Error(data?.error || `Could not start CSV import (HTTP ${resp.status})`);
-                    }
-                    const result = await waitForSheetImport(data.job_id);
-                    showToast(`Imported Success: ${result.rows || data.rows || 0} rows`, false, true);
-                    waitEl.style.display = 'none';
-                    readyEl.style.display = 'flex';
-                    readyEl.className = 'sheet-status-box ready';
-                    readyEl.innerHTML = `<i class="fas fa-check-circle"></i><span>Imported Success — ${result.rows || data.rows || 0} rows.</span>`;
-                    updateSheetImportSteps(result.stage || 'Import confirmed', 'done');
-                } catch (err) {
-                    showToast('CSV import failed: ' + err.message, true);
-                    readyEl.style.display = 'none';
-                    waitEl.style.display = 'flex';
-                    waitEl.className = 'sheet-status-box waiting';
-                    waitEl.querySelector('span').textContent = 'CSV import failed. Check the error and server logs.';
-                } finally {
-                    updateSheetActionButton();
-                    btn.disabled = false;
-                }
             }
             // SUMMARY MAKER LOGIC  —  FIXED parseSummaryFile
             function onSummaryTypeChange() {
@@ -5184,7 +5039,7 @@
                                 const preview = responseText.replace(/\s+/g, ' ').slice(0, 180);
                                 throw new Error(`Summary export status returned HTTP ${resp.status} (${contentType}). ${preview || 'The response was empty.'}`);
                             }
-                            if (!resp.ok) throw new Error(data.error || 'Could not read CSV export status.');
+                            if (!resp.ok) throw new Error(data.error || 'Could not read AML export status.');
                             if (!data || typeof data !== 'object' || typeof data.status !== 'string') {
                                 throw new Error(`Summary export status returned an unexpected JSON response (HTTP ${resp.status}).`);
                             }
@@ -5208,8 +5063,8 @@
                                 }
                                 return resolve(resultData);
                             }
-                            if (data.status === 'error') throw new Error(data.message || 'CSV export failed.');
-                            if (Date.now() >= deadline) throw new Error('CSV export is taking too long. Please try again.');
+                            if (data.status === 'error') throw new Error(data.message || 'AML export failed.');
+                            if (Date.now() >= deadline) throw new Error('AML export is taking too long. Please try again.');
                             setTimeout(poll, 1200);
                         } catch (err) {
                             reject(err);
@@ -5228,7 +5083,7 @@
                         body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
                     });
                 } catch (err) {
-                    throw new Error(`Could not reach the CSV export endpoint: ${err.message || 'network error'}`);
+                    throw new Error(`Could not reach the AML export endpoint: ${err.message || 'network error'}`);
                 }
                 const responseText = await resp.text();
                 let data;
@@ -5237,10 +5092,10 @@
                 } catch (parseErr) {
                     const contentType = resp.headers.get('content-type') || 'unknown content type';
                     const preview = responseText.replace(/\s+/g, ' ').slice(0, 180);
-                    throw new Error(`Could not start CSV export: HTTP ${resp.status} (${contentType}). ${preview || 'The response was empty.'}`);
+                    throw new Error(`Could not start AML export: HTTP ${resp.status} (${contentType}). ${preview || 'The response was empty.'}`);
                 }
                 if (!resp.ok || !data.success || !data.job_id) {
-                    throw new Error(data.error || 'Could not start CSV export.');
+                    throw new Error(data.error || 'Could not start AML export.');
                 }
                 return waitForSummaryGuiJob(data.job_id, onProgress);
             }
@@ -5264,15 +5119,15 @@
                 resetSummaryProcessSteps();
                 document.getElementById('summaryFileName').textContent = 'Downloading CSV...';
                 readyEl.style.display = 'none';
-                setSummaryDataStatus('Downloading CSV export...');
+                setSummaryDataStatus('Downloading AML report...');
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
                 try {
                     const data = await requestSummaryCsvExport(dateFrom, dateTo, function(job) {
                         waitEl.querySelector('span').textContent = job.message
                             || (job.status === 'queued'
-                                ? 'Preparing CSV export...'
-                                : 'Downloading CSV export...');
+                                ? 'Preparing AML report...'
+                                : 'Downloading AML report...');
                     });
                     summaryHeaders = data.headers || [];
                     summaryParsedData = data.rows || [];
@@ -5283,7 +5138,7 @@
                     if (loadedRows > 0) {
                         showToast(`CSV data loaded: ${loadedRows} rows`, false, true);
                     } else {
-                        showToast('CSV export completed, but 0 rows matched this filter.', false, false);
+                        showToast('AML export completed, but 0 rows matched this filter.', false, false);
                     }
                     checkSummaryReady();
                     if (summaryParsedData.length > 0 && document.getElementById('summaryTypeSelect').value) {

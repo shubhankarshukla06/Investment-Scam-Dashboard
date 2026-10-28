@@ -174,8 +174,7 @@ BASE_DIR = Path(__file__).parent
 CONFIG_PATH = BASE_DIR / "sheet_mapping_config.json"
 EXCEL_FOLDER_PATH = BASE_DIR / "excel_data"
 EXCEL_FOLDER_PATH.mkdir(exist_ok=True)
-BANK_NAME_MAPPING_PATH = EXCEL_FOLDER_PATH / "bank_name.xlsx"
-IFSC_MAPPING_PATH = EXCEL_FOLDER_PATH / "ifsc_mapping.xlsx"
+IFSC_MAPPING_TABLE = "ifsc_bank_mapping"
 
 supabase: Client = create_client(
     os.environ.get("SUPABASE_URL"),
@@ -403,33 +402,19 @@ def read_data_file(file_path, file_ext):
         raise
 def load_excel_data():
     global BANK_NAME_MAPPING, IFSC_MAPPING
+    # Bank names inferred from UPI handles are intentionally disabled. IFSC
+    # bank names are maintained centrally in Supabase.
+    BANK_NAME_MAPPING = {}
+    IFSC_MAPPING = {}
     try:
-        if BANK_NAME_MAPPING_PATH.exists():
-            df_bank = pd.read_excel(BANK_NAME_MAPPING_PATH)
-            BANK_NAME_MAPPING = {}
-            key_col = next((c for c in df_bank.columns if any(k in str(c).lower() for k in ['key', 'handle', 'upi'])), df_bank.columns[0] if len(df_bank.columns) > 0 else None)
-            bank_col = next((c for c in df_bank.columns if 'bank' in str(c).lower() and 'name' in str(c).lower()), df_bank.columns[1] if len(df_bank.columns) > 1 else None)
-            if key_col and bank_col:
-                for _, row in df_bank.iterrows():
-                    k = str(row.get(key_col, '')).strip().lower()
-                    v = str(row.get(bank_col, 'NA')).strip()
-                    if k and k not in ['na', 'nan', 'none', 'null', '']:
-                        BANK_NAME_MAPPING[k] = v
-        if IFSC_MAPPING_PATH.exists():
-            df_ifsc = pd.read_excel(IFSC_MAPPING_PATH)
-            IFSC_MAPPING = {}
-            prefix_col = next((c for c in df_ifsc.columns if any(k in str(c).lower() for k in ['ifsc', 'prefix', 'code'])), df_ifsc.columns[0] if len(df_ifsc.columns) > 0 else None)
-            bank_col2 = next((c for c in df_ifsc.columns if 'bank' in str(c).lower() and 'name' in str(c).lower()), df_ifsc.columns[1] if len(df_ifsc.columns) > 1 else None)
-            if prefix_col and bank_col2:
-                for _, row in df_ifsc.iterrows():
-                    k = str(row.get(prefix_col, '')).strip().upper()
-                    v = str(row.get(bank_col2, 'NA')).strip()
-                    if k and k.lower() not in ['na', 'nan', 'none', 'null', '']:
-                        IFSC_MAPPING[k] = v
+        response = supabase.table(IFSC_MAPPING_TABLE).select("ifsc_code,bank_name").execute()
+        for row in response.data or []:
+            key = str(row.get("ifsc_code", "")).strip().upper()
+            value = str(row.get("bank_name", "NA")).strip()
+            if key and key.lower() not in ("na", "nan", "none", "null", ""):
+                IFSC_MAPPING[key[:4]] = value or "NA"
     except Exception as e:
-        print(f"Error loading Excel data: {e}")
-        BANK_NAME_MAPPING = {}
-        IFSC_MAPPING = {}
+        print(f"Error loading IFSC mapping from Supabase: {e}")
 load_excel_data()
 def load_config():
     try:
@@ -552,35 +537,11 @@ def extract_handle(upi_vpa):
         return handle
     return "NA"
 def get_bank_name_from_handle(handle, ifsc_code=None):
-    if handle != "NA" and handle:
-        handle_lower = handle.lower().strip()
-        if handle_lower in BANK_NAME_MAPPING:
-            return BANK_NAME_MAPPING[handle_lower]
-        for key, value in BANK_NAME_MAPPING.items():
-            if key in handle_lower or handle_lower in key:
-                return value
-        common_mappings = {
-            'okaxis': 'NA'
-        }
-        for pattern, bank_name in common_mappings.items():
-            if pattern in handle_lower:
-                return bank_name
     if ifsc_code and ifsc_code != "NA":
         try:
             ifsc_prefix = ifsc_code[:4].upper()
             if ifsc_prefix in IFSC_MAPPING:
                 return IFSC_MAPPING[ifsc_prefix]
-            common_ifsc = {
-                'SBIN': 'State Bank of India', 'ICIC': 'ICICI Bank',
-                'HDFC': 'HDFC Bank', 'UTIB': 'Axis Bank', 'CNRB': 'Canara Bank',
-                'BARB': 'Bank of Baroda', 'BKID': 'Bank of India',
-                'PUNB': 'Punjab National Bank', 'UBIN': 'Union Bank of India',
-                'INDB': 'IndusInd Bank', 'YESB': 'Yes Bank',
-                'KARB': 'Karnataka Bank', 'FDRL': 'Federal Bank',
-                'IDFB': 'IDFC First Bank', 'RATN': 'RBL Bank'
-            }
-            if ifsc_prefix in common_ifsc:
-                return common_ifsc[ifsc_prefix]
         except Exception as e:
             print(f"Error in IFSC lookup for {ifsc_code}: {e}")
     return "NA"
@@ -2001,166 +1962,6 @@ def generate_sheet():
         flash(f"Error generating sheet: {str(e)}", "error")
         return redirect("/?page=sheet")
 
-def _build_sheet_csv_response(sheet_type, file_storage):
-    if not sheet_type:
-        raise ValueError("Please select a sheet type")
-    if not file_storage or file_storage.filename == '':
-        raise ValueError("Please select a file")
-    if not is_allowed_file(file_storage.filename):
-        raise ValueError("Unsupported file type.")
-
-    filename = secure_filename(file_storage.filename)
-    temp_path = os.path.join(tempfile.gettempdir(), filename)
-    file_storage.save(temp_path)
-    try:
-        file_ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else 'csv'
-        df = read_data_file(temp_path, file_ext)
-        if df.empty:
-            raise ValueError("The uploaded file is empty")
-
-        is_valid, missing_cols, extra_cols = validate_input_columns(df, sheet_type)
-        if not is_valid:
-            error_parts = []
-            if missing_cols:
-                error_parts.append(f"Missing column(s): {', '.join(missing_cols)}")
-            if extra_cols:
-                error_parts.append(f"Extra/unexpected column(s): {', '.join(extra_cols)}")
-            raise ValueError("Uploaded file does not match the input template. " + " | ".join(error_parts))
-
-        result_df, _ = process_sheet_data(df, sheet_type)
-        output = io.StringIO()
-        result_df.to_csv(output, index=False, encoding='utf-8-sig')
-        return output.getvalue(), result_df, filename
-    finally:
-        if os.path.exists(temp_path):
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
-
-SHEET_IMPORT_JOBS = {}
-SHEET_IMPORT_JOBS_LOCK = threading.Lock()
-
-
-def _run_sheet_import_api_job(job_id, csv_bytes, filename, aml_user=None, aml_pass=None):
-    using_user_login = bool(aml_user and aml_pass)
-    try:
-        _wake_docker_service()
-        form_data = {"aml_user": aml_user, "aml_pass": aml_pass} if using_user_login else {}
-        response = requests.post(
-            SHEET_IMPORT_API_URL,
-            headers={"X-API-Key": DOCKER_FILES_API_KEY},
-            files={"file": (filename, io.BytesIO(csv_bytes), "text/csv")},
-            data=form_data,
-            timeout=(10, 300),
-        )
-        if not response.ok:
-            body_preview = re.sub(r"\s+", " ", response.text or "")[:300]
-            detail = f"HTTP {response.status_code}"
-            if body_preview:
-                detail += f": {body_preview}"
-            if using_user_login and "login fail" in (response.text or "").lower():
-                detail += f" | {AML_USER_LOGIN_HINT}"
-            raise RuntimeError(f"Import service returned {detail}")
-
-        try:
-            result = response.json()
-        except ValueError:
-            result = {"message": re.sub(r"\s+", " ", response.text or "")[:300]}
-        if isinstance(result, dict) and result.get("success") is False:
-            raise RuntimeError(str(result.get("error") or result.get("message") or "Import service rejected the CSV"))
-        if isinstance(result, dict) and str(result.get("status", "")).strip().lower() in {"error", "failed", "rejected"}:
-            raise RuntimeError(str(result.get("message") or result.get("detail") or "Import service rejected the CSV"))
-
-        service_status = str(result.get("status", "")).strip().lower() if isinstance(result, dict) else ""
-        login_label = "your AML login" if using_user_login else "the default AML login"
-        print(
-            f"[SHEET CSV IMPORT] job={job_id} login={'user' if using_user_login else 'default'} "
-            f"service_status={service_status or '-'} detail={_scrub_secret(result, aml_pass)!s:.300}",
-            flush=True,
-        )
-        if service_status == "unconfirmed":
-            message = (
-                f"CSV was submitted to AML using {login_label}, but AML did not confirm the import. "
-                "Check AML before importing again."
-            )
-        elif service_status == "success":
-            message = f"CSV imported successfully using {login_label}."
-        else:
-            message = "CSV imported successfully."
-            if isinstance(result, dict):
-                message = str(result.get("message") or result.get("detail") or message)
-        with SHEET_IMPORT_JOBS_LOCK:
-            job = SHEET_IMPORT_JOBS.get(job_id)
-            if job:
-                job.update(status="done", message=message, updated_at=time.time())
-    except Exception as exc:
-        message = re.sub(r"\s+", " ", _scrub_secret(exc or "Import failed", aml_pass)).strip()[:500]
-        with SHEET_IMPORT_JOBS_LOCK:
-            job = SHEET_IMPORT_JOBS.get(job_id)
-            if job:
-                job.update(status="error", message=message, updated_at=time.time())
-        print(f"[SHEET CSV IMPORT] job={job_id} failed: {type(exc).__name__}: {message}", flush=True)
-
-
-@app.route("/sheet-import-to-service", methods=["POST"])
-@login_required
-def sheet_import_to_service():
-    try:
-        if not DOCKER_FILES_API_KEY:
-            return jsonify({
-                "success": False,
-                "error": "CSV import service API key is not configured. Set DOCKER_FILES_API_KEY or SUMMARY_CSV_API_KEY on the server.",
-            }), 503
-        sheet_type = request.form.get("sheet_type")
-        file = request.files.get("file")
-        print(f"[SHEET CSV IMPORT] start sheet_type={sheet_type} file={getattr(file, 'filename', None)}", flush=True)
-        csv_text, result_df, _ = _build_sheet_csv_response(sheet_type, file)
-        import_filename = f"sheet_import_{uuid.uuid4().hex}.csv"
-        csv_bytes = csv_text.encode("utf-8-sig")
-        job_id = uuid.uuid4().hex
-        # Logged-in user ka apna AML login (session sirf request ke andar milta hai, thread me nahi)
-        own_creds = get_own_aml_credentials()
-        aml_user, aml_pass = own_creds if own_creds else (None, None)
-        login_mode = "user" if own_creds else "default"
-        with SHEET_IMPORT_JOBS_LOCK:
-            now = time.time()
-            for old_id, old_job in list(SHEET_IMPORT_JOBS.items()):
-                if now - old_job.get("updated_at", now) > 1800:
-                    SHEET_IMPORT_JOBS.pop(old_id, None)
-            SHEET_IMPORT_JOBS[job_id] = {
-                "status": "queued",
-                "message": "Uploading generated CSV to the import service.",
-                "rows": len(result_df),
-                "login_mode": login_mode,
-                "updated_at": now,
-            }
-        threading.Thread(
-            target=_run_sheet_import_api_job,
-            args=(job_id, csv_bytes, import_filename, aml_user, aml_pass),
-            daemon=True,
-        ).start()
-        return jsonify({
-            "success": True,
-            "job_id": job_id,
-            "message": "CSV import started.",
-            "rows": len(result_df),
-            "login_mode": login_mode,
-        }), 202
-    except Exception as e:
-        print(f"[SHEET CSV IMPORT] ERROR: {e}", flush=True)
-        return jsonify({"success": False, "error": str(e)}), 400
-
-
-@app.route("/sheet-import-status/<job_id>", methods=["GET"])
-@login_required
-def sheet_import_status(job_id):
-    with SHEET_IMPORT_JOBS_LOCK:
-        job = SHEET_IMPORT_JOBS.get(job_id)
-        if not job:
-            return jsonify({"success": False, "error": "Import job not found. It may have expired or the service restarted."}), 404
-        return jsonify({"success": True, **job})
-
 # ============================================================
 # BS Investment Scam Import
 # ============================================================
@@ -2386,24 +2187,16 @@ def investment_import():
 @app.route("/get-excel-headers", methods=["GET"])
 @login_required
 def get_excel_headers():
-    try:
-        bank_headers = list(pd.read_excel(BANK_NAME_MAPPING_PATH).columns) if BANK_NAME_MAPPING_PATH.exists() else []
-        return jsonify({
-            "success": True,
-            "bank_name_mapping_headers": bank_headers,
-            "bank_name_mapping_count": len(BANK_NAME_MAPPING)
-        })
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+    return jsonify({
+        "success": True,
+        "bank_name_mapping_headers": [],
+        "bank_name_mapping_count": 0
+    })
 
 @app.route("/get-ifsc-headers", methods=["GET"])
 @login_required
 def get_ifsc_headers():
-    try:
-        ifsc_headers = list(pd.read_excel(IFSC_MAPPING_PATH).columns) if IFSC_MAPPING_PATH.exists() else []
-        return jsonify({"success": True, "ifsc_mapping_headers": ifsc_headers, "ifsc_mapping_count": len(IFSC_MAPPING)})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e)})
+    return jsonify({"success": True, "ifsc_mapping_headers": ["ifsc_code", "bank_name"], "ifsc_mapping_count": len(IFSC_MAPPING)})
 
 @app.route("/reload-data", methods=["POST"])
 @login_required
@@ -2534,16 +2327,6 @@ AML_GUI_UA = (
 SUMMARY_GUI_JOBS = {}
 SUMMARY_GUI_JOBS_LOCK = threading.Lock()
 SUMMARY_GUI_JOB_TIMEOUT_SECONDS = int(os.environ.get("SUMMARY_GUI_JOB_TIMEOUT_SECONDS", "3600"))
-DOCKER_FILES_BASE_URL = os.environ.get(
-    "DOCKER_FILES_BASE_URL", "https://docker-files-9h0k.onrender.com"
-).strip().rstrip("/")
-SUMMARY_CSV_EXPORT_URL = f"{DOCKER_FILES_BASE_URL}/export"
-SHEET_IMPORT_API_URL = f"{DOCKER_FILES_BASE_URL}/import"
-DOCKER_FILES_API_KEY = (
-    os.environ.get("DOCKER_FILES_API_KEY")
-    or os.environ.get("SUMMARY_CSV_API_KEY")
-    or ""
-).strip()
 SUMMARY_GUI_JOB_RETENTION_SECONDS = 1800
 SUMMARY_GUI_JOB_TERMINAL_STATUSES = {"done", "error"}
 
@@ -2662,18 +2445,6 @@ def _summary_csv_failure_message(stage, exc):
     detail = re.sub(r"(?i)(password|captcha|cookie|token)=[^\s&]+", r"\1=[redacted]", detail)
     detail = detail[:500] or type(exc).__name__
     return f"CSV export failed during {stage.replace('_', ' ')}: {detail}"
-
-def _parse_csv_response_to_summary(resp):
-    content_type = resp.headers.get("Content-Type", "")
-    try:
-        df = pd.read_csv(io.BytesIO(resp.content), dtype=str).fillna("")
-    except Exception as exc:
-        preview = (resp.text or "")[:500].replace("\n", " ").replace("\r", " ")
-        raise RuntimeError(f"Export did not return readable CSV. content_type={content_type} preview={preview}") from exc
-    headers = [str(c) for c in df.columns]
-    rows = df.head(5000).to_dict(orient="records")
-    return headers, rows, len(df)
-
 
 def _extract_aml_export_form(html_text, date_from, date_to):
     """Build the report form request from the authenticated AML page markup."""
@@ -3137,147 +2908,13 @@ def _summary_gui_job_response(job):
         "elapsed_seconds": _summary_gui_job_elapsed(job),
         "total_rows": job.get("total_rows", 0) if job["status"] == "done" else 0,
         "result_available": job["status"] == "done" and not job.get("result_consumed"),
-        "source": "CSV Export",
+        "source": "AML GUI",
         "date_from": job["date_from"],
         "date_to": job["date_to"],
     }
 
 
-def _wake_docker_service(max_wait=75):
-    """Free Render service 15 min idle ke baad so jaati hai: pehle /health se jagao, ready hone tak ruko."""
-    base = SUMMARY_CSV_EXPORT_URL.rsplit("/", 1)[0]
-    deadline = time.monotonic() + max_wait
-    while time.monotonic() < deadline:
-        try:
-            if requests.get(base + "/health", timeout=10).ok:
-                return True
-        except requests.RequestException:
-            pass
-        time.sleep(3)
-    return False
-
-
-def _scrub_secret(text, *secrets):
-    """Error/log text se password hata do."""
-    text = str(text or "")
-    for secret in secrets:
-        if secret:
-            text = text.replace(secret, "[redacted]")
-    return text
-
-
-AML_USER_LOGIN_HINT = (
-    "AML login failed: check your AML username/password in GUI Management "
-    "(or the captcha failed). It was not retried automatically."
-)
-
-
-def _download_summary_csv_export(date_from, date_to, progress=None, aml_user=None, aml_pass=None):
-    """Download the Summary Maker CSV export and parse its contents.
-
-    aml_user/aml_pass di ho to export usi user ke AML login se hota hai, warna service ka default login."""
-    if not DOCKER_FILES_API_KEY:
-        raise RuntimeError("DOCKER_FILES_API_KEY is not configured")
-    using_user_login = bool(aml_user and aml_pass)
-
-    if progress:
-        progress("queueing_export", "Adding this export to the AML browser queue.")
-    _wake_docker_service()
-    payload = {"from_date": date_from, "to_date": date_to}
-    if using_user_login:
-        payload["aml_user"] = aml_user
-        payload["aml_pass"] = aml_pass
-    export_jobs_url = SUMMARY_CSV_EXPORT_URL.rsplit("/", 1)[0] + "/export-jobs"
-    try:
-        started = requests.post(
-            export_jobs_url,
-            headers={"X-API-Key": DOCKER_FILES_API_KEY},
-            json=payload,
-            timeout=(10, 60),
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Could not reach the CSV export service ({type(exc).__name__})") from exc
-
-    if not started.ok:
-        detail = f"CSV export service returned HTTP {started.status_code}"
-        if using_user_login and "login fail" in (started.text or "").lower():
-            detail += f". {AML_USER_LOGIN_HINT}"
-        raise RuntimeError(detail)
-    service_job = (started.json() or {}).get("job_id")
-    if not service_job:
-        raise RuntimeError("CSV export service did not return a job id")
-
-    poll_url = f"{export_jobs_url}/{service_job}"
-    deadline = time.monotonic() + SUMMARY_GUI_JOB_TIMEOUT_SECONDS
-    lost = 0
-    last_stage = None
-    while time.monotonic() < deadline:
-        time.sleep(2)
-        try:
-            status_response = requests.get(
-                poll_url, headers={"X-API-Key": DOCKER_FILES_API_KEY}, timeout=(10, 30)
-            )
-        except requests.RequestException:
-            status_response = None
-        if status_response is None or not status_response.ok:
-            lost += 1
-            if lost >= 15:
-                raise RuntimeError("Lost connection while waiting for the AML export queue")
-            continue
-        lost = 0
-        snapshot = status_response.json() or {}
-        service_status = snapshot.get("status")
-        service_stage = snapshot.get("stage") or ("Waiting for the AML browser" if service_status == "queued" else service_status)
-        if service_stage != last_stage and progress:
-            ui_stage = "waiting_for_aml" if service_status == "queued" else "downloading_csv"
-            progress(ui_stage, service_stage)
-            last_stage = service_stage
-        if service_status == "done":
-            break
-        if service_status == "error":
-            detail = snapshot.get("message") or "AML CSV export failed"
-            if using_user_login and "login fail" in detail.lower():
-                detail += f". {AML_USER_LOGIN_HINT}"
-            raise RuntimeError(detail)
-        if service_status == "downloaded":
-            raise RuntimeError("CSV export result was already downloaded by another request")
-    else:
-        raise RuntimeError("Timed out waiting for the AML browser queue")
-
-    try:
-        response = requests.get(
-            f"{poll_url}/download", headers={"X-API-Key": DOCKER_FILES_API_KEY}, timeout=(10, 300)
-        )
-    except requests.RequestException as exc:
-        raise RuntimeError(f"Could not download the completed AML export ({type(exc).__name__})") from exc
-    if not response.ok:
-        raise RuntimeError(f"CSV export download returned HTTP {response.status_code}")
-    body = response.content or b""
-    if not body:
-        raise RuntimeError("CSV export service returned an empty file")
-    content_type = (response.headers.get("Content-Type") or "").lower()
-    if "text/html" in content_type or re.search(rb"<!doctype\s+html|<html\b", body[:2048], re.IGNORECASE):
-        raise RuntimeError("CSV export service returned a web page instead of a CSV file")
-    if body.lstrip().startswith((b"{", b"[")):
-        raise RuntimeError("CSV export service returned JSON instead of a CSV file")
-
-    if progress:
-        progress("reading_csv", "Reading downloaded CSV.", file_size=len(body))
-    try:
-        dataframe = pd.read_csv(io.BytesIO(body), dtype=str, keep_default_na=False)
-    except Exception as exc:
-        raise RuntimeError(f"Downloaded CSV could not be parsed ({type(exc).__name__})") from exc
-    headers = [str(column) for column in dataframe.columns]
-    if not headers:
-        raise RuntimeError("Downloaded CSV has no readable columns")
-    total_rows = len(dataframe)
-    rows = dataframe.head(5000).to_dict(orient="records")
-    if progress:
-        progress("csv_verified", "Downloaded CSV is readable.", row_count=total_rows, column_count=len(headers))
-    return headers, rows, total_rows
-
-
-def _run_summary_gui_job(job_id, aml_user=None, aml_pass=None):
+def _run_summary_gui_job(job_id, creds=None):
     stage = "queued"
     try:
         with SUMMARY_GUI_JOBS_LOCK:
@@ -3296,15 +2933,19 @@ def _run_summary_gui_job(job_id, aml_user=None, aml_pass=None):
             )
 
         _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
-        progress("starting", "Starting CSV export download.")
-        headers, rows, total_rows = _download_summary_csv_export(
-            date_from, date_to, progress=progress, aml_user=aml_user, aml_pass=aml_pass
+        progress("starting_browser", "Starting AML export in the local browser worker.")
+        headers, rows, total_rows = _download_aml_datalist_csv(
+            date_from,
+            date_to,
+            creds=creds,
+            progress=progress,
+            deadline=time.monotonic() + SUMMARY_GUI_JOB_TIMEOUT_SECONDS,
         )
         completed = _summary_gui_update_job(
             job_id,
             status="done",
             stage="completed",
-            message="CSV export is ready.",
+            message="AML export is ready.",
             headers=headers,
             rows=rows,
             total_rows=total_rows,
@@ -3349,7 +2990,7 @@ def _run_summary_gui_job(job_id, aml_user=None, aml_pass=None):
 @app.route("/summary-source-from-csv", methods=["POST"])
 @summary_api_login_required
 def summary_source_from_gui():
-    """Queue a remote CSV export so Render does not hold the request open."""
+    """Queue a direct AML GUI export so the request can return immediately."""
     if "sheet" not in session.get("allowed_pages", []):
         return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
     data = request.get_json(silent=True) or {}
@@ -3359,13 +3000,11 @@ def summary_source_from_gui():
         return jsonify({"success": False, "error": "From date and To date required"}), 400
     if date_from > date_to:
         return jsonify({"success": False, "error": "From date cannot be after To date"}), 400
-    if not DOCKER_FILES_API_KEY:
-        return jsonify({"success": False, "error": "CSV export API key is not configured on the server"}), 503
-
-    # Logged-in user ka apna AML login (session sirf request ke andar milta hai, thread me nahi)
-    own_creds = get_own_aml_credentials()
-    aml_user, aml_pass = own_creds if own_creds else (None, None)
-    login_mode = "user" if own_creds else "default"
+    try:
+        aml_creds = get_aml_credentials()
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 503
+    login_mode = "user" if get_own_aml_credentials() else "default"
 
     try:
         job_id = uuid.uuid4().hex
@@ -3384,7 +3023,7 @@ def summary_source_from_gui():
             SUMMARY_GUI_JOBS[job_id] = {
                 "job_id": job_id,
                 "status": "queued",
-                "message": "Preparing CSV export.",
+                "message": "Preparing AML export.",
                 "stage": "queued",
                 "stage_started_monotonic": now,
                 "date_from": date_from,
@@ -3399,13 +3038,13 @@ def summary_source_from_gui():
                 "login_mode": login_mode,
             }
         threading.Thread(
-            target=_run_summary_gui_job, args=(job_id, aml_user, aml_pass), daemon=True
+            target=_run_summary_gui_job, args=(job_id, aml_creds), daemon=True
         ).start()
         return jsonify({
             "success": True,
             "status": "queued",
             "job_id": job_id,
-            "message": "CSV export started.",
+            "message": "AML export started.",
             "login_mode": login_mode,
         }), 202
     except Exception as exc:
@@ -3650,10 +3289,10 @@ UPI_CHECK_API_URL = "https://aml.dashboardpxltruth.in/api/public/upi-checker"
 UPI_CHECK_API_KEY = os.getenv("UPI_CHECK_API_KEY", "").strip()
 
 DEFAULT_UPI_HANDLES = [
-    "airtel", "apl", "freecharge", "ikwik", "mbk", "mbkns", "naviaxis","nye","nyes","superyes","digikatha",
+    "airtel", "apl", "freecharge", "ikwik", "mbk", "mbkns", "naviaxis","nye","nyes","superyes","digikhata",
     "okbizaxis", "ptaxis", "pthdfc", "ptsbi", "ptyes", "slc", "upi",
     "yapl", "kotakbank", "jupiter", "icici", "mbank", "jupiteraxis",
-    "axl", "ibl", "ybl", "fam", "mairtel", "jio"
+    "axl", "ibl", "ybl", "fam", "mairtel", "jio","fbpe"
 ]
 # Sirf inhi handles ko -1 se -7 tak suffix milta hai
 SUFFIX_UPI_HANDLES = ["axl", "ibl", "ybl"]
@@ -6493,11 +6132,6 @@ AML_PASSWORD_INPUT_XPATH = "/html/body/div[1]/div/div[2]/form/label[2]/input"
 AML_CAPTCHA_IMG_XPATH    = "/html/body/div[1]/div/div[2]/form/label[6]/div/img"
 AML_CAPTCHA_INPUT_XPATH  = "/html/body/div[1]/div/div[2]/form/label[6]/input"
 AML_LOGIN_BUTTON_XPATH   = "/html/body/div[1]/div/div[2]/form/button"
-AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
-AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
-AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
-
-
 AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
 AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
 AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
