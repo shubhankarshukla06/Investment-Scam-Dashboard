@@ -1962,6 +1962,204 @@ def generate_sheet():
         flash(f"Error generating sheet: {str(e)}", "error")
         return redirect("/?page=sheet")
 
+
+SHEET_GUI_IMPORT_JOBS = {}
+SHEET_GUI_IMPORT_JOBS_LOCK = threading.Lock()
+
+
+def _update_sheet_gui_import_job(job_id, *, stage=None, status=None, message=None):
+    with SHEET_GUI_IMPORT_JOBS_LOCK:
+        job = SHEET_GUI_IMPORT_JOBS.get(job_id)
+        if not job:
+            return
+        if stage is not None:
+            job["stage"] = stage
+        if status is not None:
+            job["status"] = status
+        if message is not None:
+            job["message"] = message
+        job["updated_at"] = time.time()
+
+
+def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
+    driver = None
+    work_dir = tempfile.mkdtemp(prefix="aml_gui_import_")
+    csv_path = os.path.join(work_dir, secure_filename(filename))
+
+    def progress(stage, message, **_fields):
+        _update_sheet_gui_import_job(job_id, stage=stage, status="running", message=message)
+
+    try:
+        with open(csv_path, "wb") as output_file:
+            output_file.write(csv_bytes)
+
+        progress("starting_browser", "Starting the headed AML browser.")
+        driver = aml_build_driver(headless=True)
+        _AML_DEBUG_DRIVERS.append(driver)
+        progress("logging_in", "Signing in to AML.")
+        if not aml_login(driver, max_captcha_attempts=7, creds=creds, progress=progress):
+            raise RuntimeError("AML login failed after CAPTCHA retries.")
+
+        wait = WebDriverWait(driver, 40)
+        progress("opening_import", "Opening AML Import.")
+        import_menu = wait.until(
+            EC.element_to_be_clickable((By.XPATH, AML_IMPORT_MENU_BUTTON_XPATH))
+        )
+        import_menu.click()
+
+        progress("selecting_file", "Selecting the processed CSV for AML import.")
+        file_input = wait.until(
+            EC.presence_of_element_located((By.XPATH, AML_IMPORT_FILE_INPUT_XPATH))
+        )
+        file_input.send_keys(os.path.abspath(csv_path))
+
+        progress("submitting_import", "Submitting the CSV through the AML GUI.")
+        import_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, AML_IMPORT_SUBMIT_BUTTON_XPATH))
+        )
+        before_submit_text = driver.find_element(By.TAG_NAME, "body").text or ""
+        import_button.click()
+
+        progress("waiting_for_confirmation", "Waiting for AML to confirm the import.")
+
+        def read_import_result(_driver):
+            try:
+                page_text = _driver.find_element(By.TAG_NAME, "body").text or ""
+            except Exception:
+                return False
+            if before_submit_text and before_submit_text in page_text:
+                page_text = page_text.replace(before_submit_text, "", 1)
+            lowered = page_text.lower()
+            if re.search(r"\b(import|upload)\b.{0,60}\b(failed|error|invalid|rejected)\b", lowered):
+                raise RuntimeError("AML reported an import error. Check the AML page before retrying.")
+            if re.search(r"\b(successfully imported|imported successfully|import successful|import completed|successfully uploaded|upload successful|uploaded successfully)\b", lowered):
+                return True
+            return False
+
+        WebDriverWait(driver, 180, poll_frequency=1).until(read_import_result)
+        _update_sheet_gui_import_job(
+            job_id,
+            stage="completed",
+            status="done",
+            message="AML confirmed the CSV import.",
+        )
+    except TimeoutException as exc:
+        with SHEET_GUI_IMPORT_JOBS_LOCK:
+            current_job = SHEET_GUI_IMPORT_JOBS.get(job_id, {})
+            current_stage = current_job.get("stage")
+        if current_stage == "waiting_for_confirmation":
+            _update_sheet_gui_import_job(
+                job_id,
+                stage="unconfirmed",
+                status="unconfirmed",
+                message="AML did not show an import confirmation. Check AML before retrying to avoid a duplicate import.",
+            )
+        else:
+            message = f"AML GUI import timed out during {str(current_stage or 'startup').replace('_', ' ')}."
+            _update_sheet_gui_import_job(
+                job_id,
+                stage="failed",
+                status="error",
+                message=message,
+            )
+            print(f"[SHEET AML GUI IMPORT] job={job_id} timed out during {current_stage}: {exc}", flush=True)
+    except Exception as exc:
+        _update_sheet_gui_import_job(
+            job_id,
+            stage="failed",
+            status="error",
+            message=re.sub(r"\s+", " ", str(exc or "AML GUI import failed"))[:500],
+        )
+        print(f"[SHEET AML GUI IMPORT] job={job_id} failed: {type(exc).__name__}: {exc}", flush=True)
+    finally:
+        if driver is not None:
+            try:
+                _close_debug_driver(driver)
+            except Exception as exc:
+                print(f"[SHEET AML GUI IMPORT] browser cleanup failed: {type(exc).__name__}", flush=True)
+        shutil.rmtree(work_dir, ignore_errors=True)
+
+
+@app.route("/sheet-gui-import", methods=["POST"])
+@summary_api_login_required
+def sheet_gui_import():
+    if "sheet" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
+
+    sheet_type = request.form.get("sheet_type", "").strip()
+    uploaded_file = request.files.get("file")
+    if not sheet_type:
+        return jsonify({"success": False, "error": "Please select a sheet type."}), 400
+    if not uploaded_file or not uploaded_file.filename:
+        return jsonify({"success": False, "error": "Please select a file."}), 400
+    if not is_allowed_file(uploaded_file.filename):
+        return jsonify({"success": False, "error": "Unsupported file type."}), 400
+
+    try:
+        creds = get_aml_credentials()
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 503
+
+    temp_dir = tempfile.mkdtemp(prefix="sheet_input_")
+    input_path = os.path.join(temp_dir, secure_filename(uploaded_file.filename))
+    try:
+        uploaded_file.save(input_path)
+        extension = input_path.rsplit(".", 1)[-1].lower() if "." in input_path else "csv"
+        dataframe = read_data_file(input_path, extension)
+        if dataframe.empty:
+            return jsonify({"success": False, "error": "The uploaded file is empty."}), 400
+        is_valid, missing_cols, extra_cols = validate_input_columns(dataframe, sheet_type)
+        if not is_valid:
+            details = []
+            if missing_cols:
+                details.append(f"Missing columns: {', '.join(missing_cols)}")
+            if extra_cols:
+                details.append(f"Unexpected columns: {', '.join(extra_cols)}")
+            return jsonify({
+                "success": False,
+                "error": "Input file does not match the selected template. " + " | ".join(details),
+            }), 400
+
+        result_df, _ = process_sheet_data(dataframe, sheet_type)
+        csv_bytes = result_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+        job_id = uuid.uuid4().hex
+        with SHEET_GUI_IMPORT_JOBS_LOCK:
+            now = time.time()
+            for old_id, old_job in list(SHEET_GUI_IMPORT_JOBS.items()):
+                if now - old_job.get("updated_at", now) > 3600:
+                    SHEET_GUI_IMPORT_JOBS.pop(old_id, None)
+            SHEET_GUI_IMPORT_JOBS[job_id] = {
+                "job_id": job_id,
+                "status": "queued",
+                "stage": "queued",
+                "message": "AML GUI import queued.",
+                "rows": len(result_df),
+                "updated_at": now,
+            }
+        output_name = f"{SHEET_TYPES.get(sheet_type, sheet_type)}_{datetime.now().strftime('%Y-%m-%d')}.csv"
+        threading.Thread(
+            target=_run_sheet_gui_import_job,
+            args=(job_id, csv_bytes, output_name, creds),
+            daemon=True,
+        ).start()
+        return jsonify({"success": True, "job_id": job_id, "rows": len(result_df)}), 202
+    except Exception as exc:
+        return jsonify({"success": False, "error": str(exc)}), 400
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@app.route("/sheet-gui-import-status/<job_id>", methods=["GET"])
+@summary_api_login_required
+def sheet_gui_import_status(job_id):
+    if "sheet" not in session.get("allowed_pages", []):
+        return jsonify({"success": False, "error": "Didnt have Sheet Page Access"}), 403
+    with SHEET_GUI_IMPORT_JOBS_LOCK:
+        job = SHEET_GUI_IMPORT_JOBS.get(job_id)
+        if not job:
+            return jsonify({"success": False, "error": "AML GUI import job was not found."}), 404
+        return jsonify({"success": True, **job})
+
 # ============================================================
 # BS Investment Scam Import
 # ============================================================
@@ -2646,8 +2844,7 @@ def _read_aml_export_response(response):
 
 
 def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
-    """Use visible Selenium locally for AML verification; keep HTTP export mode available."""
-    session_obj = None
+    """Fetch AML report data using the headed AML GUI workflow."""
     driver = None
     download_dir = None
 
@@ -2661,144 +2858,81 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
 
     try:
         ensure_before_deadline()
-        login_mode = os.environ.get(
-            "AML_SUMMARY_LOGIN_MODE",
-            "selenium",
-        ).strip().lower()
-        if login_mode in ("headed", "browser", "selenium"):
-            download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
-            report("starting_browser", "Starting the AML browser in headless mode.")
-            driver = aml_build_driver(headless=True, download_dir=download_dir)
-            _AML_DEBUG_DRIVERS.append(driver)
-            ensure_before_deadline()
-            report("logging_in", "Signing in through the visible AML browser.")
-            if not aml_login(
-                driver,
-                max_captcha_attempts=7,
-                creds=creds,
-                progress=progress,
-                deadline=deadline,
-            ):
-                raise RuntimeError("AML browser login failed after CAPTCHA retries")
-            report("login_verified", "Visible AML browser login succeeded.")
-
-            # The AML report controls are rendered in the authenticated GUI.
-            # Keep this browser session on that page rather than navigating to
-            # a guessed report URL or trying to recreate its form over HTTP.
-            wait = WebDriverWait(driver, 40)
-            report("setting_dates", "Setting AML report date filters.")
-            _set_aml_report_date_filters(driver, wait, date_from, date_to)
-            report("selecting_filters", "Selecting AML status and case type.")
-            _click_aml_option(driver, wait, AML_STATUS_OPTION_XPATH, "Status")
-            _click_aml_option(driver, wait, AML_FEATURE_TYPE_OPTION_XPATH, "Case Type")
-
-            ensure_before_deadline()
-            report("requesting_export", "Clicking Export in the AML report page.")
-            before = set(os.listdir(download_dir))
-            export_button = wait.until(
-                EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH))
-            )
-            export_button.click()
-            report("waiting_for_download", "Waiting for AML to finish the export download.")
-            download_path = _wait_for_aml_download(
-                download_dir,
-                before,
-                timeout=180,
-                progress=report,
-                deadline=deadline,
-            )
-            ensure_before_deadline()
-            if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
-                raise RuntimeError("AML export download is missing or empty")
-            report(
-                "reading_export",
-                "Verifying the downloaded AML export file.",
-                file_size=os.path.getsize(download_path),
-            )
-            extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
-            try:
-                dataframe = read_data_file(download_path, extension).fillna("")
-            except Exception as exc:
-                raise RuntimeError(
-                    f"Downloaded AML export could not be read as {extension.upper()} ({type(exc).__name__})"
-                ) from exc
-            headers = [str(column) for column in dataframe.columns]
-            if not headers:
-                raise RuntimeError("Downloaded AML export has no readable columns")
-            report(
-                "export_verified",
-                "AML export file is readable.",
-                row_count=len(dataframe),
-                column_count=len(headers),
-                file_size=os.path.getsize(download_path),
-            )
-            return headers, dataframe.head(5000).to_dict(orient="records"), len(dataframe)
-        elif login_mode == "requests":
-            report("logging_in", "Signing in to AML GUI over HTTP.")
-            session_obj = aml_login_requests(max_captcha_attempts=7, creds=creds, require_report_form=False)
-        else:
-            raise RuntimeError(
-                "AML_SUMMARY_LOGIN_MODE must be 'headed' or 'requests'"
-            )
+        download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
+        report("starting_browser", "Starting the headed AML browser.")
+        driver = aml_build_driver(headless=True, download_dir=download_dir)
+        _AML_DEBUG_DRIVERS.append(driver)
         ensure_before_deadline()
-        report("loading_report_form", "Loading AML report form.")
-        report_page = session_obj.get(AML_REPORT_URL, timeout=45, allow_redirects=True)
-        report_page.raise_for_status()
-        if re.search(r"name=[\"']usernamee[\"']", report_page.text or "", flags=re.IGNORECASE):
-            raise RuntimeError("AML HTTP login succeeded but the report page redirected back to login")
+        report("logging_in", "Signing in through the visible AML browser.")
+        if not aml_login(
+            driver,
+            max_captcha_attempts=7,
+            creds=creds,
+            progress=progress,
+            deadline=deadline,
+        ):
+            raise RuntimeError("AML browser login failed after CAPTCHA retries")
+        report("login_verified", "Visible AML browser login succeeded.")
 
-        report("preparing_export", "Preparing AML report filters and export request.")
-        method, export_url, payload, select_names = _extract_aml_export_form(
-            report_page.text,
-            date_from,
-            date_to,
-        )
-        if deadline is not None and time.monotonic() >= deadline:
-            raise RuntimeError("AML GUI export exceeded the server time limit before requesting the export")
+        # The AML report controls are rendered in the authenticated GUI.
+        # Keep this browser session on that page rather than navigating to
+        # a guessed report URL or trying to recreate its form over HTTP.
+        wait = WebDriverWait(driver, 40)
+        report("setting_dates", "Setting AML report date filters.")
+        _set_aml_report_date_filters(driver, wait, date_from, date_to)
+        report("selecting_filters", "Selecting AML status and case type.")
+        _click_aml_option(driver, wait, AML_STATUS_OPTION_XPATH, "Status")
+        _click_aml_option(driver, wait, AML_FEATURE_TYPE_OPTION_XPATH, "Case Type")
 
-        report("requesting_export", "Requesting AML export over HTTP.", select_count=len(select_names))
-        request_kwargs = {"params" if method == "GET" else "data": payload}
-        response = session_obj.request(
-            method,
-            export_url,
-            timeout=90,
-            allow_redirects=True,
-            headers={"Referer": report_page.url or AML_REPORT_URL},
-            **request_kwargs,
+        report("applying_filters", "Applying AML report filters.")
+        filter_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, AML_FILTER_BUTTON_XPATH))
         )
-        report(
-            "export_response_received",
-            "AML responded to the HTTP export request.",
-            response_status=response.status_code,
-            content_type=(response.headers.get("Content-Type") or "unknown")[:100],
-            file_size=len(response.content),
-        )
-        response.raise_for_status()
-        if deadline is not None and time.monotonic() >= deadline:
-            raise RuntimeError("AML GUI export exceeded the server time limit while receiving the export")
+        filter_button.click()
+        wait.until(EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH)))
 
+        ensure_before_deadline()
+        report("requesting_export", "Clicking Export in the AML report page.")
+        before = set(os.listdir(download_dir))
+        export_button = wait.until(
+            EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH))
+        )
+        export_button.click()
+        report("waiting_for_download", "Waiting for AML to finish the export download.")
+        download_path = _wait_for_aml_download(
+            download_dir,
+            before,
+            timeout=180,
+            progress=report,
+            deadline=deadline,
+        )
+        ensure_before_deadline()
+        if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
+            raise RuntimeError("AML export download is missing or empty")
         report(
             "reading_export",
-            "Verifying the AML HTTP export response.",
-            response_status=response.status_code,
-            content_type=(response.headers.get("Content-Type") or "unknown")[:100],
-            file_size=len(response.content),
+            "Verifying the downloaded AML export file.",
+            file_size=os.path.getsize(download_path),
         )
-        headers, rows, total_rows, extension = _read_aml_export_response(response)
+        extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
+        try:
+            dataframe = read_data_file(download_path, extension).fillna("")
+        except Exception as exc:
+            raise RuntimeError(
+                f"Downloaded AML export could not be read as {extension.upper()} ({type(exc).__name__})"
+            ) from exc
+        headers = [str(column) for column in dataframe.columns]
+        if not headers:
+            raise RuntimeError("Downloaded AML export has no readable columns")
         report(
             "export_verified",
-            f"AML {extension.upper()} export is readable.",
-            row_count=total_rows,
+            "AML export file is readable.",
+            row_count=len(dataframe),
             column_count=len(headers),
-            file_size=len(response.content),
+            file_size=os.path.getsize(download_path),
         )
-        return headers, rows, total_rows
+        return headers, dataframe.head(5000).to_dict(orient="records"), len(dataframe)
     finally:
-        if session_obj is not None:
-            try:
-                session_obj.close()
-            except Exception:
-                pass
         try:
             if driver is not None:
                 _close_debug_driver(driver)
@@ -6134,7 +6268,12 @@ AML_CAPTCHA_INPUT_XPATH  = "/html/body/div[1]/div/div[2]/form/label[6]/input"
 AML_LOGIN_BUTTON_XPATH   = "/html/body/div[1]/div/div[2]/form/button"
 AML_STATUS_OPTION_XPATH = "/html/body/div[1]/div/form/div[5]/select/option[2]"
 AML_FEATURE_TYPE_OPTION_XPATH = "/html/body/div[1]/div/form/div[6]/select/option[3]"
+AML_FILTER_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[1]"
 AML_EXPORT_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[4]"
+
+AML_IMPORT_MENU_BUTTON_XPATH = "/html/body/div[1]/div/form/div[7]/button[3]"
+AML_IMPORT_FILE_INPUT_XPATH = "/html/body/div[1]/div/div[4]/div/div[2]/input"
+AML_IMPORT_SUBMIT_BUTTON_XPATH = "/html/body/div[1]/div/div[4]/div/div[3]/button[2]"
 
 AML_CAPTCHA_LENGTH = 6
 AML_CAPTCHA_CONFUSABLES = str.maketrans({"o": "0", "i": "1", "l": "1"})
@@ -6217,7 +6356,6 @@ def aml_get_captcha_text_with_tesseract(captcha_bytes):
                 return captcha_text
     return ""
 
-
 def aml_get_captcha_text_with_ddddocr(captcha_bytes):
     """Tesseract-free captcha OCR fallback using the pure Python package ddddocr.
 
@@ -6231,7 +6369,6 @@ def aml_get_captcha_text_with_ddddocr(captcha_bytes):
             _DDDDOCR_ENGINE = ddddocr.DdddOcr(show_ad=False)
     text = _DDDDOCR_ENGINE.classification(captcha_bytes)
     return aml_clean_captcha_text(text)
-
 
 def aml_get_captcha_text_from_bytes(captcha_bytes):
     """Captcha OCR helper for direct HTTP captcha."""
@@ -6385,7 +6522,20 @@ def _click_aml_option(driver, wait, option_xpath, label):
     try:
         _select_aml_case_option(driver, wait, option_xpath)
     except Exception as exc:
-        raise RuntimeError(f"Could not select AML {label} filter: {type(exc).__name__}") from exc
+        raise RuntimeError(f"Could not select AML {label} filter: {exc}") from exc
+
+
+def _select_aml_case_option(driver, wait, option_xpath):
+    """Select the option identified by XPath and notify AML's form handlers."""
+    option = wait.until(EC.presence_of_element_located((By.XPATH, option_xpath)))
+    select_element = option.find_element(By.XPATH, "..")
+    option_index = len(option.find_elements(By.XPATH, "preceding-sibling::option"))
+    Select(select_element).select_by_index(option_index)
+    wait.until(lambda _driver: option.is_selected())
+    driver.execute_script("""
+        arguments[0].dispatchEvent(new Event('input', {bubbles: true}));
+        arguments[0].dispatchEvent(new Event('change', {bubbles: true}));
+    """, select_element)
 
 
 def _wait_for_aml_download(download_dir, before, timeout=180, progress=None, deadline=None):
@@ -6691,15 +6841,9 @@ def _aml_log_chrome_diagnostics(chrome_binary, error, driver_log_path=None, prob
 
 def aml_build_driver(headless=None, download_dir=None):
     options = ChromeOptions()
-    # Use visible Chrome for local AML verification. Render has no display
-    # server, so it remains headless there. AML_HEADLESS can override the
-    # default explicitly (for example, AML_HEADLESS=1 locally after testing).
+    # Headless Chrome works both locally and in Docker/Render without a display server.
     if headless is None:
-        configured_headless = os.environ.get("AML_HEADLESS")
-        if configured_headless is None:
-            headless = bool(os.environ.get("RENDER"))
-        else:
-            headless = configured_headless.strip().lower() in ("1", "true", "yes", "on")
+        headless = True
     print(f"[AML DRIVER] mode={'headless' if headless else 'headed'}", flush=True)
     if headless:
         options.add_argument("--headless=new")
