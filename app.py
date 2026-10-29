@@ -7003,11 +7003,10 @@ def aml_build_driver(headless=None, download_dir=None):
         if process_group_id:
             driver._aml_process_group_id = process_group_id
 
-    if download_dir:
-        # Chrome's download directory is already configured through the prefs
-        # above. Avoid a CDP round trip here: on Render it can hang until the
-        # WebDriver command timeout (120s) while Chrome consumes nearly the
-        # whole instance memory limit. Headless Chromium honors the prefs.
+    # Chrome's download directory is configured through the prefs above.
+    # Avoid a CDP round trip here: on Render it can hang until the WebDriver
+    # command timeout (120s) while Chrome consumes nearly the whole memory
+    # limit. Headless Chromium honors the prefs.
     return driver
 
 
