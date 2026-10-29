@@ -2516,10 +2516,16 @@ def parse_raw_file():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
 
-# AML v1 is a browser-driven UI.  Keep these aliases because older reporting
-# helpers still refer to them, but route them to the new report page.
+# AML Case Desk serves its login and case export through HTTPS JSON endpoints.
 AML_GUI_BASE_URL = "https://aml-gui-v1.mfilterit.net/"
 AML_DATALIST_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "reports/generate")
+AML_API_LOGIN_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/auth/login")
+AML_API_CAPTCHA_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/auth/captcha")
+AML_API_CASE_EXPORT_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/cases/export")
+# Match the choices previously made in the AML Summary GUI: Status option 2
+# and Feature Type option 3 (the first option in each list is "All").
+AML_SUMMARY_STATUS_FILTER = "Approve"
+AML_SUMMARY_FEATURE_TYPE_FILTER = "BS Investment Scam"
 AML_GUI_UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36"
@@ -2846,9 +2852,7 @@ def _read_aml_export_response(response):
 
 
 def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
-    """Fetch AML report data using the browser-driven AML GUI workflow."""
-    driver = None
-    download_dir = None
+    """Fetch AML case data over HTTPS without starting a browser."""
 
     def report(stage, message, **fields):
         if progress:
@@ -2860,87 +2864,39 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
 
     try:
         ensure_before_deadline()
-        download_dir = tempfile.mkdtemp(prefix="aml_summary_download_")
-        report("starting_browser", "Starting the headless AML browser.")
-        driver = aml_build_driver(headless=True, download_dir=download_dir)
-        _AML_DEBUG_DRIVERS.append(driver)
-        ensure_before_deadline()
-        report("logging_in", "Signing in through the headless AML browser.")
-        if not aml_login(
-            driver,
+        report("connecting_aml", "Connecting securely to AML.")
+        session_obj = aml_login_requests(
             max_captcha_attempts=7,
             creds=creds,
             progress=progress,
-            deadline=deadline,
-        ):
-            raise RuntimeError("AML browser login failed after CAPTCHA retries")
-        report("login_verified", "Visible AML browser login succeeded.")
-
-        # The AML report controls are rendered in the authenticated GUI.
-        # Keep this browser session on that page rather than navigating to
-        # a guessed report URL or trying to recreate its form over HTTP.
-        wait = WebDriverWait(driver, 40)
-        report("setting_dates", "Setting AML report date filters.")
-        _set_aml_report_date_filters(driver, wait, date_from, date_to)
-        report("selecting_filters", "Selecting AML status and case type.")
-        _click_aml_option(driver, wait, AML_STATUS_OPTION_XPATH, "Status")
-        _click_aml_option(driver, wait, AML_FEATURE_TYPE_OPTION_XPATH, "Case Type")
-
-        report("applying_filters", "Applying AML report filters.")
-        filter_button = wait.until(
-            EC.element_to_be_clickable((By.XPATH, AML_FILTER_BUTTON_XPATH))
-        )
-        filter_button.click()
-        wait.until(EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH)))
-
-        ensure_before_deadline()
-        report("requesting_export", "Clicking Export in the AML report page.")
-        before = set(os.listdir(download_dir))
-        export_button = wait.until(
-            EC.element_to_be_clickable((By.XPATH, AML_EXPORT_BUTTON_XPATH))
-        )
-        export_button.click()
-        report("waiting_for_download", "Waiting for AML to finish the export download.")
-        download_path = _wait_for_aml_download(
-            download_dir,
-            before,
-            timeout=180,
-            progress=report,
-            deadline=deadline,
         )
         ensure_before_deadline()
-        if not os.path.isfile(download_path) or os.path.getsize(download_path) <= 0:
-            raise RuntimeError("AML export download is missing or empty")
-        report(
-            "reading_export",
-            "Verifying the downloaded AML export file.",
-            file_size=os.path.getsize(download_path),
+        report("requesting_export", "Requesting the filtered AML export.")
+        response = session_obj.get(
+            AML_API_CASE_EXPORT_URL,
+            params={
+                "from_date": date_from,
+                "to_date": date_to,
+                "status": AML_SUMMARY_STATUS_FILTER,
+                "feature_type": AML_SUMMARY_FEATURE_TYPE_FILTER,
+            },
+            headers={"Accept": "text/csv, application/vnd.ms-excel, application/octet-stream"},
+            timeout=(15, 120),
         )
-        extension = os.path.splitext(download_path)[1].lstrip(".").lower() or "csv"
-        try:
-            dataframe = read_data_file(download_path, extension).fillna("")
-        except Exception as exc:
-            raise RuntimeError(
-                f"Downloaded AML export could not be read as {extension.upper()} ({type(exc).__name__})"
-            ) from exc
-        headers = [str(column) for column in dataframe.columns]
-        if not headers:
-            raise RuntimeError("Downloaded AML export has no readable columns")
+        response.raise_for_status()
+        ensure_before_deadline()
+        headers, rows, total_rows, _extension = _read_aml_export_response(response)
         report(
             "export_verified",
-            "AML export file is readable.",
-            row_count=len(dataframe),
+            "AML export is readable.",
+            row_count=total_rows,
             column_count=len(headers),
-            file_size=os.path.getsize(download_path),
+            file_size=len(response.content or b""),
         )
-        return headers, dataframe.head(5000).to_dict(orient="records"), len(dataframe)
+        return headers, rows, total_rows
     finally:
-        try:
-            if driver is not None:
-                _close_debug_driver(driver)
-        finally:
-            if download_dir:
-                shutil.rmtree(download_dir, ignore_errors=True)
+        if "session_obj" in locals():
+            session_obj.close()
 
 def _extract_attrs(tag_text):
     attrs = {}
@@ -3069,7 +3025,7 @@ def _run_summary_gui_job(job_id, creds=None):
             )
 
         _summary_gui_log(job_id, "started", stage, 0.0, date_from=date_from, date_to=date_to)
-        progress("starting_browser", "Starting AML export in the local browser worker.")
+        progress("connecting_aml", "Connecting to AML over HTTPS.")
         headers, rows, total_rows = _download_aml_datalist_csv(
             date_from,
             date_to,
@@ -6437,60 +6393,90 @@ def aml_get_captcha_text(captcha_element):
     # Backward-compatible helper for the old Selenium path.
     return aml_get_captcha_text_from_bytes(captcha_element.screenshot_as_png)
 
-def aml_login_requests(max_captcha_attempts=7, creds=None, require_report_form=True):
-    """Login to AML GUI without launching Chrome. Returns authenticated requests.Session."""
+def aml_login_requests(max_captcha_attempts=7, creds=None, progress=None):
+    """Authenticate to AML Case Desk over HTTPS without launching Chrome."""
     session_obj = requests.Session()
     session_obj.headers.update({
         "User-Agent": AML_GUI_UA,
         "Referer": AML_LOGIN_URL,
+        "Accept": "application/json",
     })
 
     for attempt in range(1, max_captcha_attempts + 1):
         username_value, password_value, customer_value, platform_value = creds or get_aml_credentials()
-        session_obj.cookies.clear()
-        print(f"[AML HTTP LOGIN] Loading login page attempt={attempt}", flush=True)
-        login_page = session_obj.get(AML_GUI_BASE_URL, timeout=30)
-        login_page.raise_for_status()
-        print(f"[AML HTTP LOGIN] Solving captcha attempt={attempt}", flush=True)
-        captcha_text = aml_solve_gui_download_captcha(session_obj)
-        print(f"[AML HTTP LOGIN] Captcha OCR attempt={attempt} text_len={len(captcha_text or '')}", flush=True)
+        if progress:
+            progress(
+                "solving_captcha",
+                f"Preparing AML sign-in CAPTCHA (attempt {attempt} of {max_captcha_attempts}).",
+                captcha_attempt=attempt,
+                captcha_attempt_limit=max_captcha_attempts,
+            )
+        captcha_resp = session_obj.get(AML_API_CAPTCHA_URL, timeout=(15, 30))
+        captcha_resp.raise_for_status()
+        try:
+            captcha_payload = captcha_resp.json()
+            captcha_token = str(captcha_payload.get("captcha_token") or "")
+            image_data = str(captcha_payload.get("image") or "")
+            image_match = re.fullmatch(
+                r"data:image/[^;]+;base64,(.+)", image_data, flags=re.DOTALL
+            )
+            if not captcha_token or not image_match:
+                raise ValueError("missing CAPTCHA token or image")
+            captcha_bytes = base64.b64decode(image_match.group(1), validate=True)
+        except Exception as exc:
+            raise RuntimeError("AML returned an unsupported CAPTCHA response") from exc
 
-        if len(captcha_text or "") != 6:
+        captcha_text = aml_get_captcha_text_from_bytes(captcha_bytes)
+        if len(captcha_text or "") != AML_CAPTCHA_LENGTH:
+            print(
+                f"[AML HTTP LOGIN] CAPTCHA OCR rejected attempt={attempt} "
+                f"text_len={len(captcha_text or '')}",
+                flush=True,
+            )
             time.sleep(1)
             continue
 
         payload = {
-            "usernamee": username_value,
-            "passwordd": password_value,
-            "inputcustomer": customer_value,
-            "inputplatform": platform_value,
-            "captcha": captcha_text,
-            "sub": "",
+            "username": username_value,
+            "password": password_value,
+            "customer": customer_value,
+            "platform": platform_value,
+            "captcha_token": captcha_token,
+            "captcha_answer": captcha_text,
         }
+        if progress:
+            progress("submitting_login", "Submitting secure AML sign-in.", captcha_attempt=attempt)
         login_resp = session_obj.post(
-            AML_GUI_BASE_URL,
-            data=payload,
-            headers={"Referer": AML_GUI_BASE_URL, "Origin": AML_GUI_BASE_URL.rstrip("/")},
-            timeout=60,
-            allow_redirects=False,
+            AML_API_LOGIN_URL,
+            json=payload,
+            headers={"Origin": AML_GUI_BASE_URL.rstrip("/")},
+            timeout=(15, 45),
         )
-        login_resp.raise_for_status()
-
-        location = login_resp.headers.get("Location", "")
-        login_ok = login_resp.status_code == 302 and "datalist_npci" in location
-        if login_ok and not require_report_form:
-            print("[AML HTTP LOGIN] Success")
+        if login_resp.ok:
+            try:
+                login_data = login_resp.json()
+            except ValueError as exc:
+                raise RuntimeError("AML login returned an unreadable response") from exc
+            access_token = str(login_data.get("token") or "")
+            if not access_token:
+                raise RuntimeError("AML login succeeded without returning an access token")
+            session_obj.headers["Authorization"] = f"Bearer {access_token}"
+            if progress:
+                progress("login_verified", "AML sign-in succeeded.")
+            print("[AML HTTP LOGIN] Success", flush=True)
             return session_obj
 
-        if login_ok:
-            report_page = session_obj.get(AML_REPORT_URL, timeout=30, allow_redirects=True)
-            report_page.raise_for_status()
-            if re.search(r"name=[\"']left_image\[\][\"']", report_page.text, flags=re.IGNORECASE):
-                print("[AML HTTP LOGIN] Success")
-                return session_obj
-            print(f"[AML HTTP LOGIN] Attempt {attempt} failed - report form not available. Retrying.")
-        else:
-            print(f"[AML HTTP LOGIN] Attempt {attempt} failed - status={login_resp.status_code} location={location!r}. Retrying.")
+        try:
+            detail = str(login_resp.json().get("detail") or "").lower()
+        except (ValueError, AttributeError):
+            detail = ""
+        if detail and not any(word in detail for word in ("captcha", "verification code", "challenge")):
+            raise RuntimeError(f"AML rejected the login (HTTP {login_resp.status_code})")
+        print(
+            f"[AML HTTP LOGIN] CAPTCHA or login rejected attempt={attempt} "
+            f"status={login_resp.status_code}",
+            flush=True,
+        )
         time.sleep(1)
 
     raise RuntimeError("AML GUI HTTP login failed after captcha retries")
