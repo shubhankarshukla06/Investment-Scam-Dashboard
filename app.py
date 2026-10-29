@@ -7004,13 +7004,10 @@ def aml_build_driver(headless=None, download_dir=None):
             driver._aml_process_group_id = process_group_id
 
     if download_dir:
-        try:
-            driver.execute_cdp_cmd(
-                "Page.setDownloadBehavior",
-                {"behavior": "allow", "downloadPath": os.path.abspath(download_dir)},
-            )
-        except Exception as exc:
-            print(f"[AML DRIVER] Could not set headless download behavior: {exc}", flush=True)
+        # Chrome's download directory is already configured through the prefs
+        # above. Avoid a CDP round trip here: on Render it can hang until the
+        # WebDriver command timeout (120s) while Chrome consumes nearly the
+        # whole instance memory limit. Headless Chromium honors the prefs.
     return driver
 
 
