@@ -18,7 +18,7 @@
       }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GUI Management — Scam Intelligence GUI</title>
+    <title>GUI Management — Anti Scam Monitoring GUI</title>
     <link rel="icon" type="image/png" href="/static/favicon.png" />
     <link
       rel="stylesheet"
@@ -330,10 +330,11 @@
       }
       th[data-col="id"],
       td[data-col="id"] {
-        width: 54px;
-        min-width: 54px;
-        max-width: 54px;
-        padding-right: 6px;
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+        padding-left: 6px;
+        padding-right: 3px;
       }
       #dmTable.dm-dashboard-table th:nth-child(3),
       #dmTable.dm-dashboard-table td:nth-child(3),
@@ -388,6 +389,12 @@
       }
       tbody tr.dm-role-employee:hover {
         background: #e7f7ef;
+      }
+      tbody tr.dm-inactive {
+        background: #fbe1e1;
+      }
+      tbody tr.dm-inactive:hover {
+        background: #f6d2d2;
       }
       .tag {
         display: inline-block;
@@ -875,6 +882,12 @@
       body.theme-dark tbody tr.dm-role-employee:hover {
         background: rgba(34, 197, 94, 0.2);
       }
+      body.theme-dark tbody tr.dm-inactive {
+        background: rgba(220, 70, 70, 0.22);
+      }
+      body.theme-dark tbody tr.dm-inactive:hover {
+        background: rgba(239, 90, 90, 0.30);
+      }
       body.theme-dark tbody td {
         color: #e6edf7;
         border-bottom-color: rgba(148, 163, 184, 0.12);
@@ -1078,8 +1091,11 @@
       </div>
       {% endfor %}{% endif %} {% endwith %}
       <div class="filter-bar">
-        <input type="hidden" id="dmSearch" value="" />
         <div id="dmDashboardFilters" class="dm-dashboard-controls">
+          <div class="filter-group">
+            <label for="dmSearch">Search Users</label>
+            <input id="dmSearch" type="search" placeholder="Search name, email, ID, role..." oninput="applyFilters()" autocomplete="off" />
+          </div>
           <div class="filter-group">
             <label>Status</label>
             <select id="dmStatusFilter" onchange="applyFilters()">
@@ -1560,11 +1576,18 @@
           );
         if (q) {
           rows = rows.filter((u) => {
+            const role = String(
+              u.role || (u.is_admin ? "admin" : "user"),
+            );
             const parts = [
+              u.id,
               u.email,
               u.display_name,
               u.aml_username,
-              (u.allowed_departments || []).join(" "),
+              role,
+              u.is_active ? "active" : "inactive",
+              asList(u.allowed_pages).map(pageLabel).join(" "),
+              asList(u.allowed_departments).join(" "),
             ]
               .join(" ")
               .toLowerCase();
@@ -1588,12 +1611,14 @@
             const role = String(
               u.role || (u.is_admin ? "admin" : "user"),
             ).toLowerCase();
-            const roleClass =
-              role === "superadmin"
-                ? "dm-role-superadmin"
-                : role === "admin"
-                  ? "dm-role-admin"
-                  : "dm-role-user";
+            const roleClasses = {
+              superadmin: "dm-role-superadmin",
+              admin: "dm-role-admin",
+              user: "dm-role-user",
+              intern: "dm-role-intern",
+              employee: "dm-role-employee",
+            };
+            const roleClass = roleClasses[role] || "dm-role-user";
             const roleTag =
               role === "superadmin"
                 ? '<span class="tag tag-purple">Superadmin</span>'
@@ -1603,6 +1628,7 @@
             return (
               '<tr class="' +
               roleClass +
+              (u.is_active ? "" : " dm-inactive") +
               '" data-status="' +
               (u.is_active ? "active" : "inactive") +
               '">' +

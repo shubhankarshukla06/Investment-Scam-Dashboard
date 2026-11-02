@@ -71,7 +71,7 @@ table { width:max-content; min-width:100%; border-collapse:collapse; }
 th, td { padding:9px 12px; text-align:left; border-bottom:1px solid #eee; vertical-align:middle; font-size:12px; white-space:nowrap; }
 th { background:#f0fff4; font-weight:600; color:#2c3e50; position:sticky; top:0; z-index:10; border-right:1px solid #e0f0e0; border-bottom:2px solid #a9dfbf; }
 th:last-child { border-right:none; }
-th[data-col="id"], td[data-col="id"] { width:54px; min-width:54px; max-width:54px; padding-right:6px; }
+th[data-col="id"], td[data-col="id"] { width:68px !important; min-width:68px !important; max-width:68px !important; padding:9px 6px 9px 10px !important; overflow:hidden !important; text-overflow:ellipsis !important; }
 tr:hover { background:#f8fffe; }
 .na-cell { color:#95a5a6; font-style:italic; font-size:11px; }
 .field-cell { display:flex; align-items:center; gap:4px; }
@@ -436,7 +436,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             <div style="display:flex;align-items:center;gap:10px;min-width:0;">
                 <div style="min-width:0;">
                     <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
-                        <h1 style="white-space:nowrap;">Scam Intelligence GUI</h1>
+                        <h1 style="white-space:nowrap;">Anti Scam Monitoring GUI</h1>
                         <span class="header-username"><i class="fas fa-user-circle" style="color:#3498db;font-size:11px;"></i> {{ display_name }}</span>
                     </div>
                     <p style="margin-top:2px;">GUI QC Review</p>

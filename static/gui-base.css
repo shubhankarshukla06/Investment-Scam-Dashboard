@@ -331,11 +331,39 @@ body.page-social .pagination {
   text-overflow: clip !important;
 }
 
+/* Keep Social Media Accounts IDs compact so the account columns have room. */
+body.page-social .table-container th[data-col="id"],
+body.page-social .table-container td[data-col="id"] {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  padding-left: 10px !important;
+  padding-right: 6px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Compact IDs on the main records pages. */
+body.page-scraping .table-container th[data-col="id"],
+body.page-scraping .table-container td[data-col="id"],
 body.page-investment .table-container th[data-col="id"],
 body.page-investment .table-container td[data-col="id"] {
-  min-width: 132px;
-  padding-left: 22px !important;
-  padding-right: 14px !important;
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+  padding-left: 10px !important;
+  padding-right: 6px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+body.page-investment .table-container th[data-col="id"],
+body.page-investment .table-container td[data-col="id"] {
+  width: 132px !important;
+  min-width: 132px !important;
+  max-width: 132px !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
   text-align: left !important;
 }
 

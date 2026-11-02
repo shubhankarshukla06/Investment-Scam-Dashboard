@@ -966,7 +966,7 @@ def login():
                 )
                 clean_name = get_first_name(user.get("display_name", "User"))
                 flash(
-                    f"{greeting}, {clean_name} - Welcome to Scam Intelligence GUI",
+                    f"{greeting}, {clean_name} - Welcome to Anti Scam Monitoring GUI",
                     "welcome",
                 )
                 allowed = session["allowed_pages"]
@@ -2035,6 +2035,10 @@ def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
             if re.search(r"\b(import|upload)\b.{0,60}\b(failed|error|invalid|rejected)\b", lowered):
                 raise RuntimeError("AML reported an import error. Check the AML page before retrying.")
             if re.search(r"\b(successfully imported|imported successfully|import successful|import completed|successfully uploaded|upload successful|uploaded successfully)\b", lowered):
+                return True
+            # AML may report a row count first (for example, "25 records imported")
+            # instead of using one of the full success phrases above.
+            if re.search(r"\b\d+\s+(?:records?|rows?|cases?)\s+(?:were\s+)?(?:successfully\s+)?(?:imported|uploaded)\b", lowered):
                 return True
             return False
 
