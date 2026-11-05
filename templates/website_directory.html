@@ -1064,6 +1064,9 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break">Break Time Management</option>
                     {% endif %}
+                    {% if 'intern_feedback' in allowed_pages %}
+                    <option value="intern_feedback">Intern Feedback Report</option>
+                    {% endif %}
 </select>
             </div>
             <!-- Download Template -->
@@ -1108,39 +1111,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             </a>
         </div>
     </div>
-    <div class="secondary-page-nav" aria-label="Page navigation">
-        {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn active" onclick="changePageFromWD('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('qc')">QC Review</button>
-        {% endif %}
-        {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changePageFromWD('lunch_break')">Break Time Management</button>
-        {% endif %}
-    </div>
+    {% set current_page = 'website_directory' %}{% include 'partials/page_navigation.html' %}
 </div>
 <div class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -1570,6 +1541,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
 
 function changePageFromWD(pageType) {
     if (pageType === 'website_directory') return;
+    if (pageType === 'intern_feedback') { window.location.href = '/intern-feedback'; return; }
     if (pageType === 'dashboard_management') { window.location.href = '/dashboard-management'; return; }
     if (pageType === 'lunch_break') {
         window.location.href = '/lunch-break';

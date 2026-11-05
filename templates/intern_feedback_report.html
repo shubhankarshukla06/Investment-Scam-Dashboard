@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{{ intern.name }} — Performance Report</title><style>
+*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#171717;margin:10px;background:#fff}.toolbar{display:flex;gap:8px;margin:0 auto 10px;max-width:1260px}.btn{background:#2563eb;color:white;border:0;padding:8px 12px;border-radius:5px;cursor:pointer;font-weight:600}.report{width:100%;max-width:1260px;margin:auto;border-collapse:collapse;table-layout:fixed}.report td{border:1px solid #555;padding:5px 7px;vertical-align:top}.report .label{width:218px;background:#f2b57f;font-weight:700}.report .value{background:#fff;white-space:pre-wrap;min-height:24px;outline:none}.report .multiline{min-height:72px}.report .large{min-height:105px}.report .rating{font-weight:700}.report .rating[contenteditable=true]:empty:before{content:' ';white-space:pre}.report-title{max-width:1260px;margin:0 auto 7px;font-size:16px;color:#222}.save-status{font-size:12px;color:#16804b;align-self:center}@media(max-width:650px){.report .label{width:130px}.report td{padding:5px;font-size:12px}}@media print{body{margin:0}.toolbar,.report-title{display:none!important}.report{max-width:none}.report td{padding:4px 6px}.report .label{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+</style></head><body>
+<div class="toolbar"><button class="btn" onclick="window.print()">Print / Save PDF</button><button class="btn" id="saveReport">Save Edits</button><a class="btn" href="/intern-feedback?intern={{ intern.name|urlencode }}&date_from={{ data.start }}&date_to={{ data.end }}">Back to Feedback Report</a><span id="savedStatus" class="save-status"></span></div>
+<div class="report-title">Edit the report fields directly, then save in this browser or print to PDF.</div>
+<table class="report"><tbody>
+<tr><td class="label">Intern Name</td><td class="value" contenteditable="true" data-field="intern_name">{{ intern.name }}</td></tr>
+<tr><td class="label">Department</td><td class="value" contenteditable="true" data-field="department">Investment Scam</td></tr>
+<tr><td class="label">Mentor Name</td><td class="value" contenteditable="true" data-field="mentor_name"></td></tr>
+<tr><td class="label">Reporting Period</td><td class="value" contenteditable="true" data-field="reporting_period">{{ data.start }} – {{ data.end }}</td></tr>
+<tr><td class="label">Tasks &amp; Progress</td><td class="value multiline" contenteditable="true" data-field="tasks_progress">Total cases completed: {{ intern.cases }}
+Average cases per working day: {{ intern.average }}
+Highest daily cases: {{ intern.highest }}
+Lowest daily cases: {{ intern.lowest }}
+Working days in period: {{ data.workdays }}</td></tr>
+<tr><td class="label">Accuracy</td><td class="value multiline" contenteditable="true" data-field="accuracy"></td></tr>
+<tr><td class="label">Discipline</td><td class="value multiline" contenteditable="true" data-field="discipline"></td></tr>
+<tr><td class="label">Initiative</td><td class="value multiline" contenteditable="true" data-field="initiative"></td></tr>
+<tr><td class="label">General Remarks</td><td class="value large" contenteditable="true" data-field="remarks"></td></tr>
+<tr><td class="label">Improvement Suggestions</td><td class="value multiline" contenteditable="true" data-field="suggestions"></td></tr>
+<tr><td class="label">Overall Performance Rating</td><td class="value rating" contenteditable="true" data-field="overall_rating"></td></tr>
+</tbody></table>
+<script>
+const storageKey='intern-feedback:'+{{ intern.name|tojson }}+':'+{{ data.start|tojson }}+':'+{{ data.end|tojson }};let saved={};try{saved=JSON.parse(localStorage.getItem(storageKey)||'{}')}catch(e){}document.querySelectorAll('[data-field]').forEach(el=>{const key=el.dataset.field;if(saved[key]!==undefined)el.textContent=saved[key]});document.getElementById('saveReport').onclick=()=>{const next={...saved};document.querySelectorAll('[data-field]').forEach(el=>next[el.dataset.field]=el.innerText.trim());localStorage.setItem(storageKey,JSON.stringify(next));saved=next;document.getElementById('savedStatus').textContent='Edits saved in this browser.'};
+</script></body></html>

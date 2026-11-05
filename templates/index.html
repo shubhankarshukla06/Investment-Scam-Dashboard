@@ -357,6 +357,36 @@
             .mode-selector-row label { font-size: 12px; font-weight: 700; color: #2c3e50; white-space: nowrap; }
             .mode-select { padding: 7px 12px; border: 1.5px solid #3498db; border-radius: 5px; font-size: 12px; background: white; cursor: pointer; color: #2c3e50; font-weight: 600; height: 34px; min-width: 200px; }
             .mode-select:focus { outline: none; box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
+            .mode-options { display:flex;align-items:center;gap:7px;flex-wrap:wrap; }
+            .mode-option { min-height:34px;padding:7px 12px;border:1px solid #d5deea;border-radius:6px;background:#f8fafc;color:#34445c;font-size:12px;font-weight:650;cursor:pointer;transition:background .15s,border-color .15s,color .15s,box-shadow .15s; }
+            .mode-option:hover { background:#eaf2ff;border-color:#93b7f8; }
+            .mode-option.active { color:#fff;background:#2563eb;border-color:#2563eb;box-shadow:0 2px 6px rgba(37,99,235,.2); }
+            .mode-option:focus-visible { outline:2px solid #60a5fa;outline-offset:2px; }
+            .subheader-start-btn { background:#eaf2ff !important;border:1px solid #bfdbfe !important;color:#34445c !important;box-shadow:none !important; }
+            .subheader-start-btn:hover:not(:disabled) { background:#dbeafe !important;border-color:#93c5fd !important; }
+            .subheader-start-btn:disabled { opacity:.55;cursor:not-allowed; }
+            .compact-action-btn { background:#f1f5f9;border-color:#cbd5e1;color:#34445c; }
+            .compact-action-btn:hover:not(:disabled) { background:#e2e8f0; }
+            .compact-action-btn:disabled { opacity:.55;cursor:not-allowed; }
+            .activity-clear-btn { background:#e2e8f0; }
+            @keyframes qcProgressShine { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+            #qcProgressBar, #crProgressBar { animation: qcProgressShine 1.4s linear infinite; }
+            .cr-download-ready { background:#16a34a !important;border-color:#16a34a !important;color:#fff !important; }
+            .cr-download-ready:hover { background:#15803d !important;border-color:#15803d !important; }
+            body.theme-dark .cr-download-ready { background:#15803d !important;border-color:#16a34a !important;color:#fff !important; }
+            @media(max-width:700px){ #caseReportWorkArea{grid-template-columns:minmax(0,1fr) !important} }
+            body.theme-dark #qcPanel, body.theme-dark #caseReportPanel { border-color:#475569 !important; color:#e2e8f0; }
+            body.theme-dark #qcPanel > div > div, body.theme-dark #qcPanel aside { border-color:#475569 !important; }
+            body.theme-dark .mode-option { background:#1e293b;border-color:#475569;color:#e2e8f0; }
+            body.theme-dark .mode-option:hover { background:#334155;border-color:#64748b; }
+            body.theme-dark .mode-option.active { background:#2563eb;border-color:#3b82f6;color:#fff; }
+            body.theme-dark .subheader-start-btn { background:#334155 !important;border-color:#64748b !important;color:#e2e8f0 !important; }
+            body.theme-dark .subheader-start-btn:hover:not(:disabled) { background:#475569 !important; }
+            body.theme-dark .compact-action-btn { background:#334155;border-color:#64748b;color:#e2e8f0; }
+            body.theme-dark .compact-action-btn:hover:not(:disabled) { background:#475569; }
+            body.theme-dark .activity-clear-btn { background:#334155;border-color:#475569;color:#e2e8f0; }
+            @media(max-width:700px){.mode-selector-row{align-items:flex-start;flex-direction:column;gap:7px}.mode-options{width:100%}.mode-option{flex:1 1 auto}}
+            #scrappingSummarySection .scrapping-summary-controls { margin-top:12px; }
             :root { --row-h: 44px; }
             .sheet-maker-row {
                 display: grid;
@@ -420,7 +450,7 @@
             .summary-status-stack .automation-step i { width: 10px; flex: 0 0 10px; font-size: 8px; }
             .summary-status-stack .automation-step span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
             .sheet-processing-status-group { min-width: 0; }
-            .sheet-processing-status-card { display: grid; grid-template-columns: minmax(118px, auto) minmax(0, 1fr); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; min-height: var(--row-h); padding: 5px 8px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
+            .sheet-processing-status-card { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; gap: 4px 8px; width: 100%; min-width: 0; min-height: var(--row-h); padding: 5px 8px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
             .sheet-processing-status-card.is-running { border-color: #b0bdf7; background: #f0f3ff; color: #1769aa; }
             .sheet-processing-status-card.is-done { border-color: #a9dfbf; background: #eafaf1; color: #16834b; }
             .sheet-processing-status-card.is-error { border-color: #f2aaa5; background: #fff1f0; color: #b83232; }
@@ -958,7 +988,7 @@
             .logo h1 { white-space: normal; }
         }
             @media (max-width: 768px) { .container { padding-bottom: 20px; } .header-controls { width: 100%; } .sheet-maker-main-row, .summary-maker-row { grid-template-columns: 1fr; } .summary-status-action-group { grid-column: span 1; } .social-page .filters-grid { grid-template-columns: 1fr; } }
-            @media (max-width: 768px) { .sheet-processing-status-card { grid-template-columns: minmax(100px, auto) minmax(0, 1fr); } }
+            @media (max-width: 768px) { .sheet-processing-status-card { grid-template-columns: minmax(0, 1fr); } }
             /* Insights: keep cards & graph sections aligned and consistent */
             @media (max-width: 1200px) {
                 #insightsStatCards { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
@@ -2058,6 +2088,9 @@
                     {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break" {% if page_type == 'lunch_break' %}selected{% endif %}>Break Time Management</option>
                     {% endif %}
+                    {% if 'intern_feedback' in allowed_pages %}
+                    <option value="intern_feedback">Intern Feedback Report</option>
+                    {% endif %}
 </select>
                     </div>
                     <div class="header-actions">
@@ -2121,38 +2154,7 @@
                     </div>
                 </div>
             </div>
-            <div class="secondary-page-nav" aria-label="Page navigation">
-                    {% if 'scraping' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'scraping' %}active{% endif %}" onclick="changePageFromWD('scraping')">Data Scraping</button>
-                    {% endif %}
-                    {% if 'social' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'social' %}active{% endif %}" onclick="changePageFromWD('social')">Social Media Accounts</button>
-                    {% endif %}
-                    {% if 'investment' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'investment' %}active{% endif %}" onclick="changePageFromWD('investment')">Investment Scam Data</button>
-                    {% endif %}
-                    {% if 'website_directory' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'website_directory' %}active{% endif %}" onclick="changePageFromWD('website_directory')">Website Directory</button>
-                    {% endif %}
-                    {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'allotment' %}active{% endif %}" onclick="changePageFromWD('allotment')">Case Assignment</button>
-                    {% endif %}
-                    {% if 'sheet' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'sheet' %}active{% endif %}" onclick="changePageFromWD('sheet')">Summary &amp; Reports</button>
-                    {% endif %}
-                    {% if 'insights' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'insights' %}active{% endif %}" onclick="changePageFromWD('insights')">Dashboard</button>
-                    {% endif %}
-                    {% if 'qc' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'qc' %}active{% endif %}" onclick="changePageFromWD('qc')">QC Review</button>
-                    {% endif %}
-                    {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'dashboard_management' %}active{% endif %}" onclick="changePageFromWD('dashboard_management')">GUI Management</button>
-                    {% endif %}
-                    {% if 'lunch' in allowed_pages %}
-                    <button type="button" class="page-nav-btn {% if page_type == 'lunch_break' %}active{% endif %}" onclick="changePageFromWD('lunch_break')">Break Time Management</button>
-                    {% endif %}
-            </div>
+            {% set current_page = page_type %}{% include 'partials/page_navigation.html' %}
         </div>
         <div class="container">
             <!-- ===== SCRAPING DATA PAGE ===== -->
@@ -2330,12 +2332,101 @@
 
                     <div class="mode-selector-row">
                         <label><i class="fas fa-sliders-h" style="color:#3498db;"></i> Select Mode:</label>
-                        <select class="mode-select" id="modeSelect" onchange="switchMode(this.value)">
-                            <option value="sheet">📊 Sheet Maker</option>
-                            <option value="summary">📋 Summary Maker</option>
-                            <option value="duplicates">🔍 UPI/Bank Duplicate Checker</option>
-                            <option value="scrapping_summary">📊 Scrapping Summary</option>
-                        </select>
+                        <div class="mode-options" id="modeOptions" role="group" aria-label="Summary and reports mode">
+                            <button type="button" class="mode-option active" data-mode="sheet" aria-pressed="true" onclick="switchMode('sheet')">📊 Sheet Maker</button>
+                            <button type="button" class="mode-option" data-mode="summary" aria-pressed="false" onclick="switchMode('summary')">📋 Summary Maker</button>
+                            <button type="button" class="mode-option" data-mode="duplicates" aria-pressed="false" onclick="switchMode('duplicates')">🔍 UPI/Bank Duplicate Checker</button>
+                            <button type="button" class="mode-option" data-mode="scrapping_summary" aria-pressed="false" onclick="switchMode('scrapping_summary')">📊 Scrapping Summary</button>
+                            <button type="button" class="mode-option" data-mode="qc_case_report" aria-pressed="false" onclick="switchMode('qc_case_report')">✅ QC &amp; Case Report Generation</button>
+                        </div>
+                    </div>
+                    <div id="qcCaseReportSection" style="display:none;padding:8px 0;">
+                        <div class="mode-options" style="flex-wrap:nowrap;overflow-x:auto;margin:0 0 8px;">
+                            <button type="button" class="mode-option active" data-qc-panel="qc" onclick="setQcPanel('qc',this)">✅ QC Process</button>
+                                <button type="button" class="mode-option" data-qc-panel="report" onclick="setQcPanel('report',this)">📄 Case Report Generator</button>
+                        </div>
+                        <section id="qcPanel" style="border:1px solid #dbe3ef;border-radius:8px;padding:10px;">
+                            <div style="display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:8px;">
+                                <button type="button" class="mode-option active" onclick="setQcAction('approve',this)">Approved Cases</button>
+                                <button type="button" class="mode-option" onclick="setQcAction('reject',this)">Rejected Cases</button>
+                                <div id="qcRemarkWrap" style="display:none;align-items:center;gap:5px;">
+                                    <label for="qcRemark" style="font-size:11px;"><b>Remarks</b></label>
+                                    <select id="qcRemark" class="sheet-maker-select" style="width:auto;min-width:210px;height:32px;font-size:11px;"></select>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(240px,.9fr);gap:8px;align-items:stretch;">
+                                <div style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;min-width:0;">
+                                    <label for="qcCaseFile" style="font-size:11px;"><b>Browse Excel</b> <span style="font-weight:400;">(Sheet Contain coloum name IDs)</span></label>
+                                    <input id="qcCaseFile" type="file" accept=".xlsx,.xls,.csv" style="display:block;width:100%;font-size:11px;margin:4px 0 8px;">
+                                    <label for="qcCaseIds" style="font-size:11px;"><b>Paste IDs</b> <span style="font-weight:400;">(up to 800)</span></label>
+                                    <textarea id="qcCaseIds" rows="4" placeholder="One Case ID per line or comma separated" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:7px;font-size:12px;resize:vertical;"></textarea>
+                                    <div style="display:flex;gap:6px;margin-top:8px;">
+                                        <button type="button" class="mode-option subheader-start-btn" id="qcStartBtn" onclick="startQcJob()" style="padding:7px 14px;min-height:34px;font-size:12px;">Start</button>
+                                        <button type="button" class="mode-option compact-action-btn" id="qcStopBtn" onclick="stopQcJob()" disabled style="padding:7px 14px;min-height:34px;font-size:12px;">Stop QC</button>
+                                    </div>
+                                </div>
+                                <aside style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;min-height:165px;min-width:0;">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+                                        <b style="font-size:12px;">Activity Log</b>
+                                        <div style="display:flex;gap:5px;">
+                                            <button type="button" class="mode-option activity-clear-btn" onclick="clearQcLog()" style="min-height:26px;padding:4px 8px;font-size:10px;">Clear Log</button>
+                                            <button type="button" class="mode-option" id="qcLogToggle" onclick="toggleActivityLog('qc')" aria-expanded="true" style="min-height:26px;padding:4px 8px;font-size:10px;">Hide</button>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin:7px 0;">
+                                        <div style="height:12px;flex:1;background:#e5e7eb;border-radius:8px;overflow:hidden;"><div id="qcProgressBar" style="height:100%;width:0;background:linear-gradient(90deg,#2563eb,#5eead4,#2563eb);background-size:200% 100%;transition:width .3s;"></div></div>
+                                        <span id="qcProgressPct" style="font-size:11px;min-width:30px;text-align:right;">0%</span>
+                                        <span id="qcProgressCount" style="font-size:10px;min-width:34px;text-align:right;">0/0</span>
+                                    </div>
+                                    <div id="qcActivityContent">
+                                    <div id="qcActivityLog" role="log" aria-live="polite" style="max-height:190px;overflow:auto;font-size:11px;"></div>
+                                    </div>
+                                </aside>
+                            </div>
+                        </section>
+                        <section id="caseReportPanel" style="display:none;border:1px solid #dbe3ef;border-radius:8px;padding:10px;">
+                            <div id="caseReportHeadingRow" style="display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-bottom:9px;">
+                                <div class="mode-options" style="gap:5px;flex-wrap:nowrap;white-space:nowrap;">
+                                    <button type="button" class="mode-option active" data-cr-mode="only" onclick="setCaseReportMode('only',this)" style="min-height:30px;padding:5px 9px;font-size:11px;">Only Generate</button>
+                                    <button type="button" class="mode-option" data-cr-mode="extract" onclick="setCaseReportMode('extract',this)" style="min-height:30px;padding:5px 9px;font-size:11px;">Extract &amp; Generate</button>
+                                    <button type="button" class="mode-option" id="crDownloadBtn" onclick="downloadCaseReportOutput()" disabled style="min-height:30px;padding:5px 9px;font-size:11px;">Download Excel Sheet</button>
+                                </div>
+                            </div>
+                            <div id="caseReportWorkArea" style="display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(230px,.9fr);gap:8px;align-items:stretch;">
+                                <div style="min-width:0;">
+                                    <div id="crOnlyPanel" style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;margin-bottom:8px;">
+                                        <label for="crOnlyExcel" style="font-size:11px;font-weight:700;">Excel file (SS_Path_1 or Screenshot_Path, Title, Description)</label>
+                                        <input id="crOnlyExcel" type="file" accept=".xlsx,.xls,.xlsm" style="display:block;margin-top:5px;font-size:11px;">
+                                    </div>
+                                    <div id="crExtractPanel" style="display:none;border:1px solid #e2e8f0;border-radius:7px;padding:9px;margin-bottom:8px;">
+                                        <label for="crExtractExcel" style="font-size:11px;font-weight:700;">Excel file (PDF_Path, Website_URL)</label>
+                                        <input id="crExtractExcel" type="file" accept=".xlsx,.xls,.xlsm" style="display:block;margin-top:5px;font-size:11px;">
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 7px;">
+                                        <button type="button" class="mode-option subheader-start-btn" id="crStartBtn" onclick="startCaseReportJob()" style="padding:7px 14px;min-height:34px;font-size:12px;">Start</button>
+                                        <button type="button" class="mode-option compact-action-btn" id="crStopBtn" onclick="stopCaseReportJob()" disabled style="min-height:34px;padding:7px 14px;font-size:12px;">Stop</button>
+                                    </div>
+                                    <span id="crProgressText" style="font-size:10px;color:#64748b;">Ready</span>
+                                </div>
+                                <aside style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;min-height:150px;min-width:0;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;">
+                                        <b style="font-size:12px;">Activity Log</b>
+                                        <div style="display:flex;gap:5px;">
+                                            <button type="button" class="mode-option activity-clear-btn" onclick="clearCaseReportLog()" style="min-height:26px;padding:4px 8px;font-size:10px;">Clear Log</button>
+                                            <button type="button" class="mode-option" id="crLogToggle" onclick="toggleActivityLog('caseReport')" aria-expanded="true" style="min-height:26px;padding:4px 8px;font-size:10px;">Hide</button>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin:7px 0;">
+                                        <div style="height:12px;flex:1;background:#e5e7eb;border-radius:8px;overflow:hidden;"><div id="crProgressBar" style="height:100%;width:0;background:linear-gradient(90deg,#2563eb,#5eead4,#2563eb);background-size:200% 100%;transition:width .3s;"></div></div>
+                                        <span id="crProgressPct" style="font-size:11px;min-width:30px;text-align:right;">0%</span>
+                                        <span id="crProgressCount" style="font-size:10px;min-width:34px;text-align:right;">0/0</span>
+                                    </div>
+                                    <div id="crActivityContent">
+                                        <div id="crActivityLog" role="log" aria-live="polite" style="max-height:190px;overflow:auto;font-size:10px;"></div>
+                                    </div>
+                                </aside>
+                            </div>
+                        </section>
                     </div>
                     <!-- SHEET MAKER MODE -->
                     <div id="sheetMakerSection">
@@ -2343,7 +2434,7 @@
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-database"></i> Destination</label>
                                 <select class="sheet-maker-select" id="sheetSourceSelect" onchange="onSheetSourceChange()">
-                                    <option value="aml" selected>Import through AML GUI</option>
+                                    <option value="aml" selected>GUI Data Import</option>
                                     <option value="download">Download CSV</option>
                                 </select>
                             </div>
@@ -2377,18 +2468,12 @@
                                         <i class="fas fa-check-circle"></i>
                                         <span id="sheetReadyText"></span>
                                     </div>
-                                    <ol class="automation-steps" id="sheetImportSteps" hidden aria-label="AML GUI import progress">
-                                        <li class="automation-step" title="Start AML browser"><i class="fas fa-circle"></i><span>Browser</span></li>
-                                        <li class="automation-step" title="Log in to AML"><i class="fas fa-circle"></i><span>Login</span></li>
-                                        <li class="automation-step" title="Choose and submit the CSV"><i class="fas fa-circle"></i><span>Import</span></li>
-                                        <li class="automation-step" title="Wait for AML confirmation"><i class="fas fa-circle"></i><span>Confirm</span></li>
-                                    </ol>
                                 </div>
                             </div>
                             <div class="sheet-maker-group" style="min-width:0;">
                                 <label><i class="fas fa-download"></i> Action</label>
                                 <button class="generate-btn-compact" id="generateBtn" onclick="generateSheet()" disabled>
-                                    <i class="fas fa-upload"></i> Import through AML GUI
+                                    <i class="fas fa-upload"></i> Retrieve Data From GUI
                                 </button>
                             </div>
                         </div>
@@ -2644,7 +2729,7 @@
             </div>
         <!-- SCRAPPING SUMMARY SECTION -->
         <div id="scrappingSummarySection" style="display:none;">
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;width:100%;box-sizing:border-box;">
+            <div class="scrapping-summary-controls" style="display:flex;gap:8px;align-items:center;flex-wrap:nowrap;width:100%;box-sizing:border-box;">
                 <!-- Summary Type -->
                 <div style="display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;">
                     <label style="font-size:11px;font-weight:700;color:#7f8c8d;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap;"><i class="fas fa-list-alt"></i> Summary Type</label>
@@ -3618,6 +3703,197 @@
             let summaryAmlDataCache = null;   // persists AML GUI load across type/source toggles
             let activeCategoryFilter = null;  // null | 'sm' | 'web' | 'app' — drives filtered Category-wise view
             let summaryParsedMeta = null;     // { uploadedAt, source } — stamped on each fresh upload/GUI load for header timestamps
+            let qcAction = 'approve';
+            let qcPollTimer = null;
+            let qcLastJobId = null;
+            let caseReportMode = 'only';
+            let caseReportJobId = null;
+            let caseReportPollTimer = null;
+            const QC_REMARKS = ["Approved","Major Mistake - Wrong Website/Group/URL Case","Major Mistake - Wrong/Non-Existent Payment Details Filled","Major Mistake - Wrong Payment Gateway URL","Major Mistake - Wrong Video/Non-Linear Recording/Background Sound","Major Mistake - Wrong First/Second Screenshot/Same Screenshots","Major Mistake - Payment Details/Web URL/PG URL/Mobile Screenshot Not Showing","Major Mistake - Extension/Profile Picture/Taskbar & Tab Showing","Major Mistake - Post URL and WhatsApp Number Are Mismatched","Minor Mistake - First/Second Screenshot Is Missing","Minor Mistake - Wrong Transaction/Transfer Mode/Search For Option","Minor Mistake - Worked on Duplicate/Extra/Others Website or Timeline Not Followed","GUI Issue - First/Second Screenshot Is Crossed","GUI Issue","Rejected"];
+            function setQcPanel(which, button) {
+                document.getElementById('qcPanel').style.display = which === 'qc' ? '' : 'none';
+                document.getElementById('caseReportPanel').style.display = which === 'report' ? '' : 'none';
+                document.querySelectorAll('#qcCaseReportSection [data-qc-panel]').forEach(b => b.classList.toggle('active', b === button || (!button && b.dataset.qcPanel === which)));
+            }
+            function setQcAction(action, button) {
+                qcAction = action;
+                document.querySelectorAll('#qcPanel .mode-option').forEach(b => b.classList.toggle('active', b === button));
+                document.getElementById('qcRemarkWrap').style.display = action === 'reject' ? 'flex' : 'none';
+            }
+            (function initQcRemarks(){ const el=document.getElementById('qcRemark'); if(el) el.innerHTML='<option value="">-- Select remark --</option>'+QC_REMARKS.map(x=>`<option value="${x.replaceAll('&','&amp;').replaceAll('"','&quot;')}">${x}</option>`).join(''); })();
+            function qcLog(event) {
+                const row=document.createElement('div'); row.style.cssText='padding:4px 0;border-bottom:1px solid #edf0f5;';
+                row.textContent=event;
+                const log=document.getElementById('qcActivityLog'); log.appendChild(row); log.scrollTop=log.scrollHeight;
+            }
+            function clearQcLog() {
+                const log=document.getElementById('qcActivityLog');
+                log.innerHTML='';
+                log.dataset.count=String(Number(log.dataset.count||0));
+                document.getElementById('qcProgressBar').style.width='0%';
+                document.getElementById('qcProgressPct').textContent='0%';
+                document.getElementById('qcProgressCount').textContent='0/0';
+            }
+            function toggleActivityLog(which) {
+                const caseReport = which === 'caseReport';
+                const content = document.getElementById(caseReport ? 'crActivityContent' : 'qcActivityContent');
+                const button = document.getElementById(caseReport ? 'crLogToggle' : 'qcLogToggle');
+                content.hidden = !content.hidden;
+                button.textContent = content.hidden ? 'Show' : 'Hide';
+                button.setAttribute('aria-expanded', String(!content.hidden));
+            }
+            async function startQcJob() {
+                const file=document.getElementById('qcCaseFile').files[0];
+                const ids=document.getElementById('qcCaseIds').value;
+                if(!file && !ids.trim()) { alert('Choose an Excel file or enter Case IDs.'); return; }
+                if(qcAction==='reject' && !document.getElementById('qcRemark').value) { alert('Select a rejection remark first.'); return; }
+                const data=new FormData(); data.append('action',qcAction); data.append('case_ids',ids); data.append('remark',document.getElementById('qcRemark').value);
+                if(file) data.append('file',file);
+                if(!confirm(`Start sequential ${qcAction==='approve'?'approval':'rejection'} processing for the supplied cases? Duplicate IDs will be skipped.`)) return;
+                const btn=document.getElementById('qcStartBtn'); btn.disabled=true;
+                document.getElementById('qcActivityLog').innerHTML=''; document.getElementById('qcActivityLog').dataset.count='0'; document.getElementById('qcProgressBar').style.width='0%'; document.getElementById('qcProgressPct').textContent='0%'; document.getElementById('qcProgressCount').textContent='0/0';
+                document.getElementById('qcStopBtn').disabled=true;
+                document.getElementById('qcStopBtn').textContent='Stop QC';
+                try {
+                    const r=await fetch('/api/qc-case-jobs',{method:'POST',body:data}); const j=await r.json();
+                    if(!r.ok || !j.success) throw new Error(j.error||'Unable to start QC job');
+                    qcLastJobId=j.job_id; document.getElementById('qcReportDownload').disabled=true;
+                    document.getElementById('qcStopBtn').disabled=false;
+                    pollQcJob();
+                } catch(e) { alert(e.message); btn.disabled=false; }
+            }
+            async function stopQcJob() {
+                if(!qcLastJobId) return;
+                const btn=document.getElementById('qcStopBtn'); btn.disabled=true; btn.textContent='Stopping…';
+                try {
+                    const r=await fetch(`/api/qc-case-jobs/${encodeURIComponent(qcLastJobId)}/stop`,{method:'POST'});
+                    const data=await r.json();
+                    if(!r.ok || !data.success) throw new Error(data.error||'Unable to stop QC process');
+                } catch(e) { btn.disabled=false; btn.textContent='Stop QC'; alert(e.message); }
+            }
+            async function pollQcJob() {
+                if(!qcLastJobId) return;
+                try {
+                    const r=await fetch(`/api/qc-case-jobs/${encodeURIComponent(qcLastJobId)}`); const j=await r.json();
+                    if(!r.ok) throw new Error(j.error||'Status unavailable');
+                    document.getElementById('qcProgressBar').style.width=`${j.progress}%`;
+                    document.getElementById('qcProgressPct').textContent=`${j.progress}%`;
+                    document.getElementById('qcProgressCount').textContent=`${j.processed||0}/${j.total||0}`;
+                    if(j.stop_requested && !['done','error','stopped'].includes(j.status)) {
+                        document.getElementById('qcStopBtn').disabled=true;
+                        document.getElementById('qcStopBtn').textContent='Stopping…';
+                    }
+                    const log=document.getElementById('qcActivityLog');
+                    while(log.dataset.count!==(String(j.events.length))) { const count=Number(log.dataset.count||0); if(count>=j.events.length) break; qcLog(j.events[count]); log.dataset.count=String(count+1); }
+                    if(['done','error','stopped'].includes(j.status)) {
+                        document.getElementById('qcStartBtn').disabled=false;
+                        document.getElementById('qcReportDownload').disabled=false;
+                        document.getElementById('qcStopBtn').disabled=true;
+                        document.getElementById('qcStopBtn').textContent='Stop QC';
+                        return;
+                    }
+                } catch(e) { document.getElementById('qcStartBtn').disabled=false; document.getElementById('qcStopBtn').disabled=true; alert(e.message); return; }
+                qcPollTimer=setTimeout(pollQcJob,1000);
+            }
+            function downloadQcReport() { if(qcLastJobId) window.location.href=`/api/qc-case-jobs/${encodeURIComponent(qcLastJobId)}/report`; }
+            function setCaseReportMode(mode, button) {
+                caseReportMode = mode;
+                document.getElementById('crOnlyPanel').style.display = mode === 'only' ? '' : 'none';
+                document.getElementById('crExtractPanel').style.display = mode === 'extract' ? '' : 'none';
+                document.querySelectorAll('#caseReportPanel [data-cr-mode]').forEach(b => b.classList.toggle('active', b === button || (!button && b.dataset.crMode === mode)));
+            }
+            function caseReportLog(message) {
+                const row=document.createElement('div'); row.style.cssText='padding:4px 0;border-bottom:1px solid #edf0f5;';
+                row.textContent=`${new Date().toLocaleTimeString()}  ${message}`;
+                const log=document.getElementById('crActivityLog'); log.appendChild(row); log.scrollTop=log.scrollHeight;
+            }
+            function clearCaseReportLog() {
+                const log=document.getElementById('crActivityLog'); log.innerHTML='';
+                log.dataset.count=String(Number(log.dataset.count||0));
+                document.getElementById('crProgressBar').style.width='0%';
+                document.getElementById('crProgressPct').textContent='0%';
+                document.getElementById('crProgressCount').textContent='0/0';
+            }
+            function setCaseReportDownloadReady(ready) {
+                const button=document.getElementById('crDownloadBtn');
+                button.classList.toggle('cr-download-ready',ready);
+                button.title=ready ? 'Final output workbook is ready to download' : 'Processing is still running';
+            }
+            async function startCaseReportJob() {
+                const extract = caseReportMode === 'extract';
+                const excel = document.getElementById(extract ? 'crExtractExcel' : 'crOnlyExcel').files[0];
+                const log=document.getElementById('crActivityLog');
+                log.innerHTML=''; log.dataset.count='0';
+                if(!excel) { caseReportLog('Input error: choose an Excel file first.'); log.dataset.count='1'; alert('Choose an Excel file first.'); return; }
+                const data = new FormData(); data.append('mode',caseReportMode); data.append('excel',excel);
+                const startBtn=document.getElementById('crStartBtn'); startBtn.disabled=true;
+                document.getElementById('crStopBtn').disabled=true;
+                document.getElementById('crDownloadBtn').disabled=true;
+                setCaseReportDownloadReady(false);
+                document.getElementById('crProgressBar').style.width='0%';
+                document.getElementById('crProgressPct').textContent='0%';
+                document.getElementById('crProgressCount').textContent='0/0';
+                document.getElementById('crProgressText').textContent='Preparing…';
+                try {
+                    const response=await fetch('/api/case-report-jobs',{method:'POST',body:data}); const job=await response.json();
+                    if(!response.ok || !job.success) throw new Error(job.error||'Could not start report generation.');
+                    caseReportJobId=job.job_id;
+                    document.getElementById('crStopBtn').disabled=false;
+                    document.getElementById('crDownloadBtn').disabled=false;
+                    pollCaseReportJob();
+                } catch(error) {
+                    startBtn.disabled=false; document.getElementById('crProgressText').textContent='Ready';
+                    document.getElementById('crDownloadBtn').disabled=true;
+                    setCaseReportDownloadReady(false);
+                    caseReportLog(`Start failed: ${error.message}`); log.dataset.count=String(Number(log.dataset.count||0)+1); alert(error.message);
+                }
+            }
+            async function stopCaseReportJob() {
+                if(!caseReportJobId) return;
+                const btn=document.getElementById('crStopBtn'); btn.disabled=true; btn.textContent='Stopping…';
+                try {
+                    const response=await fetch(`/api/case-report-jobs/${encodeURIComponent(caseReportJobId)}/stop`,{method:'POST'});
+                    const result=await response.json();
+                    if(!response.ok || !result.success) throw new Error(result.error||'Could not stop report generation.');
+                } catch(error) { btn.disabled=false; btn.textContent='Stop'; alert(error.message); }
+            }
+            async function pollCaseReportJob() {
+                if(!caseReportJobId) return;
+                try {
+                    const response=await fetch(`/api/case-report-jobs/${encodeURIComponent(caseReportJobId)}`); const job=await response.json();
+                    if(!response.ok) throw new Error(job.error||'Could not read report job status.');
+                    const phaseLabel = job.phase === 'extracting'
+                        ? `Extracting PDF images: ${job.phase_processed} of ${job.phase_total}`
+                        : (job.phase === 'logging_in' ? 'Logging in to AML…'
+                        : (job.phase === 'generating' ? `Generating reports: ${job.phase_processed} of ${job.phase_total}`
+                        : `${job.processed} of ${job.total} records`));
+                    const phaseRatio = job.phase_total ? Math.min(1, Number(job.phase_processed || 0) / Number(job.phase_total)) : 0;
+                    let progress = Number(job.progress || 0);
+                    if(job.phase === 'extracting') progress = Math.round(phaseRatio * 40);
+                    else if(job.phase === 'logging_in' && job.mode === 'extract') progress = 40;
+                    else if(job.phase === 'generating') progress = Math.round((job.mode === 'extract' ? 40 + phaseRatio * 60 : phaseRatio * 100));
+                    if(job.status === 'done') progress = 100;
+                    progress = Math.max(0, Math.min(100, progress));
+                    document.getElementById('crProgressBar').style.width=`${progress}%`;
+                    document.getElementById('crProgressPct').textContent=`${progress}%`;
+                    const completedCount = job.phase === 'extracting' ? (job.phase_processed || 0) : (job.processed || 0);
+                    const totalCount = job.phase === 'extracting' ? (job.phase_total || job.total || 0) : (job.total || 0);
+                    document.getElementById('crProgressCount').textContent=`${completedCount}/${totalCount}`;
+                    document.getElementById('crProgressText').textContent=`${phaseLabel} · ${job.status}`;
+                    const log=document.getElementById('crActivityLog');
+                    while(Number(log.dataset.count||0)<job.events.length) { const count=Number(log.dataset.count||0); caseReportLog(job.events[count]); log.dataset.count=String(count+1); }
+                    if(job.stop_requested && !['done','error','stopped'].includes(job.status)) { document.getElementById('crStopBtn').disabled=true; document.getElementById('crStopBtn').textContent='Stopping…'; }
+                    if(['done','error','stopped'].includes(job.status)) {
+                        document.getElementById('crStartBtn').disabled=false;
+                        document.getElementById('crStopBtn').disabled=true; document.getElementById('crStopBtn').textContent='Stop';
+                        document.getElementById('crDownloadBtn').disabled=false;
+                        setCaseReportDownloadReady(true);
+                        return;
+                    }
+                } catch(error) { document.getElementById('crStartBtn').disabled=false; document.getElementById('crStopBtn').disabled=true; alert(error.message); return; }
+                caseReportPollTimer=setTimeout(pollCaseReportJob,1000);
+            }
+            function downloadCaseReportOutput() { if(caseReportJobId) window.location.href=`/api/case-report-jobs/${encodeURIComponent(caseReportJobId)}/download`; }
             // Stamps "uploadedAt" = current local time (and the source label) so the
             // SM/Web/App filtered sub-header can show "Count (till HH:MM am/pm)" using
             // the exact moment the sheet was uploaded.
@@ -3666,14 +3942,20 @@
             }
             // ─── Mode Switcher ───────────────────────────────────────
             function switchMode(mode) {
+                document.querySelectorAll('#modeOptions .mode-option').forEach(button => {
+                    const active = button.dataset.mode === mode;
+                    button.classList.toggle('active', active);
+                    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
                 const sheetSection     = document.getElementById('sheetMakerSection');
                 const summarySection   = document.getElementById('summaryMakerSection');
                 const duplicateSection = document.getElementById('duplicateCheckerSection');
                 const scrapSummSection = document.getElementById('scrappingSummarySection'); // NEW
+                const qcSection = document.getElementById('qcCaseReportSection');
                 const scrapResultArea  = document.getElementById('scrapSummaryResultArea');
                 const templateBtn      = document.getElementById('templateBtn');
                 const templateStats    = document.getElementById('templateStats');
-                [sheetSection, summarySection, duplicateSection, scrapSummSection].forEach(s => { if(s) s.style.display = 'none'; });
+                [sheetSection, summarySection, duplicateSection, scrapSummSection, qcSection].forEach(s => { if(s) s.style.display = 'none'; });
                 if (mode !== 'scrapping_summary' && scrapResultArea) scrapResultArea.style.display = 'none';
                 if (mode === 'sheet') {
                     sheetSection.style.display = '';
@@ -3704,10 +3986,20 @@
                     clearSummaryRenderState();
                     document.getElementById('summaryPreviewSection').classList.remove('show');
                     document.getElementById('dupResultArea').style.display = 'none';
+                } else if (mode === 'qc_case_report') {
+                    qcSection.style.display = '';
+                    setQcPanel('qc');
+                    templateBtn.style.display = 'none';
+                    templateStats.style.display = 'none';
+                    closePreview();
+                    clearSummaryRenderState();
+                    document.getElementById('summaryPreviewSection').classList.remove('show');
+                    document.getElementById('dupResultArea').style.display = 'none';
                 }
             }
             // ─── Page / Navigation ──────────────────────────────────────
             function changePageFromWD(pageType) {
+                if (pageType === 'intern_feedback') { window.location.href = '/intern-feedback'; return; }
                 if (pageType === 'qc') {
                     window.location.href = '/qc-gui';
                     return;
@@ -4646,33 +4938,6 @@
                 updateSheetActionButton();
                 showSheetReadyMessage();
             }
-            function updateSheetImportSteps(stage, status) {
-                const list = document.getElementById('sheetImportSteps');
-                const card = document.getElementById('sheetDataProcessingStatus');
-                if (!list || !card) return;
-                const value = String(stage || '').toLowerCase();
-                let active = /start|browser/.test(value) ? 0
-                    : /login|captcha/.test(value) ? 1
-                    : /open|select|submit|import/.test(value) ? 2
-                    : /confirm|waiting/.test(value) ? 3 : 0;
-                const done = status === 'done';
-                const failed = status === 'error' || status === 'unconfirmed';
-                list.hidden = status === 'done';
-                card.classList.toggle('is-running', !done && !failed);
-                card.classList.toggle('is-done', done);
-                card.classList.toggle('is-error', failed);
-                list.querySelectorAll('.automation-step').forEach((step, index) => {
-                    const complete = done || index < active;
-                    const current = !done && !failed && index === active;
-                    step.classList.toggle('is-done', complete);
-                    step.classList.toggle('is-active', current);
-                    step.classList.toggle('is-error', failed && index === active);
-                    const icon = step.querySelector('i');
-                    if (icon) icon.className = complete ? 'fas fa-check-circle'
-                        : (failed && index === active ? 'fas fa-exclamation-circle'
-                        : (current ? 'fas fa-spinner fa-spin' : 'fas fa-circle'));
-                });
-            }
             async function waitForSheetGuiImport(jobId) {
                 const deadline = Date.now() + 8 * 60 * 1000;
                 while (Date.now() < deadline) {
@@ -4680,8 +4945,7 @@
                     const data = await resp.json().catch(() => null);
                     if (!resp.ok || !data?.success) throw new Error(data?.error || `Could not read AML import status (HTTP ${resp.status})`);
                     const statusText = document.getElementById('sheetNotReadyMsg')?.querySelector('span');
-                    if (statusText && data.message) statusText.textContent = data.message;
-                    updateSheetImportSteps(data.stage || data.message, data.status);
+                    if (statusText && !['done', 'error', 'unconfirmed'].includes(data.status)) statusText.textContent = 'Importing data into AML...';
                     if (data.status === 'done' || data.status === 'error' || data.status === 'unconfirmed') return data;
                     await new Promise(resolve => setTimeout(resolve, 1200));
                 }
@@ -4699,10 +4963,11 @@
                 formData.append('file', fileInput.files[0]);
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+                statusCard.classList.add('is-running');
+                statusCard.classList.remove('is-done', 'is-error');
                 readyEl.style.display = 'none';
                 waitEl.style.display = 'flex';
-                waitEl.querySelector('span').textContent = 'Preparing CSV for AML...';
-                updateSheetImportSteps('starting browser', 'running');
+                waitEl.querySelector('span').textContent = 'Importing data into AML...';
                 try {
                     const response = await fetch('/sheet-gui-import', { method: 'POST', body: formData });
                     const data = await response.json().catch(() => null);
@@ -4712,15 +4977,15 @@
                     waitEl.style.display = 'none';
                     readyEl.style.display = 'flex';
                     readyEl.querySelector('span').textContent = `AML confirmed import of ${result.rows || data.rows || 0} rows.`;
-                    updateSheetImportSteps('completed', 'done');
-                    document.getElementById('sheetImportSteps').hidden = true;
+                    statusCard.classList.add('is-done');
+                    statusCard.classList.remove('is-running', 'is-error');
                     showToast(`AML import confirmed: ${result.rows || data.rows || 0} rows`, false, true);
                 } catch (error) {
                     readyEl.style.display = 'none';
                     waitEl.style.display = 'flex';
                     waitEl.querySelector('span').textContent = error.message;
                     statusCard.classList.add('is-error');
-                    updateSheetImportSteps('import failed', 'error');
+                    statusCard.classList.remove('is-running', 'is-done');
                     showToast('AML GUI import failed: ' + error.message, true);
                 } finally {
                     btn.disabled = !(sheetType && fileInput.files.length);

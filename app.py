@@ -1,5 +1,6 @@
 from flask import Flask, render_template, render_template_string, request, redirect, flash, send_file, jsonify, session, Response, stream_with_context
 import pandas as pd
+import fitz
 import io
 import math
 import urllib.parse
@@ -54,6 +55,9 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "your-secret-key-change-this")
 app.permanent_session_lifetime = timedelta(hours=4)
+
+from intern_feedback import intern_feedback_bp
+app.register_blueprint(intern_feedback_bp)
 
 # ============================================================
 # AUTH HELPERS
@@ -925,6 +929,8 @@ def redirect_to_allowed_page(allowed_pages):
         return redirect("/qc-gui")
     if first_page == "lunch":
         return redirect("/lunch-break")
+    if first_page == "intern_feedback":
+        return redirect("/intern-feedback")
     if first_page in ("allotment", "allotment_admin"):
         return redirect("/scam-website-allotment")
     if first_page == "dashboard_management":
@@ -1198,6 +1204,8 @@ def index():
         return redirect("/website-directory")
     if page_type == "lunch_break":
         return redirect("/lunch-break")
+    if page_type == "intern_feedback":
+        return redirect("/intern-feedback")
     if page_type in ("allotment", "allotment_admin"):
         return redirect("/scam-website-allotment")
     search_query = request.args.get("search", "").strip()
@@ -2022,7 +2030,7 @@ def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
         before_submit_text = driver.find_element(By.TAG_NAME, "body").text or ""
         import_button.click()
 
-        progress("waiting_for_confirmation", "Waiting for AML to confirm the import.")
+        progress("waiting_for_confirmation", "Importing data into AML.")
 
         def read_import_result(_driver):
             try:
@@ -2032,9 +2040,9 @@ def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
             if before_submit_text and before_submit_text in page_text:
                 page_text = page_text.replace(before_submit_text, "", 1)
             lowered = page_text.lower()
-            if re.search(r"\b(import|upload)\b.{0,60}\b(failed|error|invalid|rejected)\b", lowered):
+            if re.search(r"\b(?:import|upload)\b.{0,80}\b(?:failed|failure|error|invalid|rejected)\b", lowered) or re.search(r"\b(?:failed|failure|error|invalid|rejected)\b.{0,80}\b(?:import|upload)\b", lowered):
                 raise RuntimeError("AML reported an import error. Check the AML page before retrying.")
-            if re.search(r"\b(successfully imported|imported successfully|import successful|import completed|successfully uploaded|upload successful|uploaded successfully)\b", lowered):
+            if re.search(r"\b(?:import(?:ed)?|upload(?:ed)?)\b.{0,80}\b(?:success(?:fully)?|complete(?:d)?|done)\b", lowered) or re.search(r"\b(?:success(?:fully)?|complete(?:d)?|done)\b.{0,80}\b(?:import(?:ed)?|upload(?:ed)?)\b", lowered):
                 return True
             # AML may report a row count first (for example, "25 records imported")
             # instead of using one of the full success phrases above.
@@ -3008,6 +3016,902 @@ def _summary_gui_job_response(job):
         "date_from": job["date_from"],
         "date_to": job["date_to"],
     }
+
+
+# Bulk QC jobs are kept separate from Summary Maker jobs and process one case
+# at a time in a single Selenium session.
+QC_CASE_JOBS = {}
+QC_CASE_JOBS_LOCK = threading.Lock()
+QC_CASE_REMARKS = [
+    "Approved", "Major Mistake - Wrong Website/Group/URL Case",
+    "Major Mistake - Wrong/Non-Existent Payment Details Filled",
+    "Major Mistake - Wrong Payment Gateway URL",
+    "Major Mistake - Wrong Video/Non-Linear Recording/Background Sound",
+    "Major Mistake - Wrong First/Second Screenshot/Same Screenshots",
+    "Major Mistake - Payment Details/Web URL/PG URL/Mobile Screenshot Not Showing",
+    "Major Mistake - Extension/Profile Picture/Taskbar & Tab Showing",
+    "Major Mistake - Post URL and WhatsApp Number Are Mismatched",
+    "Minor Mistake - First/Second Screenshot Is Missing",
+    "Minor Mistake - Wrong Transaction/Transfer Mode/Search For Option",
+    "Minor Mistake - Worked on Duplicate/Extra/Others Website or Timeline Not Followed",
+    "GUI Issue - First/Second Screenshot Is Crossed", "GUI Issue", "Rejected",
+]
+
+
+def _qc_case_job_snapshot(job):
+    with QC_CASE_JOBS_LOCK:
+        return {key: (list(value) if key in ("events", "results") else value)
+                for key, value in job.items() if key not in ("aml_credentials", "started_monotonic", "owner_id")}
+
+
+def _qc_case_event(job_id, message, result=None):
+    with QC_CASE_JOBS_LOCK:
+        job = QC_CASE_JOBS.get(job_id)
+        if job is None:
+            return
+        job["events"].append(message)
+        if result is not None:
+            job["results"].append(result)
+            job["processed"] = len(job["results"])
+            job["succeeded"] = sum(1 for row in job["results"] if row["status"] in ("Approved", "Rejected"))
+            job["failed"] = job["processed"] - job["succeeded"]
+            job["progress"] = int(job["processed"] * 100 / job["total"]) if job["total"] else 100
+
+
+def _run_qc_case_job(job_id):
+    driver = None
+    with QC_CASE_JOBS_LOCK:
+        job = QC_CASE_JOBS[job_id]
+        job["status"] = "running"
+        case_ids = list(job["case_ids"])
+        action, remark, creds = job["action"], job["remark"], job["aml_credentials"]
+        stop_requested = job.get("stop_requested", False)
+    login_status_recorded = False
+    try:
+        if stop_requested:
+            with QC_CASE_JOBS_LOCK:
+                QC_CASE_JOBS[job_id]["status"] = "stopped"
+            return
+        driver = aml_build_driver(headless=True)
+        with QC_CASE_JOBS_LOCK:
+            if QC_CASE_JOBS[job_id].get("stop_requested"):
+                QC_CASE_JOBS[job_id]["status"] = "stopped"
+                return
+        if not aml_login(driver, max_captcha_attempts=7, creds=creds):
+            _qc_case_event(job_id, "GUI Login Status: Failed")
+            login_status_recorded = True
+            raise RuntimeError("AML GUI login failed; no cases were submitted.")
+        _qc_case_event(job_id, "GUI Login Status: Success")
+        login_status_recorded = True
+        for case_id in case_ids:
+            with QC_CASE_JOBS_LOCK:
+                if QC_CASE_JOBS[job_id].get("stop_requested"):
+                    QC_CASE_JOBS[job_id]["status"] = "stopped"
+                    break
+            result = {"case_id": case_id, "remark": remark or "", "status": "Failed", "error": ""}
+            try:
+                driver.get(f"{AML_GUI_BASE_URL}cases/{urllib.parse.quote(case_id, safe='')}")
+                wait = WebDriverWait(driver, 25)
+                submit_xpath = "/html/body/div[1]/div/form/div/div[2]/div[2]/button"
+                if action == "reject":
+                    status_option = wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/form/div/div[1]/div/div[7]/div[1]/select/option[3]")))
+                    status_option.click()
+                    remark_select = Select(wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div/form/div/div[1]/div/div[7]/div[2]/select"))))
+                    remark_select.select_by_visible_text(remark)
+                submit = wait.until(EC.element_to_be_clickable((By.XPATH, submit_xpath)))
+                submit.click()
+                confirmed = ""
+                try:
+                    alert = WebDriverWait(driver, 3).until(EC.alert_is_present())
+                    confirmed = alert.text or "Submission confirmed by AML alert."
+                    alert.accept()
+                except TimeoutException:
+                    pass
+                if not confirmed:
+                    try:
+                        WebDriverWait(driver, 8).until(lambda d: any(word in d.find_element(By.TAG_NAME, "body").text.lower() for word in ("submitted successfully", "successfully updated", "case approved", "case rejected", "updated successfully")))
+                        confirmed = "AML page confirmed the submission."
+                    except TimeoutException:
+                        raise RuntimeError("AML did not show a submission confirmation.")
+                result["status"] = "Approved" if action == "approve" else "Rejected"
+                _qc_case_event(job_id, f"Case ID: {case_id} | Case Status: Success", result)
+            except Exception as exc:
+                result["error"] = f"{type(exc).__name__}: {exc}"
+                _qc_case_event(job_id, f"Case ID: {case_id} | Case Status: Failed | Failure Reason: {result['error']}", result)
+        with QC_CASE_JOBS_LOCK:
+            job = QC_CASE_JOBS[job_id]
+            if job["status"] != "stopped":
+                job["status"] = "done"
+                job["progress"] = 100
+    except Exception as exc:
+        if not login_status_recorded:
+            _qc_case_event(job_id, "GUI Login Status: Failed")
+        with QC_CASE_JOBS_LOCK:
+            job = QC_CASE_JOBS[job_id]
+            job["status"] = "error"
+            # A login failure means none of the cases can be considered processed.
+            job["error"] = f"{type(exc).__name__}: {exc}"
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+
+@app.route("/api/qc-case-jobs", methods=["POST"])
+@summary_api_login_required
+def create_qc_case_job():
+    try:
+        action = request.form.get("action", "").strip().lower()
+        if action not in ("approve", "reject"):
+            return jsonify(success=False, error="Choose Approved Cases or Reject Cases."), 400
+        remark = request.form.get("remark", "").strip()
+        if action == "reject" and remark not in QC_CASE_REMARKS:
+            return jsonify(success=False, error="Choose a valid rejection remark."), 400
+        raw_ids = request.form.get("case_ids", "")
+        values = re.split(r"[\s,;]+", raw_ids.strip()) if raw_ids.strip() else []
+        uploaded = request.files.get("file")
+        if uploaded and uploaded.filename:
+            name = uploaded.filename.lower()
+            if name.endswith(".csv"):
+                frame = pd.read_csv(uploaded, header=None, dtype=str)
+            elif name.endswith((".xlsx", ".xls")):
+                frame = pd.read_excel(uploaded, header=None, dtype=str)
+            else:
+                return jsonify(success=False, error="Upload a CSV or Excel workbook."), 400
+            values.extend(str(item).strip() for item in frame.to_numpy().ravel() if pd.notna(item))
+        case_ids, seen = [], set()
+        for value in values:
+            value = str(value).strip()
+            if not value or value.lower() in ("case id", "case_id", "id"):
+                continue
+            if not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", value):
+                return jsonify(success=False, error=f"Invalid Case ID: {value[:80]}"), 400
+            if value not in seen:
+                seen.add(value)
+                case_ids.append(value)
+        if not case_ids:
+            return jsonify(success=False, error="No Case IDs were found."), 400
+        if len(case_ids) > 800:
+            return jsonify(success=False, error="A maximum of 800 unique Case IDs can be processed per run."), 400
+        own = get_own_aml_credentials()
+        if not own:
+            return jsonify(success=False, error="Your dashboard user does not have personal AML credentials configured."), 400
+        username, password = own
+        creds = (username, password, "Mystery Shopping", "v3_pre_scraper_merchantlaundering_data_table")
+        job_id = uuid.uuid4().hex
+        with QC_CASE_JOBS_LOCK:
+            QC_CASE_JOBS[job_id] = {"job_id": job_id, "owner_id": str(session.get("user_id")), "status": "queued", "action": action,
+                "remark": remark, "case_ids": case_ids, "aml_credentials": creds,
+                "aml_user": username, "total": len(case_ids), "processed": 0,
+                "succeeded": 0, "failed": 0, "progress": 0, "events": [], "results": [], "error": ""}
+            QC_CASE_JOBS[job_id]["stop_requested"] = False
+        threading.Thread(target=_run_qc_case_job, args=(job_id,), daemon=True).start()
+        return jsonify(success=True, job_id=job_id, total=len(case_ids), duplicates_skipped=len(values)-len(case_ids))
+    except Exception as exc:
+        return jsonify(success=False, error=f"Could not prepare QC job: {type(exc).__name__}: {exc}"), 400
+
+
+@app.route("/api/qc-case-jobs/<job_id>", methods=["GET"])
+@summary_api_login_required
+def qc_case_job_status(job_id):
+    with QC_CASE_JOBS_LOCK:
+        job = QC_CASE_JOBS.get(job_id)
+        if not job or job.get("owner_id") != str(session.get("user_id")):
+            return jsonify(success=False, error="QC job not found."), 404
+    snapshot = _qc_case_job_snapshot(job)
+    snapshot.pop("case_ids", None)
+    return jsonify(snapshot)
+
+
+@app.route("/api/qc-case-jobs/<job_id>/stop", methods=["POST"])
+@summary_api_login_required
+def stop_qc_case_job(job_id):
+    with QC_CASE_JOBS_LOCK:
+        job = QC_CASE_JOBS.get(job_id)
+        if not job or job.get("owner_id") != str(session.get("user_id")):
+            return jsonify(success=False, error="QC job not found."), 404
+        if job.get("status") not in ("queued", "running"):
+            return jsonify(success=False, error="QC job is already finished."), 409
+        job["stop_requested"] = True
+    return jsonify(success=True, message="QC process will stop after the current case finishes.")
+
+
+@app.route("/api/qc-case-jobs/<job_id>/report", methods=["GET"])
+@summary_api_login_required
+def download_qc_case_report(job_id):
+    with QC_CASE_JOBS_LOCK:
+        job = QC_CASE_JOBS.get(job_id)
+        rows = list(job["results"]) if job and job.get("owner_id") == str(session.get("user_id")) else None
+    if rows is None:
+        return jsonify(success=False, error="QC job not found."), 404
+    output = io.BytesIO()
+    pd.DataFrame(rows, columns=["case_id", "remark", "status", "error"]).to_excel(output, index=False, sheet_name="QC Case Report")
+    output.seek(0)
+    return send_file(output, as_attachment=True,
+        download_name=f"qc_case_report_{job_id[:8]}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+
+CASE_REPORT_JOBS = {}
+CASE_REPORT_JOBS_LOCK = threading.Lock()
+CASE_REPORT_LINK_COLUMNS = [
+    "MFilterIt Link", "NPCI Link", "Without Header", "Without Header No Timestamp",
+]
+CASE_REPORT_LINK_XPATHS = [
+    "/html/body/div[1]/div/div/div/div[2]/div[2]/a[1]",
+    "/html/body/div[1]/div/div/div/div[2]/div[2]/a[2]",
+    "/html/body/div[1]/div/div/div/div[2]/div[2]/a[3]",
+    "/html/body/div[1]/div/div/div/div[2]/div[2]/a[4]",
+]
+CASE_REPORT_ADD_PAIR_XPATH = "/html/body/div[1]/div/form/fieldset[2]/button"
+CASE_REPORT_FILE_INPUTS_XPATH = "/html/body/div[1]/div/form/fieldset[2]//input[@type='file']"
+CASE_REPORT_FILE_INPUT_HOOK_JS = """
+if (!window.__caseReportFileHookInstalled) {
+    window.__caseReportFileHookInstalled = true;
+    window.__caseReportCapturedFileInputs = [];
+    const originalFileClick = HTMLInputElement.prototype.click;
+    HTMLInputElement.prototype.click = function () {
+        if (this.type === 'file') {
+            if (!this.isConnected) {
+                this.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;';
+                const target = window.__caseReportUploadTarget;
+                if (target && target.isConnected) target.appendChild(this);
+                else document.body.appendChild(this);
+            }
+            window.__caseReportCapturedFileInputs.push(this);
+            return;
+        }
+        return originalFileClick.apply(this, arguments);
+    };
+}
+"""
+CASE_REPORT_PDF_URL_HOSTS = {
+    host.strip().lower()
+    for host in os.environ.get("CASE_REPORT_PDF_URL_HOSTS", "d342cbz307migp.cloudfront.net").split(",")
+    if host.strip()
+}
+
+
+def _case_report_log(job_id, message):
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS.get(job_id)
+        if job is not None:
+            job["events"].append(message)
+
+
+def _case_report_cell_text(value):
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    return "" if text.lower() == "nan" else text
+
+
+def _case_report_domain_from_url(value):
+    value = _case_report_cell_text(value)
+    if not value:
+        return ""
+    parsed = urlparse(value if "://" in value else f"http://{value}")
+    return parsed.netloc.replace("www.", "")
+
+
+def _case_report_mark_row(job_id, row_index, status, error="", links=None):
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS[job_id]
+        frame = job["dataframe"]
+        frame.at[row_index, "Case Report Status"] = status
+        frame.at[row_index, "Case Report Error"] = error
+        if links:
+            for column_name, link in zip(CASE_REPORT_LINK_COLUMNS, links):
+                frame.at[row_index, column_name] = link
+        job["processed"] += 1
+        if status == "Success":
+            job["succeeded"] += 1
+        else:
+            job["failed"] += 1
+        job["progress"] = int(job["processed"] * 100 / job["total"]) if job["total"] else 100
+
+
+def _case_report_resolve_file(reference, assets_by_name):
+    reference = _case_report_cell_text(reference)
+    if not reference:
+        raise ValueError("File path is blank")
+    basename = re.split(r"[\\/]", reference)[-1].strip()
+    uploaded_path = assets_by_name.get(basename.casefold())
+    if uploaded_path and os.path.isfile(uploaded_path):
+        return uploaded_path
+
+    # Match the desktop EXE when the app server can access the workbook's
+    # absolute path (for example, a locally hosted Windows deployment).
+    # A Coolify container usually cannot see the user's workstation paths;
+    # those files must be selected in the supporting-file upload control.
+    allowed_extensions = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
+    if os.path.isabs(reference):
+        direct_path = os.path.realpath(reference)
+        if os.path.isfile(direct_path) and os.path.splitext(direct_path)[1].lower() in allowed_extensions:
+            return direct_path
+
+    uploads_root = os.path.realpath(os.path.join(os.path.dirname(__file__), "uploads"))
+    if os.path.isabs(reference):
+        candidate = os.path.realpath(reference)
+    else:
+        app_root = os.path.dirname(__file__)
+        app_relative = os.path.realpath(os.path.join(app_root, reference))
+        candidate = app_relative if os.path.isfile(app_relative) else os.path.realpath(os.path.join(uploads_root, reference))
+    try:
+        inside_uploads = os.path.commonpath([uploads_root, candidate]) == uploads_root
+    except ValueError:
+        inside_uploads = False
+    if inside_uploads and os.path.isfile(candidate):
+        return candidate
+    raise FileNotFoundError(
+        f"'{basename}' is not available to the app server. Upload this screenshot with the job; "
+        "paths in the Excel workbook refer to your computer and are not transferred with the workbook."
+    )
+
+
+def _case_report_pdf_path(reference, assets_by_name, temp_dir):
+    reference = _case_report_cell_text(reference)
+    parsed = urllib.parse.urlparse(reference)
+    if not re.match(r"^https?://", reference, flags=re.IGNORECASE):
+        return _case_report_resolve_file(reference, assets_by_name)
+    if parsed.scheme.lower() != "https":
+        raise ValueError("PDF_Path URLs must use HTTPS")
+
+    current_url = reference
+    response = None
+    for _ in range(5):
+        parsed_url = urllib.parse.urlparse(current_url)
+        hostname = (parsed_url.hostname or "").lower()
+        if parsed_url.scheme.lower() != "https" or hostname not in CASE_REPORT_PDF_URL_HOSTS:
+            raise ValueError(f"PDF download host is not allowed: {hostname or 'missing host'}")
+        response = requests.get(current_url, stream=True, timeout=(15, 90), allow_redirects=False)
+        if response.is_redirect or response.is_permanent_redirect:
+            location = response.headers.get("Location")
+            response.close()
+            if not location:
+                raise RuntimeError("PDF server returned a redirect without a destination")
+            current_url = urllib.parse.urljoin(current_url, location)
+            continue
+        break
+    else:
+        raise RuntimeError("PDF server redirected too many times")
+
+    destination = os.path.join(temp_dir, f"source_{uuid.uuid4().hex}.pdf")
+    try:
+        response.raise_for_status()
+        declared_size = int(response.headers.get("Content-Length") or 0)
+        if declared_size > 100 * 1024 * 1024:
+            raise ValueError("PDF exceeds the 100 MB per-file limit")
+        total_size = 0
+        with open(destination, "wb") as pdf_file:
+            for chunk in response.iter_content(chunk_size=1024 * 1024):
+                if not chunk:
+                    continue
+                total_size += len(chunk)
+                if total_size > 100 * 1024 * 1024:
+                    raise ValueError("PDF exceeds the 100 MB per-file limit")
+                pdf_file.write(chunk)
+        with open(destination, "rb") as pdf_file:
+            if pdf_file.read(5) != b"%PDF-":
+                raise ValueError("PDF_Path URL did not return a valid PDF file")
+        return destination
+    except Exception:
+        try:
+            os.remove(destination)
+        except OSError:
+            pass
+        raise
+    finally:
+        response.close()
+
+
+def _case_report_extract_pdf_images(pdf_path, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    image_paths = []
+    seen_hashes = set()
+    with fitz.open(pdf_path) as document:
+        for page_number, page in enumerate(document, start=1):
+            entries, placed_xrefs = [], set()
+            for info in page.get_image_info(xrefs=True):
+                xref = int(info.get("xref") or 0)
+                if xref:
+                    bbox = info["bbox"]
+                    entries.append((bbox[1], bbox[0], xref))
+                    placed_xrefs.add(xref)
+            for image_info in page.get_images(full=True):
+                xref = int(image_info[0] or 0)
+                if xref and xref not in placed_xrefs:
+                    entries.append((float("inf"), 0, xref))
+            entries.sort(key=lambda item: (item[0], item[1]))
+            rows = []
+            for entry in entries:
+                if rows and abs(entry[0] - rows[-1][0][0]) <= 20:
+                    rows[-1].append(entry)
+                else:
+                    rows.append([entry])
+            reading_order = [entry for row in rows for entry in sorted(row, key=lambda item: item[1])]
+
+            for _, _, xref in reading_order:
+                try:
+                    extracted = document.extract_image(xref)
+                except Exception:
+                    continue
+                image_bytes = extracted["image"]
+                extension = re.sub(r"[^a-zA-Z0-9]", "", extracted.get("ext", "png")) or "png"
+                try:
+                    with Image.open(io.BytesIO(image_bytes)) as image:
+                        if image.width < 500 or image.height < 500:
+                            continue
+                        gray_histogram = image.convert("L").histogram()
+                        if sum(gray_histogram[:255]) / (image.width * image.height) <= 0.01:
+                            continue
+                except Exception:
+                    continue
+                image_hash = hashlib.sha256(image_bytes).hexdigest()
+                if image_hash in seen_hashes:
+                    continue
+                seen_hashes.add(image_hash)
+                image_number = len(image_paths) + 1
+                destination = os.path.join(output_dir, f"screenshot_{image_number:04d}.{extension}")
+                with open(destination, "wb") as image_file:
+                    image_file.write(image_bytes)
+                image_paths.append(destination)
+    return image_paths
+
+
+def _case_report_upload_screenshots(driver, wait, screenshot_paths, job_id):
+    valid_paths = [(index, path) for index, path in enumerate(screenshot_paths) if path]
+    if not valid_paths:
+        raise ValueError("No screenshot paths were provided")
+    added_pairs = 0
+    screenshot_count = len(valid_paths)
+    _case_report_log(job_id, f"Detected {screenshot_count} screenshots for this report")
+    required_pairs = (screenshot_count + 1) // 2
+    additional_pairs = max(0, required_pairs - 1)
+    for pair_number in range(additional_pairs):
+        add_pair_button = wait.until(EC.element_to_be_clickable((By.XPATH, CASE_REPORT_ADD_PAIR_XPATH)))
+        driver.execute_script("arguments[0].scrollIntoView({block:'center'});", add_pair_button)
+        driver.execute_script("arguments[0].click();", add_pair_button)
+        added_pairs += 1
+        WebDriverWait(driver, 8, poll_frequency=0.2).until(
+            lambda browser: len(browser.find_elements(
+                By.XPATH, f"/html/body/div[1]/div/form/fieldset[2]/div[{pair_number + 2}]/div"
+            )) >= 2
+        )
+    if added_pairs:
+        _case_report_log(job_id, f"Additional screenshot pairs added: {added_pairs}")
+    for input_index, file_path in valid_paths:
+        if not os.path.isfile(file_path):
+            raise FileNotFoundError(f"Screenshot file not found: {os.path.basename(file_path)}")
+        # Match the EXE's explicit pair/side mapping. Keeping the pair index
+        # in the XPath is important: without it, the second slot XPath can
+        # resolve ambiguously after AML updates the form.
+        group = input_index // 2 + 1
+        side = input_index % 2 + 1
+        slot_xpath = f"/html/body/div[1]/div/form/fieldset[2]/div[{group}]/div[{side}]"
+        button_xpath = slot_xpath + "/div/button"
+        slot = wait.until(EC.presence_of_element_located((By.XPATH, slot_xpath)))
+        slot_inputs = slot.find_elements(By.XPATH, ".//input[@type='file']")
+        current_input = slot_inputs[-1] if slot_inputs else None
+        if current_input is None:
+            button = wait.until(EC.presence_of_element_located((By.XPATH, button_xpath)))
+            driver.execute_script("window.__caseReportCapturedFileInputs = []; window.__caseReportUploadTarget = arguments[0];", slot)
+            driver.execute_script("arguments[0].click();", button)
+            try:
+                current_input = WebDriverWait(driver, 8, poll_frequency=0.2).until(
+                    lambda browser: browser.execute_script(
+                        "var items=window.__caseReportCapturedFileInputs||[]; return items.length ? items[items.length-1] : null;"
+                    )
+                )
+            except TimeoutException:
+                current_input = None
+            if current_input is None:
+                # The AML form may render the input asynchronously after its button click.
+                slot_inputs = driver.find_elements(By.XPATH, slot_xpath + "//input[@type='file']")
+                current_input = slot_inputs[-1] if slot_inputs else None
+        if current_input is None:
+            raise RuntimeError(f"No file input found for screenshot slot {input_index + 1}")
+        driver.execute_script(
+            "arguments[0].style.display='block'; arguments[0].style.visibility='visible'; arguments[0].style.opacity='1'; arguments[0].removeAttribute('hidden');",
+            current_input,
+        )
+        try:
+            current_input.send_keys(os.path.abspath(file_path))
+        except Exception as exc:
+            raise RuntimeError(
+                f"Could not place screenshot {input_index + 1} in AML slot {group}:{side}"
+            ) from exc
+        time.sleep(0.7)
+        _case_report_log(job_id, f"Screenshot {input_index + 1} selected in AML slot {group}:{side}")
+    _case_report_log(job_id, f"Screenshot paths populated successfully: {len(valid_paths)}")
+
+
+def _case_report_generate_in_new_tab(driver, title, description, screenshot_paths, job_id):
+    wait = WebDriverWait(driver, 30)
+    base_handle = driver.current_window_handle
+    previous_handles = set(driver.window_handles)
+    driver.execute_script("window.open('');")
+    report_handle = WebDriverWait(driver, 10).until(
+        lambda browser: next((handle for handle in browser.window_handles if handle not in previous_handles), False)
+    )
+    try:
+        driver.switch_to.window(report_handle)
+        driver.get(AML_REPORT_URL)
+        WebDriverWait(driver, 15).until(lambda browser: browser.execute_script("return document.readyState") == "complete")
+        time.sleep(1)
+        if any(element.is_displayed() for element in driver.find_elements(By.XPATH, AML_USERNAME_INPUT_XPATH)):
+            raise RuntimeError("AML redirected the report page to its login form")
+        driver.execute_script(CASE_REPORT_FILE_INPUT_HOOK_JS)
+        title_field = wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div/form/fieldset[1]/div/div[1]/input")))
+        title_field.clear()
+        title_field.send_keys(title)
+        description_field = wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div/form/fieldset[1]/div/div[2]/textarea")))
+        description_field.clear()
+        description_field.send_keys(description)
+        _case_report_upload_screenshots(driver, wait, screenshot_paths, job_id)
+        time.sleep(0.5)
+        wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[1]/div/form/div/button[2]"))).click()
+
+        def read_report_links(browser):
+            if not all(browser.find_elements(By.XPATH, xpath) for xpath in CASE_REPORT_LINK_XPATHS):
+                return False
+            hrefs = [browser.find_element(By.XPATH, xpath).get_attribute("href") for xpath in CASE_REPORT_LINK_XPATHS]
+            return hrefs if all(hrefs) else False
+
+        links = WebDriverWait(driver, 90).until(read_report_links)
+        if len(links) != 4:
+            raise RuntimeError("AML did not return all four generated report links")
+        return links
+    finally:
+        try:
+            if report_handle in driver.window_handles:
+                driver.switch_to.window(report_handle)
+                driver.close()
+        finally:
+            if base_handle in driver.window_handles:
+                driver.switch_to.window(base_handle)
+
+
+def _run_case_report_job(job_id):
+    driver = None
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS[job_id]
+        job["status"] = "running"
+        mode = job["mode"]
+        dataframe = job["dataframe"]
+        assets_by_name = dict(job["assets_by_name"])
+        temp_dir = job["temp_dir"]
+        columns = dict(job["columns"])
+        creds = job["aml_credentials"]
+        stop_requested = job.get("stop_requested", False)
+    login_succeeded = False
+    report_inputs = {}
+    try:
+        if stop_requested:
+            with CASE_REPORT_JOBS_LOCK:
+                CASE_REPORT_JOBS[job_id]["status"] = "stopped"
+            return
+
+        if mode == "extract":
+            with CASE_REPORT_JOBS_LOCK:
+                job = CASE_REPORT_JOBS[job_id]
+                job["phase"] = "extracting"
+                job["phase_processed"] = 0
+                job["phase_total"] = len(dataframe)
+            _case_report_log(job_id, "Starting PDF image extraction")
+            for row_number, row_index in enumerate(dataframe.index, start=1):
+                with CASE_REPORT_JOBS_LOCK:
+                    if CASE_REPORT_JOBS[job_id].get("stop_requested"):
+                        CASE_REPORT_JOBS[job_id]["status"] = "stopped"
+                        break
+                row = dataframe.loc[row_index]
+                try:
+                    pdf_reference = _case_report_cell_text(row.iloc[columns["PDF_Path"]])
+                    website_url = _case_report_cell_text(row.iloc[columns["Website_URL"]])
+                    is_remote_pdf = bool(re.match(r"^https?://", pdf_reference, flags=re.IGNORECASE))
+                    if is_remote_pdf:
+                        _case_report_log(job_id, f"Record {row_number}: PDF download started")
+                    pdf_path = _case_report_pdf_path(pdf_reference, assets_by_name, temp_dir)
+                    if is_remote_pdf:
+                        _case_report_log(job_id, f"Record {row_number}: PDF download completed")
+                    _case_report_log(job_id, f"Record {row_number}: PDF extraction started")
+                    extracted_dir = os.path.join(temp_dir, f"record_{row_number:05d}")
+                    screenshot_paths = _case_report_extract_pdf_images(pdf_path, extracted_dir)
+                    _case_report_log(job_id, f"Record {row_number}: PDF extraction completed; {len(screenshot_paths)} screenshot(s) extracted")
+                    if not screenshot_paths:
+                        raise ValueError("No embedded screenshots or images were found in the PDF")
+                    report_inputs[row_index] = {
+                        "screenshot_paths": screenshot_paths,
+                        "title": website_url,
+                        "description": website_url,
+                    }
+                except Exception as exc:
+                    failure = f"{type(exc).__name__}: {exc}"
+                    _case_report_mark_row(job_id, row_index, "Failed", failure)
+                    _case_report_log(job_id, f"Record {row_number} failed: {failure}")
+                    _case_report_log(job_id, f"Record {row_number}: Excel output updated successfully")
+                finally:
+                    with CASE_REPORT_JOBS_LOCK:
+                        CASE_REPORT_JOBS[job_id]["phase_processed"] = row_number
+
+            _case_report_log(job_id, f"PDF extraction phase completed: {len(report_inputs)} of {len(dataframe)} records ready")
+            with CASE_REPORT_JOBS_LOCK:
+                current_job = CASE_REPORT_JOBS[job_id]
+                if current_job.get("stop_requested"):
+                    current_job["status"] = "stopped"
+            if CASE_REPORT_JOBS[job_id]["status"] == "stopped":
+                return
+        else:
+            _case_report_log(job_id, "Using the workbook screenshot paths and report fields")
+            for row_index in dataframe.index:
+                row = dataframe.loc[row_index]
+                references = [
+                    _case_report_cell_text(row.iloc[column_index])
+                    for column_index in columns["Screenshot_Paths"]
+                ]
+                references = [reference for reference in references if reference]
+                title = _case_report_cell_text(row.iloc[columns["Title"]])
+                description = _case_report_cell_text(row.iloc[columns["Description"]])
+                report_inputs[row_index] = {
+                    "screenshot_references": references,
+                    "title": title or description,
+                    "description": description or title,
+                }
+
+        if not report_inputs:
+            with CASE_REPORT_JOBS_LOCK:
+                current_job = CASE_REPORT_JOBS[job_id]
+                current_job["status"] = "done"
+                current_job["phase"] = "complete"
+                current_job["progress"] = 100
+            return
+        with CASE_REPORT_JOBS_LOCK:
+            current_job = CASE_REPORT_JOBS[job_id]
+            if current_job.get("stop_requested"):
+                current_job["status"] = "stopped"
+        if CASE_REPORT_JOBS[job_id]["status"] == "stopped":
+            return
+
+        with CASE_REPORT_JOBS_LOCK:
+            current_job = CASE_REPORT_JOBS[job_id]
+            current_job["phase"] = "logging_in"
+            current_job["phase_processed"] = 0
+            current_job["phase_total"] = len(report_inputs)
+        driver = aml_build_driver(headless=True)
+        with CASE_REPORT_JOBS_LOCK:
+            if CASE_REPORT_JOBS[job_id].get("stop_requested"):
+                CASE_REPORT_JOBS[job_id]["status"] = "stopped"
+                return
+        if not aml_login(driver, max_captcha_attempts=7, creds=creds):
+            raise RuntimeError("AML GUI login did not succeed")
+        login_succeeded = True
+        _case_report_log(job_id, "AML GUI login status: Success")
+        driver.get(AML_REPORT_URL)
+        WebDriverWait(driver, 15).until(lambda browser: browser.execute_script("return document.readyState") == "complete")
+        if any(element.is_displayed() for element in driver.find_elements(By.XPATH, AML_USERNAME_INPUT_XPATH)):
+            raise RuntimeError("AML redirected the report page to its login form")
+        wait = WebDriverWait(driver, 30)
+        with CASE_REPORT_JOBS_LOCK:
+            current_job = CASE_REPORT_JOBS[job_id]
+            current_job["phase"] = "generating"
+
+        for row_number, row_index in enumerate(dataframe.index, start=1):
+            report_input = report_inputs.get(row_index)
+            if report_input is None:
+                continue
+            with CASE_REPORT_JOBS_LOCK:
+                current_job = CASE_REPORT_JOBS[job_id]
+                if current_job.get("stop_requested"):
+                    current_job["status"] = "stopped"
+                    break
+            try:
+                if "screenshot_references" in report_input:
+                    screenshot_paths = [
+                        _case_report_resolve_file(reference, assets_by_name)
+                        for reference in report_input["screenshot_references"]
+                    ]
+                else:
+                    screenshot_paths = report_input["screenshot_paths"]
+                _case_report_log(job_id, f"Record {row_number}: report generation started")
+                links = _case_report_generate_in_new_tab(
+                    driver, report_input["title"], report_input["description"], screenshot_paths, job_id
+                )
+                _case_report_log(job_id, f"Record {row_number}: report generation completed")
+                _case_report_mark_row(job_id, row_index, "Success", links=links)
+                _case_report_log(job_id, f"Record {row_number}: generated links extracted successfully")
+                _case_report_log(job_id, f"Record {row_number}: Excel output updated successfully")
+            except Exception as exc:
+                failure = f"{type(exc).__name__}: {exc}"
+                _case_report_mark_row(job_id, row_index, "Failed", failure)
+                _case_report_log(job_id, f"Record {row_number} failed: {failure}")
+                _case_report_log(job_id, f"Record {row_number}: Excel output updated successfully")
+            finally:
+                with CASE_REPORT_JOBS_LOCK:
+                    CASE_REPORT_JOBS[job_id]["phase_processed"] += 1
+
+        with CASE_REPORT_JOBS_LOCK:
+            current_job = CASE_REPORT_JOBS[job_id]
+            if current_job.get("stop_requested") and current_job["phase_processed"] < current_job["phase_total"]:
+                current_job["status"] = "stopped"
+            elif current_job["status"] != "stopped":
+                current_job["status"] = "done"
+                current_job["progress"] = 100
+            current_job["phase"] = "complete"
+    except Exception as exc:
+        failure = f"{type(exc).__name__}: {exc}"
+        if not login_succeeded:
+            _case_report_log(job_id, f"AML GUI login status: Failed ({failure})")
+        else:
+            _case_report_log(job_id, f"Report job failed: {failure}")
+        with CASE_REPORT_JOBS_LOCK:
+            current_job = CASE_REPORT_JOBS[job_id]
+            for row_index in dataframe.index:
+                if current_job["dataframe"].at[row_index, "Case Report Status"] == "Pending":
+                    current_job["dataframe"].at[row_index, "Case Report Status"] = "Failed"
+                    current_job["dataframe"].at[row_index, "Case Report Error"] = failure
+                    current_job["processed"] += 1
+                    current_job["failed"] += 1
+            current_job["progress"] = int(current_job["processed"] * 100 / current_job["total"]) if current_job["total"] else 0
+            current_job["status"] = "error"
+            current_job["error"] = failure
+    finally:
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+@app.route("/api/case-report-jobs", methods=["POST"])
+@summary_api_login_required
+def create_case_report_job():
+    temp_dir = None
+    try:
+        mode = request.form.get("mode", "").strip().lower()
+        if mode not in ("only", "extract"):
+            return jsonify(success=False, error="Choose a report generation mode."), 400
+        excel_file = request.files.get("excel")
+        if not excel_file or not excel_file.filename:
+            return jsonify(success=False, error="Upload an Excel workbook."), 400
+        extension = os.path.splitext(excel_file.filename)[1].lower()
+        if extension not in (".xlsx", ".xls", ".xlsm"):
+            return jsonify(success=False, error="Upload an .xlsx, .xls, or .xlsm workbook."), 400
+        dataframe = pd.read_excel(excel_file, dtype=object)
+        column_aliases = {
+            "pdfpath": "PDF_Path", "websiteurl": "Website_URL", "website": "Website_URL",
+            "title": "Title", "description": "Description",
+        }
+        rename_columns = {}
+        for column in dataframe.columns:
+            normalized_column = re.sub(r"[^a-z0-9]", "", str(column).casefold())
+            canonical_column = column_aliases.get(normalized_column)
+            if canonical_column and column != canonical_column:
+                rename_columns[column] = canonical_column
+        if rename_columns:
+            dataframe = dataframe.rename(columns=rename_columns)
+        if dataframe.empty:
+            return jsonify(success=False, error="The Excel workbook has no data records."), 400
+        column_lookup = {str(name).strip().casefold(): index for index, name in enumerate(dataframe.columns)}
+        required = ["Title", "Description"] if mode == "only" else ["PDF_Path", "Website_URL"]
+        missing = [name for name in required if name.casefold() not in column_lookup]
+        if missing:
+            return jsonify(success=False, error="Missing required Excel columns: " + ", ".join(missing)), 400
+        column_indexes = {name: column_lookup[name.casefold()] for name in required}
+        if mode == "only":
+            screenshot_indexes = [
+                index for index, name in enumerate(dataframe.columns)
+                if "screenshotpath" in re.sub(r"[^a-z0-9]", "", str(name).casefold())
+                or "sspath" in re.sub(r"[^a-z0-9]", "", str(name).casefold())
+            ]
+            if not screenshot_indexes:
+                return jsonify(success=False, error="Add at least one Screenshot_Path_* or SS_Path_* column."), 400
+            column_indexes["Screenshot_Paths"] = screenshot_indexes
+        else:
+            column_indexes = {name: column_lookup[name.casefold()] for name in required}
+        for column_name in CASE_REPORT_LINK_COLUMNS + ["Case Report Status", "Case Report Error"]:
+            if column_name not in dataframe.columns:
+                dataframe[column_name] = ""
+        dataframe[CASE_REPORT_LINK_COLUMNS] = ""
+        dataframe["Case Report Status"] = "Pending"
+        dataframe["Case Report Error"] = ""
+        own_credentials = get_own_aml_credentials()
+        if not own_credentials:
+            return jsonify(success=False, error="Your dashboard user does not have personal AML credentials configured."), 400
+        username, password = own_credentials
+        aml_credentials = (username, password, "Mystery Shopping", "v3_pre_scraper_merchantlaundering_data_table")
+
+        temp_dir = tempfile.mkdtemp(prefix="case_report_job_")
+        assets_by_name = {}
+        accepted_extensions = {".pdf"} if mode == "extract" else {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff"}
+        for asset in request.files.getlist("assets"):
+            if not asset or not asset.filename:
+                continue
+            original_name = re.split(r"[\\/]", asset.filename)[-1]
+            if os.path.splitext(original_name)[1].lower() not in accepted_extensions:
+                continue
+            safe_name = secure_filename(original_name) or f"asset_{uuid.uuid4().hex}"
+            saved_path = os.path.join(temp_dir, f"{uuid.uuid4().hex}_{safe_name}")
+            asset.save(saved_path)
+            assets_by_name[original_name.casefold()] = saved_path
+        job_id = uuid.uuid4().hex
+        with CASE_REPORT_JOBS_LOCK:
+            CASE_REPORT_JOBS[job_id] = {
+                "job_id": job_id, "owner_id": str(session.get("user_id")), "mode": mode,
+                "status": "queued", "stop_requested": False, "dataframe": dataframe,
+                "columns": column_indexes, "assets_by_name": assets_by_name, "temp_dir": temp_dir,
+                "aml_credentials": aml_credentials, "total": len(dataframe), "processed": 0,
+                "succeeded": 0, "failed": 0, "progress": 0, "events": [], "error": "",
+                "phase": "queued", "phase_processed": 0,
+            }
+        _case_report_log(job_id, "Excel file uploaded successfully")
+        _case_report_log(job_id, f"Total records detected: {len(dataframe)}")
+        if assets_by_name:
+            _case_report_log(job_id, f"Supporting files uploaded successfully: {len(assets_by_name)}")
+        threading.Thread(target=_run_case_report_job, args=(job_id,), daemon=True).start()
+        temp_dir = None
+        return jsonify(success=True, job_id=job_id, total=len(dataframe))
+    except Exception as exc:
+        if temp_dir:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        return jsonify(success=False, error=f"Could not prepare report job: {type(exc).__name__}: {exc}"), 400
+
+
+def _case_report_job_snapshot(job):
+    with CASE_REPORT_JOBS_LOCK:
+        return {key: (list(value) if key == "events" else value) for key, value in job.items()
+                if key not in ("dataframe", "columns", "assets_by_name", "temp_dir", "aml_credentials", "owner_id")}
+
+
+@app.route("/api/case-report-jobs/<job_id>", methods=["GET"])
+@summary_api_login_required
+def case_report_job_status(job_id):
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS.get(job_id)
+        if not job or job.get("owner_id") != str(session.get("user_id")):
+            return jsonify(success=False, error="Report job not found."), 404
+    return jsonify(_case_report_job_snapshot(job))
+
+
+@app.route("/api/case-report-jobs/<job_id>/stop", methods=["POST"])
+@summary_api_login_required
+def stop_case_report_job(job_id):
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS.get(job_id)
+        if not job or job.get("owner_id") != str(session.get("user_id")):
+            return jsonify(success=False, error="Report job not found."), 404
+        if job.get("status") not in ("queued", "running"):
+            return jsonify(success=False, error="Report job is already finished."), 409
+        job["stop_requested"] = True
+    return jsonify(success=True)
+
+
+@app.route("/api/case-report-jobs/<job_id>/download", methods=["GET"])
+@summary_api_login_required
+def download_case_report_output(job_id):
+    with CASE_REPORT_JOBS_LOCK:
+        job = CASE_REPORT_JOBS.get(job_id)
+        if not job or job.get("owner_id") != str(session.get("user_id")):
+            return jsonify(success=False, error="Report job not found."), 404
+        dataframe = job["dataframe"].copy(deep=True)
+        if job.get("mode") == "only":
+            screenshot_indexes = job.get("columns", {}).get("Screenshot_Paths", [])
+            screenshot_columns = [
+                dataframe.columns[index]
+                for index in screenshot_indexes
+                if 0 <= index < len(dataframe.columns)
+            ]
+            dataframe = dataframe.drop(columns=screenshot_columns, errors="ignore")
+    output = io.BytesIO()
+    dataframe.to_excel(output, index=False, sheet_name="Case Reports")
+    output.seek(0)
+    return send_file(output, as_attachment=True, download_name=f"case_report_results_{job_id[:8]}.xlsx",
+                     mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
 def _run_summary_gui_job(job_id, creds=None):
@@ -7596,6 +8500,7 @@ ALLOWED_PAGES_OPTIONS = [
     ("allotment_admin",   "Case Assignment Admin"),
     ("insights",          "Dashboard"),
     ("lunch",             "Break Time Management"),
+    ("intern_feedback",   "Intern Feedback Report"),
     (DASHBOARD_MANAGEMENT_PAGE, "GUI Management"),
 ]
 
@@ -7674,6 +8579,7 @@ def dashboard_management():
     return render_template(
         "dashboard_management.html",
         allowed_pages=session.get("allowed_pages", []),
+        role=session.get("role", "user"),
         is_admin=is_admin_or_above(session),
         can_manage_dashboard=True,
         display_name=session.get("display_name", "User"),

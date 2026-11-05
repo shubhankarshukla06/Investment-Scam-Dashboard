@@ -1,0 +1,13 @@
+<div class="secondary-page-nav" aria-label="Page navigation">
+  {% if 'scraping' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'scraping' %} active{% endif %}" onclick="location.href='/?page=scraping'">Data Scraping</button>{% endif %}
+  {% if 'social' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'social' %} active{% endif %}" onclick="location.href='/?page=social'">Social Media Accounts</button>{% endif %}
+  {% if 'investment' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'investment' %} active{% endif %}" onclick="location.href='/?page=investment'">Investment Scam Data</button>{% endif %}
+  {% if 'website_directory' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'website_directory' %} active{% endif %}" onclick="location.href='/website-directory'">Website Directory</button>{% endif %}
+  {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'allotment' %} active{% endif %}" onclick="location.href='/scam-website-allotment'">Case Assignment</button>{% endif %}
+  {% if 'sheet' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'sheet' %} active{% endif %}" onclick="location.href='/?page=sheet'">Summary &amp; Reports</button>{% endif %}
+  {% if 'insights' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'insights' %} active{% endif %}" onclick="location.href='/?page=insights'">Dashboard</button>{% endif %}
+  {% if 'qc' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'qc' %} active{% endif %}" onclick="location.href='/qc-gui'">QC Review</button>{% endif %}
+  {% if (role|default('') == 'superadmin' or can_manage_dashboard|default(false)) and 'dashboard_management' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'dashboard_management' %} active{% endif %}" onclick="location.href='/dashboard-management'" {% if current_page == 'dashboard_management' %}aria-current="page"{% endif %}>GUI Management</button>{% endif %}
+  {% if 'lunch' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'lunch_break' %} active{% endif %}" onclick="location.href='/lunch-break'">Break Time Management</button>{% endif %}
+  {% if 'intern_feedback' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'intern_feedback' %} active{% endif %}" onclick="location.href='/intern-feedback'" {% if current_page == 'intern_feedback' %}aria-current="page"{% endif %}>Intern Feedback Report</button>{% endif %}
+</div>

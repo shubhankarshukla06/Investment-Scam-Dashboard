@@ -362,6 +362,9 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
                     {% if 'lunch' in allowed_pages %}
                     <option value="lunch_break">Break Time Management</option>
                     {% endif %}
+                    {% if 'intern_feedback' in allowed_pages %}
+                    <option value="intern_feedback">Intern Feedback Report</option>
+                    {% endif %}
 </select>
             </div>
 
@@ -400,39 +403,7 @@ if (document.documentElement.classList.contains('theme-dark-preload')) {
             </div>
         </div>
     </div>
-    <div class="secondary-page-nav" aria-label="Page navigation">
-        {% if 'scraping' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('scraping')">Data Scraping</button>
-        {% endif %}
-        {% if 'social' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('social')">Social Media Accounts</button>
-        {% endif %}
-        {% if 'investment' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('investment')">Investment Scam Data</button>
-        {% endif %}
-        {% if 'website_directory' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('website_directory')">Website Directory</button>
-        {% endif %}
-        {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}
-        <button type="button" class="page-nav-btn active" onclick="changeAllotmentPage('allotment')">Case Assignment</button>
-        {% endif %}
-        {% if 'sheet' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('sheet')">Summary &amp; Reports</button>
-        {% endif %}
-
-        {% if 'insights' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('insights')">Dashboard</button>
-        {% endif %}
-        {% if 'qc' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('qc')">QC Review</button>
-        {% endif %}
-        {% if role == 'superadmin' and 'dashboard_management' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('dashboard_management')">GUI Management</button>
-        {% endif %}
-        {% if 'lunch' in allowed_pages %}
-        <button type="button" class="page-nav-btn" onclick="changeAllotmentPage('lunch_break')">Break Time Management</button>
-        {% endif %}
-    </div>
+    {% set current_page = 'allotment' %}{% include 'partials/page_navigation.html' %}
 </div>
 
 <div class="container">
@@ -845,6 +816,7 @@ function goToPage(p) {
 
 // ── Page navigation ───────────────────────────────────────────
 function changeAllotmentPage(pageType) {
+    if (pageType === 'intern_feedback') { window.location.href = '/intern-feedback'; return; }
     if (pageType === 'qc') {
         window.location.href = '/qc-gui';
         return;
