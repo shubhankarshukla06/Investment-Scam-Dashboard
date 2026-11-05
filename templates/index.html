@@ -2363,6 +2363,7 @@
                                     <div style="display:flex;gap:6px;margin-top:8px;">
                                         <button type="button" class="mode-option subheader-start-btn" id="qcStartBtn" onclick="startQcJob()" style="padding:7px 14px;min-height:34px;font-size:12px;">Start</button>
                                         <button type="button" class="mode-option compact-action-btn" id="qcStopBtn" onclick="stopQcJob()" disabled style="padding:7px 14px;min-height:34px;font-size:12px;">Stop QC</button>
+                                        <button type="button" class="mode-option compact-action-btn" id="qcReportDownload" onclick="downloadQcReport()" disabled style="padding:7px 14px;min-height:34px;font-size:12px;">Download QC Report</button>
                                     </div>
                                 </div>
                                 <aside style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;min-height:165px;min-width:0;">
@@ -3749,15 +3750,15 @@
                 if(qcAction==='reject' && !document.getElementById('qcRemark').value) { alert('Select a rejection remark first.'); return; }
                 const data=new FormData(); data.append('action',qcAction); data.append('case_ids',ids); data.append('remark',document.getElementById('qcRemark').value);
                 if(file) data.append('file',file);
-                if(!confirm(`Start sequential ${qcAction==='approve'?'approval':'rejection'} processing for the supplied cases? Duplicate IDs will be skipped.`)) return;
                 const btn=document.getElementById('qcStartBtn'); btn.disabled=true;
+                const reportBtn=document.getElementById('qcReportDownload'); if(reportBtn) reportBtn.disabled=true;
                 document.getElementById('qcActivityLog').innerHTML=''; document.getElementById('qcActivityLog').dataset.count='0'; document.getElementById('qcProgressBar').style.width='0%'; document.getElementById('qcProgressPct').textContent='0%'; document.getElementById('qcProgressCount').textContent='0/0';
                 document.getElementById('qcStopBtn').disabled=true;
                 document.getElementById('qcStopBtn').textContent='Stop QC';
                 try {
                     const r=await fetch('/api/qc-case-jobs',{method:'POST',body:data}); const j=await r.json();
                     if(!r.ok || !j.success) throw new Error(j.error||'Unable to start QC job');
-                    qcLastJobId=j.job_id; document.getElementById('qcReportDownload').disabled=true;
+                    qcLastJobId=j.job_id;
                     document.getElementById('qcStopBtn').disabled=false;
                     pollQcJob();
                 } catch(e) { alert(e.message); btn.disabled=false; }
@@ -3787,7 +3788,7 @@
                     while(log.dataset.count!==(String(j.events.length))) { const count=Number(log.dataset.count||0); if(count>=j.events.length) break; qcLog(j.events[count]); log.dataset.count=String(count+1); }
                     if(['done','error','stopped'].includes(j.status)) {
                         document.getElementById('qcStartBtn').disabled=false;
-                        document.getElementById('qcReportDownload').disabled=false;
+                        const reportBtn=document.getElementById('qcReportDownload'); if(reportBtn) reportBtn.disabled=false;
                         document.getElementById('qcStopBtn').disabled=true;
                         document.getElementById('qcStopBtn').textContent='Stop QC';
                         return;
