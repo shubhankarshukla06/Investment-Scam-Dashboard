@@ -2048,7 +2048,7 @@
                         {% if page_type == 'scraping' %}Scrapping Data Management &amp; Filtering
                         {% elif page_type == 'sheet' %}Summary &amp; Reports
                         {% elif page_type == 'social' %}Social Media Accounts Management
-                        {% elif page_type == 'investment' %}BS Investment Scam — Data View
+                        {% elif page_type == 'investment' %}ASM Data
                         {% elif page_type == 'insights' %}BS Investment Scam — Insights &amp; Analytics
                         {% else %}Dashboard{% endif %}
                     </p>
@@ -2065,7 +2065,7 @@
                     <option value="social" {% if page_type == 'social' %}selected{% endif %}>Social Media Accounts</option>
                     {% endif %}
                     {% if 'investment' in allowed_pages %}
-                    <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>Investment Scam Data</option>
+                    <option value="investment" {% if page_type == 'investment' %}selected{% endif %}>ASM Data</option>
                     {% endif %}
                     {% if 'website_directory' in allowed_pages %}
                     <option value="website_directory" {% if page_type == 'website_directory' %}selected{% endif %}>Website Directory</option>
@@ -2590,7 +2590,7 @@
                         </div>
                             <div id="summaryTableWrapper" style="display:block;width:100%;">
                                 <div id="summaryTableHeader" style="display:none;background:#5c6bc0;color:white;text-align:center;padding:10px 16px;font-size:14px;font-weight:700;letter-spacing:0.3px;border-radius:6px 6px 0 0;">
-                                    Scam++ Category Wise Summary - <span id="summaryTableHeaderDate"></span>
+                                    Scam++ Wise Summary - <span id="summaryTableHeaderDate"></span>
                                 </div>
                                 <div class="summary-table-wrap" style="border-radius:0 0 6px 6px;">
                                 <table class="summary-table" id="summaryResultTable">
@@ -2814,7 +2814,7 @@
             <div class="page-content investment-page {% if page_type == 'investment' %}active{% endif %}">
                 <div class="filters">
                     <div class="filters-header">
-                        <h2 style="font-size:11px;color:#2c3e50;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Scam++ — Filter Data</h2>
+                        <h2 style="font-size:11px;color:#2c3e50;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Anti Scam Monitoring — Filter Data</h2>
                         <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
                             <span id="invLastDateBadge" style="display:none;align-items:center;gap:4px;background:#fff3e0;border:1px solid #ffcc80;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:600;color:#e65100;">
                                 <i class="fas fa-calendar-check"></i>
@@ -4760,11 +4760,11 @@
                     html += '<div class="tracker-details"><h3><i class="fas a-building"></i> Active Accounts by Platform &amp; Department</h3>';
                     const DEPT_COLORS = {
                         'AML':             'background:#e8f5e9;color:#1b5e20;border-color:#81c784;',
-                        'Investment Scam': 'background:#fff3e0;color:#e65100;border-color:#ffb74d;',
+                        'Anti Scam Monitoring': 'background:#fff3e0;color:#e65100;border-color:#ffb74d;',
                         'ITC':             'background:#e3f2fd;color:#0d47a1;border-color:#64b5f6;',
                         'Infringement':    'background:#f3e5f5;color:#4a148c;border-color:#ce93d8;',
-                        'Chargeback':      'background:#fce4ec;color:#880e4f;border-color:#f48fb1;',
                         'Unknown':         'background:#f5f5f5;color:#616161;border-color:#bdbdbd;',
+                        'Merchant Onboarding': 'background:#e0f7fa;color:#00838f;border-color:#80d8d8;',
                     };
                     platforms.forEach(p => {
                         const statusData = stats.platform_status_counts[p] || {};
@@ -4977,10 +4977,14 @@
                     if (result.status !== 'done') throw new Error(result.message || 'AML did not confirm the import. Check AML before retrying.');
                     waitEl.style.display = 'none';
                     readyEl.style.display = 'flex';
-                    readyEl.querySelector('span').textContent = `AML confirmed import of ${result.rows || data.rows || 0} rows.`;
+                    const rowCount = result.rows || data.rows || 0;
+                    const completionMessage = result.message === 'AML confirmed the CSV import.'
+                        ? `AML confirmed import of ${rowCount} rows.`
+                        : `${result.message || 'AML import submitted.'} (${rowCount} rows)`;
+                    readyEl.querySelector('span').textContent = completionMessage;
                     statusCard.classList.add('is-done');
                     statusCard.classList.remove('is-running', 'is-error');
-                    showToast(`AML import confirmed: ${result.rows || data.rows || 0} rows`, false, true);
+                    showToast(completionMessage, false, true);
                 } catch (error) {
                     readyEl.style.display = 'none';
                     waitEl.style.display = 'flex';
@@ -6260,7 +6264,7 @@
                     const yyyy = today.getFullYear();
                     dateStr = `${dd}-${mm}-${yyyy}`;
                 }
-                document.getElementById('summaryPreviewTitle').textContent = `Scam++ Category Wise Summary - ${dateStr}`;
+                document.getElementById('summaryPreviewTitle').textContent = `Anti Scam Monitoring Category Wise Summary - ${dateStr}`;
                 document.getElementById('summaryPreviewSection').classList.add('category-summary-preview');
                 const thead = document.getElementById('summaryResultHead');
                 const tbody = document.getElementById('summaryResultBody');
@@ -6272,7 +6276,7 @@
                 const hr = document.createElement('tr');
                 hr.style.backgroundColor = '#e1bee7';
                 hr.innerHTML = `
-                    <th colspan="5" style="font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:8px 10px;font-size:14px;white-space:nowrap;background:#b3d4f5;">Scam++ Category Wise Summary - ${dateStr}</th>
+                    <th colspan="5" style="font-weight:700;color:#042c53;text-align:center;border:1px solid #7ab8e8;padding:8px 10px;font-size:14px;white-space:nowrap;background:#b3d4f5;">Anti Scam Monitoring Category Wise Summary - ${dateStr}</th>
                 `;
                 thead.appendChild(hr);
                 // Column headers
@@ -6427,7 +6431,7 @@
             function renderUsersSummaryTable(userData, users, dateStr) {
                 const section = document.getElementById('summaryPreviewSection');
                 section.classList.remove('category-summary-preview');
-                document.getElementById('summaryPreviewTitle').textContent = `Scam++ Summary - ${dateStr}`;
+                document.getElementById('summaryPreviewTitle').textContent = `Anti Scam Monitoring Summary - ${dateStr}`;
                 const thead = document.getElementById('summaryResultHead');
                 const tbody = document.getElementById('summaryResultBody');
                 thead.innerHTML = ''; tbody.innerHTML = '';
@@ -6435,7 +6439,7 @@
                 const tdS = `text-align:center;border:1px solid #b3d9f7;padding:5px 10px;font-size:12px;background:#f7fbff;`;
                 const tdNameS = `font-weight:600;color:#042c53;text-align:left;border:1px solid #7ab8e8;padding:5px 10px;font-size:12px;background:#f0faff;white-space:nowrap;`;
                 const titleRow = document.createElement('tr');
-                titleRow.innerHTML = `<th colspan="10" style="${thS}font-size:14px;background:#b3d4f5;">Scam++ Summary - ${dateStr}</th>`;
+                titleRow.innerHTML = `<th colspan="10" style="${thS}font-size:14px;background:#b3d4f5;">Anti Scam Monitoring Summary - ${dateStr}</th>`;
                 thead.appendChild(titleRow);
                 const hr1 = document.createElement('tr');
                 hr1.innerHTML = `
@@ -7844,7 +7848,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     const titleCols = allPlatforms.length + 4; // name + platforms + total + unique + pct
                     thead.innerHTML = `
                         <tr><th colspan="${titleCols}" style="${thS}font-size:13px;background:${BG_HEAD};">
-                            Scam++ User Wise Scrapping Summary - ${dateStr}
+                            Anti Scam Monitoring User Wise Scrapping Summary - ${dateStr}
                         </th></tr>
                         <tr>
                             <th style="${thS}">User Name</th>
@@ -7973,7 +7977,7 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                     const tdLbl = `font-weight:600;color:${CLR_TXT};text-align:left;border:1px solid #b3d9f7;padding:5px 8px;font-size:11px;background:#f0faff;white-space:nowrap;`;
 
                     const totalCols = 1 + sortedScamTypes.length + WS_COLS.length;
-                    const titleLabel = `Scam++ SM & Website Searching Summary - ${dateStr}`;
+                    const titleLabel = `Anti Scam Monitoring SM & Website Searching Summary - ${dateStr}`;
 
                     const thead = document.getElementById('scrapSummaryThead');
                     const tbody = document.getElementById('scrapSummaryTbody');
@@ -8281,10 +8285,10 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) hide
                             style="padding:7px 12px;border:1.5px solid #10b981;border-radius:6px;font-size:13px;font-weight:600;background:white;color:#065f46;cursor:pointer;min-width:180px;outline:none;">
                             <option value="">-- Select Department --</option>
                             <option value="AML">AML</option>
-                            <option value="Investment Scam">Investment Scam</option>
+                            <option value="Anti Scam Monitoring">Anti Scam Monitoring</option>
                             <option value="ITC">ITC</option>
                             <option value="Infringement">Infringement</option>
-                            <option value="Chargeback">Chargeback</option>
+                            <option value="Merchant Onboarding">Merchant Onboarding</option>
                         </select>
                     </div>
                     <div id="insertFormArea" style="padding:16px 20px;overflow-y:auto;flex-grow:1;">

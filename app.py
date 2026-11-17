@@ -2062,11 +2062,15 @@ def _run_sheet_gui_import_job(job_id, csv_bytes, filename, creds):
             current_job = SHEET_GUI_IMPORT_JOBS.get(job_id, {})
             current_stage = current_job.get("stage")
         if current_stage == "waiting_for_confirmation":
+            # AML can finish processing the CSV without rendering a detectable
+            # confirmation message. The submit action has already completed, so
+            # report the import as submitted instead of leaving Sheet Maker in
+            # an indefinite-looking state and showing a false failure.
             _update_sheet_gui_import_job(
                 job_id,
-                stage="unconfirmed",
-                status="unconfirmed",
-                message="AML did not show an import confirmation. Check AML before retrying to avoid a duplicate import.",
+                stage="completed",
+                status="done",
+                message="AML import was submitted, but AML did not show a confirmation message. Verify the records in AML before retrying.",
             )
         else:
             message = f"AML GUI import timed out during {str(current_stage or 'startup').replace('_', ' ')}."
@@ -8493,7 +8497,7 @@ ALLOWED_PAGES_OPTIONS = [
     ("scraping",          "Data Scraping"),
     ("sheet",             "Summary & Reports"),
     ("social",            "Social Media Accounts"),
-    ("investment",        "Investment Scam Data"),
+    ("investment",        "ASM Data"),
     ("qc",                "QC Review"),
     ("website_directory", "Website Directory"),
     ("allotment",         "Case Assignment"),

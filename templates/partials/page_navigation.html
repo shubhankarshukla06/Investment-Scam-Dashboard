@@ -1,7 +1,7 @@
 <div class="secondary-page-nav" aria-label="Page navigation">
   {% if 'scraping' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'scraping' %} active{% endif %}" onclick="location.href='/?page=scraping'">Data Scraping</button>{% endif %}
   {% if 'social' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'social' %} active{% endif %}" onclick="location.href='/?page=social'">Social Media Accounts</button>{% endif %}
-  {% if 'investment' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'investment' %} active{% endif %}" onclick="location.href='/?page=investment'">Investment Scam Data</button>{% endif %}
+  {% if 'investment' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'investment' %} active{% endif %}" onclick="location.href='/?page=investment'">ASM Data</button>{% endif %}
   {% if 'website_directory' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'website_directory' %} active{% endif %}" onclick="location.href='/website-directory'">Website Directory</button>{% endif %}
   {% if 'allotment' in allowed_pages or 'allotment_admin' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'allotment' %} active{% endif %}" onclick="location.href='/scam-website-allotment'">Case Assignment</button>{% endif %}
   {% if 'sheet' in allowed_pages %}<button type="button" class="page-nav-btn{% if current_page == 'sheet' %} active{% endif %}" onclick="location.href='/?page=sheet'">Summary &amp; Reports</button>{% endif %}
