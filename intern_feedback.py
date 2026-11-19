@@ -11,6 +11,7 @@ from supabase import create_client, ClientOptions
 
 intern_feedback_bp = Blueprint("intern_feedback", __name__)
 EXCESS_BREAK_MINUTES = 30
+SM_SEARCH_FOR_VALUES = {"telegram", "whatsapp", "facebook", "instagram", "youtube", "x", "twitter", "thread", "threads", "snapchat", "tiktok", "linkedin", "pinterest", "reddit"}
 
 
 def _client():
@@ -73,37 +74,49 @@ def _report_payload(start, end):
     # The page needs both live source tables; fetch them at the same time and
     # restrict Investment Data rows at the source to intern-tagged records.
     with ThreadPoolExecutor(max_workers=2) as pool:
-        cases_job = pool.submit(_rows, "BS_Investment_Scam", "input_user,inserted_date", start, end, "inserted_date", ilike=[("input_user", "INT%")])
+        cases_job = pool.submit(_rows, "BS_Investment_Scam", "input_user,inserted_date,search_for", start, end, "inserted_date", ilike=[("input_user", "INT%")])
         breaks_job = pool.submit(_rows, "lunch_breaks", "employee_name,date,lunch_start,lunch_end", start, end, "date")
         cases = cases_job.result()
         breaks = breaks_job.result()
-    counts, daily_counts = {}, {}
+    counts, daily_counts, daily_categories = {}, {}, {}
     for row in cases:
         name = _intern_name(row.get("input_user"))
         day = str(row.get("inserted_date") or "")[:10]
         if name and day:
             counts[name] = counts.get(name, 0) + 1
             daily_counts.setdefault(name, {})[day] = daily_counts.setdefault(name, {}).get(day, 0) + 1
+            search_for = str(row.get("search_for") or "").strip().lower()
+            category = "SM" if search_for in SM_SEARCH_FOR_VALUES else ("Web" if search_for == "web" else "App" if search_for == "app" else None)
+            if category:
+                day_categories = daily_categories.setdefault(name, {}).setdefault(day, {"SM": 0, "Web": 0, "App": 0})
+                day_categories[category] += 1
     # Use only actual intern-attributed Investment Data for team membership;
     # the existing GUI's user-role field does not distinguish interns.
     interns = sorted(counts)
     import re
     intern_keys = {re.sub(r"[^a-z0-9]", "", name.lower()) for name in interns}
     intern_breaks = [b for b in breaks if re.sub(r"[^a-z0-9]", "", str(b.get("employee_name") or "").lower()) in intern_keys]
-    work_dates = [start + timedelta(days=n) for n in range((end-start).days + 1) if (start + timedelta(days=n)).weekday() < 5]
+    # Interns' working week is Monday through Saturday; Sunday is excluded.
+    work_dates = [start + timedelta(days=n) for n in range((end-start).days + 1) if (start + timedelta(days=n)).weekday() < 6]
     workdays = len(work_dates)
     items = []
     for name in interns:
         by_date = {d.isoformat(): daily_counts.get(name, {}).get(d.isoformat(), 0) for d in work_dates}
+        category_by_date = {d.isoformat(): daily_categories.get(name, {}).get(d.isoformat(), {"SM": 0, "Web": 0, "App": 0}) for d in work_dates}
         n = sum(by_date.values())
         intern_lunch = [b for b in intern_breaks if re.sub(r"[^a-z0-9]", "", str(b.get("employee_name") or "").lower()) == re.sub(r"[^a-z0-9]", "", name.lower())]
         intern_lunch = [{**b, "duration_minutes": _break_duration_minutes(b)} for b in intern_lunch]
         excess_breaks = [b for b in intern_lunch if b["duration_minutes"] is not None and b["duration_minutes"] > EXCESS_BREAK_MINUTES]
         excess_dates = sorted({str(b.get("date") or "") for b in excess_breaks if b.get("date")})
         excess_minutes = sum(b["duration_minutes"] - EXCESS_BREAK_MINUTES for b in excess_breaks)
+        highest_day = max(by_date, key=by_date.get, default=None)
+        lowest_day = min((d for d, v in by_date.items() if v > 0), key=by_date.get, default=None)
         items.append({"name": name, "cases": n, "days": sum(v > 0 for v in by_date.values()), "average": round(n / workdays, 2) if workdays else 0,
+                      "average_pct": int(round((n / workdays) / max(by_date.values(), default=0) * 100)) if workdays and max(by_date.values(), default=0) else 0,
                       "consistency": round(sum(v > 0 for v in by_date.values()) / workdays * 100, 1) if workdays else 0,
                       "highest": max(by_date.values(), default=0), "lowest": min((v for v in by_date.values() if v > 0), default=0),
+                      "highest_breakdown": category_by_date.get(highest_day, {"SM": 0, "Web": 0, "App": 0}),
+                      "lowest_breakdown": category_by_date.get(lowest_day, {"SM": 0, "Web": 0, "App": 0}),
                       "daily_rows": [{"date": d, "cases": v} for d, v in by_date.items()],
                       "feedback": {}, "excess_breaks": excess_breaks,
                       "excess_days": len(excess_dates), "excess_minutes": excess_minutes,

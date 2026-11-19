@@ -78,9 +78,7 @@ def get_auth_supabase():
     key = os.environ.get("SUPABASE_KEY")
     return create_client(url, key, options=_SUPABASE_CLIENT_OPTS)
 
-
 _dashboard_management_supabase = None
-
 
 def get_dashboard_management_supabase():
     """Reuse a pooled client for the frequently opened users table."""
@@ -2535,9 +2533,10 @@ def parse_raw_file():
 # AML Case Desk serves its login and case export through HTTPS JSON endpoints.
 AML_GUI_BASE_URL = "https://aml-gui-v1.mfilterit.net/"
 AML_DATALIST_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "reports/generate")
-AML_API_LOGIN_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/auth/login")
-AML_API_CAPTCHA_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/auth/captcha")
-AML_API_CASE_EXPORT_URL = urllib.parse.urljoin(AML_GUI_BASE_URL, "api/cases/export")
+AML_API_BASE_URL = "https://aml-backend.mfilterit.net/"
+AML_API_LOGIN_URL = urllib.parse.urljoin(AML_API_BASE_URL, "api/auth/login")
+AML_API_CAPTCHA_URL = urllib.parse.urljoin(AML_API_BASE_URL, "api/auth/captcha")
+AML_API_CASE_EXPORT_URL = urllib.parse.urljoin(AML_API_BASE_URL, "api/cases/export")
 # Match the choices previously made in the AML Summary GUI: Status option 2
 # and Feature Type option 3 (the first option in each list is "All").
 AML_SUMMARY_STATUS_FILTER = "Approve"
@@ -2868,7 +2867,7 @@ def _read_aml_export_response(response):
 
 
 def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, deadline=None):
-    """Fetch AML case data over HTTPS without starting a browser."""
+    """Use the shared AML browser login, then fetch the filtered export over HTTPS."""
 
     def report(stage, message, **fields):
         if progress:
@@ -2878,14 +2877,30 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
         if deadline is not None and time.monotonic() >= deadline:
             raise RuntimeError("AML GUI export exceeded the server time limit")
 
+    driver = None
+    session_obj = None
     try:
         ensure_before_deadline()
         report("connecting_aml", "Connecting securely to AML.")
-        session_obj = aml_login_requests(
+        driver = aml_build_driver(headless=True)
+        if not aml_login(
+            driver,
             max_captcha_attempts=7,
             creds=creds,
             progress=progress,
-        )
+            deadline=deadline,
+        ):
+            raise RuntimeError("AML login failed after CAPTCHA retries.")
+        access_token = driver.execute_script("return window.localStorage.getItem('aml_token') || '';")
+        if not access_token:
+            raise RuntimeError("AML browser login succeeded but no API access token was available.")
+        session_obj = requests.Session()
+        session_obj.headers.update({
+            "User-Agent": AML_GUI_UA,
+            "Referer": AML_LOGIN_URL,
+            "Accept": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        })
         ensure_before_deadline()
         report("requesting_export", "Requesting the filtered AML export.")
         response = session_obj.get(
@@ -2911,8 +2926,13 @@ def _download_aml_datalist_csv(date_from, date_to, creds=None, progress=None, de
         )
         return headers, rows, total_rows
     finally:
-        if "session_obj" in locals():
+        if session_obj is not None:
             session_obj.close()
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
 def _extract_attrs(tag_text):
     attrs = {}
@@ -3772,6 +3792,37 @@ def _run_case_report_job(job_id):
         shutil.rmtree(temp_dir, ignore_errors=True)
 
 
+@app.route("/api/case-report-assets", methods=["POST"])
+@summary_api_login_required
+def case_report_asset_names():
+    """Return screenshot basenames referenced by an Only Generate workbook."""
+    try:
+        excel_file = request.files.get("excel")
+        if not excel_file or not excel_file.filename:
+            return jsonify(success=False, error="Upload an Excel workbook."), 400
+        if os.path.splitext(excel_file.filename)[1].lower() not in (".xlsx", ".xls", ".xlsm"):
+            return jsonify(success=False, error="Upload an .xlsx, .xls, or .xlsm workbook."), 400
+        dataframe = pd.read_excel(excel_file, dtype=object)
+        screenshot_indexes = [
+            index for index, name in enumerate(dataframe.columns)
+            if "screenshotpath" in re.sub(r"[^a-z0-9]", "", str(name).casefold())
+            or "sspath" in re.sub(r"[^a-z0-9]", "", str(name).casefold())
+        ]
+        if not screenshot_indexes:
+            return jsonify(success=False, error="Add at least one Screenshot_Path_* or SS_Path_* column."), 400
+        names = set()
+        for _, row in dataframe.iterrows():
+            for index in screenshot_indexes:
+                reference = _case_report_cell_text(row.iloc[index])
+                if reference:
+                    basename = re.split(r"[\\/]", reference)[-1].strip()
+                    if basename:
+                        names.add(basename)
+        return jsonify(success=True, filenames=sorted(names, key=str.casefold))
+    except Exception as exc:
+        return jsonify(success=False, error=f"Could not read screenshot paths: {type(exc).__name__}: {exc}"), 400
+
+
 @app.route("/api/case-report-jobs", methods=["POST"])
 @summary_api_login_required
 def create_case_report_job():
@@ -3910,7 +3961,7 @@ def download_case_report_output(job_id):
                 for index in screenshot_indexes
                 if 0 <= index < len(dataframe.columns)
             ]
-            dataframe = dataframe.drop(columns=screenshot_columns, errors="ignore")
+            dataframe = dataframe.drop(columns=screenshot_columns + ["Description"], errors="ignore")
     output = io.BytesIO()
     dataframe.to_excel(output, index=False, sheet_name="Case Reports")
     output.seek(0)
@@ -9277,7 +9328,6 @@ def qc_gui_users():
                     allowed_pages = [p.strip() for p in allowed_pages.split(",") if p.strip()]
             if "qc" in (allowed_pages or []):
                 names.add(get_clean_display_name(display_name))
-
         names = sorted(names)
         return jsonify({"success": True, "users": [{"display_name": name} for name in names]})
     except Exception as e:
@@ -9447,7 +9497,6 @@ def qc_gui_export():
             elif qc_status == "rejected":
                 q = q.eq("qc_status", False)
             return q
-
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         return _stream_supabase_csv(_build_qc_query, "id", f"gui_qc_{ts}.csv")
     except Exception as e:
@@ -9668,7 +9717,6 @@ def qc_gui_tracker_stats():
         })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 
 # ============================================================
 

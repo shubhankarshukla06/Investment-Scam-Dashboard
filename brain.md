@@ -20,6 +20,7 @@
 - `Dockerfile` — container build/runtime; Python 3.11 slim + gunicorn on port 8080.
 - `excel_data/` — local Excel reference/mapping data such as `bank_name.xlsx` and `ifsc_mapping.xlsx`.
 - `install_chrome.py` — standalone Chrome for Testing installer for Render; no in-repository caller was found. Render dashboard build settings may invoke it externally.
+- `intern_feedback.py` — active Flask blueprint for the Intern Feedback Report; imported and registered by `app.py`.
 - `migrate_block_status.py` — manually run, idempotent one-time Supabase data migration: social status `Block` → `Temporarily Block`; no in-repository caller was found.
 - `Procfile` — Render/Heroku web command: gunicorn bound to `$PORT`.
 - `requirements.txt` — Python dependencies.
@@ -27,6 +28,7 @@
 - `sheet_mapping_config.json` — sheet conversion mappings for `upi` and `investment` output formats.
 - `static/` — static assets; currently contains image asset(s).
 - `templates/` — standalone Jinja templates for dashboard modules/pages.
+- `templates/intern_feedback.html` and `templates/intern_feedback_report.html` — Intern Feedback overview and individual intern report pages.
 - `uploads/` — upload staging directory; empty at the time of this audit.
 - `utils/` — currently empty in this working tree; the tracked AWS/PDF helper files are marked deleted.
 
@@ -198,6 +200,15 @@
 - Data: `lunch_breaks`.
 - Behavior: access requires `lunch` in `allowed_pages`; users can fill lunch entries for others; current user's own lunch records are hidden; duration is calculated from start/end times.
 - Quirk: main dashboard redirect checks `lunch_break`, not `lunch`.
+
+### Intern Feedback Report
+
+- Implementation: `intern_feedback.py` defines `intern_feedback_bp`, which `app.py` imports and registers.
+- Routes: `/intern-feedback` renders the date-filtered overview; `/intern-feedback/report/<name>` renders one intern's report; `/intern-feedback/team.xlsx` exports the team summary.
+- Data: reads `BS_Investment_Scam` rows whose `input_user` starts with `INT` and matching employee rows from `lunch_breaks`.
+- Behavior: reports intern-attributed case volume/activity and lunch breaks exceeding 30 minutes; team Excel export requires admin/superadmin, and page/report access requires the `intern_feedback` permission in `allowed_pages`.
+- Templates/navigation: `templates/intern_feedback.html`, `templates/intern_feedback_report.html`, and links/options in the shared page navigation and dashboard selectors.
+- Retention: active feature, not an unused standalone file. Remove it only if the Intern Feedback Report feature is intentionally retired, including its blueprint registration and navigation/template references.
 
 ### Dashboard Management
 

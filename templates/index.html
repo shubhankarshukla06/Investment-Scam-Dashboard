@@ -2398,6 +2398,11 @@
                                     <div id="crOnlyPanel" style="border:1px solid #e2e8f0;border-radius:7px;padding:9px;margin-bottom:8px;">
                                         <label for="crOnlyExcel" style="font-size:11px;font-weight:700;">Excel file (SS_Path_1 or Screenshot_Path, Title, Description)</label>
                                         <input id="crOnlyExcel" type="file" accept=".xlsx,.xls,.xlsm" style="display:block;margin-top:5px;font-size:11px;">
+                                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px;">
+                                            <div><label for="crOnlyAssets1" style="font-size:11px;font-weight:700;">Screenshot folder 1</label><input id="crOnlyAssets1" type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff" webkitdirectory directory multiple style="display:block;width:100%;margin-top:4px;font-size:10px;"></div>
+                                            <div><label for="crOnlyAssets2" style="font-size:11px;font-weight:700;">Screenshot folder 2</label><input id="crOnlyAssets2" type="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.tif,.tiff" webkitdirectory directory multiple style="display:block;width:100%;margin-top:4px;font-size:10px;"></div>
+                                        </div>
+                                        <div style="margin-top:4px;font-size:10px;color:#64748b;">Choose screenshot folders. Only images whose filenames appear in the Excel path columns will be uploaded.</div>
                                     </div>
                                     <div id="crExtractPanel" style="display:none;border:1px solid #e2e8f0;border-radius:7px;padding:9px;margin-bottom:8px;">
                                         <label for="crExtractExcel" style="font-size:11px;font-weight:700;">Excel file (PDF_Path, Website_URL)</label>
@@ -3791,6 +3796,7 @@
                         const reportBtn=document.getElementById('qcReportDownload'); if(reportBtn) reportBtn.disabled=false;
                         document.getElementById('qcStopBtn').disabled=true;
                         document.getElementById('qcStopBtn').textContent='Stop QC';
+                        if(j.status==='done') alert(`QC process completed. Successful: ${j.succeeded||0}, failed: ${j.failed||0}.`);
                         return;
                     }
                 } catch(e) { document.getElementById('qcStartBtn').disabled=false; document.getElementById('qcStopBtn').disabled=true; alert(e.message); return; }
@@ -3836,6 +3842,20 @@
                 document.getElementById('crProgressCount').textContent='0/0';
                 document.getElementById('crProgressText').textContent='Preparing…';
                 try {
+                    if(!extract) {
+                        const lookupData=new FormData(); lookupData.append('excel',excel);
+                        const lookupResponse=await fetch('/api/case-report-assets',{method:'POST',body:lookupData});
+                        const lookup=await lookupResponse.json();
+                        if(!lookupResponse.ok || !lookup.success) throw new Error(lookup.error||'Could not read screenshot paths from the workbook.');
+                        const requiredNames=new Set((lookup.filenames||[]).map(name=>String(name).toLocaleLowerCase()));
+                        let matched=0;
+                        for(const inputId of ['crOnlyAssets1','crOnlyAssets2']) {
+                            for(const asset of document.getElementById(inputId).files) {
+                                if(requiredNames.has(asset.name.toLocaleLowerCase())) { data.append('assets',asset); matched++; }
+                            }
+                        }
+                        caseReportLog(`Matched ${matched} selected screenshot file(s) to Excel paths; unrelated folder files skipped.`);
+                    }
                     const response=await fetch('/api/case-report-jobs',{method:'POST',body:data}); const job=await response.json();
                     if(!response.ok || !job.success) throw new Error(job.error||'Could not start report generation.');
                     caseReportJobId=job.job_id;
@@ -3889,6 +3909,7 @@
                         document.getElementById('crStopBtn').disabled=true; document.getElementById('crStopBtn').textContent='Stop';
                         document.getElementById('crDownloadBtn').disabled=false;
                         setCaseReportDownloadReady(true);
+                        if(job.status==='done') alert(`Case report process completed. Successful: ${job.succeeded||0}, failed: ${job.failed||0}.`);
                         return;
                     }
                 } catch(error) { document.getElementById('crStartBtn').disabled=false; document.getElementById('crStopBtn').disabled=true; alert(error.message); return; }
